@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
 import AuthLayout from './AuthLayout';
 
 const VerifyPhone: React.FC = () => {
@@ -15,28 +14,22 @@ const VerifyPhone: React.FC = () => {
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) throw new Error('No user found');
-
-      // Verify the phone number with the code
-      const { error: verificationError } = await supabase.functions.invoke('verify-phone', {
-        body: { code, phone: user.phone }
-      });
-
-      if (verificationError) throw verificationError;
-
-      // Update the user's profile
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ phone_verified: true })
-        .eq('id', user.id);
-
-      if (updateError) throw updateError;
-
-      navigate('/dashboard');
+      // Mock phone verification - replace with actual service later
+      if (code && code.length === 6) {
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Mock successful verification
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        user.phone_verified = true;
+        localStorage.setItem('user', JSON.stringify(user));
+        
+        navigate('/dashboard');
+      } else {
+        throw new Error('Please enter a valid 6-digit verification code');
+      }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Verification failed');
     } finally {
       setLoading(false);
     }
@@ -44,19 +37,11 @@ const VerifyPhone: React.FC = () => {
 
   const resendCode = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) throw new Error('No user found');
-
-      const { error } = await supabase.functions.invoke('send-verification-code', {
-        body: { phone: user.phone }
-      });
-
-      if (error) throw error;
-
+      // Mock resend code - replace with actual service later
+      await new Promise(resolve => setTimeout(resolve, 500));
       alert('Verification code has been resent');
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Failed to resend code');
     }
   };
 
@@ -85,6 +70,7 @@ const VerifyPhone: React.FC = () => {
             onChange={(e) => setCode(e.target.value)}
             className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
             placeholder="Enter 6-digit code"
+            maxLength={6}
           />
         </div>
 

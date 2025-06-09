@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
 import AuthLayout from './AuthLayout';
 import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 
@@ -52,42 +51,27 @@ const RegisterForm: React.FC = () => {
     setLoading(true);
 
     try {
-      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        phone: formattedPhone,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: {
-            phone: formattedPhone,
-            phone_verified: false,
-            membership_status: 'free'
-          }
-        }
-      });
-
-      if (signUpError) throw signUpError;
-
-      if (user) {
-        // Insert user profile data
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: user.id,
-              email,
-              phone: formattedPhone,
-              phone_verified: false,
-              membership_status: 'free'
-            }
-          ]);
-
-        if (profileError) throw profileError;
+      // Mock registration - replace with actual auth service later
+      if (email && password && formattedPhone) {
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Mock successful registration
+        const user = {
+          id: Date.now().toString(),
+          email,
+          phone: formattedPhone,
+          phone_verified: false,
+          membership_status: 'free'
+        };
+        
+        localStorage.setItem('user', JSON.stringify(user));
+        navigate('/verify-phone');
+      } else {
+        throw new Error('Please fill in all required fields');
       }
-
-      navigate('/verify-phone');
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Registration failed');
     } finally {
       setLoading(false);
     }

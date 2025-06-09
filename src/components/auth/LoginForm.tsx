@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
 import AuthLayout from './AuthLayout';
 
 const LoginForm: React.FC = () => {
@@ -16,15 +15,19 @@ const LoginForm: React.FC = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-      navigate('/dashboard');
+      // Mock authentication - replace with actual auth service later
+      if (email && password) {
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Mock successful login
+        localStorage.setItem('user', JSON.stringify({ email, id: '1' }));
+        navigate('/dashboard');
+      } else {
+        throw new Error('Please enter both email and password');
+      }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Login failed');
     } finally {
       setLoading(false);
     }

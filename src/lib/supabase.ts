@@ -1,10 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase environment variables. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env file.');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Placeholder file - Supabase removed
+// This file can be used for future backend integration
+export const mockApi = {
+  // Future API integration can be added here
+};

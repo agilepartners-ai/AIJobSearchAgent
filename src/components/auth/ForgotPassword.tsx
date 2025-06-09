@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { supabase } from '../../lib/supabase';
 import AuthLayout from './AuthLayout';
 
 const ForgotPassword: React.FC = () => {
@@ -15,14 +14,16 @@ const ForgotPassword: React.FC = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) throw error;
-      setSuccess(true);
+      // Mock password reset - replace with actual service later
+      if (email) {
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setSuccess(true);
+      } else {
+        throw new Error('Please enter your email address');
+      }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Password reset failed');
     } finally {
       setLoading(false);
     }
