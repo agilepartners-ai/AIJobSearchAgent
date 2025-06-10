@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AuthService } from '../../services/authService';
 import AuthLayout from './AuthLayout';
 import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 
@@ -13,6 +14,7 @@ const RegisterForm: React.FC = () => {
   const navigate = useNavigate();
 
   const validatePhone = (phoneNumber: string) => {
+    if (!phoneNumber) return true; // Phone is optional
     try {
       // Add default country code if not provided
       const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+1${phoneNumber}`;
@@ -23,6 +25,7 @@ const RegisterForm: React.FC = () => {
   };
 
   const formatPhoneNumber = (phoneNumber: string) => {
+    if (!phoneNumber) return '';
     try {
       // Add default country code if not provided
       const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+1${phoneNumber}`;
@@ -42,36 +45,29 @@ const RegisterForm: React.FC = () => {
       return;
     }
 
-    if (!validatePhone(phone)) {
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
+    if (phone && !validatePhone(phone)) {
       setError('Please enter a valid phone number (e.g., 5869255600 or +15869255600)');
       return;
     }
 
-    const formattedPhone = formatPhoneNumber(phone);
+    const formattedPhone = phone ? formatPhoneNumber(phone) : '';
     setLoading(true);
 
     try {
-      // Mock registration - replace with actual auth service later
-      if (email && password && formattedPhone) {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Mock successful registration
-        const user = {
-          id: Date.now().toString(),
-          email,
-          phone: formattedPhone,
-          phone_verified: false,
-          membership_status: 'free'
-        };
-        
-        localStorage.setItem('user', JSON.stringify(user));
+      await AuthService.signUp(email, password, formattedPhone);
+      
+      if (formattedPhone) {
         navigate('/verify-phone');
       } else {
-        throw new Error('Please fill in all required fields');
+        navigate('/dashboard');
       }
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -106,12 +102,11 @@ const RegisterForm: React.FC = () => {
           </div>
           <div>
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Phone number
+              Phone number (optional)
             </label>
             <input
               id="phone"
               type="tel"
-              required
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="5869255600"
@@ -132,7 +127,11 @@ const RegisterForm: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              minLength={6}
             />
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Password must be at least 6 characters long
+            </p>
           </div>
           <div>
             <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">

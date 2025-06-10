@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AuthService } from '../../services/authService';
 import AuthLayout from './AuthLayout';
 
 const LoginForm: React.FC = () => {
@@ -15,19 +16,10 @@ const LoginForm: React.FC = () => {
     setLoading(true);
 
     try {
-      // Mock authentication - replace with actual auth service later
-      if (email && password) {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Mock successful login
-        localStorage.setItem('user', JSON.stringify({ email, id: '1' }));
-        navigate('/dashboard');
-      } else {
-        throw new Error('Please enter both email and password');
-      }
+      await AuthService.signIn(email, password);
+      navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -58,6 +50,7 @@ const LoginForm: React.FC = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              placeholder="Enter your email"
             />
           </div>
           <div>
@@ -71,6 +64,7 @@ const LoginForm: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              placeholder="Enter your password"
             />
           </div>
         </div>

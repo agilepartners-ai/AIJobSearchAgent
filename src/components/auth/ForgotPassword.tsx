@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AuthService } from '../../services/authService';
 import AuthLayout from './AuthLayout';
 
 const ForgotPassword: React.FC = () => {
@@ -14,16 +15,10 @@ const ForgotPassword: React.FC = () => {
     setLoading(true);
 
     try {
-      // Mock password reset - replace with actual service later
-      if (email) {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setSuccess(true);
-      } else {
-        throw new Error('Please enter your email address');
-      }
+      await AuthService.resetPassword(email);
+      setSuccess(true);
     } catch (err: any) {
-      setError(err.message || 'Password reset failed');
+      setError(err.message);
     } finally {
       setLoading(false);
     }

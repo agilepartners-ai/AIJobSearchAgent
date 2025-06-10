@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
+import { AuthService } from '../../services/authService';
 import AuthLayout from './AuthLayout';
 
 const VerifyPhone: React.FC = () => {
@@ -7,6 +9,7 @@ const VerifyPhone: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -14,22 +17,21 @@ const VerifyPhone: React.FC = () => {
     setLoading(true);
 
     try {
-      // Mock phone verification - replace with actual service later
-      if (code && code.length === 6) {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Mock successful verification
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        user.phone_verified = true;
-        localStorage.setItem('user', JSON.stringify(user));
-        
-        navigate('/dashboard');
-      } else {
-        throw new Error('Please enter a valid 6-digit verification code');
+      if (!user) throw new Error('No user found');
+
+      // For demo purposes, accept any 6-digit code
+      if (code.length !== 6) {
+        throw new Error('Please enter a 6-digit verification code');
       }
+
+      // Update user profile to mark phone as verified
+      await AuthService.updateUserProfile(user.uid, {
+        phone_verified: true
+      });
+
+      navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Verification failed');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -37,11 +39,10 @@ const VerifyPhone: React.FC = () => {
 
   const resendCode = async () => {
     try {
-      // Mock resend code - replace with actual service later
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Simulate resend code
       alert('Verification code has been resent');
     } catch (err: any) {
-      setError(err.message || 'Failed to resend code');
+      setError(err.message);
     }
   };
 
@@ -72,6 +73,9 @@ const VerifyPhone: React.FC = () => {
             placeholder="Enter 6-digit code"
             maxLength={6}
           />
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            For demo purposes, enter any 6-digit code (e.g., 123456)
+          </p>
         </div>
 
         <button

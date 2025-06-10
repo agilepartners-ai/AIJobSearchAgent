@@ -16,6 +16,7 @@ export const JobApplicationSchema = z.object({
   ]),
   application_date: z.string().datetime(),
   last_updated: z.string().datetime(),
+  job_description: z.string().optional(),
   notes: z.string().optional(),
   resume_url: z.string().url().optional(),
   cover_letter_url: z.string().url().optional(),
