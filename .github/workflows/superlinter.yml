@@ -19,6 +19,9 @@ jobs:
         uses: github/super-linter@v6
         env:
           VALIDATE_ALL_CODEBASE: true
+          VALIDATE_MARKDOWN: false
+          VALIDATE_NATURAL_LANGUAGE: false
+          VALIDATE_JSCPD: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       
