@@ -6,6 +6,7 @@ export const JobApplicationSchema = z.object({
   company_name: z.string().min(1),
   position: z.string().min(1),
   status: z.enum([
+    'not_applied',
     'applied',
     'screening',
     'interview',
@@ -16,6 +17,7 @@ export const JobApplicationSchema = z.object({
   ]),
   application_date: z.string().datetime(),
   last_updated: z.string().datetime(),
+  job_posting_url: z.string().url().optional(),
   job_description: z.string().optional(),
   notes: z.string().optional(),
   resume_url: z.string().url().optional(),
@@ -28,6 +30,7 @@ export const JobApplicationSchema = z.object({
 export type JobApplication = z.infer<typeof JobApplicationSchema>;
 
 export const ApplicationStatus = {
+  NOT_APPLIED: 'not_applied',
   APPLIED: 'applied',
   SCREENING: 'screening',
   INTERVIEW: 'interview',

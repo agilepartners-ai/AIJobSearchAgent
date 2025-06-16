@@ -20,6 +20,7 @@ export interface JobApplicationInput {
   position: string;
   status: string;
   application_date: string;
+  job_posting_url?: string;
   job_description?: string;
   notes?: string;
   resume_url?: string;
@@ -72,6 +73,7 @@ export class JobApplicationService {
           last_updated: data.last_updated instanceof Timestamp 
             ? data.last_updated.toDate().toISOString()
             : data.last_updated,
+          job_posting_url: data.job_posting_url,
           job_description: data.job_description,
           notes: data.notes,
           resume_url: data.resume_url,

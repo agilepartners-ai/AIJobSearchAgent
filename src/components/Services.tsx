@@ -23,8 +23,8 @@ const Services: React.FC = () => {
   const services = [
     {
       icon: <Brain size={24} />,
-      title: "Machine Learning Solutions",
-      description: "Custom machine learning models and algorithms tailored to your business needs, helping you extract valuable insights from your data."
+      title: "AI Solution Job Search Agent",
+      description: "Agile Partners delivers end-to-end AI solutions designed to streamline your job search process with exceptional speed and reliability. Our AI-powered services are tailored to optimize your search operations and support sustainable growth, ensuring a seamless and efficient experience throughout your job search journey."
     },
     {
       icon: <ChartBar size={24} />,
@@ -38,7 +38,7 @@ const Services: React.FC = () => {
     },
     {
       icon: <Users size={24} />,
-      title: "AI Consulting",
+      title: "Machine learning application",
       description: "Strategic guidance on how to leverage AI technologies to solve complex business problems and drive innovation."
     },
     {

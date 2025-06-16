@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Services from './components/Services';
-import CaseStudies from './components/CaseStudies';
 import Testimonials from './components/Testimonials';
 import Team from './components/Team';
 import Contact from './components/Contact';
@@ -18,6 +17,9 @@ import { useAuth } from './hooks/useAuth';
 function App() {
   useEffect(() => {
     document.title = 'Agile Partners AI | Intelligent Solutions for Business';
+    
+    // Force dark mode
+    document.documentElement.classList.add('dark');
   }, []);
 
   return (
@@ -36,7 +38,6 @@ function App() {
               <main>
                 <Hero />
                 <Services />
-                <CaseStudies />
                 <Testimonials />
                 <Team />
                 <Contact />

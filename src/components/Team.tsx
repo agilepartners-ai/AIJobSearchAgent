@@ -53,10 +53,10 @@ const TeamMember: React.FC<TeamMemberProps> = ({ image, name, role, bio }) => {
 const Team: React.FC = () => {
   const teamMembers = [
     {
-      image: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-      name: "Dr. Robert Chen",
+      image: "/image copy copy copy copy copy copy copy copy.png",
+      name: "Alex Aggarwal",
       role: "Chief AI Officer",
-      bio: "With over 15 years of experience in AI and machine learning, Robert leads our technical strategy and innovation initiatives."
+      bio: "With over 15 years of experience in AI and machine learning, Alex leads our technical strategy and innovation initiatives."
     },
     {
       image: "https://images.pexels.com/photos/1587009/pexels-photo-1587009.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",

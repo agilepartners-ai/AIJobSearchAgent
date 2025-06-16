@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Edit3, Eye, Download, Calendar, Building, FileText, User, LogOut, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, Edit3, Eye, Download, Calendar, Building, FileText, User, LogOut, Trash2, Link, Upload, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import ApplicationModal from './ApplicationModal';
@@ -84,6 +84,16 @@ const Dashboard: React.FC = () => {
     setShowModal(true);
   };
 
+  const handleImportJobs = () => {
+    // Placeholder function for Import Jobs
+    alert('Import Jobs feature coming soon!');
+  };
+
+  const handleApplyJobs = () => {
+    // Placeholder function for Apply Jobs
+    alert('Apply Jobs feature coming soon!');
+  };
+
   const handleEditApplication = (application: JobApplication) => {
     setEditingApplication(application);
     setShowModal(true);
@@ -128,6 +138,7 @@ const Dashboard: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'not_applied': return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
       case 'applied': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
       case 'screening': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
       case 'interview': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
@@ -137,6 +148,11 @@ const Dashboard: React.FC = () => {
       case 'withdrawn': return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
     }
+  };
+
+  const formatStatusText = (status: string) => {
+    if (status === 'not_applied') return 'Not Applied';
+    return status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ');
   };
 
   if (authLoading) {
@@ -267,20 +283,42 @@ const Dashboard: React.FC = () => {
                   <option value="all">All Status</option>
                   {Object.values(ApplicationStatus).map(status => (
                     <option key={status} value={status}>
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                      {formatStatusText(status)}
                     </option>
                   ))}
                 </select>
               </div>
             </div>
             
-            <button
-              onClick={handleAddApplication}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-all hover:shadow-lg"
-            >
-              <Plus size={20} />
-              Add Application
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={handleImportJobs}
+                disabled={true}
+                className="bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 px-6 py-2 rounded-lg font-medium flex items-center gap-2 cursor-not-allowed opacity-50"
+                title="Import Jobs (Coming Soon)"
+              >
+                <Upload size={20} />
+                Import Jobs
+              </button>
+              
+              <button
+                onClick={handleAddApplication}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-all hover:shadow-lg"
+              >
+                <Plus size={20} />
+                Add Application
+              </button>
+
+              <button
+                onClick={handleApplyJobs}
+                disabled={true}
+                className="bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 px-6 py-2 rounded-lg font-medium flex items-center gap-2 cursor-not-allowed opacity-50"
+                title="Apply Jobs (Coming Soon)"
+              >
+                <Send size={20} />
+                Apply Jobs
+              </button>
+            </div>
           </div>
         </div>
 
@@ -309,6 +347,9 @@ const Dashboard: React.FC = () => {
                       Position
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Job Posting
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Job Description
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -328,7 +369,7 @@ const Dashboard: React.FC = () => {
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {filteredApplications.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                      <td colSpan={10} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                         {applications.length === 0 
                           ? "No applications found. Click 'Add Application' to get started."
                           : "No applications match your search criteria."
@@ -349,6 +390,21 @@ const Dashboard: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                           <div className="max-w-xs truncate">{application.position}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {application.job_posting_url ? (
+                            <a
+                              href={application.job_posting_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                            >
+                              <Link size={16} />
+                              View Posting
+                            </a>
+                          ) : (
+                            <span className="text-gray-400">No URL</span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           {application.job_description ? (
@@ -388,7 +444,7 @@ const Dashboard: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(application.status)}`}>
-                            {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                            {formatStatusText(application.status)}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
