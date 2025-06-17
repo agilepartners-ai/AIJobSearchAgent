@@ -20,20 +20,29 @@ export interface JobApplicationInput {
   position: string;
   status: string;
   application_date: string;
-  job_posting_url?: string;
   job_description?: string;
   notes?: string;
   resume_url?: string;
   cover_letter_url?: string;
   correspondence_urls?: string[];
+  job_url?: string;
+  apply_url?: string;
+  job_location?: string;
+  job_posted_at?: string;
+  employment_type?: string;
+  salary?: string;
 }
 
-export class JobApplicationService {
-  // Add a new job application
+export class JobApplicationService {  // Add a new job application
   static async addApplication(userId: string, applicationData: JobApplicationInput): Promise<string> {
     try {
+      // Filter out undefined values to avoid Firebase errors
+      const cleanedData = Object.fromEntries(
+        Object.entries(applicationData).filter(([_, value]) => value !== undefined)
+      );
+
       const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-        ...applicationData,
+        ...cleanedData,
         user_id: userId,
         application_date: new Date(applicationData.application_date),
         created_at: serverTimestamp(),
@@ -60,8 +69,7 @@ export class JobApplicationService {
       const applications: JobApplication[] = [];
       
       querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        applications.push({
+        const data = doc.data();        applications.push({
           id: doc.id,
           user_id: data.user_id,
           company_name: data.company_name,
@@ -73,12 +81,17 @@ export class JobApplicationService {
           last_updated: data.last_updated instanceof Timestamp 
             ? data.last_updated.toDate().toISOString()
             : data.last_updated,
-          job_posting_url: data.job_posting_url,
           job_description: data.job_description,
           notes: data.notes,
           resume_url: data.resume_url,
           cover_letter_url: data.cover_letter_url,
           correspondence_urls: data.correspondence_urls || [],
+          job_url: data.job_url,
+          apply_url: data.apply_url,
+          job_location: data.job_location,
+          job_posted_at: data.job_posted_at,
+          employment_type: data.employment_type,
+          salary: data.salary,
           created_at: data.created_at instanceof Timestamp 
             ? data.created_at.toDate().toISOString()
             : data.created_at,

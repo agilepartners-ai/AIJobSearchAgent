@@ -33,13 +33,13 @@ const Hero: React.FC = () => {
             Next Generation AI Solutions
           </span>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight animate-slideUp">
-            Unlocking the Power of AI <br />
+            Transforming Business <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-              for Your Job Search
+              With Intelligent AI
             </span>
           </h1>
           <p className="text-xl text-gray-300 mb-8 leading-relaxed animate-slideUp animation-delay-100">
-            Agile Partners leverages cutting-edge AI technology to empower your Job Search with actionable insights and a comprehensive understanding of your operations.
+            We help businesses leverage the power of artificial intelligence to optimize operations, enhance customer experiences, and drive innovation across industries.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 animate-slideUp animation-delay-200">
             <a 

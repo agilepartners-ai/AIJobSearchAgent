@@ -3,8 +3,7 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   sendPasswordResetEmail,
-  User,
-  updateProfile
+  User
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
@@ -17,6 +16,16 @@ export interface UserProfile {
   membership_status: 'free' | 'premium' | 'enterprise';
   created_at: string;
   updated_at: string;
+  // Extended profile fields
+  full_name?: string;
+  location?: string;
+  title?: string;
+  bio?: string;
+  skills?: string;
+  experience_years?: number;
+  resume_url?: string;
+  linkedin_url?: string;
+  portfolio_url?: string;
 }
 
 export class AuthService {

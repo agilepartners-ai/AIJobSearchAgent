@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Building, FileText, User, Link, Sparkles } from 'lucide-react';
 import { JobApplication, ApplicationStatus } from '../../types/jobApplication';
-import { useAuth } from '../../hooks/useAuth';
 import AIEnhancementModal from './AIEnhancementModal';
 
 interface ApplicationModalProps {
@@ -14,7 +13,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, onSave
   const [formData, setFormData] = useState({
     company_name: '',
     position: '',
-    status: 'not_applied' as keyof typeof ApplicationStatus,
+    status: 'not_applied' as string,
     application_date: '',
     job_posting_url: '',
     job_description: '',
@@ -25,14 +24,12 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, onSave
   const [error, setError] = useState('');
   const [showAIModal, setShowAIModal] = useState(false);
 
-  const { user } = useAuth();
-
   useEffect(() => {
     if (application) {
       setFormData({
         company_name: application.company_name,
         position: application.position,
-        status: application.status as keyof typeof ApplicationStatus,
+        status: application.status,
         application_date: application.application_date.split('T')[0],
         job_posting_url: application.job_posting_url || '',
         job_description: application.job_description || '',
@@ -159,10 +156,9 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, onSave
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Status
-                </label>
-                <select
+                </label>                <select
                   value={formData.status}
-                  onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as keyof typeof ApplicationStatus }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 >
                   {Object.values(ApplicationStatus).map(status => (

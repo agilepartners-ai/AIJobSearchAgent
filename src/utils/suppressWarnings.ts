@@ -1,0 +1,38 @@
+// Suppress SES warnings for development
+// These warnings come from dependencies and are safe to ignore in development
+
+// Override console.warn to filter out SES deprecation warnings
+const originalWarn = console.warn;
+const originalError = console.error;
+
+console.warn = (...args: any[]) => {
+  const message = args.join(' ');
+  
+  // Filter out SES deprecation warnings
+  if (message.includes("The 'dateTaming' option is deprecated") ||
+      message.includes("The 'mathTaming' option is deprecated") ||
+      message.includes("SES Removing unpermitted intrinsics") ||
+      message.includes("Removing intrinsics.%DatePrototype%.toTemporalInstant") ||
+      message.includes("React Router Future Flag Warning") ||
+      message.includes("Components object is deprecated")) {
+    return;
+  }
+  
+  // Allow other warnings through
+  originalWarn.apply(console, args);
+};
+
+console.error = (...args: any[]) => {
+  const message = args.join(' ');
+  
+  // Filter out SES-related errors
+  if (message.includes("SES_UNCAUGHT_EXCEPTION") ||
+      message.includes("lockdown-install.js")) {
+    return;
+  }
+  
+  // Allow other errors through
+  originalError.apply(console, args);
+};
+
+export {};
