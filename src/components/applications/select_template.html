@@ -1,0 +1,1178 @@
+{% extends "resume_optimizer/base.html" %}
+{% load static %}
+{% load resume_extras %}
+
+{% block title %}Select Template & Verify Content - Resume Builder Suite{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    <div class="header-section">
+        <h1>📋 Finalize Your Resume</h1>
+        <p style="color: #64748b; font-size: 1.1rem; text-align: center;">
+            Review your parsed information, select a template, and generate your professional PDF
+        </p>
+    </div>
+
+    <form method="post" id="resumeForm" class="resume-form">
+        {% csrf_token %}
+        
+        <!-- Personal Information Section -->
+        <div class="form-section">
+            <div class="section-header" onclick="toggleSection('personal')">
+                <div class="section-title">
+                    <span class="section-icon">👤</span>
+                    <h2>Personal Information</h2>
+                </div>
+                <div class="section-controls">
+                    <span class="section-status">Required</span>
+                    <span class="toggle-icon" id="personal-toggle">−</span>
+                </div>
+            </div>
+            <div class="section-content active" id="personal-content">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="id_name">Full Name*</label>
+                        <input type="text" id="id_name" name="name" value="{{ form.name.value|default:'' }}" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="id_email">Email Address*</label>
+                        <input type="email" id="id_email" name="email" value="{{ form.email.value|default:'' }}" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="id_phone">Phone Number</label>
+                        <input type="text" id="id_phone" name="phone" value="{{ form.phone.value|default:'' }}" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="id_location">Location</label>
+                        <input type="text" id="id_location" name="location" value="{{ form.location.value|default:'' }}" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="id_linkedin">LinkedIn URL</label>
+                        <input type="url" id="id_linkedin" name="linkedin" value="{{ form.linkedin.value|default:'' }}" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="id_website">Personal Website</label>
+                        <input type="url" id="id_website" name="website" value="{{ form.website.value|default:'' }}" class="form-control">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Education Section -->
+        <div class="form-section">
+            <div class="section-header" onclick="toggleSection('education')">
+                <div class="section-title">
+                    <span class="section-icon">🎓</span>
+                    <h2>Education</h2>
+                </div>
+                <div class="section-controls">
+                    <button type="button" class="btn btn-outline btn-small add-btn" id="addEducation">+ Add</button>
+                    <span class="toggle-icon" id="education-toggle">−</span>
+                </div>
+            </div>
+            <div class="section-content active" id="education-content">
+                <div id="educationContainer" class="entries-container">
+                    {% if parsed_resume and parsed_resume.education %}
+                        {% for edu in parsed_resume.education %}
+                            <div class="entry-card education-entry">
+                                <div class="entry-header">
+                                    <h4>Education {{ forloop.counter }}</h4>
+                                    {% if not forloop.first %}
+                                        <button type="button" class="remove-btn">✕</button>
+                                    {% endif %}
+                                </div>
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>School/University*</label>
+                                        <input type="text" name="education_{{ forloop.counter0 }}_school" value="{{ edu.school|default:'' }}" required class="form-control">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Degree*</label>
+                                        <input type="text" name="education_{{ forloop.counter0 }}_degree" value="{{ edu.degree|default:'' }}" required class="form-control">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Field of Study</label>
+                                        <input type="text" name="education_{{ forloop.counter0 }}_field" value="{{ edu.field|default:'' }}" class="form-control">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>GPA</label>
+                                        <input type="text" name="education_{{ forloop.counter0 }}_gpa" value="{{ edu.gpa|default:'' }}" class="form-control">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Start Date</label>
+                                        <input type="text" name="education_{{ forloop.counter0 }}_start_date" value="{{ edu.start_date|default:'' }}" placeholder="YYYY-MM" class="form-control">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>End Date</label>
+                                        <input type="text" name="education_{{ forloop.counter0 }}_end_date" value="{{ edu.end_date|default:'' }}" placeholder="YYYY-MM or Present" class="form-control">
+                                    </div>
+                                    <div class="form-group form-group-full">
+                                        <label>Location</label>
+                                        <input type="text" name="education_{{ forloop.counter0 }}_location" value="{{ edu.location|default:'' }}" class="form-control">
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="entry-card education-entry">
+                            <div class="entry-header">
+                                <h4>Education 1</h4>
+                            </div>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>School/University*</label>
+                                    <input type="text" name="education_0_school" required class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label>Degree*</label>
+                                    <input type="text" name="education_0_degree" required class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label>Field of Study</label>
+                                    <input type="text" name="education_0_field" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label>GPA</label>
+                                    <input type="text" name="education_0_gpa" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label>Start Date</label>
+                                    <input type="text" name="education_0_start_date" placeholder="YYYY-MM" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label>End Date</label>
+                                    <input type="text" name="education_0_end_date" placeholder="YYYY-MM or Present" class="form-control">
+                                </div>
+                                <div class="form-group form-group-full">
+                                    <label>Location</label>
+                                    <input type="text" name="education_0_location" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                <input type="hidden" id="education_count" name="education_count" value="{% if parsed_resume and parsed_resume.education %}{{ parsed_resume.education|length }}{% else %}1{% endif %}">
+            </div>
+        </div>
+
+        <!-- Experience Section -->
+        <div class="form-section">
+            <div class="section-header" onclick="toggleSection('experience')">
+                <div class="section-title">
+                    <span class="section-icon">💼</span>
+                    <h2>Work Experience</h2>
+                </div>
+                <div class="section-controls">
+                    <button type="button" class="btn btn-outline btn-small add-btn" id="addExperience">+ Add</button>
+                    <span class="toggle-icon" id="experience-toggle">−</span>
+                </div>
+            </div>
+            <div class="section-content active" id="experience-content">
+                <div id="experienceContainer" class="entries-container">
+                    {% if parsed_resume and parsed_resume.experience %}
+                        {% for exp in parsed_resume.experience %}
+                            <div class="entry-card experience-entry">
+                                <div class="entry-header">
+                                    <h4>Experience {{ forloop.counter }}</h4>
+                                    {% if not forloop.first %}
+                                        <button type="button" class="remove-btn">✕</button>
+                                    {% endif %}
+                                </div>
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label>Company/Organization*</label>
+                                        <input type="text" name="experience_{{ forloop.counter0 }}_company" value="{{ exp.company|default:'' }}" required class="form-control">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Position*</label>
+                                        <input type="text" name="experience_{{ forloop.counter0 }}_position" value="{{ exp.position|default:'' }}" required class="form-control">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Start Date</label>
+                                        <input type="text" name="experience_{{ forloop.counter0 }}_start_date" value="{{ exp.start_date|default:'' }}" placeholder="YYYY-MM" class="form-control">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>End Date</label>
+                                        <input type="text" name="experience_{{ forloop.counter0 }}_end_date" value="{{ exp.end_date|default:'' }}" placeholder="YYYY-MM or Present" class="form-control">
+                                    </div>
+                                    <div class="form-group form-group-full">
+                                        <label>Location</label>
+                                        <input type="text" name="experience_{{ forloop.counter0 }}_location" value="{{ exp.location|default:'' }}" class="form-control">
+                                    </div>
+                                    <div class="form-group form-group-full">
+                                        <label>Responsibilities & Achievements</label>
+                                        <textarea name="experience_{{ forloop.counter0 }}_highlights" rows="3" placeholder="• Achievement with quantifiable results&#10;• Another key responsibility&#10;• Third major contribution" class="form-control">{% if exp.highlights %}{% for highlight in exp.highlights %}{{ highlight }}&#10;{% endfor %}{% endif %}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="entry-card experience-entry">
+                            <div class="entry-header">
+                                <h4>Experience 1</h4>
+                            </div>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Company/Organization*</label>
+                                    <input type="text" name="experience_0_company" required class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label>Position*</label>
+                                    <input type="text" name="experience_0_position" required class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label>Start Date</label>
+                                    <input type="text" name="experience_0_start_date" placeholder="YYYY-MM" class="form-control">
+                                </div>
+                                <div class="form-group">
+                                    <label>End Date</label>
+                                    <input type="text" name="experience_0_end_date" placeholder="YYYY-MM or Present" class="form-control">
+                                </div>
+                                <div class="form-group form-group-full">
+                                    <label>Location</label>
+                                    <input type="text" name="experience_0_location" class="form-control">
+                                </div>
+                                <div class="form-group form-group-full">
+                                    <label>Responsibilities & Achievements</label>
+                                    <textarea name="experience_0_highlights" rows="4" placeholder="• Achievement with quantifiable results&#10;• Another key responsibility&#10;• Third major contribution" class="form-control"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                <input type="hidden" id="experience_count" name="experience_count" value="{% if parsed_resume and parsed_resume.experience %}{{ parsed_resume.experience|length }}{% else %}1{% endif %}">
+            </div>
+        </div>
+
+        <!-- Skills Section -->
+        <div class="form-section">
+            <div class="section-header" onclick="toggleSection('skills')">
+                <div class="section-title">
+                    <span class="section-icon">🔧</span>
+                    <h2>Skills</h2>
+                </div>
+                <div class="section-controls">
+                    <span class="section-status">Recommended</span>
+                    <span class="toggle-icon" id="skills-toggle">−</span>
+                </div>
+            </div>
+            <div class="section-content active" id="skills-content">
+                <div class="form-group form-group-full">
+                    <label>Skills (comma-separated)</label>
+                    <textarea name="skills" rows="2" placeholder="Python, Django, JavaScript, HTML, CSS, Git, SQL, React, Node.js, Project Management, Leadership..." class="form-control">{% if parsed_resume and parsed_resume.skills %}{{ parsed_resume.skills|join:", " }}{% endif %}</textarea>
+                    <div class="field-help">💡 Include both technical skills and soft skills. Separate each skill with a comma.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Projects Section -->
+        <div class="form-section">
+            <div class="section-header" onclick="toggleSection('projects')">
+                <div class="section-title">
+                    <span class="section-icon">🚀</span>
+                    <h2>Projects</h2>
+                </div>
+                <div class="section-controls">
+                    <button type="button" class="btn btn-outline btn-small add-btn" id="addProject">+ Add</button>
+                    <span class="section-status optional">Optional</span>
+                    <span class="toggle-icon" id="projects-toggle">+</span>
+                </div>
+            </div>
+            <div class="section-content" id="projects-content">
+                <div id="projectsContainer" class="entries-container">
+                    <!-- Project entries will be added here -->
+                </div>
+                <input type="hidden" id="projects_count" name="projects_count" value="0">
+            </div>
+        </div>
+
+        <!-- Certifications Section -->
+        <div class="form-section">
+            <div class="section-header" onclick="toggleSection('certifications')">
+                <div class="section-title">
+                    <span class="section-icon">🏆</span>
+                    <h2>Certifications</h2>
+                </div>
+                <div class="section-controls">
+                    <button type="button" class="btn btn-outline btn-small add-btn" id="addCertification">+ Add</button>
+                    <span class="section-status optional">Optional</span>
+                    <span class="toggle-icon" id="certifications-toggle">+</span>
+                </div>
+            </div>
+            <div class="section-content" id="certifications-content">
+                <div id="certificationsContainer" class="entries-container">
+                    <!-- Certification entries will be added here -->
+                </div>
+                <input type="hidden" id="certifications_count" name="certifications_count" value="0">
+            </div>
+        </div>
+
+        <!-- Awards Section -->
+        <div class="form-section">
+            <div class="section-header" onclick="toggleSection('awards')">
+                <div class="section-title">
+                    <span class="section-icon">🏅</span>
+                    <h2>Awards & Recognition</h2>
+                </div>
+                <div class="section-controls">
+                    <button type="button" class="btn btn-outline btn-small add-btn" id="addAward">+ Add</button>
+                    <span class="section-status optional">Optional</span>
+                    <span class="toggle-icon" id="awards-toggle">+</span>
+                </div>
+            </div>
+            <div class="section-content" id="awards-content">
+                <div id="awardsContainer" class="entries-container">
+                    <!-- Award entries will be added here -->
+                </div>
+                <input type="hidden" id="awards_count" name="awards_count" value="0">
+            </div>
+        </div>
+
+        <!-- Languages Section -->
+        <div class="form-section">
+            <div class="section-header" onclick="toggleSection('languages')">
+                <div class="section-title">
+                    <span class="section-icon">🌍</span>
+                    <h2>Languages</h2>
+                </div>
+                <div class="section-controls">
+                    <button type="button" class="btn btn-outline btn-small add-btn" id="addLanguage">+ Add</button>
+                    <span class="section-status optional">Optional</span>
+                    <span class="toggle-icon" id="languages-toggle">+</span>
+                </div>
+            </div>
+            <div class="section-content" id="languages-content">
+                <div id="languagesContainer" class="entries-container">
+                    <!-- Language entries will be added here -->
+                </div>
+                <input type="hidden" id="languages_count" name="languages_count" value="0">
+            </div>
+        </div>
+
+        <!-- Template Selection Section -->
+        <div class="form-section">
+            <div class="section-header" onclick="toggleSection('template')">
+                <div class="section-title">
+                    <span class="section-icon">🎨</span>
+                    <h2>Template & Format</h2>
+                </div>
+                <div class="section-controls">
+                    <span class="section-status">Required</span>
+                    <span class="toggle-icon" id="template-toggle">−</span>
+                </div>
+            </div>
+            <div class="section-content active" id="template-content">
+                <!-- Format Selection -->
+                <div class="subsection">
+                    <h3>📄 Output Format</h3>
+                    <div class="format-toggle-container">
+                        <div class="format-option" data-format="html">
+                            <input type="radio" id="format_html" name="format_choice" value="html" checked>
+                            <label for="format_html" class="format-label">
+                                <div class="format-icon">📋</div>
+                                <div class="format-info">
+                                    <h4>Structured Templates</h4>
+                                    <p>Professional PDF templates with predefined layouts</p>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="format-option" data-format="markdown">
+                            <input type="radio" id="format_markdown" name="format_choice" value="markdown">
+                            <label for="format_markdown" class="format-label">
+                                <div class="format-icon">✏️</div>
+                                <div class="format-info">
+                                    <h4>Markdown Editor</h4>
+                                    <p>Custom formatting with markdown syntax</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    <input type="hidden" name="format_type_value" id="format_type_value" value="html">
+                </div>
+
+                <!-- Template Selection -->
+                <div class="subsection" id="template_selection_section">
+                    <h3>🎨 Choose Template Style</h3>
+                    <div class="template-grid">
+                        {% for template in templates %}
+                            <div class="template-card">
+                                <div class="template-preview">
+                                    {% if template.preview_image %}
+                                        <img src="{% static 'template_previews/'|add:template.preview_image %}" alt="{{ template.name }} Preview">
+                                    {% else %}
+                                        <div class="template-placeholder">
+                                            <span>{{ template.name|first|upper }}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="template-info">
+                                    <input type="radio" name="template" id="template_{{ template.id }}" value="{{ template.id }}" {% if forloop.first %}checked{% endif %}>
+                                    <label for="template_{{ template.id }}">
+                                        <h4>{{ template.name }}</h4>
+                                        <p>Professional layout</p>
+                                    </label>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Section -->
+        <div class="form-actions">
+            <div class="actions-content">
+                <div class="action-info">
+                    <h3>🚀 Ready to Generate?</h3>
+                    <p>Review your information above and click generate to create your professional PDF resume.</p>
+                </div>
+                <div class="action-buttons">
+                    <a href="{% url 'parse_resume' %}" class="btn btn-outline">← Edit Resume Text</a>
+                    <button type="submit" class="btn">Generate PDF Resume</button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+    .header-section {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .form-section {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1rem;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+    }
+
+    .section-header {
+        padding: 1rem 1.5rem;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: background 0.3s ease;
+        user-select: none;
+    }
+
+    .section-header:hover {
+        background: #f1f5f9;
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .section-icon {
+        font-size: 1.2rem;
+    }
+
+    .section-title h2 {
+        margin: 0;
+        color: #2d3748;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .section-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .section-status {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 10px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .section-status:not(.optional) {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .section-status.optional {
+        background: #e0f2fe;
+        color: #0c4a6e;
+    }
+
+    .add-btn {
+        font-size: 0.75rem;
+        padding: 0.3rem 0.6rem;
+        height: auto;
+    }
+
+    .toggle-icon {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #667eea;
+        transition: transform 0.3s ease;
+        width: 1.5rem;
+        text-align: center;
+    }
+
+    .section-content {
+        padding: 1.25rem;
+        display: none;
+    }
+
+    .section-content.active {
+        display: block;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 0;
+    }
+    
+    .form-group {
+        margin-bottom: 0;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.25rem;
+        font-weight: 500;
+        color: #4a5568;
+        font-size: 0.85rem;
+    }
+    
+    .form-control {
+        width: 100%;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        transition: border-color 0.2s ease;
+        background: white;
+    }
+    
+    /* Different padding for inputs vs textareas */
+    input.form-control, select.form-control {
+        padding: 0.4rem 0.6rem;
+        height: 2rem;
+    }
+    
+    textarea.form-control {
+        padding: 0.5rem 0.6rem;
+        min-height: 80px;
+        resize: vertical;
+        line-height: 1.4;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-group-full {
+        grid-column: 1 / -1;
+    }
+
+    .entries-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .entry-card {
+        background: #f8fafc;
+        border-radius: 6px;
+        padding: 1rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .entry-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .entry-header h4 {
+        color: #4a5568;
+        margin: 0;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .remove-btn {
+        background: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 1.5rem;
+        height: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 0.75rem;
+        transition: background 0.3s ease;
+    }
+
+    .remove-btn:hover {
+        background: #dc2626;
+    }
+
+    .field-help {
+        font-size: 0.75rem;
+        color: #64748b;
+        margin-top: 0.25rem;
+        line-height: 1.3;
+    }
+
+    .subsection {
+        margin-bottom: 1.5rem;
+    }
+
+    .subsection:last-child {
+        margin-bottom: 0;
+    }
+
+    .subsection h3 {
+        color: #4a5568;
+        margin-bottom: 0.75rem;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .format-toggle-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        margin: 1rem 0;
+    }
+
+    .format-option {
+        position: relative;
+    }
+
+    .format-option input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+    }
+
+    .format-label {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+    .format-option input[type="radio"]:checked + .format-label {
+        border-color: #667eea;
+        background: #f0f4ff;
+    }
+
+    .format-icon {
+        font-size: 1.5rem;
+    }
+
+    .format-info h4 {
+        margin: 0 0 0.25rem 0;
+        color: #2d3748;
+        font-size: 0.9rem;
+    }
+
+    .format-info p {
+        margin: 0;
+        color: #64748b;
+        font-size: 0.8rem;
+        line-height: 1.3;
+    }
+
+    .template-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .template-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .template-card:hover {
+        border-color: #667eea;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .template-preview {
+        height: 160px;
+        background: #f8fafc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .template-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .template-placeholder {
+        width: 50px;
+        height: 50px;
+        background: #667eea;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+
+    .template-info {
+        padding: 0.75rem;
+        background: white;
+    }
+
+    .template-info input[type="radio"] {
+        margin-right: 0.5rem;
+    }
+
+    .template-info label {
+        cursor: pointer;
+        display: block;
+    }
+
+    .template-info h4 {
+        margin: 0.25rem 0 0.125rem 0;
+        color: #2d3748;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .template-info p {
+        margin: 0;
+        color: #64748b;
+        font-size: 0.75rem;
+    }
+
+    .form-actions {
+        background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+        text-align: center;
+    }
+
+    .actions-content {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .action-info h3 {
+        color: #4c51bf;
+        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+    }
+
+    .action-info p {
+        color: #5a67d8;
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        align-items: center;
+    }
+
+    @media (max-width: 768px) {
+        .section-header {
+            padding: 0.75rem 1rem;
+        }
+
+        .section-content {
+            padding: 1rem;
+        }
+
+        .form-grid {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+
+        .format-toggle-container {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+
+        .section-controls {
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.5rem;
+        }
+
+        .template-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+            width: 100%;
+            gap: 0.75rem;
+        }
+
+        .action-buttons .btn {
+            width: 100%;
+            text-align: center;
+        }
+        
+        .entry-card {
+            padding: 0.75rem;
+        }
+        
+        .section-title {
+            gap: 0.5rem;
+        }
+        
+        .section-icon {
+            font-size: 1rem;
+        }
+        
+        .section-title h2 {
+            font-size: 1rem;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle section functionality
+    window.toggleSection = function(sectionId) {
+        const content = document.getElementById(sectionId + '-content');
+        const toggle = document.getElementById(sectionId + '-toggle');
+        const addBtn = content.parentElement.querySelector('.add-btn');
+        
+        // Don't toggle if clicking on add button
+        if (event.target.classList.contains('add-btn') || event.target.closest('.add-btn')) {
+            return;
+        }
+        
+        const isActive = content.classList.contains('active');
+        
+        if (isActive) {
+            content.classList.remove('active');
+            toggle.textContent = '+';
+        } else {
+            content.classList.add('active');
+            toggle.textContent = '−';
+        }
+    };
+    
+    // Dynamic form management
+    let counters = {
+        education: parseInt(document.getElementById('education_count').value),
+        experience: parseInt(document.getElementById('experience_count').value),
+        projects: 0,
+        certifications: 0,
+        awards: 0,
+        languages: 0
+    };
+    
+    // Add button handlers
+    document.getElementById('addEducation').addEventListener('click', (e) => {
+        e.stopPropagation();
+        addEntry('education');
+    });
+    document.getElementById('addExperience').addEventListener('click', (e) => {
+        e.stopPropagation();
+        addEntry('experience');
+    });
+    document.getElementById('addProject').addEventListener('click', (e) => {
+        e.stopPropagation();
+        addEntry('projects');
+    });
+    document.getElementById('addCertification').addEventListener('click', (e) => {
+        e.stopPropagation();
+        addEntry('certifications');
+    });
+    document.getElementById('addAward').addEventListener('click', (e) => {
+        e.stopPropagation();
+        addEntry('awards');
+    });
+    document.getElementById('addLanguage').addEventListener('click', (e) => {
+        e.stopPropagation();
+        addEntry('languages');
+    });
+    
+    function addEntry(type) {
+        const container = document.getElementById(`${type}Container`);
+        const count = counters[type];
+        const entry = createEntry(type, count);
+        
+        container.appendChild(entry);
+        counters[type]++;
+        document.getElementById(`${type}_count`).value = counters[type];
+        
+        addRemoveHandlers(entry);
+        
+        // Auto-expand section if it's collapsed
+        const content = document.getElementById(`${type}-content`);
+        const toggle = document.getElementById(`${type}-toggle`);
+        if (!content.classList.contains('active')) {
+            content.classList.add('active');
+            toggle.textContent = '−';
+        }
+    }
+    
+    function createEntry(type, index) {
+        const entry = document.createElement('div');
+        entry.className = `entry-card ${type.slice(0, -1)}-entry`;
+        
+        const templates = {
+            education: `
+                <div class="entry-header">
+                    <h4>Education ${index + 1}</h4>
+                    <button type="button" class="remove-btn">✕</button>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>School/University*</label>
+                        <input type="text" name="education_${index}_school" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Degree*</label>
+                        <input type="text" name="education_${index}_degree" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Field of Study</label>
+                        <input type="text" name="education_${index}_field" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>GPA</label>
+                        <input type="text" name="education_${index}_gpa" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="text" name="education_${index}_start_date" placeholder="YYYY-MM" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>End Date</label>
+                        <input type="text" name="education_${index}_end_date" placeholder="YYYY-MM or Present" class="form-control">
+                    </div>
+                    <div class="form-group form-group-full">
+                        <label>Location</label>
+                        <input type="text" name="education_${index}_location" class="form-control">
+                    </div>
+                </div>
+            `,
+            experience: `
+                <div class="entry-header">
+                    <h4>Experience ${index + 1}</h4>
+                    <button type="button" class="remove-btn">✕</button>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Company/Organization*</label>
+                        <input type="text" name="experience_${index}_company" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Position*</label>
+                        <input type="text" name="experience_${index}_position" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="text" name="experience_${index}_start_date" placeholder="YYYY-MM" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>End Date</label>
+                        <input type="text" name="experience_${index}_end_date" placeholder="YYYY-MM or Present" class="form-control">
+                    </div>
+                    <div class="form-group form-group-full">
+                        <label>Location</label>
+                        <input type="text" name="experience_${index}_location" class="form-control">
+                    </div>
+                    <div class="form-group form-group-full">
+                        <label>Responsibilities & Achievements</label>
+                        <textarea name="experience_${index}_highlights" rows="4" placeholder="• Achievement with quantifiable results&#10;• Another key responsibility&#10;• Third major contribution" class="form-control"></textarea>
+                    </div>
+                </div>
+            `,
+            projects: `
+                <div class="entry-header">
+                    <h4>Project ${index + 1}</h4>
+                    <button type="button" class="remove-btn">✕</button>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Project Title*</label>
+                        <input type="text" name="project_${index}_title" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Project URL</label>
+                        <input type="url" name="project_${index}_url" placeholder="https://..." class="form-control">
+                    </div>
+                    <div class="form-group form-group-full">
+                        <label>Description</label>
+                        <textarea name="project_${index}_description" rows="3" placeholder="Brief description of the project..." class="form-control"></textarea>
+                    </div>
+                    <div class="form-group form-group-full">
+                        <label>Technologies Used</label>
+                        <input type="text" name="project_${index}_technologies" placeholder="Python, React, PostgreSQL..." class="form-control">
+                    </div>
+                </div>
+            `,
+            certifications: `
+                <div class="entry-header">
+                    <h4>Certification ${index + 1}</h4>
+                    <button type="button" class="remove-btn">✕</button>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Certification Name*</label>
+                        <input type="text" name="certification_${index}_name" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Issuing Organization</label>
+                        <input type="text" name="certification_${index}_issuing_organization" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Issue Date</label>
+                        <input type="text" name="certification_${index}_issue_date" placeholder="YYYY-MM" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Expiration Date</label>
+                        <input type="text" name="certification_${index}_expiration_date" placeholder="YYYY-MM or Never" class="form-control">
+                    </div>
+                </div>
+            `,
+            awards: `
+                <div class="entry-header">
+                    <h4>Award ${index + 1}</h4>
+                    <button type="button" class="remove-btn">✕</button>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Award Title*</label>
+                        <input type="text" name="award_${index}_title" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Issuing Organization</label>
+                        <input type="text" name="award_${index}_issuer" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Date Received</label>
+                        <input type="text" name="award_${index}_date_received" placeholder="YYYY-MM" class="form-control">
+                    </div>
+                    <div class="form-group form-group-full">
+                        <label>Description</label>
+                        <textarea name="award_${index}_description" rows="2" placeholder="Brief description..." class="form-control"></textarea>
+                    </div>
+                </div>
+            `,
+            languages: `
+                <div class="entry-header">
+                    <h4>Language ${index + 1}</h4>
+                    <button type="button" class="remove-btn">✕</button>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Language*</label>
+                        <input type="text" name="language_${index}_name" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Proficiency Level</label>
+                        <select name="language_${index}_proficiency" class="form-control">
+                            <option value="">Select proficiency...</option>
+                            <option value="native">Native</option>
+                            <option value="fluent">Fluent</option>
+                            <option value="proficient">Proficient</option>
+                            <option value="intermediate">Intermediate</option>
+                            <option value="basic">Basic</option>
+                        </select>
+                    </div>
+                </div>
+            `
+        };
+        
+        entry.innerHTML = templates[type];
+        return entry;
+    }
+    
+    function addRemoveHandlers(entry) {
+        const removeBtn = entry.querySelector('.remove-btn');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function() {
+                entry.remove();
+            });
+        }
+    }
+    
+    // Initialize remove handlers for existing entries
+    document.querySelectorAll('.remove-btn').forEach(btn => {
+        addRemoveHandlers(btn.closest('.entry-card'));
+    });
+    
+    // Format selection
+    document.querySelectorAll('input[name="format_choice"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.getElementById('format_type_value').value = this.value;
+            const templateSection = document.getElementById('template_selection_section');
+            templateSection.style.display = this.value === 'html' ? 'block' : 'none';
+        });
+    });
+    
+    // Form submission
+    document.getElementById('resumeForm').addEventListener('submit', function(e) {
+        const formatType = document.getElementById('format_type_value').value;
+        
+        if (formatType === 'markdown') {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch('{% url "store_resume_data" %}', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = '{% url "editor:editor" %}';
+                } else {
+                    alert('Error preparing markdown editor. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error preparing markdown editor. Please try again.');
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

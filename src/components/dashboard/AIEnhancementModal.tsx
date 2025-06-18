@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Upload, FileText, Sparkles, Cloud, HardDrive } from 'lucide-react';
+import OptimizationResults from './OptimizationResults';
 
 interface AIEnhancementModalProps {
   jobDescription: string;
@@ -17,6 +18,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   const [cloudFileUrl, setCloudFileUrl] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showResults, setShowResults] = useState(false);
+  const [optimizationResults, setOptimizationResults] = useState<any>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -73,8 +76,64 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       const enhancedResumeUrl = `https://example.com/ai-enhanced-resume-${timestamp}.pdf`;
       const enhancedCoverLetterUrl = `https://example.com/ai-enhanced-cover-letter-${timestamp}.pdf`;
       
-      onSave(enhancedResumeUrl, enhancedCoverLetterUrl);
-      onClose();
+      // Generate mock optimization results
+      const mockResults = {
+        matchScore: 85,
+        summary: "Your resume shows strong alignment with this position, with excellent technical skills and relevant experience. The AI optimization has enhanced keyword density and improved content structure for better ATS compatibility.",
+        strengths: [
+          "Strong technical background in required technologies",
+          "Relevant industry experience with measurable achievements",
+          "Good educational background aligned with job requirements",
+          "Demonstrated leadership and project management skills"
+        ],
+        gaps: [
+          "Missing some specific certifications mentioned in job posting",
+          "Could emphasize cloud computing experience more prominently",
+          "Limited mention of agile methodology experience"
+        ],
+        suggestions: [
+          "Add specific metrics to quantify your achievements",
+          "Include more industry-specific keywords throughout the resume",
+          "Highlight collaborative projects and team leadership examples",
+          "Consider adding a professional summary section"
+        ],
+        optimizedResumeUrl: enhancedResumeUrl,
+        optimizedCoverLetterUrl: enhancedCoverLetterUrl,
+        keywordAnalysis: {
+          coverageScore: 78,
+          coveredKeywords: ["JavaScript", "React", "Node.js", "AWS", "Git", "Agile", "Team Leadership"],
+          missingKeywords: ["Docker", "Kubernetes", "CI/CD", "Microservices"]
+        },
+        experienceOptimization: [
+          {
+            company: "Tech Solutions Inc",
+            position: "Senior Developer",
+            relevanceScore: 92,
+            included: true
+          },
+          {
+            company: "StartupXYZ",
+            position: "Full Stack Developer",
+            relevanceScore: 85,
+            included: true
+          },
+          {
+            company: "Local Restaurant",
+            position: "Server",
+            relevanceScore: 15,
+            included: false,
+            reasoning: "Not relevant to software development position"
+          }
+        ],
+        skillsOptimization: {
+          technicalSkills: ["JavaScript", "React", "Node.js", "Python", "AWS", "MongoDB"],
+          softSkills: ["Team Leadership", "Problem Solving", "Communication", "Project Management"],
+          missingSkills: ["Docker", "Kubernetes", "GraphQL", "TypeScript"]
+        }
+      };
+
+      setOptimizationResults(mockResults);
+      setShowResults(true);
       
     } catch (err: any) {
       setError('Failed to generate AI-enhanced documents. Please try again.');
@@ -82,6 +141,24 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       setLoading(false);
     }
   };
+
+  const handleResultsClose = () => {
+    setShowResults(false);
+    // Save the URLs to the parent component
+    if (optimizationResults) {
+      onSave(optimizationResults.optimizedResumeUrl, optimizationResults.optimizedCoverLetterUrl);
+    }
+    onClose();
+  };
+
+  if (showResults && optimizationResults) {
+    return (
+      <OptimizationResults
+        results={optimizationResults}
+        onClose={handleResultsClose}
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

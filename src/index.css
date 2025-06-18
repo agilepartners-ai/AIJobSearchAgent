@@ -19,10 +19,23 @@
 @layer base {
   html {
     @apply scroll-smooth;
+    color-scheme: light dark;
   }
   
   body {
     @apply font-sans antialiased text-gray-900 dark:text-white bg-white dark:bg-gray-900;
+  }
+
+  /* Force dark mode styles */
+  .dark {
+    color-scheme: dark;
+  }
+
+  /* Ensure proper dark mode rendering */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+    }
   }
 }
 
@@ -75,4 +88,33 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Force dark mode for specific components */
+.dark .bg-gray-50 {
+  @apply bg-gray-900;
+}
+
+.dark .bg-white {
+  @apply bg-gray-800;
+}
+
+.dark .text-gray-900 {
+  @apply text-white;
+}
+
+.dark .text-gray-600 {
+  @apply text-gray-300;
+}
+
+.dark .text-gray-500 {
+  @apply text-gray-400;
+}
+
+.dark .border-gray-200 {
+  @apply border-gray-700;
+}
+
+.dark .border-gray-300 {
+  @apply border-gray-600;
 }
