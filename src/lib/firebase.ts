@@ -4,13 +4,13 @@ import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAAvFzIm85R0C9Y5_AnhqpU7enInd2jwJU",
-  authDomain: "myjobsearchagent.firebaseapp.com",
-  projectId: "myjobsearchagent",
-  storageBucket: "myjobsearchagent.firebasestorage.app",
-  messagingSenderId: "948357728656",
-  appId: "1:948357728656:web:5c1f7ef5658d7efcd0cb15",
-  measurementId: "G-3V87TEMNEV"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase

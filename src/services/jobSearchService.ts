@@ -30,7 +30,7 @@ export interface JobSearchResponse {
 }
 
 export class JobSearchService {
-  private static readonly JSEARCH_API_KEY = 'dfa377a0fbmsh8df80548e982bc2p1300b3jsnd59691bcf380';
+  private static readonly JSEARCH_API_KEY = import.meta.env.VITE_JSEARCH_API_KEY;
   private static readonly JSEARCH_BASE_URL = 'https://jsearch.p.rapidapi.com/search';
 
   static async searchJobs(params: JobSearchParams): Promise<JobSearchResponse> {
