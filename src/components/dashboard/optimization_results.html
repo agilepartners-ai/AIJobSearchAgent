@@ -1,0 +1,677 @@
+{% extends "resume_optimizer/base.html" %}
+{% load static %}
+
+{% block title %}Optimization Results - Resume Builder Suite{% endblock %}
+
+{% block content %}
+<div class="content-card">
+    {% if error %}
+        <div class="error-section">
+            <h1>❌ Analysis Error</h1>
+            <p style="color: #e53e3e; font-size: 1.1rem;">{{ error_message }}</p>
+            <a href="{% url 'upload_resume' %}" class="btn">← Start Over</a>
+        </div>
+    {% elif resume or super_resume %}
+        <div class="results-header">
+            {% if use_super_resume %}
+                <h1>🎯 Profile Optimization Results</h1>
+                <div class="analysis-meta">
+                    <p><strong>Profile:</strong> {{ super_resume.name }}</p>
+                    <span class="badge badge-info">Smart Content Filtering</span>
+                </div>
+                <p style="color: #4a5568; margin-bottom: 2rem;">
+                    We analyzed your comprehensive profile and selected the most relevant content for this specific job opportunity.
+                </p>
+            {% else %}
+                <h1>📊 Resume Analysis Results</h1>
+                <div class="analysis-meta">
+                    <p><strong>Resume:</strong> {{ resume.original_filename }}</p>
+                    <span class="badge badge-info">Text Optimization</span>
+                </div>
+            {% endif %}
+            
+            {% if no_job_description %}
+                <div class="content-card" style="background: #f0f9ff; border-left: 4px solid #3b82f6;">
+                    <h3 style="color: #1e40af;">📋 Profile Management Mode</h3>
+                    <p style="color: #1e40af; margin-bottom: 0;">
+                        You chose to skip the job description step. This mode focuses on creating or enhancing your professional profile without job-specific optimization.
+                    </p>
+                </div>
+            {% elif job_description %}
+                <p style="color: #64748b;"><strong>Job Description Analyzed:</strong> {{ job_description.created_at|date:"F j, Y" }}</p>
+            {% endif %}
+        </div>
+
+        {% if show_super_resume_prompt %}
+        <div class="content-card" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 4px solid #f59e0b;" id="super_resume_prompt">
+            <h3 style="color: #92400e;">{% if is_create_super_resume %}🌟 Create{% else %}⚡ Enhance{% endif %} Your Professional Profile</h3>
+            <p style="color: #92400e; margin-bottom: 1.5rem;">
+                Would you like to {% if is_create_super_resume %}create{% else %}enhance{% endif %} your professional profile with this resume? 
+                A professional profile makes it easier to apply for jobs in the future.
+            </p>
+            <div class="d-flex gap-2">
+                {% if is_create_super_resume %}
+                <a href="{% url 'super_resume:import_from_resume' %}" class="btn">
+                    ✨ Create Profile
+                </a>
+                {% else %}
+                <a href="{% url 'super_resume:import_and_merge' %}" class="btn">
+                    🚀 Enhance Profile
+                </a>
+                {% endif %}
+                <button class="btn btn-outline" onclick="document.getElementById('super_resume_prompt').style.display='none'">
+                    Skip for Now
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if analysis %}
+            <div class="score-section">
+                {% if analysis.match_score >= 85 %}
+                    <div class="score-badge excellent">
+                        <span class="score-icon">🎯</span>
+                        <div>
+                            <div class="score-label">Excellent Match</div>
+                            <div class="score-value">{{ analysis.match_score }}%</div>
+                        </div>
+                    </div>
+                {% elif analysis.match_score >= 70 %}
+                    <div class="score-badge good">
+                        <span class="score-icon">✅</span>
+                        <div>
+                            <div class="score-label">Good Match</div>
+                            <div class="score-value">{{ analysis.match_score }}%</div>
+                        </div>
+                    </div>
+                {% elif analysis.match_score >= 50 %}
+                    <div class="score-badge fair">
+                        <span class="score-icon">⚡</span>
+                        <div>
+                            <div class="score-label">Fair Match</div>
+                            <div class="score-value">{{ analysis.match_score }}%</div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="score-badge needs-work">
+                        <span class="score-icon">⚠️</span>
+                        <div>
+                            <div class="score-label">Needs Improvement</div>
+                            <div class="score-value">{{ analysis.match_score }}%</div>
+                        </div>
+                    </div>
+                {% endif %}
+                <p class="score-summary">{{ analysis.summary }}</p>
+            </div>
+
+            {% if use_super_resume %}
+                {% if analysis.optimized_content %}
+                    <div class="content-card">
+                        <h3>📋 Content Optimization Summary</h3>
+                        
+                        {% with opt_content=analysis.optimized_content %}
+                            {% if opt_content.experience %}
+                                <div class="optimization-section">
+                                    <h4>💼 Experience Selection</h4>
+                                    {% for exp in opt_content.experience %}
+                                        {% if exp.include %}
+                                            <div class="optimization-item included">
+                                                <div class="item-header">
+                                                    <span class="item-title">✅ {{ exp.company }} - {{ exp.position }}</span>
+                                                    <span class="relevance-badge">{{ exp.relevance_score }}% relevance</span>
+                                                </div>
+                                                {% if exp.selected_highlights %}
+                                                    <p class="item-note">Selected {{ exp.selected_highlights|length }} most relevant highlights</p>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <div class="optimization-item excluded">
+                                                <div class="item-header">
+                                                    <span class="item-title">❌ {{ exp.company }} - {{ exp.position }}</span>
+                                                    <span class="relevance-badge low">{{ exp.relevance_score }}% relevance</span>
+                                                </div>
+                                                <p class="item-note">{{ exp.reasoning }}</p>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+
+                            {% if opt_content.skills %}
+                                <div class="optimization-section">
+                                    <h4>🔧 Skills Optimization</h4>
+                                    <div class="skills-grid">
+                                        {% if opt_content.skills.technical_skills %}
+                                            <div class="skill-category">
+                                                <h5>Technical Skills (Selected)</h5>
+                                                <div class="skill-tags">
+                                                    {% for skill in opt_content.skills.technical_skills %}
+                                                        <span class="skill-tag included">{{ skill }}</span>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        {% if opt_content.skills.soft_skills %}
+                                            <div class="skill-category">
+                                                <h5>Soft Skills (Selected)</h5>
+                                                <div class="skill-tags">
+                                                    {% for skill in opt_content.skills.soft_skills %}
+                                                        <span class="skill-tag included">{{ skill }}</span>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        {% if opt_content.skills.missing_skills %}
+                                            <div class="skill-category">
+                                                <h5>⚠️ Missing Important Skills</h5>
+                                                <div class="skill-tags">
+                                                    {% for skill in opt_content.skills.missing_skills %}
+                                                        <span class="skill-tag missing">{{ skill }}</span>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            {% if opt_content.projects %}
+                                <div class="optimization-section">
+                                    <h4>🚀 Project Selection</h4>
+                                    {% for proj in opt_content.projects %}
+                                        {% if proj.include %}
+                                            <div class="optimization-item included">
+                                                <div class="item-header">
+                                                    <span class="item-title">✅ {{ proj.title }}</span>
+                                                    <span class="relevance-badge">{{ proj.relevance_score }}% relevance</span>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                {% endif %}
+
+                {% if analysis.length_analysis %}
+                    <div class="content-card" style="background: #fef3c7; border-left: 4px solid #f59e0b;">
+                        <h4 style="color: #92400e;">📏 Resume Length Analysis</h4>
+                        <div class="analysis-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Estimated Length:</span>
+                                <span class="stat-value">{{ analysis.length_analysis.estimated_length }}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Content Density:</span>
+                                <span class="stat-value">{{ analysis.length_analysis.content_density }}</span>
+                            </div>
+                        </div>
+                        {% if analysis.length_analysis.recommendations %}
+                            <ul style="color: #92400e; margin-bottom: 0;">
+                                {% for rec in analysis.length_analysis.recommendations %}
+                                    <li>{{ rec }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                {% if analysis.keyword_optimization %}
+                    <div class="content-card" style="background: #dbeafe; border-left: 4px solid #3b82f6;">
+                        <h4 style="color: #1e40af;">🔍 Keyword Analysis</h4>
+                        <div class="keyword-score">
+                            <span class="keyword-coverage">{{ analysis.keyword_optimization.keyword_coverage_score }}% Keyword Coverage</span>
+                        </div>
+                        {% if analysis.keyword_optimization.job_keywords_covered %}
+                            <div class="keyword-section">
+                                <h5 style="color: #059669;">✅ Covered Keywords</h5>
+                                <div class="keyword-tags">
+                                    {% for keyword in analysis.keyword_optimization.job_keywords_covered %}
+                                        <span class="keyword-tag covered">{{ keyword }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                        {% if analysis.keyword_optimization.missing_keywords %}
+                            <div class="keyword-section">
+                                <h5 style="color: #dc2626;">❌ Missing Keywords</h5>
+                                <div class="keyword-tags">
+                                    {% for keyword in analysis.keyword_optimization.missing_keywords %}
+                                        <span class="keyword-tag missing">{{ keyword }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endif %}
+
+            <div class="analysis-grid">
+                <div class="content-card analysis-strengths">
+                    <h4>💪 Strengths</h4>
+                    {% if analysis.strengths %}
+                        <ul class="analysis-list">
+                            {% for item in analysis.strengths %}
+                                <li>{{ item }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="no-items">No specific strengths highlighted by the analysis.</p>
+                    {% endif %}
+                </div>
+
+                <div class="content-card analysis-gaps">
+                    <h4>🔍 Gaps to Address</h4>
+                    {% if analysis.gaps %}
+                        <ul class="analysis-list">
+                            {% for item in analysis.gaps %}
+                                <li>{{ item }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="no-items">No significant gaps identified.</p>
+                    {% endif %}
+                </div>
+
+                <div class="content-card analysis-suggestions">
+                    <h4>💡 Improvement Suggestions</h4>
+                    {% if analysis.suggestions %}
+                        <ul class="analysis-list">
+                            {% for item in analysis.suggestions %}
+                                <li>{{ item }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="no-items">No specific suggestions provided.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+        {% elif no_job_description %}
+            <div class="content-card" style="background: #f0f9ff; border-left: 4px solid #3b82f6;">
+                <h4 style="color: #1e40af;">📄 Resume Content Ready</h4>
+                <p style="color: #1e40af; margin-bottom: 1rem;">
+                    Your resume content is ready for profile creation or enhancement. Since no job description was provided, we skipped the job-specific analysis.
+                </p>
+                
+                {% if resume_text_preview %}
+                <div class="content-preview">
+                    <h5>Resume Content Preview:</h5>
+                    <div class="preview-box">{{ resume_text_preview }}</div>
+                </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="content-card" style="background: #fef2f2; border-left: 4px solid #ef4444;">
+                <p style="color: #dc2626;">Could not generate analysis. This might be due to an issue with the AI service or missing text data.</p>
+                {% if resume_text_preview and jd_text_preview %}
+                     <p style="color: #dc2626;">Please ensure your API key is correctly configured and the AI service is available.</p>
+                {% else %}
+                     <p style="color: #dc2626;">Please ensure both a resume and job description have been successfully processed.</p>
+                {% endif %}
+            </div>
+        {% endif %}
+        
+        {% if tweaked_text %}
+            <div class="content-card optimized-content">
+                <h4>
+                    {% if use_super_resume %}
+                        🎯 Optimized Resume Content
+                    {% else %}
+                        📝 AI-Generated Revision
+                    {% endif %}
+                </h4>
+                {% if use_super_resume %}
+                    <p class="content-description">
+                        This is your optimized resume content, intelligently filtered from your professional profile to match this specific job. Only the most relevant experiences, skills, and projects are included.
+                    </p>
+                {% else %}
+                    <p class="content-description">
+                        Review this AI-generated revision based on the job description. You can copy this text as a starting point for your own edits. Remember to verify all facts and tailor it further to your unique experience.
+                    </p>
+                {% endif %}
+                <div class="optimized-text-container">
+                    <textarea readonly class="optimized-text">{{ tweaked_text }}</textarea>
+                </div>
+                <div class="text-center mt-2">
+                    <a href="{% url 'download_tweaked_text' %}" class="btn" download="revised_resume.txt">
+                        📥 Download Optimized Text
+                    </a>
+                </div>
+            </div>
+        {% elif explanation %}
+            <div class="content-card" style="background: #f0fdf4; border-left: 4px solid #22c55e;">
+                <h4 style="color: #15803d;">📊 Resume Alignment Analysis</h4>
+                <div class="explanation-content">
+                    <p style="color: #15803d;">{{ explanation }}</p>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="content-card next-steps">
+            <h4>🚀 Next Steps</h4>
+            {% if use_super_resume %}
+                <p style="color: #64748b; margin-bottom: 1.5rem;">Your professional profile has been optimized for this job. Create a professionally formatted PDF resume:</p>
+            {% else %}
+                <p style="color: #64748b; margin-bottom: 1.5rem;">You can create a professionally formatted PDF of your resume:</p>
+            {% endif %}
+            <div class="d-flex gap-2 justify-center">
+                <a href="{% url 'parse_resume' %}" class="btn">📄 Create Professional PDF</a>
+            </div>
+        </div>
+
+        <div class="actions-section">
+            <div class="d-flex gap-2 justify-center">
+                <a href="{% url 'upload_resume' %}" class="btn btn-outline">📤 Analyze Another Resume</a>
+                <a href="{% url 'submit_job_description' %}" class="btn btn-outline">📋 New Job Description</a>
+            </div>
+        </div>
+
+    {% else %}
+        <div class="content-card" style="background: #fef2f2; border-left: 4px solid #ef4444;">
+            <h1>❌ Data Error</h1>
+            <p style="color: #dc2626;">Could not retrieve resume or job description data.</p>
+             <a href="{% url 'upload_resume' %}" class="btn">← Start Over</a>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+    .results-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .analysis-meta {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        margin: 1rem 0;
+        flex-wrap: wrap;
+    }
+    
+    .score-section {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .score-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.5rem 2rem;
+        border-radius: 12px;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+    
+    .score-badge.excellent { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); color: #065f46; }
+    .score-badge.good { background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%); color: #1e40af; }
+    .score-badge.fair { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #92400e; }
+    .score-badge.needs-work { background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%); color: #991b1b; }
+    
+    .score-icon {
+        font-size: 2rem;
+    }
+    
+    .score-label {
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+    
+    .score-value {
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    
+    .score-summary {
+        font-size: 1.1rem;
+        color: #4a5568;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .optimization-section {
+        margin-bottom: 2rem;
+    }
+    
+    .optimization-item {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .optimization-item.included {
+        background: #f0fdf4;
+        border-left: 4px solid #22c55e;
+    }
+    
+    .optimization-item.excluded {
+        background: #fef2f2;
+        border-left: 4px solid #ef4444;
+    }
+    
+    .item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    
+    .item-title {
+        font-weight: 600;
+    }
+    
+    .relevance-badge {
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        background: #e2e8f0;
+        color: #475569;
+    }
+    
+    .relevance-badge.low {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .item-note {
+        font-size: 0.9rem;
+        color: #64748b;
+        margin: 0;
+    }
+    
+    .skills-grid {
+        display: grid;
+        gap: 1rem;
+    }
+    
+    .skill-category h5 {
+        margin-bottom: 0.5rem;
+        color: #4a5568;
+    }
+    
+    .skill-tags, .keyword-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .skill-tag, .keyword-tag {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .skill-tag.included, .keyword-tag.covered {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .skill-tag.missing, .keyword-tag.missing {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .analysis-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .stat-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem;
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 6px;
+    }
+    
+    .keyword-coverage {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #1e40af;
+    }
+    
+    .keyword-section {
+        margin-bottom: 1rem;
+    }
+    
+    .keyword-section h5 {
+        margin-bottom: 0.5rem;
+    }
+    
+    .analysis-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .analysis-strengths {
+        border-left: 4px solid #22c55e;
+        background: #f0fdf4;
+    }
+    
+    .analysis-gaps {
+        border-left: 4px solid #ef4444;
+        background: #fef2f2;
+    }
+    
+    .analysis-suggestions {
+        border-left: 4px solid #3b82f6;
+        background: #f0f9ff;
+    }
+    
+    .analysis-list {
+        margin: 0;
+        padding-left: 1.5rem;
+    }
+    
+    .analysis-list li {
+        margin-bottom: 0.5rem;
+        line-height: 1.5;
+    }
+    
+    .no-items {
+        color: #64748b;
+        font-style: italic;
+        margin: 0;
+    }
+    
+    .optimized-content {
+        background: #f8fafc;
+        border-left: 4px solid #667eea;
+    }
+    
+    .content-description {
+        color: #4a5568;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: rgba(102, 126, 234, 0.1);
+        border-radius: 8px;
+    }
+    
+    .optimized-text-container {
+        margin-bottom: 1rem;
+    }
+    
+    .optimized-text {
+        width: 100%;
+        min-height: 300px;
+        padding: 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        background: white;
+        resize: vertical;
+    }
+    
+    .next-steps {
+        text-align: center;
+    }
+    
+    .actions-section {
+        text-align: center;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid #e2e8f0;
+    }
+    
+    .content-preview {
+        margin-top: 1rem;
+    }
+    
+    .preview-box {
+        background: white;
+        padding: 1rem;
+        border-radius: 6px;
+        border: 1px solid #cbd5e0;
+        max-height: 200px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 0.9rem;
+        white-space: pre-wrap;
+    }
+    
+    .explanation-content {
+        padding: 1rem;
+        background: rgba(34, 197, 94, 0.1);
+        border-radius: 8px;
+    }
+    
+    @media (max-width: 768px) {
+        .analysis-meta {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .item-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .d-flex.gap-2 {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .score-badge {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.5rem;
+        }
+        
+        .analysis-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
