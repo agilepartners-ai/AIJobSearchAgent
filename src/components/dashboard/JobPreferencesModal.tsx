@@ -84,11 +84,10 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
     } finally {
       setLoading(false);
     }  };
-
-  const updateField = (field: string, value: any) => {
+  // Simple form update function exactly like ApplyJobsModal and ProfileModal
+  const updateForm = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
-
   const updateArrayField = (arrayName: string, index: number, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -97,111 +96,6 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
       )
     }));
   };
-
-  const FormSection = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => (
-    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-6">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-        {icon}
-        {title}
-      </h3>
-      {children}
-    </div>
-  );
-
-  const FormGrid = ({ children }: { children: React.ReactNode }) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {children}
-    </div>
-  );
-
-  const FormField = ({ label, required = false, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-        {label}{required && <span className="text-red-500 ml-1">*</span>}
-      </label>
-      {children}
-    </div>
-  );
-
-  const Input = ({ value, onChange, placeholder, type = 'text' }: { 
-    value: string; 
-    onChange: (value: string) => void; 
-    placeholder?: string; 
-    type?: string;
-  }) => (
-    <input
-      type={type}
-      value={value || ''}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-    />
-  );
-
-  const Select = ({ value, onChange, options, placeholder }: { 
-    value: string; 
-    onChange: (value: string) => void; 
-    options: Array<{ value: string; label: string }>; 
-    placeholder?: string;
-  }) => (
-    <select
-      value={value || ''}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-    >
-      {placeholder && <option value="">{placeholder}</option>}
-      {options.map(option => (
-        <option key={option.value} value={option.value}>{option.label}</option>
-      ))}
-    </select>
-  );
-
-  const RadioGroup = ({ value, onChange, options, name }: {
-    value: string | boolean;
-    onChange: (value: any) => void;
-    options: Array<{ value: any; label: string }>;
-    name: string;
-  }) => (
-    <div className="flex flex-wrap gap-4">
-      {options.map(option => (
-        <label key={option.value} className="flex items-center">
-          <input
-            type="radio"
-            name={name}
-            value={option.value}
-            checked={value === option.value}
-            onChange={() => onChange(option.value)}
-            className="mr-2 text-blue-600"
-          />
-          <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
-        </label>
-      ))}
-    </div>
-  );
-
-  const ArrayInputs = ({ 
-    values, 
-    onChange, 
-    placeholder, 
-    label 
-  }: { 
-    values: string[]; 
-    onChange: (index: number, value: string) => void; 
-    placeholder: string;
-    label: string;
-  }) => (
-    <div className="space-y-3">
-      <h4 className="font-medium text-gray-900 dark:text-white">{label}</h4>
-      {values.map((value, index) => (
-        <Input
-          key={index}
-          value={value}
-          onChange={(newValue) => onChange(index, newValue)}
-          placeholder={`${placeholder} ${index + 1}`}
-        />
-      ))}
-    </div>
-  );
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -238,191 +132,297 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
             <div className="bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-3 rounded-lg text-sm">
               {success}
             </div>
-          )}
-
-          {/* Job Titles of Interest */}
-          <FormSection title="Job Titles of Interest" icon={<Briefcase size={20} />}>
-            <ArrayInputs
-              values={formData.jobTitles}
-              onChange={(index, value) => updateArrayField('jobTitles', index, value)}
-              placeholder="Job title"
-              label="Please list the job titles or positions you're keen on applying for:"
-            />
+          )}          {/* Job Titles of Interest */}
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Briefcase size={20} />
+              Job Titles of Interest
+            </h3>
+            <div className="space-y-3">
+              <h4 className="font-medium text-gray-900 dark:text-white">Please list the job titles or positions you're keen on applying for:</h4>
+              {formData.jobTitles.map((title, index) => (
+                <input
+                  key={index}
+                  type="text"
+                  value={title}
+                  onChange={(e) => updateArrayField('jobTitles', index, e.target.value)}
+                  placeholder={`Job title ${index + 1}`}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+              ))}
+            </div>
             <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <p className="text-sm text-blue-700 dark:text-blue-300">
                 <strong>Examples:</strong> Chief Technology Officer, Vice President of Technology, Senior Manager, Director of Information, Chief Architect, Chief Information Officer, Sr Director for Security and Compliance, Sr Consultant/Partner
               </p>
             </div>
-          </FormSection>
-
-          {/* Preferred Industries */}
-          <FormSection title="Preferred Industries" icon={<Building size={20} />}>
-            <ArrayInputs
-              values={formData.preferredIndustries}
-              onChange={(index, value) => updateArrayField('preferredIndustries', index, value)}
-              placeholder="Industry"
-              label="Which industries are you most interested in for job applications?"
-            />
+          </div>          {/* Preferred Industries */}
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Building size={20} />
+              Preferred Industries
+            </h3>
+            <div className="space-y-3">
+              <h4 className="font-medium text-gray-900 dark:text-white">Which industries are you most interested in for job applications?</h4>
+              {formData.preferredIndustries.map((industry, index) => (
+                <input
+                  key={index}
+                  type="text"
+                  value={industry}
+                  onChange={(e) => updateArrayField('preferredIndustries', index, e.target.value)}
+                  placeholder={`Industry ${index + 1}`}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+              ))}
+            </div>
             <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <p className="text-sm text-blue-700 dark:text-blue-300">
                 <strong>Examples:</strong> Information Technology, Automotive, Healthcare, Finance, Manufacturing, Consulting
               </p>
             </div>
-          </FormSection>
-
-          {/* Companies of Interest */}
-          <FormSection title="Companies/Organizations of Interest" icon={<Building size={20} />}>
-            <ArrayInputs
-              values={formData.companiesOfInterest}
-              onChange={(index, value) => updateArrayField('companiesOfInterest', index, value)}
-              placeholder="Company name"
-              label="Do you have a list of companies or organizations that particularly pique your interest?"
-            />
-          </FormSection>
-
-          {/* Not Interested */}
-          <FormSection title="Job Titles, Industries, and Companies of No Interest" icon={<X size={20} />}>
-            <div className="space-y-6">
-              <ArrayInputs
-                values={formData.noInterestJobTitles}
-                onChange={(index, value) => updateArrayField('noInterestJobTitles', index, value)}
-                placeholder="Job title to avoid"
-                label="Job Titles Not Interested In:"
-              />
-              <ArrayInputs
-                values={formData.noInterestIndustries}
-                onChange={(index, value) => updateArrayField('noInterestIndustries', index, value)}
-                placeholder="Industry to avoid"
-                label="Industries Not Interested In:"
-              />
-              <ArrayInputs
-                values={formData.noInterestCompanies}
-                onChange={(index, value) => updateArrayField('noInterestCompanies', index, value)}
-                placeholder="Company to avoid"
-                label="Companies Not Interested In:"
-              />
-            </div>
-          </FormSection>
-
-          {/* Geographic Preferences */}
-          <FormSection title="Geographic Preferences" icon={<MapPin size={20} />}>
-            <div className="space-y-6">
-              <FormField label="Do you like to Relocate (Inside USA) for the right opportunity?">
-                <RadioGroup
-                  value={formData.willingToRelocate}
-                  onChange={(value) => updateField('willingToRelocate', value)}
-                  options={[
-                    { value: true, label: 'Yes' },
-                    { value: false, label: 'No' }
-                  ]}
-                  name="willingToRelocate"
+          </div>          {/* Companies of Interest */}
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <Building size={20} />
+              Companies/Organizations of Interest
+            </h3>
+            <div className="space-y-3">
+              <h4 className="font-medium text-gray-900 dark:text-white">Do you have a list of companies or organizations that particularly pique your interest?</h4>
+              {formData.companiesOfInterest.map((company, index) => (
+                <input
+                  key={index}
+                  type="text"
+                  value={company}
+                  onChange={(e) => updateArrayField('companiesOfInterest', index, e.target.value)}
+                  placeholder={`Company name ${index + 1}`}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                 />
-              </FormField>
+              ))}
+            </div>
+          </div>          {/* Not Interested */}
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <X size={20} />
+              Job Titles, Industries, and Companies of No Interest
+            </h3>
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900 dark:text-white">Job Titles Not Interested In:</h4>
+                {formData.noInterestJobTitles.map((title, index) => (
+                  <input
+                    key={index}
+                    type="text"
+                    value={title}
+                    onChange={(e) => updateArrayField('noInterestJobTitles', index, e.target.value)}
+                    placeholder={`Job title to avoid ${index + 1}`}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                ))}
+              </div>
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900 dark:text-white">Industries Not Interested In:</h4>
+                {formData.noInterestIndustries.map((industry, index) => (
+                  <input
+                    key={index}
+                    type="text"
+                    value={industry}
+                    onChange={(e) => updateArrayField('noInterestIndustries', index, e.target.value)}
+                    placeholder={`Industry to avoid ${index + 1}`}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                ))}
+              </div>
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900 dark:text-white">Companies Not Interested In:</h4>
+                {formData.noInterestCompanies.map((company, index) => (
+                  <input
+                    key={index}
+                    type="text"
+                    value={company}
+                    onChange={(e) => updateArrayField('noInterestCompanies', index, e.target.value)}
+                    placeholder={`Company to avoid ${index + 1}`}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                ))}
+              </div>
+            </div>
+          </div>          {/* Geographic Preferences */}
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <MapPin size={20} />
+              Geographic Preferences
+            </h3>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Do you like to Relocate (Inside USA) for the right opportunity?
+                </label>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="willingToRelocate"
+                      value="true"
+                      checked={formData.willingToRelocate === true}
+                      onChange={() => updateForm('willingToRelocate', true)}
+                      className="mr-2 text-blue-600"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Yes</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="willingToRelocate"
+                      value="false"
+                      checked={formData.willingToRelocate === false}
+                      onChange={() => updateForm('willingToRelocate', false)}
+                      className="mr-2 text-blue-600"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">No</span>
+                  </label>
+                </div>
+              </div>
 
-              <ArrayInputs
-                values={formData.preferredLocations}
-                onChange={(index, value) => updateArrayField('preferredLocations', index, value)}
-                placeholder="Preferred location"
-                label="In which geographic areas would you prefer to seek employment?"
-              />
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900 dark:text-white">In which geographic areas would you prefer to seek employment?</h4>
+                {formData.preferredLocations.map((location, index) => (
+                  <input
+                    key={index}
+                    type="text"
+                    value={location}
+                    onChange={(e) => updateArrayField('preferredLocations', index, e.target.value)}
+                    placeholder={`Preferred location ${index + 1}`}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                ))}
+              </div>
               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                 <p className="text-sm text-blue-700 dark:text-blue-300">
                   <strong>Examples:</strong> Detroit, Michigan, Pittsburgh, San Mateo, Mid-west (Near Detroit e.g. IN, OH), North East (New York etc)
                 </p>
               </div>
 
-              <ArrayInputs
-                values={formData.notPreferredLocations}
-                onChange={(index, value) => updateArrayField('notPreferredLocations', index, value)}
-                placeholder="Location to avoid"
-                label="In which geographic areas would you not prefer to seek employment?"
-              />
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900 dark:text-white">In which geographic areas would you not prefer to seek employment?</h4>
+                {formData.notPreferredLocations.map((location, index) => (
+                  <input
+                    key={index}
+                    type="text"
+                    value={location}
+                    onChange={(e) => updateArrayField('notPreferredLocations', index, e.target.value)}
+                    placeholder={`Location to avoid ${index + 1}`}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                ))}
+              </div>
 
-              <FormField label="How much travel do you want to do in your next role?">
-                <Select
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  How much travel do you want to do in your next role?
+                </label>
+                <select
                   value={formData.travelPercentage}
-                  onChange={(value) => updateField('travelPercentage', value)}
-                  placeholder="Select travel percentage"
-                  options={[
-                    { value: '25', label: '25%' },
-                    { value: '50', label: '50%' },
-                    { value: '75', label: '75%' },
-                    { value: '100', label: '100%' },
-                    { value: '0', label: 'No Travel (100% remote jobs)' }
-                  ]}
-                />
-              </FormField>
+                  onChange={(e) => updateForm('travelPercentage', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Select travel percentage</option>
+                  <option value="25">25%</option>
+                  <option value="50">50%</option>
+                  <option value="75">75%</option>
+                  <option value="100">100%</option>
+                  <option value="0">No Travel (100% remote jobs)</option>
+                </select>
+              </div>
             </div>
-          </FormSection>
-
-          {/* Salary Expectations */}
-          <FormSection title="Salary Expectations" icon={<DollarSign size={20} />}>
+          </div>          {/* Salary Expectations */}
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <DollarSign size={20} />
+              Salary Expectations
+            </h3>
             <div className="space-y-6">
               <div>
                 <h4 className="font-medium text-gray-900 dark:text-white mb-3">Expected Base Salary Per Year (USD)</h4>
-                <FormGrid>
-                  <FormField label="From">
-                    <Input
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From</label>
+                    <input
                       type="number"
                       value={formData.expectedSalaryFrom}
-                      onChange={(value) => updateField('expectedSalaryFrom', value)}
+                      onChange={(e) => updateForm('expectedSalaryFrom', e.target.value)}
                       placeholder="225000"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     />
-                  </FormField>
-                  <FormField label="To">
-                    <Input
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">To</label>
+                    <input
                       type="number"
                       value={formData.expectedSalaryTo}
-                      onChange={(value) => updateField('expectedSalaryTo', value)}
+                      onChange={(e) => updateForm('expectedSalaryTo', e.target.value)}
                       placeholder="350000"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     />
-                  </FormField>
-                </FormGrid>
+                  </div>
+                </div>
               </div>
 
               <div>
                 <h4 className="font-medium text-gray-900 dark:text-white mb-3">Current Base Salary Per Year (USD)</h4>
-                <FormGrid>
-                  <FormField label="From">
-                    <Input
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From</label>
+                    <input
                       type="number"
                       value={formData.currentSalaryFrom}
-                      onChange={(value) => updateField('currentSalaryFrom', value)}
+                      onChange={(e) => updateForm('currentSalaryFrom', e.target.value)}
                       placeholder="200000"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     />
-                  </FormField>
-                  <FormField label="To">
-                    <Input
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">To</label>
+                    <input
                       type="number"
                       value={formData.currentSalaryTo}
-                      onChange={(value) => updateField('currentSalaryTo', value)}
+                      onChange={(e) => updateForm('currentSalaryTo', e.target.value)}
                       placeholder="225000"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     />
-                  </FormField>
-                </FormGrid>
+                  </div>
+                </div>
               </div>
             </div>
-          </FormSection>
-
-          {/* Job Postings for Reference */}
-          <FormSection title="Job Postings for Reference" icon={<LinkIcon size={20} />}>
+          </div>          {/* Job Postings for Reference */}
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+              <LinkIcon size={20} />
+              Job Postings for Reference
+            </h3>
             <div className="space-y-4">
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 To help us identify the roles that best align with your career goals and preferences, please share five recent job postings that closely reflect the type of positions you are targeting. These examples are essential for our experts to accurately match you with the most suitable opportunities.
               </p>
-              <ArrayInputs
-                values={formData.referenceJobPostings}
-                onChange={(index, value) => updateArrayField('referenceJobPostings', index, value)}
-                placeholder="https://www.linkedin.com/jobs/..."
-                label="Please include five active hyperlinks:"
-              />
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900 dark:text-white">Please include five active hyperlinks:</h4>
+                {formData.referenceJobPostings.map((posting, index) => (
+                  <input
+                    key={index}
+                    type="url"
+                    value={posting}
+                    onChange={(e) => updateArrayField('referenceJobPostings', index, e.target.value)}
+                    placeholder={`https://www.linkedin.com/jobs/... ${index + 1}`}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                ))}
+              </div>
               <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                 <p className="text-sm text-yellow-700 dark:text-yellow-300">
                   <strong>Note:</strong> This step is mandatory. Please provide active job posting URLs that represent your target positions.
                 </p>
               </div>
             </div>
-          </FormSection>
+          </div>
 
           {/* Submit Button */}
           <div className="flex gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
