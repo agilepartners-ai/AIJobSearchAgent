@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { X, Bot, Send } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Bot, Send, Settings } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
+import { JobPreferencesService, JobPreferencesData } from '../../services/jobPreferencesService';
 
 interface ApplyJobsForm {
   targetRole: string;
@@ -27,6 +29,9 @@ const ApplyJobsModal: React.FC<ApplyJobsModalProps> = ({
   onClose,
   onApply,
 }) => {
+  const { user } = useAuth();
+  const [jobPreferences, setJobPreferences] = useState<JobPreferencesData | null>(null);
+  
   const [applyForm, setApplyForm] = useState<ApplyJobsForm>({
     targetRole: '',
     experienceLevel: '',
@@ -41,6 +46,58 @@ const ApplyJobsModal: React.FC<ApplyJobsModalProps> = ({
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && user) {
+      loadJobPreferences();
+    }
+  }, [isOpen, user]);
+
+  const loadJobPreferences = async () => {
+    if (!user) return;
+
+    try {
+      const preferences = await JobPreferencesService.getUserJobPreferences(user.uid);
+      if (preferences) {
+        setJobPreferences(preferences);
+        
+        // Auto-populate form with preferences
+        const primaryJobTitle = preferences.jobTitles.find(title => title.trim() !== '') || '';
+        const primaryLocation = preferences.preferredLocations.find(loc => loc.trim() !== '') || '';
+        const primaryIndustry = preferences.preferredIndustries.find(ind => ind.trim() !== '') || '';
+        
+        setApplyForm(prev => ({
+          ...prev,
+          targetRole: primaryJobTitle,
+          preferredLocation: primaryLocation,
+          industries: primaryIndustry,
+          salaryExpectation: preferences.expectedSalaryFrom ? 
+            `$${preferences.expectedSalaryFrom}${preferences.expectedSalaryTo ? ` - $${preferences.expectedSalaryTo}` : ''}` : '',
+          remotePreference: !preferences.willingToRelocate
+        }));
+      }
+    } catch (err: any) {
+      console.error('Error loading job preferences:', err);
+    }
+  };
+
+  const applyPreferencesToForm = () => {
+    if (!jobPreferences) return;
+
+    const primaryJobTitle = jobPreferences.jobTitles.find(title => title.trim() !== '') || '';
+    const primaryLocation = jobPreferences.preferredLocations.find(loc => loc.trim() !== '') || '';
+    const primaryIndustry = jobPreferences.preferredIndustries.find(ind => ind.trim() !== '') || '';
+    
+    setApplyForm(prev => ({
+      ...prev,
+      targetRole: primaryJobTitle,
+      preferredLocation: primaryLocation,
+      industries: primaryIndustry,
+      salaryExpectation: jobPreferences.expectedSalaryFrom ? 
+        `$${jobPreferences.expectedSalaryFrom}${jobPreferences.expectedSalaryTo ? ` - $${jobPreferences.expectedSalaryTo}` : ''}` : prev.salaryExpectation,
+      remotePreference: !jobPreferences.willingToRelocate
+    }));
+  };
 
   if (!isOpen) return null;
 
@@ -105,8 +162,7 @@ const ApplyJobsModal: React.FC<ApplyJobsModalProps> = ({
           </button>
         </div>
         
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-          {/* Profile Summary */}
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">          {/* Profile Summary */}
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-6">
             <h3 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">Your Profile</h3>
             <p className="text-blue-800 dark:text-blue-300 text-sm">
@@ -115,6 +171,56 @@ const ApplyJobsModal: React.FC<ApplyJobsModalProps> = ({
               <strong> Phone:</strong> {userProfile?.phone || 'Not set'}
             </p>
           </div>
+
+          {/* Job Preferences Section */}
+          {jobPreferences && (
+            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Settings size={20} className="text-purple-600 dark:text-purple-400" />
+                  <h3 className="font-semibold text-purple-900 dark:text-purple-200">
+                    Your Job Preferences
+                  </h3>
+                </div>
+                <button
+                  onClick={applyPreferencesToForm}
+                  className="px-3 py-1 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  Apply to Form
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                {jobPreferences.jobTitles.filter(title => title.trim()).length > 0 && (
+                  <div>
+                    <span className="font-medium text-purple-700 dark:text-purple-300">Job Titles:</span>
+                    <div className="text-purple-600 dark:text-purple-400">
+                      {jobPreferences.jobTitles.filter(title => title.trim()).slice(0, 2).join(', ')}
+                    </div>
+                  </div>
+                )}
+                
+                {jobPreferences.preferredLocations.filter(loc => loc.trim()).length > 0 && (
+                  <div>
+                    <span className="font-medium text-purple-700 dark:text-purple-300">Locations:</span>
+                    <div className="text-purple-600 dark:text-purple-400">
+                      {jobPreferences.preferredLocations.filter(loc => loc.trim()).slice(0, 2).join(', ')}
+                    </div>
+                  </div>
+                )}
+                
+                {jobPreferences.expectedSalaryFrom && (
+                  <div>
+                    <span className="font-medium text-purple-700 dark:text-purple-300">Salary:</span>
+                    <div className="text-purple-600 dark:text-purple-400">
+                      ${jobPreferences.expectedSalaryFrom}
+                      {jobPreferences.expectedSalaryTo && ` - $${jobPreferences.expectedSalaryTo}`}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Application Preferences Form */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">

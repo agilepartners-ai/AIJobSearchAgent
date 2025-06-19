@@ -1,22 +1,25 @@
-import React from 'react';
-import { Plus, Bot, LogOut, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Search, LogOut, User, Settings, ChevronDown, Menu } from 'lucide-react';
 import { AuthService } from '../../services/authService';
 import { useNavigate } from 'react-router-dom';
 
 interface DashboardHeaderProps {
   userProfile: any;
   onAddApplication: () => void;
-  onAutomatedApply: () => void;
-  onImportJobs: () => void;
+  onJobSearch: () => void;
+  onJobPreferences: () => void;
+  onUpdateProfile: () => void;
 }
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   userProfile,
   onAddApplication,
-  onAutomatedApply,
-  onImportJobs,
+  onJobSearch,
+  onJobPreferences,
+  onUpdateProfile,
 }) => {
   const navigate = useNavigate();
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -27,9 +30,17 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     }
   };
 
-  const handleProfile = () => {
-    navigate('/profile');
+  const toggleProfileDropdown = () => {
+    setIsProfileDropdownOpen(!isProfileDropdownOpen);
   };
+
+  const handleProfileAction = (action: () => void) => {
+    action();
+    setIsProfileDropdownOpen(false);
+  };
+
+  // Sample profile image URL - replace with actual user image when available
+  const profileImageUrl = userProfile?.avatar_url || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face&auto=format&q=60";
 
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
@@ -43,49 +54,79 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Job Search Dashboard</h1>
             </div>
           </div>
-            <div className="flex items-center space-x-4">
+          
+          {/* Navbar with Job Search and Add Application */}
+          <div className="hidden md:flex items-center space-x-4">            <button
+              onClick={onJobSearch}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
+            >
+              <Search size={20} />
+              AI Job Agent
+            </button>
+            
             <button
               onClick={onAddApplication}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
             >
               <Plus size={20} />
               Add Application
             </button>
             
-            <button
-              onClick={onAutomatedApply}
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
-            >
-              <Bot size={20} />
-              Apply Jobs
-            </button>
-            
-            <button
-              onClick={onImportJobs}
-              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
-            >
-              Import Jobs
-            </button>
-            
-            <div className="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
-              <User size={20} />
-              <span className="text-sm">
-                {userProfile?.full_name || userProfile?.email || 'User'}
-              </span>
+            {/* Profile Dropdown */}
+            <div className="relative">
+              <button
+                onClick={toggleProfileDropdown}
+                className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <img
+                  src={profileImageUrl}
+                  alt="Profile"
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {userProfile?.full_name || userProfile?.email || 'User'}
+                </span>
+                <ChevronDown size={16} className="text-gray-500" />
+              </button>
+              
+              {isProfileDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                  <div className="py-1">
+                    <button
+                      onClick={() => handleProfileAction(onUpdateProfile)}
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <User size={16} className="mr-2" />
+                      Update Profile
+                    </button>
+                    <button
+                      onClick={() => handleProfileAction(onJobPreferences)}
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <Settings size={16} className="mr-2" />
+                      Job Preferences
+                    </button>
+                    <hr className="my-1 border-gray-200 dark:border-gray-600" />
+                    <button
+                      onClick={handleSignOut}
+                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <LogOut size={16} className="mr-2" />
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-            
+          </div>
+          
+          {/* Mobile menu button */}
+          <div className="md:hidden">
             <button
-              onClick={handleProfile}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              onClick={toggleProfileDropdown}
+              className="p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              <User size={20} />
-            </button>
-            
-            <button
-              onClick={handleSignOut}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-            >
-              <LogOut size={20} />
+              <Menu size={24} />
             </button>
           </div>
         </div>

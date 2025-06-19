@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { X, User, MapPin, Phone, Mail, Calendar, Globe, Shield, GraduationCap, Award, Users, Clock, Briefcase } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, User, Calendar, Shield, GraduationCap, Award, Users, Briefcase } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { ProfileService } from '../../services/profileService';
 
@@ -147,78 +147,99 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       setLoading(false);
     }
   };
-
-  // Create stable update functions using useCallback
-  const updateField = useCallback((field: string, value: any) => {
+  // Simple update functions like ApplyJobsModal
+  const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  }, []);
+  };
 
-  const updateArrayField = useCallback((arrayName: string, index: number, field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [arrayName]: prev[arrayName as keyof typeof prev].map((item: any, i: number) => 
-        i === index ? { ...item, [field]: value } : item
-      )
-    }));
-  }, []);
+  const updateArrayField = (arrayName: string, index: number, field: string, value: string) => {
+    setFormData(prev => {
+      const arrayKey = arrayName as keyof typeof prev;
+      const currentArray = prev[arrayKey];
+      
+      if (Array.isArray(currentArray)) {
+        return {
+          ...prev,
+          [arrayName]: currentArray.map((item: any, i: number) => 
+            i === index ? { ...item, [field]: value } : item
+          )
+        };
+      }
+      return prev;
+    });
+  };
 
-  const addArrayItem = useCallback((arrayName: string, emptyItem: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [arrayName]: [...prev[arrayName as keyof typeof prev], emptyItem]
-    }));
-  }, []);
+  const addArrayItem = (arrayName: string, emptyItem: any) => {
+    setFormData(prev => {
+      const arrayKey = arrayName as keyof typeof prev;
+      const currentArray = prev[arrayKey];
+      
+      if (Array.isArray(currentArray)) {
+        return {
+          ...prev,
+          [arrayName]: [...currentArray, emptyItem]
+        };
+      }
+      return prev;
+    });
+  };
 
-  const removeArrayItem = useCallback((arrayName: string, index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      [arrayName]: prev[arrayName as keyof typeof prev].filter((_: any, i: number) => i !== index)
-    }));
-  }, []);
+  const removeArrayItem = (arrayName: string, index: number) => {
+    setFormData(prev => {
+      const arrayKey = arrayName as keyof typeof prev;
+      const currentArray = prev[arrayKey];
+      
+      if (Array.isArray(currentArray)) {
+        return {
+          ...prev,
+          [arrayName]: currentArray.filter((_: any, i: number) => i !== index)
+        };
+      }
+      return prev;
+    });  };
 
-  // Memoize options arrays to prevent re-creation
-  const raceOptions = useMemo(() => [
+  // Simple options arrays like ApplyJobsModal
+  const raceOptions = [
     { value: 'american-indian', label: 'American Indian or Alaska Native' },
     { value: 'asian', label: 'Asian (East / South)' },
     { value: 'pacific-islander', label: 'Native Hawaiian or Other Pacific Islander' },
     { value: 'black', label: 'Black or African American' },
     { value: 'white', label: 'White' },
     { value: 'two-or-more', label: 'Two or more races' }
-  ], []);
+  ];
 
-  const veteranOptions = useMemo(() => [
+  const veteranOptions = [
     { value: 'not-veteran', label: 'I am not a veteran' },
     { value: 'not-protected', label: 'I am not a protected veteran' },
     { value: 'protected', label: 'I identify as one or more classifications of a protected veteran' },
     { value: 'no-answer', label: 'I do not wish to answer' }
-  ], []);
+  ];
 
-  const travelOptions = useMemo(() => [
+  const travelOptions = [
     { value: '0-10', label: '0 < 10%' },
     { value: '0-25', label: '0 < 25%' },
     { value: '0-50', label: '0 < 50%' },
     { value: '0-75', label: '0 < 75%' },
     { value: '100', label: '100%' }
-  ], []);
+  ];
 
-  const yesNoOptions = useMemo(() => [
+  const yesNoOptions = [
     { value: true, label: 'Yes' },
     { value: false, label: 'No' }
-  ], []);
+  ];
 
-  const genderOptions = useMemo(() => [
+  const genderOptions = [
     { value: 'male', label: 'Male' },
     { value: 'female', label: 'Female' },
     { value: 'other', label: 'Other' }
-  ], []);
+  ];
 
-  const ethnicityOptions = useMemo(() => [
+  const ethnicityOptions = [
     { value: 'hispanic', label: 'Hispanic or Latino' },
-    { value: 'not-hispanic', label: 'Not Hispanic or Latino' }
-  ], []);
+    { value: 'not-hispanic', label: 'Not Hispanic or Latino' }  ];
 
-  // Memoized components to prevent re-renders
-  const FormSection = React.memo(({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => (
+  // Simple components like ApplyJobsModal
+  const FormSection = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => (
     <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-6">
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
         {icon}
@@ -226,25 +247,24 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       </h3>
       {children}
     </div>
-  ));
+  );
 
-  const FormGrid = React.memo(({ children }: { children: React.ReactNode }) => (
+  const FormGrid = ({ children }: { children: React.ReactNode }) => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {children}
     </div>
-  ));
+  );
 
-  const FormField = React.memo(({ label, children }: { label: string; children: React.ReactNode }) => (
+  const FormField = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
         {label}
       </label>
       {children}
     </div>
-  ));
+  );
 
-  // Stable input components that don't re-render
-  const Input = React.memo(({ 
+  const Input = ({ 
     value, 
     onChange, 
     placeholder, 
@@ -262,9 +282,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       placeholder={placeholder}
       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
     />
-  ));
+  );
 
-  const TextArea = React.memo(({ 
+  const TextArea = ({ 
     value, 
     onChange, 
     placeholder, 
@@ -282,9 +302,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       rows={rows}
       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white resize-vertical"
     />
-  ));
+  );
 
-  const Select = React.memo(({ 
+  const Select = ({ 
     value, 
     onChange, 
     options, 
@@ -294,8 +314,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
     onChange: (value: string) => void; 
     options: Array<{ value: string; label: string }>; 
     placeholder?: string;
-  }) => (
-    <select
+  }) => (    <select
       value={value || ''}
       onChange={(e) => onChange(e.target.value)}
       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
@@ -305,9 +324,8 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         <option key={option.value} value={option.value}>{option.label}</option>
       ))}
     </select>
-  ));
-
-  const RadioGroup = React.memo(({ 
+  );
+  const RadioGroup = ({ 
     value, 
     onChange, 
     options, 
@@ -333,7 +351,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         </label>
       ))}
     </div>
-  ));
+  );
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -600,8 +618,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
             {formData.references.map((ref, index) => (
               <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600 mb-4">
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Reference {index + 1}</h4>
-                <FormGrid>
-                  <FormField label="Full Name">
+                <FormGrid>                  <FormField label="Full Name">
                     <Input
                       value={ref.fullName}
                       onChange={(value) => updateArrayField('references', index, 'fullName', value)}
@@ -673,8 +690,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                     </button>
                   )}
                 </div>
-                <FormGrid>
-                  <FormField label="Degree Type">
+                <FormGrid>                  <FormField label="Degree Type">
                     <Input
                       value={edu.degreeType}
                       onChange={(value) => updateArrayField('education', index, 'degreeType', value)}
@@ -761,8 +777,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
                     </button>
                   )}
                 </div>
-                <FormGrid>
-                  <FormField label="Certification Name">
+                <FormGrid>                  <FormField label="Certification Name">
                     <Input
                       value={cert.name}
                       onChange={(value) => updateArrayField('certifications', index, 'name', value)}

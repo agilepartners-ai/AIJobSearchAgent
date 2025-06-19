@@ -4,4 +4,3 @@ dist
 .env.*
 !.env.example
 .DS_Store
-src\lib\firebase.ts

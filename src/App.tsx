@@ -11,7 +11,7 @@ import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
 import ForgotPassword from './components/auth/ForgotPassword';
 import VerifyPhone from './components/auth/VerifyPhone';
-import Dashboard from './components/dashboard/Dashboard';
+import Dashboard from './components/dashboard/DashboardMain';
 import { useAuth } from './hooks/useAuth';
 
 function App() {

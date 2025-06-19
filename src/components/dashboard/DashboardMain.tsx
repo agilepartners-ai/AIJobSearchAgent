@@ -4,34 +4,34 @@ import DashboardHeader from './DashboardHeader';
 import StatsCards from './StatsCards';
 import ApplicationsTable from './ApplicationsTable';
 import SavedJobsSection from './SavedJobsSection';
-import ApplyJobsModal from './ApplyJobsModal';
 import JobDescriptionModal from './JobDescriptionModal';
 import ApplicationModal from './ApplicationModal';
+import JobPreferencesModal from './JobPreferencesModal';
+import JobSearchModal from './JobSearchModal';
+import ProfileModal from './ProfileModal';
 import { JobApplication } from '../../types/jobApplication';
 import { JobApplicationService } from '../../services/jobApplicationService';
 import { JobSearchService } from '../../services/jobSearchService';
 import { useAuth } from '../../hooks/useAuth';
 
-interface ApplyJobsForm {
-  targetRole: string;
-  experienceLevel: string;
-  preferredLocation: string;
-  salaryExpectation: string;
-  employmentType: string;
-  remotePreference: boolean;
-  skillsKeywords: string;
-  industries: string;
-  resumeVersion: string;
-  coverLetterTemplate: string;
-}
-
 const Dashboard: React.FC = () => {
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [combinedListings, setCombinedListings] = useState<JobApplication[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [showModal, setShowModal] = useState(false);
-  const [showApplyJobsModal, setShowApplyJobsModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');  const [statusFilter, setStatusFilter] = useState<string>('all');  const [showModal, setShowModal] = useState(false);
+  const [showJobPreferencesModal, setShowJobPreferencesModal] = useState(false);
+  const [showJobSearchModal, setShowJobSearchModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [searchForm, setSearchForm] = useState({
+    query: '',
+    location: '',
+    experience: '',
+    employment_type: '',
+    remote_jobs_only: false,
+    date_posted: '',
+  });
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
   const [editingApplication, setEditingApplication] = useState<JobApplication | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -89,14 +89,118 @@ const Dashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-  const handleAddApplication = () => {
+  };  const handleAddApplication = () => {
     setEditingApplication(null);
     setShowModal(true);
+  };const handleJobPreferences = () => {
+    setShowJobPreferencesModal(true);
   };
 
-  const handleAddAutomatedApplication = () => {
-    setShowApplyJobsModal(true);
+  const handleUpdateProfile = () => {
+    setShowProfileModal(true);
+  };
+
+  const handleJobSearch = () => {
+    setShowJobSearchModal(true);
+  };
+
+  const handleJobSearchFormChange = (form: any) => {
+    setSearchForm(form);
+  };
+  const handleJobSearchSubmit = async () => {
+    if (!user || !searchForm.query) return;
+
+    setSearchLoading(true);
+    setSearchError('');
+
+    try {      const jobSearchParams = {
+        jobProfile: searchForm.query,
+        experience: (searchForm.experience === 'Fresher' ? 'Fresher' : 'Experienced') as 'Fresher' | 'Experienced',
+        location: searchForm.location || 'Remote',
+        numPages: 1
+      };
+      
+      const results = await JobSearchService.searchJobs(jobSearchParams);
+      setSearchResults(results.jobs || []);
+      
+      if (results.jobs && results.jobs.length > 0) {
+        console.log(`Found ${results.jobs.length} job opportunities!`);
+      } else {
+        setSearchError('No jobs found. Try different search criteria.');
+      }
+    } catch (err: any) {
+      setSearchError(err.message || 'Failed to search for jobs');
+      console.error('Error searching for jobs:', err);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleSaveJobFromSearch = (job: any) => {
+    // Convert search result to application format and add to listings
+    const now = new Date().toISOString();
+    const newApplication = {
+      id: `temp-${Date.now()}`,
+      user_id: user?.uid || '',
+      company_name: job.employer_name || 'Unknown Company',
+      position: job.job_title || 'Unknown Position',
+      status: 'not_applied' as const,
+      application_date: now,
+      last_updated: now,
+      job_posting_url: job.job_apply_link || '',
+      job_description: job.job_description || '',
+      notes: `Added from job search: ${job.job_country || 'Unknown location'}`,
+      created_at: now,
+      updated_at: now
+    };
+
+    setCombinedListings(prev => {
+      const existingIds = new Set(prev.map(app => app.company_name + app.position));
+      if (!existingIds.has(newApplication.company_name + newApplication.position)) {
+        return [...prev, newApplication];
+      }
+      return prev;
+    });    alert(`"${job.job_title}" at "${job.employer_name}" added to your applications!`);
+  };
+
+  const handleSaveMultipleJobsFromSearch = (jobs: any[]) => {
+    const now = new Date().toISOString();
+    const newApplications = jobs.map(job => ({
+      id: `temp-${Date.now()}-${Math.random()}`,
+      user_id: user?.uid || '',
+      company_name: job.employer_name || 'Unknown Company',
+      position: job.job_title || 'Unknown Position',
+      status: 'not_applied' as const,
+      application_date: now,
+      last_updated: now,
+      job_posting_url: job.job_apply_link || '',
+      job_description: job.job_description || '',
+      notes: `Added from job search: ${job.job_country || 'Unknown location'}`,
+      created_at: now,
+      updated_at: now
+    }));
+
+    setCombinedListings(prev => {
+      const existingIds = new Set(prev.map(app => app.company_name + app.position));
+      const uniqueNewApplications = newApplications.filter(app => 
+        !existingIds.has(app.company_name + app.position)
+      );
+      return [...prev, ...uniqueNewApplications];
+    });
+
+    alert(`${jobs.length} jobs added to your applications!`);
+  };
+  const handleClearJobSearch = () => {
+    setSearchForm({
+      query: '',
+      location: '',
+      experience: '',
+      employment_type: '',
+      remote_jobs_only: false,
+      date_posted: '',
+    });
+    setSearchResults([]);
+    setSearchError('');
   };
 
   const handleEditApplication = (application: JobApplication) => {
@@ -117,81 +221,12 @@ const Dashboard: React.FC = () => {
       }
       
       setShowModal(false);
-      await loadApplications();
-    } catch (err: any) {
+      await loadApplications();    } catch (err: any) {
       setError(err.message || 'Failed to save application');
       console.error('Error saving application:', err);
     }
   };
-  const handleApplyJobs = async (applyJobsData: ApplyJobsForm) => {
-    if (!user) return;
 
-    try {
-      setError('');
-      setLoading(true);
-      
-      // Search for jobs based on user's criteria
-      const jobSearchResults = await JobSearchService.searchJobs({
-        jobProfile: applyJobsData.targetRole || 'Software Developer',
-        experience: applyJobsData.experienceLevel === 'entry' ? 'Fresher' : 'Experienced',
-        location: applyJobsData.preferredLocation || 'United States',
-        numPages: 3 // Get more results for targeted search
-      });
-
-      if (jobSearchResults.success && jobSearchResults.jobs.length > 0) {
-        // Convert job listings to JobApplication format for display
-        const convertedJobs: JobApplication[] = jobSearchResults.jobs.map((job, index) => {
-          // Safely handle the posted_at date
-          let safePostedDate = new Date().toISOString();
-          if (job.posted_at && job.posted_at !== 'N/A') {
-            try {
-              const testDate = new Date(job.posted_at);
-              if (!isNaN(testDate.getTime())) {
-                safePostedDate = testDate.toISOString();
-              }
-            } catch (error) {
-              console.warn('Invalid posted_at date for job:', job.title, job.posted_at);
-            }
-          }
-
-          return {
-            id: `job-search-${index}-${Date.now()}`,
-            user_id: user?.uid || '',
-            company_name: job.company,
-            position: job.title,
-            status: 'not_applied',
-            application_date: new Date().toISOString(),
-            last_updated: safePostedDate,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            job_description: job.description,
-            job_posting_url: job.apply_url || job.job_url,
-            notes: `🎯 ${applyJobsData.targetRole} search | 📍 ${job.location}${job.employment_type !== 'N/A' ? ` | ${job.employment_type}` : ''}${job.salary !== 'N/A' ? ` | ${job.salary}` : ''}`,
-          };
-        });
-
-        // Add the new jobs to existing listings (avoiding duplicates)
-        setCombinedListings(prev => {
-          const existingIds = new Set(prev.map(job => job.company_name + job.position));
-          const newJobs = convertedJobs.filter(job => 
-            !existingIds.has(job.company_name + job.position)
-          );
-          return [...prev, ...newJobs];
-        });
-
-        alert(`Found ${jobSearchResults.jobs.length} ${applyJobsData.targetRole} positions! Check the applications table below to apply to specific jobs.`);
-      } else {
-        alert(`No jobs found for "${applyJobsData.targetRole}" in "${applyJobsData.preferredLocation}". Try different criteria.`);
-      }
-      
-      setShowApplyJobsModal(false);
-    } catch (err: any) {
-      setError(err.message || 'Failed to search for jobs');
-      console.error('Error searching for jobs:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
   const handleDeleteApplication = async (applicationId: string) => {
     if (!confirm('Are you sure you want to delete this application?')) {
       return;
@@ -242,14 +277,8 @@ const Dashboard: React.FC = () => {
       console.error('Error updating application status:', err);
     }
   };
-
   const handleViewJobDescription = (job: { title: string; company: string; description: string }) => {
     setSelectedJobDescription(job);
-  };
-
-  const handleImportJobs = () => {
-    // Placeholder for import functionality
-    alert('Import Jobs functionality will be implemented soon!');
   };
 
   if (authLoading || loading) {
@@ -265,12 +294,12 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <DashboardHeader
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">      <DashboardHeader
         userProfile={userProfile}
         onAddApplication={handleAddApplication}
-        onAutomatedApply={handleAddAutomatedApplication}
-        onImportJobs={handleImportJobs}
+        onJobSearch={handleJobSearch}
+        onJobPreferences={handleJobPreferences}
+        onUpdateProfile={handleUpdateProfile}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -301,16 +330,7 @@ const Dashboard: React.FC = () => {
             onViewJobDescription={handleViewJobDescription}
           />
         </div>
-      </main>
-
-      {/* Modals */}
-      <ApplyJobsModal
-        isOpen={showApplyJobsModal}
-        userProfile={userProfile}
-        onClose={() => setShowApplyJobsModal(false)}
-        onApply={handleApplyJobs}
-      />
-
+      </main>      {/* Modals */}
       <JobDescriptionModal
         isOpen={!!selectedJobDescription}
         jobDescription={selectedJobDescription}
@@ -322,6 +342,30 @@ const Dashboard: React.FC = () => {
           application={editingApplication}
           onSave={handleSaveApplication}
           onClose={() => setShowModal(false)}
+        />
+      )}      {showJobPreferencesModal && (
+        <JobPreferencesModal
+          onClose={() => setShowJobPreferencesModal(false)}
+        />
+      )}
+
+      {showProfileModal && (
+        <ProfileModal
+          onClose={() => setShowProfileModal(false)}
+        />
+      )}      {showJobSearchModal && (
+        <JobSearchModal
+          isOpen={showJobSearchModal}
+          searchForm={searchForm}
+          searchResults={searchResults}
+          searchLoading={searchLoading}
+          searchError={searchError}
+          onClose={() => setShowJobSearchModal(false)}
+          onFormChange={handleJobSearchFormChange}
+          onSearch={handleJobSearchSubmit}
+          onSaveJob={handleSaveJobFromSearch}
+          onSaveMultipleJobs={handleSaveMultipleJobsFromSearch}
+          onClear={handleClearJobSearch}
         />
       )}
     </div>
