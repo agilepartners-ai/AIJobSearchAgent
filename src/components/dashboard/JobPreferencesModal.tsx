@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Target, MapPin, Building, DollarSign, Briefcase, Globe, Link as LinkIcon } from 'lucide-react';
+import { X, Target, MapPin, Building, DollarSign, Briefcase, Link as LinkIcon } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { JobPreferencesService } from '../../services/jobPreferencesService';
 
@@ -83,8 +83,7 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
       setError(err.message || 'Failed to save job preferences');
     } finally {
       setLoading(false);
-    }
-  };
+    }  };
 
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -93,7 +92,7 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
   const updateArrayField = (arrayName: string, index: number, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [arrayName]: prev[arrayName as keyof typeof prev].map((item: string, i: number) => 
+      [arrayName]: (prev[arrayName as keyof typeof prev] as string[]).map((item: string, i: number) => 
         i === index ? value : item
       )
     }));
@@ -132,7 +131,7 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
   }) => (
     <input
       type={type}
-      value={value}
+      value={value || ''}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
@@ -146,7 +145,7 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
     placeholder?: string;
   }) => (
     <select
-      value={value}
+      value={value || ''}
       onChange={(e) => onChange(e.target.value)}
       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
     >
@@ -171,7 +170,7 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
             name={name}
             value={option.value}
             checked={value === option.value}
-            onChange={(e) => onChange(option.value)}
+            onChange={() => onChange(option.value)}
             className="mr-2 text-blue-600"
           />
           <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>

@@ -7,15 +7,23 @@ export interface JobSearchParams {
 }
 
 export interface JobResult {
-  title: string;
-  company: string;
-  location: string;
-  job_url: string;
-  apply_url: string;
-  description: string;
-  employment_type: string;
-  posted_at: string;
-  salary: string;
+  job_title: string;
+  employer_name: string;
+  job_city?: string;
+  job_state?: string;
+  job_country?: string;
+  job_is_remote?: boolean;
+  job_apply_link?: string;
+  job_employment_type?: string;
+  job_posted_at_datetime_utc?: string;
+  job_salary_currency?: string;
+  job_min_salary?: number;
+  job_max_salary?: number;
+  job_salary_period?: string;
+  job_experience_in_place_of_education?: boolean;
+  job_description?: string;
+  job_url?: string;
+  location?: string;
 }
 
 export interface JobSearchResponse {
@@ -31,10 +39,15 @@ export interface JobSearchResponse {
 
 export class JobSearchService {
   private static readonly JSEARCH_API_KEY = import.meta.env.VITE_JSEARCH_API_KEY;
+  private static readonly JSEARCH_API_HOST = import.meta.env.VITE_JSEARCH_API_HOST || 'jsearch.p.rapidapi.com';
   private static readonly JSEARCH_BASE_URL = 'https://jsearch.p.rapidapi.com/search';
-
   static async searchJobs(params: JobSearchParams): Promise<JobSearchResponse> {
     try {
+      // Check if API key is configured
+      if (!this.JSEARCH_API_KEY) {
+        throw new Error('JSEARCH_API_KEY is not configured. Please add it to your .env file.');
+      }
+
       // Use only state for location if possible
       const state = params.location.includes(',') 
         ? params.location.split(',').pop()?.trim() 
@@ -57,21 +70,29 @@ export class JobSearchService {
         date_posted: 'all'
       });
 
+      console.log('Making job search request with query:', query);
+      
       const response = await fetch(`${this.JSEARCH_BASE_URL}?${searchParams.toString()}`, {
         method: 'GET',
         headers: {
-          'X-RapidAPI-Host': 'jsearch.p.rapidapi.com',
+          'X-RapidAPI-Host': this.JSEARCH_API_HOST,
           'X-RapidAPI-Key': this.JSEARCH_API_KEY
         }
       });
 
+      console.log('Job search API response status:', response.status);
+
       if (!response.ok) {
-        throw new Error(`Job search API error: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Job search API error response:', errorText);
+        throw new Error(`Job search API error: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('Job search API response data:', data);
       
       if (!data.data || !Array.isArray(data.data)) {
+        console.warn('No jobs data found in response:', data);
         return {
           message: 'No jobs found',
           jobs: [],
@@ -82,9 +103,11 @@ export class JobSearchService {
           },
           success: true
         };
-      }
-
-      const jobs: JobResult[] = data.data.map((jobData: any) => {
+      }      const jobs: JobResult[] = data.data.map((jobData: any, index: number) => {
+        if (index < 3) {
+          console.log(`Sample job data ${index + 1}:`, jobData);
+        }
+        
         const city = jobData.job_city || '';
         const jobState = jobData.job_state || '';
         const country = jobData.job_country || '';
@@ -93,20 +116,34 @@ export class JobSearchService {
                            jobData.employer_location || 
                            'N/A';
 
-        return {
-          title: jobData.job_title || 'N/A',
-          company: jobData.employer_name || 'N/A',
-          location: locationStr,
+        const mappedJob = {
+          job_title: jobData.job_title || 'N/A',
+          employer_name: jobData.employer_name || 'N/A',
+          job_city: jobData.job_city || '',
+          job_state: jobData.job_state || '',
+          job_country: jobData.job_country || '',
+          job_is_remote: jobData.job_is_remote || false,
+          job_apply_link: jobData.job_apply_link || jobData.job_url || '',
+          job_employment_type: jobData.job_employment_type || 'N/A',
+          job_posted_at_datetime_utc: jobData.job_posted_at_datetime_utc || '',
+          job_salary_currency: jobData.job_salary_currency || '',
+          job_min_salary: jobData.job_min_salary || undefined,
+          job_max_salary: jobData.job_max_salary || undefined,
+          job_salary_period: jobData.job_salary_period || '',
+          job_experience_in_place_of_education: jobData.job_experience_in_place_of_education || false,
+          job_description: jobData.job_description || 'No description available',
           job_url: jobData.job_url || jobData.job_apply_link || '',
-          apply_url: jobData.job_apply_link || jobData.job_url || '',
-          description: jobData.job_description || 'No description available',
-          employment_type: jobData.job_employment_type || 'N/A',
-          posted_at: jobData.job_posted_at_datetime_utc || 'N/A',
-          salary: jobData.job_min_salary ? 
-            `$${jobData.job_min_salary}${jobData.job_max_salary ? ` - $${jobData.job_max_salary}` : ''}` : 
-            'N/A'
+          location: locationStr
         };
-      }).filter((job: JobResult) => job.title !== 'N/A' && job.company !== 'N/A');
+
+        if (index < 3) {
+          console.log(`Mapped job ${index + 1}:`, mappedJob);
+        }
+
+        return mappedJob;
+      }).filter((job: JobResult) => job.job_title !== 'N/A' && job.employer_name !== 'N/A');
+
+      console.log(`Successfully mapped ${jobs.length} jobs from ${data.data.length} raw results`);
 
       return {
         message: `Found ${jobs.length} jobs for ${params.jobProfile} in ${params.location}`,
