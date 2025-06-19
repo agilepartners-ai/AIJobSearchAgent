@@ -5,6 +5,7 @@ import Hero from './components/Hero';
 import Services from './components/Services';
 import Testimonials from './components/Testimonials';
 import Team from './components/Team';
+import CaseStudies from './components/CaseStudies';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
 import LoginForm from './components/auth/LoginForm';
@@ -16,10 +17,10 @@ import { useAuth } from './hooks/useAuth';
 
 function App() {
   useEffect(() => {
-    document.title = 'Agile Partners AI | Intelligent Solutions for Business';
+    document.title = 'MyJobSearchAgent | AI-Powered Career Success Platform';
     
-    // Force dark mode
-    document.documentElement.classList.add('dark');
+    // Remove forced dark mode - let system preference handle it
+    // The CSS will automatically handle light/dark mode switching
   }, []);
 
   return (
@@ -33,11 +34,12 @@ function App() {
         <Route
           path="/"
           element={
-            <div className="min-h-screen bg-white dark:bg-gray-900">
+            <div className="min-h-screen bg-white dark:bg-gray-900 theme-transition">
               <Header />
               <main>
                 <Hero />
                 <Services />
+                <CaseStudies />
                 <Testimonials />
                 <Team />
                 <Contact />

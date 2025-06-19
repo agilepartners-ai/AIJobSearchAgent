@@ -16,14 +16,14 @@ const Footer: React.FC = () => {
           <div>
             <div className="flex items-center space-x-2 mb-6">
               <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">AP</span>
+                <span className="text-white font-bold text-xl">MJ</span>
               </div>
               <span className="font-bold text-xl text-white">
-                Agile Partners AI
+                MyJobSearchAgent
               </span>
             </div>
             <p className="text-gray-400 mb-6 max-w-xs">
-              Transforming businesses through cutting-edge artificial intelligence and machine learning solutions.
+              Empowering professionals to land their dream jobs through AI-powered career tools and expert guidance.
             </p>
             <div className="flex space-x-4">
               <a 
@@ -60,35 +60,35 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="text-lg font-semibold mb-6">Services</h3>
             <ul className="space-y-4">
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Machine Learning</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">AI Consulting</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Data Analytics</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Process Automation</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Custom AI Development</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Resume Optimization</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Interview Coaching</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Job Dashboard</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Career Planning</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Professional Networking</a></li>
             </ul>
           </div>
           
           <div>
-            <h3 className="text-lg font-semibold mb-6">Company</h3>
+            <h3 className="text-lg font-semibold mb-6">Resources</h3>
             <ul className="space-y-4">
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">About Us</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Case Studies</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Our Team</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Careers</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Contact</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Career Blog</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Success Stories</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Interview Tips</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Resume Templates</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Salary Guide</a></li>
             </ul>
           </div>
           
           <div>
-            <h3 className="text-lg font-semibold mb-6">Newsletter</h3>
+            <h3 className="text-lg font-semibold mb-6">Career Newsletter</h3>
             <p className="text-gray-400 mb-4">
-              Subscribe to our newsletter for the latest AI insights and updates.
+              Get weekly career tips, job market insights, and exclusive opportunities delivered to your inbox.
             </p>
             <form className="flex">
               <input 
                 type="email" 
                 placeholder="Your email" 
-                className="px-4 py-2 rounded-l-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-4 py-2 rounded-l-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent flex-1"
               />
               <button 
                 type="submit" 
@@ -102,7 +102,7 @@ const Footer: React.FC = () => {
         
         <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-400 text-sm mb-4 md:mb-0">
-            © {new Date().getFullYear()} Agile Partners AI. All rights reserved.
+            © {new Date().getFullYear()} MyJobSearchAgent. All rights reserved.
           </p>
           <div className="flex space-x-6">
             <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">Privacy Policy</a>
