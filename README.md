@@ -209,10 +209,66 @@ git push origin --delete feature/job-search-enhancement
 
 ```bash
 # Complete workflow for pushing to main
+git checkout main
 git pull origin main
 git merge your-feature-branch
-git push 
+git push origin main
 
+# Or using rebase for cleaner history
+git checkout main
+git pull origin main
+git checkout your-feature-branch
+git rebase main
+git checkout main
+git merge your-feature-branch
+git push origin main
+```
+
+### Advanced Git Commands
+
+```bash
+# Stash changes temporarily
+git stash
+git stash pop
+
+# Reset to previous commit
+git reset --hard HEAD~1
+
+# View commit history
+git log --oneline
+
+# Create tag
+git tag v1.0.0
+git push origin v1.0.0
+
+# Cherry-pick specific commit
+git cherry-pick commit-hash
+
+# Rebase interactive (clean up commits)
+git rebase -i HEAD~3
+```
+
+## 🔧 Development Commands
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Run linter
+npm run lint
+
+# Run linter with auto-fix
+npm run lint --fix
+```
 
 ## 🔄 Application Workflow
 
@@ -248,32 +304,82 @@ graph TD
 
 
 
+## 🔄 Development Workflow
+
+```mermaid
+graph LR
+    A[Local Development] --> B[Feature Branch]
+    B --> C[Code & Test]
+    C --> D[Commit Changes]
+    D --> E[Push to Remote]
+    E --> F[Create PR]
+    F --> G[Code Review]
+    G --> H[Merge to Main]
+    H --> I[Deploy to Netlify]
+    
+    style A fill:#e3f2fd
+    style F fill:#e8f5e8
+    style I fill:#fff3e0
+```
+
 ## 🔄 Git Branching Strategy
 
 ```mermaid
-gitgraph
-    commit id: "Initial commit"
-    branch feature/auth
-    checkout feature/auth
-    commit id: "Add authentication"
-    commit id: "Add user registration"
-    checkout main
-    merge feature/auth
+graph TD
+    A[main branch] --> B[feature/auth]
+    A --> C[feature/dashboard]
+    A --> D[feature/ai-enhancement]
     
-    branch feature/dashboard
-    checkout feature/dashboard
-    commit id: "Create dashboard"
-    commit id: "Add job search"
-    checkout main
-    merge feature/dashboard
+    B --> E[Initial commit]
+    B --> F[Add authentication]
+    B --> G[Add user registration]
+    G --> H[Merge to main]
     
-    branch feature/ai-enhancement
-    checkout feature/ai-enhancement
-    commit id: "Add AI features"
-    checkout main
-    merge feature/ai-enhancement
+    C --> I[Create dashboard]
+    C --> J[Add job search]
+    J --> K[Merge to main]
     
-    commit id: "Release v1.0.0"
+    D --> L[Add AI features]
+    L --> M[Merge to main]
+    
+    H --> N[Release v1.0.0]
+    K --> N
+    M --> N
+    
+    style A fill:#e8f5e8
+    style H fill:#fff3e0
+    style K fill:#fff3e0
+    style M fill:#fff3e0
+    style N fill:#ffebee
+```
+
+## 🚀 Deployment Configuration
+
+### Deploy to Netlify
+
+The project is configured for automatic deployment to Netlify:
+
+1. **Connect Repository**: Link your GitHub repository to Netlify
+2. **Build Settings**: 
+   - Build command: `npm run build`
+   - Publish directory: `dist`
+   - Node version: 18
+3. **Environment Variables**: Add your Firebase config to Netlify environment variables:
+   - `VITE_FIREBASE_API_KEY`
+   - `VITE_FIREBASE_AUTH_DOMAIN`
+   - `VITE_FIREBASE_PROJECT_ID`
+   - `VITE_FIREBASE_STORAGE_BUCKET`
+   - `VITE_FIREBASE_MESSAGING_SENDER_ID`
+   - `VITE_FIREBASE_APP_ID`
+   - `VITE_JSEARCH_API_KEY`
+   - `VITE_JSEARCH_API_HOST`
+
+### Manual Deployment
+
+```bash
+# Build and deploy manually
+npm run build
+npx netlify deploy --prod --dir=dist
 ```
 
 ## 🧪 Testing
