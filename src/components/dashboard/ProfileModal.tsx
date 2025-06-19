@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Calendar, Shield, GraduationCap, Award, Users, Briefcase } from 'lucide-react';
+import { X, User, Calendar, Shield, Users } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { ProfileService } from '../../services/profileService';
 
@@ -32,6 +32,51 @@ interface Certification {
   expirationDate: string;
 }
 
+interface ProfileData {
+  fullName: string;
+  streetAddress: string;
+  city: string;
+  county: string;
+  state: string;
+  zipCode: string;
+  contactNumber: string;
+  dateOfBirth: string;
+  hasPhoneAccess: boolean;
+  gender: string;
+  ethnicity: string;
+  race: string;
+  veteranStatus: string;
+  travelPercentage: string;
+  otherLanguages: string;
+  nationality: string;
+  additionalNationalities: string;
+  openToTravel: boolean;
+  willingToRelocate: boolean;
+  canWorkEveningsWeekends: boolean;
+  authorizedToWork: boolean;
+  requiresSponsorship: boolean;
+  expectedSalaryFrom: string;
+  expectedSalaryTo: string;
+  salaryNotes: string;
+  references: Reference[];
+  education: Education[];
+  certifications: Certification[];
+  governmentEmployment: boolean;
+  hasAgreements: boolean;
+  hasConvictions: boolean;
+  interviewAvailability: string;
+  // Missing fields from UserProfileData
+  includeAge: boolean;
+  hasDisabilities: boolean;
+  disabilityDescription: string;
+  hasOtherCitizenship: boolean;
+  visaType: string;
+  sponsorshipType: string;
+  governmentDetails: string;
+  agreementDetails: string;
+  convictionDetails: string;
+}
+
 interface ProfileModalProps {
   onClose: () => void;
 }
@@ -41,10 +86,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  // Use a single state object and update it immutably
-  const [formData, setFormData] = useState({
-    // Personal Information
+  const [formData, setFormData] = useState<ProfileData>({
     fullName: '',
     streetAddress: '',
     city: '',
@@ -52,67 +94,58 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
     state: '',
     zipCode: '',
     contactNumber: '',
-    hasPhoneAccess: true,
-    gender: '',
     dateOfBirth: '',
-    includeAge: false,
+    hasPhoneAccess: false,
+    gender: '',
     ethnicity: '',
     race: '',
-    hasDisabilities: false,
-    disabilityDescription: '',
     veteranStatus: '',
     travelPercentage: '',
-    openToTravel: true,
-    willingToRelocate: true,
-    canWorkEveningsWeekends: true,
     otherLanguages: '',
     nationality: '',
     additionalNationalities: '',
-    hasOtherCitizenship: false,
-    visaType: '',
+    openToTravel: false,
+    willingToRelocate: false,
+    canWorkEveningsWeekends: false,
+    authorizedToWork: false,
+    requiresSponsorship: false,
     expectedSalaryFrom: '',
     expectedSalaryTo: '',
     salaryNotes: '',
-    
-    // Professional Information
-    authorizedToWork: true,
-    requiresSponsorship: false,
-    sponsorshipType: '',
-    
-    // References (3 required)
     references: [
-      { fullName: '', relationship: '', companyName: '', jobTitle: '', companyAddress: '', phoneNumber: '', email: '' },
-      { fullName: '', relationship: '', companyName: '', jobTitle: '', companyAddress: '', phoneNumber: '', email: '' },
       { fullName: '', relationship: '', companyName: '', jobTitle: '', companyAddress: '', phoneNumber: '', email: '' }
-    ] as Reference[],
-    
-    // Education (multiple entries)
+    ],
     education: [
       { degreeType: '', universityName: '', universityAddress: '', major: '', minor: '', timeframeFrom: '', timeframeTo: '', gpa: '' }
-    ] as Education[],
-    
-    // Certifications
+    ],
     certifications: [
       { name: '', licenseNumber: '', issuingOrganization: '', dateAchieved: '', expirationDate: '' }
-    ] as Certification[],
-    
-    // Additional Questions
+    ],
     governmentEmployment: false,
-    governmentDetails: '',
     hasAgreements: false,
-    agreementDetails: '',
     hasConvictions: false,
-    convictionDetails: '',
-    interviewAvailability: ''
+    interviewAvailability: '',
+    // Add missing fields with default values
+    includeAge: false,
+    hasDisabilities: false,
+    disabilityDescription: '',
+    hasOtherCitizenship: false,
+    visaType: '',
+    sponsorshipType: '',
+    governmentDetails: '',
+    agreementDetails: '',
+    convictionDetails: ''
   });
 
   useEffect(() => {
-    loadProfile();
+    if (user) {
+      loadProfile();
+    }
   }, [user]);
 
   const loadProfile = async () => {
     if (!user) return;
-
+    
     try {
       setLoading(true);
       const profile = await ProfileService.getUserProfile(user.uid);
@@ -120,10 +153,38 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         setFormData(profile);
       }
     } catch (err: any) {
-      console.error('Error loading profile:', err);
+      setError('Failed to load profile: ' + err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Simple form update function exactly like ApplyJobsModal
+  const updateForm = (field: keyof ProfileData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const updateArrayItem = (arrayName: keyof ProfileData, index: number, field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [arrayName]: (prev[arrayName] as any[]).map((item, i) => 
+        i === index ? { ...item, [field]: value } : item
+      )
+    }));
+  };
+
+  const addArrayItem = (arrayName: keyof ProfileData, newItem: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [arrayName]: [...(prev[arrayName] as any[]), newItem]
+    }));
+  };
+
+  const removeArrayItem = (arrayName: keyof ProfileData, index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      [arrayName]: (prev[arrayName] as any[]).filter((_, i) => i !== index)
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -133,95 +194,19 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
     try {
       setLoading(true);
       setError('');
-      setSuccess('');
-
+      
       await ProfileService.saveUserProfile(user.uid, formData);
-      setSuccess('Profile updated successfully!');
+      setSuccess('Profile saved successfully!');
       
       setTimeout(() => {
         onClose();
-      }, 1500);
+      }, 1000);
     } catch (err: any) {
-      setError(err.message || 'Failed to save profile');
+      setError('Failed to save profile: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
-  // Simple update functions like ApplyJobsModal
-  const updateField = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const updateArrayField = (arrayName: string, index: number, field: string, value: string) => {
-    setFormData(prev => {
-      const arrayKey = arrayName as keyof typeof prev;
-      const currentArray = prev[arrayKey];
-      
-      if (Array.isArray(currentArray)) {
-        return {
-          ...prev,
-          [arrayName]: currentArray.map((item: any, i: number) => 
-            i === index ? { ...item, [field]: value } : item
-          )
-        };
-      }
-      return prev;
-    });
-  };
-
-  const addArrayItem = (arrayName: string, emptyItem: any) => {
-    setFormData(prev => {
-      const arrayKey = arrayName as keyof typeof prev;
-      const currentArray = prev[arrayKey];
-      
-      if (Array.isArray(currentArray)) {
-        return {
-          ...prev,
-          [arrayName]: [...currentArray, emptyItem]
-        };
-      }
-      return prev;
-    });
-  };
-
-  const removeArrayItem = (arrayName: string, index: number) => {
-    setFormData(prev => {
-      const arrayKey = arrayName as keyof typeof prev;
-      const currentArray = prev[arrayKey];
-      
-      if (Array.isArray(currentArray)) {
-        return {
-          ...prev,
-          [arrayName]: currentArray.filter((_: any, i: number) => i !== index)
-        };
-      }
-      return prev;
-    });  };
-
-  // Simple options arrays like ApplyJobsModal
-  const raceOptions = [
-    { value: 'american-indian', label: 'American Indian or Alaska Native' },
-    { value: 'asian', label: 'Asian (East / South)' },
-    { value: 'pacific-islander', label: 'Native Hawaiian or Other Pacific Islander' },
-    { value: 'black', label: 'Black or African American' },
-    { value: 'white', label: 'White' },
-    { value: 'two-or-more', label: 'Two or more races' }
-  ];
-
-  const veteranOptions = [
-    { value: 'not-veteran', label: 'I am not a veteran' },
-    { value: 'not-protected', label: 'I am not a protected veteran' },
-    { value: 'protected', label: 'I identify as one or more classifications of a protected veteran' },
-    { value: 'no-answer', label: 'I do not wish to answer' }
-  ];
-
-  const travelOptions = [
-    { value: '0-10', label: '0 < 10%' },
-    { value: '0-25', label: '0 < 25%' },
-    { value: '0-50', label: '0 < 50%' },
-    { value: '0-75', label: '0 < 75%' },
-    { value: '100', label: '100%' }
-  ];
 
   const yesNoOptions = [
     { value: true, label: 'Yes' },
@@ -234,124 +219,15 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
     { value: 'other', label: 'Other' }
   ];
 
-  const ethnicityOptions = [
-    { value: 'hispanic', label: 'Hispanic or Latino' },
-    { value: 'not-hispanic', label: 'Not Hispanic or Latino' }  ];
-
-  // Simple components like ApplyJobsModal
-  const FormSection = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => (
-    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-6">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-        {icon}
-        {title}
-      </h3>
-      {children}
-    </div>
-  );
-
-  const FormGrid = ({ children }: { children: React.ReactNode }) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {children}
-    </div>
-  );
-
-  const FormField = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-
-  const Input = ({ 
-    value, 
-    onChange, 
-    placeholder, 
-    type = 'text' 
-  }: { 
-    value: string; 
-    onChange: (value: string) => void; 
-    placeholder?: string; 
-    type?: string;
-  }) => (
-    <input
-      type={type}
-      value={value || ''}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-    />
-  );
-
-  const TextArea = ({ 
-    value, 
-    onChange, 
-    placeholder, 
-    rows = 3 
-  }: { 
-    value: string; 
-    onChange: (value: string) => void; 
-    placeholder?: string; 
-    rows?: number;
-  }) => (
-    <textarea
-      value={value || ''}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={rows}
-      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white resize-vertical"
-    />
-  );
-
-  const Select = ({ 
-    value, 
-    onChange, 
-    options, 
-    placeholder 
-  }: { 
-    value: string; 
-    onChange: (value: string) => void; 
-    options: Array<{ value: string; label: string }>; 
-    placeholder?: string;
-  }) => (    <select
-      value={value || ''}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-    >
-      {placeholder && <option value="">{placeholder}</option>}
-      {options.map(option => (
-        <option key={option.value} value={option.value}>{option.label}</option>
-      ))}
-    </select>
-  );
-  const RadioGroup = ({ 
-    value, 
-    onChange, 
-    options, 
-    name 
-  }: {
-    value: string | boolean;
-    onChange: (value: any) => void;
-    options: Array<{ value: any; label: string }>;
-    name: string;
-  }) => (
-    <div className="flex flex-wrap gap-4">
-      {options.map(option => (
-        <label key={String(option.value)} className="flex items-center">
-          <input
-            type="radio"
-            name={name}
-            value={String(option.value)}
-            checked={value === option.value}
-            onChange={() => onChange(option.value)}
-            className="mr-2 text-blue-600"
-          />
-          <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
-        </label>
-      ))}
-    </div>
-  );
+  const raceOptions = [
+    { value: '', label: 'Select race' },
+    { value: 'white', label: 'White' },
+    { value: 'black', label: 'Black or African American' },
+    { value: 'asian', label: 'Asian' },
+    { value: 'native-american', label: 'American Indian or Alaska Native' },
+    { value: 'pacific-islander', label: 'Native Hawaiian or Other Pacific Islander' },
+    { value: 'two-or-more', label: 'Two or More Races' }
+  ];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -391,479 +267,321 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
           )}
 
           {/* Personal Information */}
-          <FormSection title="Personal Information" icon={<User size={20} />}>
-            <FormGrid>
-              <FormField label="Full Name">
-                <Input
+          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <User size={20} className="text-blue-600 dark:text-blue-400" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Personal Information</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Full Name
+                </label>
+                <input
+                  type="text"
                   value={formData.fullName}
-                  onChange={(value) => updateField('fullName', value)}
+                  onChange={(e) => updateForm('fullName', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   placeholder="Enter your full name"
                 />
-              </FormField>
-              <FormField label="Street Address">
-                <Input
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Street Address
+                </label>
+                <input
+                  type="text"
                   value={formData.streetAddress}
-                  onChange={(value) => updateField('streetAddress', value)}
+                  onChange={(e) => updateForm('streetAddress', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   placeholder="Enter street address"
                 />
-              </FormField>
-              <FormField label="City">
-                <Input
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  City
+                </label>
+                <input
+                  type="text"
                   value={formData.city}
-                  onChange={(value) => updateField('city', value)}
+                  onChange={(e) => updateForm('city', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   placeholder="Enter city"
                 />
-              </FormField>
-              <FormField label="County">
-                <Input
-                  value={formData.county}
-                  onChange={(value) => updateField('county', value)}
-                  placeholder="Enter county"
-                />
-              </FormField>
-              <FormField label="State">
-                <Input
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  State
+                </label>
+                <input
+                  type="text"
                   value={formData.state}
-                  onChange={(value) => updateField('state', value)}
+                  onChange={(e) => updateForm('state', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   placeholder="Enter state"
                 />
-              </FormField>
-              <FormField label="Zip Code">
-                <Input
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Zip Code
+                </label>
+                <input
+                  type="text"
                   value={formData.zipCode}
-                  onChange={(value) => updateField('zipCode', value)}
+                  onChange={(e) => updateForm('zipCode', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   placeholder="Enter zip code"
                 />
-              </FormField>
-              <FormField label="24/7 Contact Number">
-                <Input
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Contact Number
+                </label>
+                <input
                   type="tel"
                   value={formData.contactNumber}
-                  onChange={(value) => updateField('contactNumber', value)}
+                  onChange={(e) => updateForm('contactNumber', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   placeholder="Enter phone number"
                 />
-              </FormField>
-              <FormField label="Date of Birth">
-                <Input
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={(value) => updateField('dateOfBirth', value)}
-                />
-              </FormField>
-            </FormGrid>
+              </div>
+            </div>
 
             <div className="mt-4 space-y-4">
-              <FormField label="Do you have telephone accessibility 24 hours a day?">
-                <RadioGroup
-                  value={formData.hasPhoneAccess}
-                  onChange={(value) => updateField('hasPhoneAccess', value)}
-                  options={yesNoOptions}
-                  name="hasPhoneAccess"
-                />
-              </FormField>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Gender
+                </label>
+                <div className="flex flex-wrap gap-4">
+                  {genderOptions.map(option => (
+                    <label key={option.value} className="flex items-center">
+                      <input
+                        type="radio"
+                        name="gender"
+                        value={option.value}
+                        checked={formData.gender === option.value}
+                        onChange={() => updateForm('gender', option.value)}
+                        className="mr-2 text-blue-600"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
 
-              <FormField label="Gender">
-                <RadioGroup
-                  value={formData.gender}
-                  onChange={(value) => updateField('gender', value)}
-                  options={genderOptions}
-                  name="gender"
-                />
-              </FormField>
-
-              <FormField label="Ethnicity">
-                <RadioGroup
-                  value={formData.ethnicity}
-                  onChange={(value) => updateField('ethnicity', value)}
-                  options={ethnicityOptions}
-                  name="ethnicity"
-                />
-              </FormField>
-
-              <FormField label="Race">
-                <Select
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Race
+                </label>
+                <select
                   value={formData.race}
-                  onChange={(value) => updateField('race', value)}
-                  placeholder="Select race"
-                  options={raceOptions}
-                />
-              </FormField>
-
-              <FormField label="Veteran Status">
-                <Select
-                  value={formData.veteranStatus}
-                  onChange={(value) => updateField('veteranStatus', value)}
-                  placeholder="Select veteran status"
-                  options={veteranOptions}
-                />
-              </FormField>
+                  onChange={(e) => updateForm('race', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                >
+                  {raceOptions.map(option => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </FormSection>
+          </div>
 
-          {/* Work Preferences */}
-          <FormSection title="Work Preferences" icon={<Briefcase size={20} />}>
-            <FormGrid>
-              <FormField label="Travel Percentage">
-                <Select
-                  value={formData.travelPercentage}
-                  onChange={(value) => updateField('travelPercentage', value)}
-                  placeholder="Select travel percentage"
-                  options={travelOptions}
-                />
-              </FormField>
-              <FormField label="Other Languages">
-                <Input
-                  value={formData.otherLanguages}
-                  onChange={(value) => updateField('otherLanguages', value)}
-                  placeholder="e.g., Hindi, Spanish"
-                />
-              </FormField>
-              <FormField label="Nationality">
-                <Input
-                  value={formData.nationality}
-                  onChange={(value) => updateField('nationality', value)}
-                  placeholder="e.g., US Citizen"
-                />
-              </FormField>
-              <FormField label="Additional Nationalities">
-                <Input
-                  value={formData.additionalNationalities}
-                  onChange={(value) => updateField('additionalNationalities', value)}
-                  placeholder="e.g., Canadian Citizen, Indian OCI"
-                />
-              </FormField>
-            </FormGrid>
-
-            <div className="mt-4 space-y-4">
-              <FormField label="Open to Travel?">
-                <RadioGroup
-                  value={formData.openToTravel}
-                  onChange={(value) => updateField('openToTravel', value)}
-                  options={yesNoOptions}
-                  name="openToTravel"
-                />
-              </FormField>
-
-              <FormField label="Willing to Relocate?">
-                <RadioGroup
-                  value={formData.willingToRelocate}
-                  onChange={(value) => updateField('willingToRelocate', value)}
-                  options={yesNoOptions}
-                  name="willingToRelocate"
-                />
-              </FormField>
-
-              <FormField label="Can work evenings, weekends?">
-                <RadioGroup
-                  value={formData.canWorkEveningsWeekends}
-                  onChange={(value) => updateField('canWorkEveningsWeekends', value)}
-                  options={yesNoOptions}
-                  name="canWorkEveningsWeekends"
-                />
-              </FormField>
-
-              <FormField label="Legally authorized to work in the USA?">
-                <RadioGroup
-                  value={formData.authorizedToWork}
-                  onChange={(value) => updateField('authorizedToWork', value)}
-                  options={yesNoOptions}
-                  name="authorizedToWork"
-                />
-              </FormField>
-
-              <FormField label="Require sponsorship for employment eligibility?">
-                <RadioGroup
-                  value={formData.requiresSponsorship}
-                  onChange={(value) => updateField('requiresSponsorship', value)}
-                  options={yesNoOptions}
-                  name="requiresSponsorship"
-                />
-              </FormField>
+          {/* Work Authorization */}
+          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <Shield size={20} className="text-green-600 dark:text-green-400" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Work Authorization</h3>
             </div>
-          </FormSection>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Legally authorized to work in the USA?
+                </label>
+                <div className="flex flex-wrap gap-4">
+                  {yesNoOptions.map(option => (
+                    <label key={String(option.value)} className="flex items-center">
+                      <input
+                        type="radio"
+                        name="authorizedToWork"
+                        value={String(option.value)}
+                        checked={formData.authorizedToWork === option.value}
+                        onChange={() => updateForm('authorizedToWork', option.value)}
+                        className="mr-2 text-blue-600"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Require sponsorship for employment eligibility?
+                </label>
+                <div className="flex flex-wrap gap-4">
+                  {yesNoOptions.map(option => (
+                    <label key={String(option.value)} className="flex items-center">
+                      <input
+                        type="radio"
+                        name="requiresSponsorship"
+                        value={String(option.value)}
+                        checked={formData.requiresSponsorship === option.value}
+                        onChange={() => updateForm('requiresSponsorship', option.value)}
+                        className="mr-2 text-blue-600"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Salary Expectations */}
-          <FormSection title="Salary Expectations" icon={<Calendar size={20} />}>
-            <FormGrid>
-              <FormField label="Expected Salary From (USD)">
-                <Input
+          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <Calendar size={20} className="text-purple-600 dark:text-purple-400" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Salary Expectations</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Expected Salary From (USD)
+                </label>
+                <input
                   type="number"
                   value={formData.expectedSalaryFrom}
-                  onChange={(value) => updateField('expectedSalaryFrom', value)}
+                  onChange={(e) => updateForm('expectedSalaryFrom', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   placeholder="200000"
                 />
-              </FormField>
-              <FormField label="Expected Salary To (USD)">
-                <Input
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Expected Salary To (USD)
+                </label>
+                <input
                   type="number"
                   value={formData.expectedSalaryTo}
-                  onChange={(value) => updateField('expectedSalaryTo', value)}
+                  onChange={(e) => updateForm('expectedSalaryTo', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                   placeholder="350000"
                 />
-              </FormField>
-            </FormGrid>
-            <div className="mt-4">
-              <FormField label="Additional Notes for Salary Negotiations">
-                <TextArea
-                  value={formData.salaryNotes}
-                  onChange={(value) => updateField('salaryNotes', value)}
-                  placeholder="Negotiable based on future career growth..."
-                />
-              </FormField>
+              </div>
             </div>
-          </FormSection>
 
-          {/* Professional References */}
-          <FormSection title="Professional References" icon={<Users size={20} />}>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Additional Notes for Salary Negotiations
+              </label>
+              <textarea
+                value={formData.salaryNotes}
+                onChange={(e) => updateForm('salaryNotes', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                placeholder="Negotiable based on future career growth..."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          {/* References */}
+          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <Users size={20} className="text-orange-600 dark:text-orange-400" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Professional References</h3>
+            </div>
+
             {formData.references.map((ref, index) => (
               <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600 mb-4">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Reference {index + 1}</h4>
-                <FormGrid>                  <FormField label="Full Name">
-                    <Input
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="font-semibold text-gray-900 dark:text-white">Reference {index + 1}</h4>
+                  {index > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => removeArrayItem('references', index)}
+                      className="text-red-500 hover:text-red-700 p-1"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
                       value={ref.fullName}
-                      onChange={(value) => updateArrayField('references', index, 'fullName', value)}
+                      onChange={(e) => updateArrayItem('references', index, 'fullName', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       placeholder="Enter full name"
                     />
-                  </FormField>
-                  <FormField label="Relationship">
-                    <Input
-                      value={ref.relationship}
-                      onChange={(value) => updateArrayField('references', index, 'relationship', value)}
-                      placeholder="e.g., Reported to Me"
-                    />
-                  </FormField>
-                  <FormField label="Company Name">
-                    <Input
-                      value={ref.companyName}
-                      onChange={(value) => updateArrayField('references', index, 'companyName', value)}
-                      placeholder="Enter company name"
-                    />
-                  </FormField>
-                  <FormField label="Job Title">
-                    <Input
-                      value={ref.jobTitle}
-                      onChange={(value) => updateArrayField('references', index, 'jobTitle', value)}
-                      placeholder="Enter job title"
-                    />
-                  </FormField>
-                  <FormField label="Company Address">
-                    <Input
-                      value={ref.companyAddress}
-                      onChange={(value) => updateArrayField('references', index, 'companyAddress', value)}
-                      placeholder="Enter company address"
-                    />
-                  </FormField>
-                  <FormField label="Phone Number">
-                    <Input
-                      type="tel"
-                      value={ref.phoneNumber}
-                      onChange={(value) => updateArrayField('references', index, 'phoneNumber', value)}
-                      placeholder="Enter phone number"
-                    />
-                  </FormField>
-                  <FormField label="Email">
-                    <Input
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Email
+                    </label>
+                    <input
                       type="email"
                       value={ref.email}
-                      onChange={(value) => updateArrayField('references', index, 'email', value)}
+                      onChange={(e) => updateArrayItem('references', index, 'email', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       placeholder="Enter email address"
                     />
-                  </FormField>
-                </FormGrid>
-              </div>
-            ))}
-          </FormSection>
+                  </div>
 
-          {/* Education */}
-          <FormSection title="Education" icon={<GraduationCap size={20} />}>
-            {formData.education.map((edu, index) => (
-              <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600 mb-4">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="font-semibold text-gray-900 dark:text-white">Education {index + 1}</h4>
-                  {index > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => removeArrayItem('education', index)}
-                      className="text-red-500 hover:text-red-700 p-1"
-                    >
-                      <X size={16} />
-                    </button>
-                  )}
-                </div>
-                <FormGrid>                  <FormField label="Degree Type">
-                    <Input
-                      value={edu.degreeType}
-                      onChange={(value) => updateArrayField('education', index, 'degreeType', value)}
-                      placeholder="e.g., MBA, Bachelor's"
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={ref.phoneNumber}
+                      onChange={(e) => updateArrayItem('references', index, 'phoneNumber', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="Enter phone number"
                     />
-                  </FormField>
-                  <FormField label="University Name">
-                    <Input
-                      value={edu.universityName}
-                      onChange={(value) => updateArrayField('education', index, 'universityName', value)}
-                      placeholder="Enter university name"
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Company Name
+                    </label>
+                    <input
+                      type="text"
+                      value={ref.companyName}
+                      onChange={(e) => updateArrayItem('references', index, 'companyName', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="Enter company name"
                     />
-                  </FormField>
-                  <FormField label="Major">
-                    <Input
-                      value={edu.major}
-                      onChange={(value) => updateArrayField('education', index, 'major', value)}
-                      placeholder="Enter major"
-                    />
-                  </FormField>
-                  <FormField label="Minor">
-                    <Input
-                      value={edu.minor}
-                      onChange={(value) => updateArrayField('education', index, 'minor', value)}
-                      placeholder="Enter minor"
-                    />
-                  </FormField>
-                  <FormField label="From (MM/YYYY)">
-                    <Input
-                      value={edu.timeframeFrom}
-                      onChange={(value) => updateArrayField('education', index, 'timeframeFrom', value)}
-                      placeholder="09/2018"
-                    />
-                  </FormField>
-                  <FormField label="To (MM/YYYY)">
-                    <Input
-                      value={edu.timeframeTo}
-                      onChange={(value) => updateArrayField('education', index, 'timeframeTo', value)}
-                      placeholder="05/2022"
-                    />
-                  </FormField>
-                  <FormField label="GPA">
-                    <Input
-                      value={edu.gpa}
-                      onChange={(value) => updateArrayField('education', index, 'gpa', value)}
-                      placeholder="3.8"
-                    />
-                  </FormField>
-                </FormGrid>
-                <div className="mt-4">
-                  <FormField label="University Address">
-                    <TextArea
-                      value={edu.universityAddress}
-                      onChange={(value) => updateArrayField('education', index, 'universityAddress', value)}
-                      placeholder="Enter university address"
-                      rows={2}
-                    />
-                  </FormField>
+                  </div>
                 </div>
               </div>
             ))}
+
             <button
               type="button"
-              onClick={() => addArrayItem('education', { degreeType: '', universityName: '', universityAddress: '', major: '', minor: '', timeframeFrom: '', timeframeTo: '', gpa: '' })}
+              onClick={() => addArrayItem('references', { 
+                fullName: '', relationship: '', companyName: '', jobTitle: '', 
+                companyAddress: '', phoneNumber: '', email: '' 
+              })}
               className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
             >
-              + Add Another Education
+              + Add Another Reference
             </button>
-          </FormSection>
-
-          {/* Certifications */}
-          <FormSection title="Licenses and Certifications" icon={<Award size={20} />}>
-            {formData.certifications.map((cert, index) => (
-              <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600 mb-4">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="font-semibold text-gray-900 dark:text-white">Certification {index + 1}</h4>
-                  {index > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => removeArrayItem('certifications', index)}
-                      className="text-red-500 hover:text-red-700 p-1"
-                    >
-                      <X size={16} />
-                    </button>
-                  )}
-                </div>
-                <FormGrid>                  <FormField label="Certification Name">
-                    <Input
-                      value={cert.name}
-                      onChange={(value) => updateArrayField('certifications', index, 'name', value)}
-                      placeholder="e.g., CISSP, PMP"
-                    />
-                  </FormField>
-                  <FormField label="License Number">
-                    <Input
-                      value={cert.licenseNumber}
-                      onChange={(value) => updateArrayField('certifications', index, 'licenseNumber', value)}
-                      placeholder="Enter license number"
-                    />
-                  </FormField>
-                  <FormField label="Issuing Organization">
-                    <Input
-                      value={cert.issuingOrganization}
-                      onChange={(value) => updateArrayField('certifications', index, 'issuingOrganization', value)}
-                      placeholder="e.g., ISC2, PMI"
-                    />
-                  </FormField>
-                  <FormField label="Date Achieved">
-                    <Input
-                      value={cert.dateAchieved}
-                      onChange={(value) => updateArrayField('certifications', index, 'dateAchieved', value)}
-                      placeholder="MM/DD/YYYY"
-                    />
-                  </FormField>
-                  <FormField label="Expiration Date">
-                    <Input
-                      value={cert.expirationDate}
-                      onChange={(value) => updateArrayField('certifications', index, 'expirationDate', value)}
-                      placeholder="MM/DD/YYYY"
-                    />
-                  </FormField>
-                </FormGrid>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => addArrayItem('certifications', { name: '', licenseNumber: '', issuingOrganization: '', dateAchieved: '', expirationDate: '' })}
-              className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
-            >
-              + Add Another Certification
-            </button>
-          </FormSection>
-
-          {/* Additional Questions */}
-          <FormSection title="Additional Information" icon={<Shield size={20} />}>
-            <div className="space-y-4">
-              <FormField label="Within the last three years, have you been employed by a government entity in the USA?">
-                <RadioGroup
-                  value={formData.governmentEmployment}
-                  onChange={(value) => updateField('governmentEmployment', value)}
-                  options={yesNoOptions}
-                  name="governmentEmployment"
-                />
-              </FormField>
-
-              <FormField label="Are you subject to any agreement or covenant not to compete?">
-                <RadioGroup
-                  value={formData.hasAgreements}
-                  onChange={(value) => updateField('hasAgreements', value)}
-                  options={yesNoOptions}
-                  name="hasAgreements"
-                />
-              </FormField>
-
-              <FormField label="Have you ever been convicted of a felony or misdemeanor?">
-                <RadioGroup
-                  value={formData.hasConvictions}
-                  onChange={(value) => updateField('hasConvictions', value)}
-                  options={yesNoOptions}
-                  name="hasConvictions"
-                />
-              </FormField>
-
-              <FormField label="Interview Availability (2-3 dates and time ranges)">
-                <TextArea
-                  value={formData.interviewAvailability}
-                  onChange={(value) => updateField('interviewAvailability', value)}
-                  placeholder="Put Friday First Choice then Monday&#10;Fridays, Mondays, Evenings, Weekends"
-                  rows={3}
-                />
-              </FormField>
-            </div>
-          </FormSection>
+          </div>
 
           {/* Submit Button */}
           <div className="flex gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
