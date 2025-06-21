@@ -15,7 +15,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle, link
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <Link to="/\" className="inline-block">
-            <img src="/image.png\" alt="Agile Partners\" className="h-12 mx-auto" />
+            <img src="/AGENT_Logo.png" alt="Agile Partners\" className="h-12 mx-auto" />
           </Link>
           <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">{title}</h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{subtitle}</p>

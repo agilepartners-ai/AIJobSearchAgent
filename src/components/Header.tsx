@@ -35,7 +35,11 @@ const Header: React.FC = () => {
           {/* Left side - Main Logo and Powered By Logo */}
           <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4 lg:space-x-5">
             <Link to="/" className="flex items-center space-x-2">
-              <img src="/image.png" alt="MyJobSearchAgent" className="h-12 sm:h-14 md:h-15 lg:h-16" />
+              <img 
+                src="/AGENT_Logo.png" 
+                alt="MyJobSearchAgent" 
+                className="h-8 sm:h-10 md:h-12 lg:h-14 w-auto transition-all duration-300"
+              />
             </Link>
             
             {/* Powered By Logo - Moved closer with responsive spacing */}
