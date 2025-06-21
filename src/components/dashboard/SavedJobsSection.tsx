@@ -5,13 +5,31 @@ import { JobApplication } from '../../types/jobApplication';
 interface SavedJobsSectionProps {
   applications: JobApplication[];
   onViewJobDescription: (job: { title: string; company: string; description: string }) => void;
+  onUpdateApplicationStatus?: (id: string, status: string) => void;
 }
 
 const SavedJobsSection: React.FC<SavedJobsSectionProps> = ({
   applications,
   onViewJobDescription,
+  onUpdateApplicationStatus,
 }) => {
   const savedJobs = applications.filter(app => app.status === 'not_applied');
+
+  const handleApplyToJob = async (job: JobApplication) => {
+    try {
+      if (job.job_posting_url) {
+        // Update status to 'applied'
+        if (onUpdateApplicationStatus) {
+          onUpdateApplicationStatus(job.id, 'APPLIED');
+        }
+        window.open(job.job_posting_url, '_blank');
+      } else {
+        console.log('No application URL available');
+      }
+    } catch (error) {
+      console.error('Error during job application:', error);
+    }
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
@@ -39,13 +57,12 @@ const SavedJobsSection: React.FC<SavedJobsSectionProps> = ({
                 </div>
                 
                 <p className="text-gray-600 dark:text-gray-400 mb-2">{job.company_name}</p>
-                
-                <div className="grid grid-cols-2 gap-4 text-sm text-gray-500 dark:text-gray-400 mb-3">
+                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-500 dark:text-gray-400 mb-3">
                   <div>
-                    <span className="font-medium">Status:</span> {job.status}
+                    <span className="font-medium">Status:</span> Saved
                   </div>
                   <div>
-                    <span className="font-medium">Applied:</span> {format(new Date(job.application_date), 'MMM d, yyyy')}
+                    <span className="font-medium">Added:</span> {format(new Date(job.application_date), 'MMM d, yyyy')}
                   </div>
                 </div>
                 
@@ -54,17 +71,14 @@ const SavedJobsSection: React.FC<SavedJobsSectionProps> = ({
                     {job.job_description.substring(0, 150)}...
                   </p>
                 )}
-                
-                <div className="flex justify-between items-center pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex justify-between items-center pt-3 border-t border-gray-200 dark:border-gray-700">
                   {job.job_posting_url && (
-                    <a
-                      href={job.job_posting_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+                    <button
+                      onClick={() => handleApplyToJob(job)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors font-medium"
                     >
-                      View Job
-                    </a>
+                      Apply Now
+                    </button>
                   )}
                   
                   {job.job_description && (

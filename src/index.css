@@ -82,6 +82,24 @@
   .theme-transition {
     @apply transition-colors duration-300 ease-in-out;
   }
+
+  /* 3D Visualization Specific Styles */
+  .three-canvas {
+    @apply absolute inset-0 w-full h-full;
+  }
+  
+  .visualization-container {
+    @apply relative overflow-hidden rounded-lg;
+  }
+  
+  /* Enhanced animations for 3D integration */
+  .animate-float-slow {
+    animation: float 8s ease-in-out infinite;
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
 }
 
 @keyframes float {
@@ -110,6 +128,31 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+/* Performance optimizations for 3D */
+.three-container {
+  transform: translateZ(0);
+  will-change: transform;
+  contain: layout style paint;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .three-container {
+    display: none;
   }
 }
 

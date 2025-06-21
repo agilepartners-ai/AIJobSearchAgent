@@ -3,7 +3,7 @@ import { storage } from '../lib/firebase';
 
 export class FileUploadService {
   // Upload a file to Firebase Storage
-  static async uploadFile(file: File, userId: string, type: 'resume' | 'cover_letter'): Promise<string> {
+  static async uploadFile(file: File, userId: string, type: 'resume' | 'cover_letter' | 'profile_picture'): Promise<string> {
     try {
       const timestamp = Date.now();
       const fileName = `${userId}/${type}/${timestamp}_${file.name}`;
@@ -29,7 +29,6 @@ export class FileUploadService {
       throw new Error('Failed to delete file');
     }
   }
-
   // Validate file type and size
   static validateFile(file: File): { isValid: boolean; error?: string } {
     const maxSize = 10 * 1024 * 1024; // 10MB
@@ -50,6 +49,33 @@ export class FileUploadService {
       return {
         isValid: false,
         error: 'File size must be less than 10MB'
+      };
+    }
+
+    return { isValid: true };
+  }
+
+  // Validate profile picture file
+  static validateProfilePicture(file: File): { isValid: boolean; error?: string } {
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp'
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      return {
+        isValid: false,
+        error: 'Only JPEG, PNG, and WebP images are allowed'
+      };
+    }
+
+    if (file.size > maxSize) {
+      return {
+        isValid: false,
+        error: 'Image size must be less than 5MB'
       };
     }
 

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Linkedin, Twitter, Mail } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Linkedin, Twitter, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface TeamMemberProps {
   image: string;
@@ -51,6 +51,8 @@ const TeamMember: React.FC<TeamMemberProps> = ({ image, name, role, bio }) => {
 };
 
 const Team: React.FC = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  
   const teamMembers = [
     {
       image: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=2",
@@ -138,8 +140,59 @@ const Team: React.FC = () => {
     }
   ];
 
+  // Get number of cards to show based on screen size
+  const getCardsToShow = () => {
+    if (typeof window !== 'undefined') {
+      if (window.innerWidth >= 1024) return 4; // lg screens
+      if (window.innerWidth >= 768) return 3; // md screens
+      if (window.innerWidth >= 640) return 2; // sm screens
+      return 1; // mobile
+    }
+    return 4; // default
+  };
+
+  const [cardsToShow, setCardsToShow] = useState(getCardsToShow());
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setCardsToShow(getCardsToShow());
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  // Auto-scroll functionality - Continuous rotation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex((prevIndex) => {
+        const maxIndex = teamMembers.length - cardsToShow;
+        return prevIndex >= maxIndex ? 0 : prevIndex + 1;
+      });
+    }, 3000); // Change slide every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [teamMembers.length, cardsToShow]);
+
+  const nextSlide = () => {
+    setCurrentIndex((prevIndex) => {
+      const maxIndex = teamMembers.length - cardsToShow;
+      return prevIndex >= maxIndex ? 0 : prevIndex + 1;
+    });
+  };
+
+  const prevSlide = () => {
+    setCurrentIndex((prevIndex) => {
+      const maxIndex = teamMembers.length - cardsToShow;
+      return prevIndex <= 0 ? maxIndex : prevIndex - 1;
+    });
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentIndex(index);
+  };
   return (
-    <section id="about" className="py-20 bg-white dark:bg-gray-900">
+    <section id="about" className="py-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-4xl mx-auto mb-16">
           <span className="text-blue-600 dark:text-blue-400 font-medium text-lg">Our Team</span>
@@ -148,19 +201,64 @@ const Team: React.FC = () => {
           </h2>
           <p className="text-gray-600 dark:text-gray-300 text-xl leading-relaxed">
             Our diverse team of career coaches, AI specialists, and industry experts is dedicated to helping you achieve your professional goals.
-          </p>
-        </div>
+          </p>        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          {teamMembers.map((member, index) => (
-            <TeamMember 
-              key={index}
-              image={member.image}
-              name={member.name}
-              role={member.role}
-              bio={member.bio}
-            />
-          ))}
+        {/* Navigation Arrows - Positioned outside carousel */}
+        <div className="relative max-w-7xl mx-auto">
+          <button
+            onClick={prevSlide}
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16 z-10 w-14 h-14 bg-white dark:bg-gray-800 rounded-full shadow-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:shadow-xl transition-all group border border-gray-200 dark:border-gray-700"
+            aria-label="Previous slide"
+          >
+            <ChevronLeft size={28} className="group-hover:scale-110 transition-transform" />
+          </button>
+          
+          <button
+            onClick={nextSlide}
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-16 z-10 w-14 h-14 bg-white dark:bg-gray-800 rounded-full shadow-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:shadow-xl transition-all group border border-gray-200 dark:border-gray-700"
+            aria-label="Next slide"
+          >
+            <ChevronRight size={28} className="group-hover:scale-110 transition-transform" />
+          </button>
+
+          {/* Carousel Track */}
+          <div className="overflow-hidden mx-16">
+            <div 
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{ transform: `translateX(-${currentIndex * (100 / cardsToShow)}%)` }}
+            >
+              {teamMembers.map((member, index) => (
+                <div
+                  key={index}
+                  className={`flex-shrink-0 px-3`}
+                  style={{ width: `${100 / cardsToShow}%` }}
+                >
+                  <TeamMember 
+                    image={member.image}
+                    name={member.name}
+                    role={member.role}
+                    bio={member.bio}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pagination Dots */}
+          <div className="flex justify-center mt-8 space-x-2">
+            {Array.from({ length: Math.ceil((teamMembers.length - cardsToShow + 1)) }, (_, index) => (
+              <button
+                key={index}
+                onClick={() => goToSlide(index)}
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  currentIndex === index
+                    ? 'bg-blue-600 dark:bg-blue-400 scale-125'
+                    : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </section>
