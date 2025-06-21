@@ -6,17 +6,17 @@ import { useNavigate } from 'react-router-dom';
 interface DashboardHeaderProps {
   userProfile: any;
   onAddApplication: () => void;
-  onJobSearch: () => void;
   onJobPreferences: () => void;
   onUpdateProfile: () => void;
+  onFindMoreJobs?: () => void;
 }
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   userProfile,
   onAddApplication,
-  onJobSearch,
   onJobPreferences,
   onUpdateProfile,
+  onFindMoreJobs,
 }) => {
   const navigate = useNavigate();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
@@ -54,15 +54,16 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Job Search Dashboard</h1>
             </div>
           </div>
-          
-          {/* Navbar with Job Search and Add Application */}
-          <div className="hidden md:flex items-center space-x-4">            <button
-              onClick={onJobSearch}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
-            >
-              <Search size={20} />
-              AI Job Agent
-            </button>
+            {/* Navbar with Job Search and Add Application */}          <div className="hidden md:flex items-center space-x-4">
+            {onFindMoreJobs && (
+              <button
+                onClick={onFindMoreJobs}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
+              >
+                <Search size={20} />
+                Find More Jobs
+              </button>
+            )}
             
             <button
               onClick={onAddApplication}

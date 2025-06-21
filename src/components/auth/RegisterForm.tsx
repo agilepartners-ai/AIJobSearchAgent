@@ -53,9 +53,7 @@ const RegisterForm: React.FC = () => {
     if (phone && !validatePhone(phone)) {
       setError('Please enter a valid phone number (e.g., 5869255600 or +15869255600)');
       return;
-    }
-
-    const formattedPhone = phone ? formatPhoneNumber(phone) : '';
+    }    const formattedPhone = phone ? formatPhoneNumber(phone) : '';
     setLoading(true);
 
     try {
@@ -64,7 +62,7 @@ const RegisterForm: React.FC = () => {
       if (formattedPhone) {
         navigate('/verify-phone');
       } else {
-        navigate('/dashboard');
+        // Route guard will handle redirect to /job-search
       }
     } catch (err: any) {
       setError(err.message);

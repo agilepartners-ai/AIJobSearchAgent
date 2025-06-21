@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { User, MapPin, Briefcase, ChevronDown } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { User, MapPin, Briefcase, ChevronDown, Camera, X } from 'lucide-react';
 import { JobSearchService } from '../../services/jobSearchService';
+import { FileUploadService } from '../../services/fileUploadService';
 
 export interface ProfileData {
   jobProfile: string;
   experience: 'Fresher' | 'Experienced';
   location: string;
+  profilePicture?: string;
 }
 
 interface ProfileFormProps {
@@ -24,10 +26,14 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   const [formData, setFormData] = useState<ProfileData>({
     jobProfile: initialData.jobProfile || '',
     experience: initialData.experience || 'Fresher',
-    location: initialData.location || ''
+    location: initialData.location || '',
+    profilePicture: initialData.profilePicture || ''
   });
 
   const [errors, setErrors] = useState<Partial<ProfileData>>({});
+  const [isUploadingProfilePic, setIsUploadingProfilePic] = useState(false);
+  const [profilePicPreview, setProfilePicPreview] = useState<string>(initialData.profilePicture || '');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const jobProfiles = JobSearchService.getCommonJobProfiles();
   const locations = JobSearchService.getPopularLocations();
@@ -53,7 +59,6 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       onSubmit(formData);
     }
   };
-
   const handleInputChange = (field: keyof ProfileData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
@@ -62,8 +67,51 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     }
   };
 
-  return (
-    <div className="space-y-6">
+  const handleProfilePictureChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file
+    const validation = FileUploadService.validateProfilePicture(file);
+    if (!validation.isValid) {
+      setErrors(prev => ({ ...prev, profilePicture: validation.error }));
+      return;
+    }
+
+    // Clear any previous errors
+    setErrors(prev => ({ ...prev, profilePicture: undefined }));
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setProfilePicPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload file (for demo purposes, we'll just use a placeholder user ID)
+    setIsUploadingProfilePic(true);
+    try {
+      const userId = 'demo-user'; // In real app, get from auth context
+      const downloadURL = await FileUploadService.uploadFile(file, userId, 'profile_picture');
+      setFormData(prev => ({ ...prev, profilePicture: downloadURL }));
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setErrors(prev => ({ ...prev, profilePicture: 'Failed to upload profile picture' }));
+      setProfilePicPreview(''); // Reset preview on error
+    } finally {
+      setIsUploadingProfilePic(false);
+    }
+  };
+
+  const removeProfilePicture = () => {
+    setFormData(prev => ({ ...prev, profilePicture: '' }));
+    setProfilePicPreview('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  return (    <div className="space-y-6">
       <div className="text-center">
         <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
           <User className="h-8 w-8 text-white" />
@@ -72,6 +120,71 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
         <p className="text-gray-600 dark:text-gray-400 mt-2">
           Tell us about your job preferences to find the best opportunities
         </p>
+      </div>
+
+      {/* Profile Picture Section */}
+      <div className="flex flex-col items-center space-y-4">
+        <div className="relative">
+          <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 border-4 border-white dark:border-gray-600 shadow-lg">
+            {profilePicPreview ? (
+              <img 
+                src={profilePicPreview} 
+                alt="Profile" 
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <User className="h-10 w-10 text-gray-400" />
+              </div>
+            )}
+          </div>
+          
+          {profilePicPreview && (
+            <button
+              type="button"
+              onClick={removeProfilePicture}
+              className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-lg transition-colors"
+              disabled={isLoading || isUploadingProfilePic}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        <div className="text-center">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/webp"
+            onChange={handleProfilePictureChange}
+            className="hidden"
+            disabled={isLoading || isUploadingProfilePic}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isLoading || isUploadingProfilePic}
+            className="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isUploadingProfilePic ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500 mr-2"></div>
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Camera className="h-4 w-4 mr-2" />
+                {profilePicPreview ? 'Change Photo' : 'Add Photo'}
+              </>
+            )}
+          </button>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            JPEG, PNG, WebP up to 5MB
+          </p>
+          {errors.profilePicture && (
+            <p className="text-sm text-red-600 dark:text-red-400 mt-1">{errors.profilePicture}</p>
+          )}
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

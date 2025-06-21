@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardHeader from './DashboardHeader';
 import StatsCards from './StatsCards';
-import ApplicationsTable from './ApplicationsTable';
-import SavedJobsSection from './SavedJobsSection';
+import ApplicationsCarousel from './ApplicationsCarousel';
 import JobDescriptionModal from './JobDescriptionModal';
 import ApplicationModal from './ApplicationModal';
 import JobPreferencesModal from './JobPreferencesModal';
@@ -28,14 +27,12 @@ const Dashboard: React.FC = () => {
     employment_type: '',
     remote_jobs_only: false,
     date_posted: '',
-  });
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  });  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [editingApplication, setEditingApplication] = useState<JobApplication | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [hoveredJob, setHoveredJob] = useState<string | null>(null);
   const [selectedJobDescription, setSelectedJobDescription] = useState<{title: string, company: string, description: string} | null>(null);
   const [stats, setStats] = useState({
     total: 0,
@@ -53,8 +50,41 @@ const Dashboard: React.FC = () => {
 
     if (user) {
       loadApplications();
+      loadSelectedJobsFromWorkflow();
     }
   }, [user, authLoading, navigate]);
+
+  const loadSelectedJobsFromWorkflow = () => {
+    try {
+      const selectedJobsData = localStorage.getItem('selectedJobs');
+      if (selectedJobsData) {
+        const selectedJobs = JSON.parse(selectedJobsData);
+          // Convert JobResult[] to JobApplication[] format for display
+        const jobApplications: JobApplication[] = selectedJobs.map((job: any, index: number) => ({
+          id: `workflow-${Date.now()}-${index}`,
+          user_id: user?.uid || '',
+          company_name: job.employer_name || 'Unknown Company',
+          position: job.job_title || 'Unknown Position',
+          status: 'not_applied' as const,
+          application_date: new Date().toISOString().split('T')[0],
+          job_posting_url: job.job_apply_link || '',
+          job_description: job.job_description || '',
+          notes: '',
+          resume_url: '',
+          cover_letter_url: '',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }));
+
+        setCombinedListings(prev => [...prev, ...jobApplications]);
+        
+        // Clear the localStorage after loading to prevent duplicates
+        localStorage.removeItem('selectedJobs');
+      }
+    } catch (error) {
+      console.error('Error loading selected jobs from workflow:', error);
+    }
+  };
   // Update stats based on applications only (job listings added when user searches)
   useEffect(() => {
     const combined = [...applications, ...combinedListings];
@@ -95,13 +125,8 @@ const Dashboard: React.FC = () => {
   };const handleJobPreferences = () => {
     setShowJobPreferencesModal(true);
   };
-
   const handleUpdateProfile = () => {
     setShowProfileModal(true);
-  };
-
-  const handleJobSearch = () => {
-    setShowJobSearchModal(true);
   };
 
   const handleJobSearchFormChange = (form: any) => {
@@ -244,20 +269,22 @@ const Dashboard: React.FC = () => {
     try {
       setError('');
       
-      // Check if this is a job listing (starts with 'job-listing-')
-      if (applicationId.startsWith('job-listing-')) {
+      // Check if this is a job listing (starts with 'job-listing-' or 'workflow-')
+      if (applicationId.startsWith('job-listing-') || applicationId.startsWith('workflow-')) {
         // Find the job listing in combinedListings
         const jobListing = combinedListings.find(job => job.id === applicationId);
-        if (jobListing && user && newStatus === 'applied') {          // Convert job listing to actual application
+        if (jobListing && user && newStatus === 'APPLIED') {
+          // Convert job listing to actual application
           const applicationData = {
             company_name: jobListing.company_name,
             position: jobListing.position,
-            status: 'applied',
+            status: 'APPLIED',
             application_date: new Date().toISOString(),
             job_description: jobListing.job_description,
-            notes: jobListing.notes,
-            job_url: jobListing.job_posting_url,
-            apply_url: jobListing.job_posting_url
+            notes: jobListing.notes || '',
+            job_posting_url: jobListing.job_posting_url || '',
+            resume_url: '',
+            cover_letter_url: ''
           };
           
           await JobApplicationService.addApplication(user.uid, applicationData);
@@ -276,7 +303,10 @@ const Dashboard: React.FC = () => {
       setError(err.message || 'Failed to update application status');
       console.error('Error updating application status:', err);
     }
+  };  const handleFindMoreJobs = () => {
+    navigate('/job-search');
   };
+
   const handleViewJobDescription = (job: { title: string; company: string; description: string }) => {
     setSelectedJobDescription(job);
   };
@@ -297,40 +327,59 @@ const Dashboard: React.FC = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">      <DashboardHeader
         userProfile={userProfile}
         onAddApplication={handleAddApplication}
-        onJobSearch={handleJobSearch}
         onJobPreferences={handleJobPreferences}
         onUpdateProfile={handleUpdateProfile}
-      />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        onFindMoreJobs={handleFindMoreJobs}
+      /><main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
           <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-lg mb-6">
             {error}
           </div>
         )}
 
+        {/* Welcome banner for new workflow users */}
+        {combinedListings.some(job => job.id.startsWith('workflow-')) && (
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-6 mb-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold">✓</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Welcome to Your Dashboard!</h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Great job! We've loaded your selected job opportunities. You can now manage applications, track progress, and discover more opportunities.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-4">
+              <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full text-sm">
+                🎯 {combinedListings.filter(job => job.id.startsWith('workflow-')).length} Jobs Added
+              </span>
+              <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-full text-sm">
+                📊 Dashboard Ready
+              </span>
+              <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 rounded-full text-sm">
+                🚀 Start Applying
+              </span>
+            </div>
+          </div>
+        )}
+
         <StatsCards stats={stats} />
 
-        <div className="space-y-8">          <ApplicationsTable
+        <div className="space-y-8">          <ApplicationsCarousel
             applications={[...applications, ...combinedListings]}
             searchTerm={searchTerm}
             statusFilter={statusFilter}
-            hoveredJob={hoveredJob}
             onSearchTermChange={setSearchTerm}
             onStatusFilterChange={setStatusFilter}
             onEditApplication={handleEditApplication}
             onViewJobDescription={handleViewJobDescription}
             onDeleteApplication={handleDeleteApplication}
-            onJobHover={setHoveredJob}
             onUpdateApplicationStatus={handleUpdateApplicationStatus}
           />
-
-          <SavedJobsSection
-            applications={applications}
-            onViewJobDescription={handleViewJobDescription}
-          />
         </div>
-      </main>      {/* Modals */}
+      </main>{/* Modals */}
       <JobDescriptionModal
         isOpen={!!selectedJobDescription}
         jobDescription={selectedJobDescription}

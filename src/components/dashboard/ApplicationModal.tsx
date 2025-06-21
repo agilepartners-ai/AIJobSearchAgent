@@ -26,25 +26,23 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, onSave
   const [showAIModal, setShowAIModal] = useState(false);
 
   const { user } = useAuth();
-
   useEffect(() => {
     if (application) {
       setFormData({
         company_name: application.company_name,
         position: application.position,
         status: application.status as keyof typeof ApplicationStatus,
-        application_date: application.application_date.split('T')[0],
+        application_date: application.application_date ? application.application_date.split('T')[0] : new Date().toISOString().split('T')[0],
         job_posting_url: application.job_posting_url || '',
         job_description: application.job_description || '',
         notes: application.notes || '',
         resume_url: application.resume_url || '',
         cover_letter_url: application.cover_letter_url || ''
       });
-    } else {
-      setFormData({
+    } else {      setFormData({
         company_name: '',
         position: '',
-        status: 'not_applied',
+        status: 'NOT_APPLIED',
         application_date: new Date().toISOString().split('T')[0],
         job_posting_url: '',
         job_description: '',

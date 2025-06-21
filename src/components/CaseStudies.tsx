@@ -66,7 +66,7 @@ const CaseStudies: React.FC = () => {
   ];
 
   return (
-    <section id="case-studies" className="py-20 bg-white dark:bg-gray-900">
+    <section id="case-studies" className="py-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12">
           <div className="max-w-2xl mb-6 md:mb-0">

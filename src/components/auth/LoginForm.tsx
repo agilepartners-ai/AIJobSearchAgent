@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../../services/authService';
 import AuthLayout from './AuthLayout';
 
-const LoginForm: React.FC = () => {
-  const [email, setEmail] = useState('');
+const LoginForm: React.FC = () => {  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,7 +14,7 @@ const LoginForm: React.FC = () => {
 
     try {
       await AuthService.signIn(email, password);
-      navigate('/dashboard');
+      // Route guard will handle redirect to /job-search
     } catch (err: any) {
       setError(err.message);
     } finally {

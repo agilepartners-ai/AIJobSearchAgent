@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { AuthService } from '../../services/authService';
 import AuthLayout from './AuthLayout';
 
-const VerifyPhone: React.FC = () => {
-  const [code, setCode] = useState('');
+const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
   const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,14 +19,12 @@ const VerifyPhone: React.FC = () => {
       // For demo purposes, accept any 6-digit code
       if (code.length !== 6) {
         throw new Error('Please enter a 6-digit verification code');
-      }
-
-      // Update user profile to mark phone as verified
+      }      // Update user profile to mark phone as verified
       await AuthService.updateUserProfile(user.uid, {
         phone_verified: true
       });
 
-      navigate('/dashboard');
+      // Route guard will handle redirect to /job-search
     } catch (err: any) {
       setError(err.message);
     } finally {
