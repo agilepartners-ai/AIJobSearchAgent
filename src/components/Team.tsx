@@ -55,88 +55,88 @@ const Team: React.FC = () => {
   
   const teamMembers = [
     {
-      image: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=2",
-      name: "Dr. Robert Chen",
-      role: "Chief Technology Officer",
-      bio: "AI researcher with 15+ years experience in machine learning and natural language processing for career optimization."
+      image: "https://drive.google.com/thumbnail?id=1vu-VaTML_UREGBrcNaLNVC6MW3PbkNwV",
+      name: "Alex Aggarwal",
+      role: "CEO & Co-Founder",
+      bio: "Visionary leader driving AI innovation and strategic partnerships to transform businesses across multiple industries."
     },
     {
-      image: "https://images.pexels.com/photos/1587009/pexels-photo-1587009.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=2",
-      name: "Alexandra Davis",
-      role: "Head of Career Services",
-      bio: "Former Fortune 500 recruiter turned career coach, helping thousands land their dream jobs through strategic guidance."
+      image: "https://drive.google.com/thumbnail?id=18EP-eQovSW7pduE7mSaERO213hobW63U",
+      name: "Rahul Chandai",
+      role: "AI Strategist & Co-Founder",
+      bio: "Specialized in deep learning and computer vision, developing cutting-edge AI models for real-world applications."
     },
     {
-      image: "https://images.pexels.com/photos/2379005/pexels-photo-2379005.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=2",
-      name: "Marcus Johnson",
-      role: "Senior Product Manager",
-      bio: "Product strategist specializing in user experience design for career development platforms and job search tools."
+      image: "https://drive.google.com/thumbnail?id=1FwU4tdaQKljzIjkeFKZnlMouqiTcinJx",
+      name: "Mona Aggarwal",
+      role: "AI Product Manager & Co-Founder",
+      bio: "UX/UI expert crafting intuitive user experiences that make job searching seamless and engaging for our users."
     },
     {
-      image: "https://images.pexels.com/photos/3756679/pexels-photo-3756679.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=2",
-      name: "Priya Sharma",
-      role: "Data Science Director",
-      bio: "Expert in predictive analytics and job market trends, developing algorithms that match candidates with opportunities."
+      image: "https://drive.google.com/thumbnail?id=1vDtI7L9KvUsEHgcdFyz8miFQrPB3LNPk",
+      name: "Vandana Pawar",
+      role: "AI Project/ Process Manager and Cyber Security Consultant",
+      bio: "Machine learning researcher developing next-generation algorithms for resume optimization and interview analysis."
     },
     {
-      image: "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=2",
-      name: "James Wilson",
-      role: "Interview Coach Specialist",
-      bio: "Former corporate trainer with expertise in behavioral interviewing and communication skills development."
+      image: "https://drive.google.com/thumbnail?id=1tq4tc35fh_gUxIS9O1--2k06uE_8mBTq",
+      name: "Dawood Wasif",
+      role: "AI SME & Development Manager",
+      bio: "Operations expert ensuring seamless delivery of AI solutions and maintaining the highest standards of client satisfaction."
     },
     {
-      image: "https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=2",
-      name: "Sarah Martinez",
-      role: "Resume Writing Expert",
-      bio: "Professional resume writer and career consultant with a track record of 95% interview success rate for clients."
+      image: "https://drive.google.com/thumbnail?id=1oda0llnHkikvQAF7nKY7Xnk3sNTecV2t",
+      name: "Tejas Bachhav",
+      role: "DevOps & Infrastructure Manager",
+      bio: "Leading data scientist with expertise in machine learning algorithms and statistical modeling for enterprise solutions."
     },
     {
-      image: "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=2",
-      name: "David Kim",
-      role: "Software Engineering Lead",
-      bio: "Full-stack developer building scalable career platforms with focus on user experience and performance optimization."
+      image: "https://drive.google.com/thumbnail?id=1aW8o1PupeEgLEYDqJr-wmyktT4WCyhew",
+      name: "Darcy Liu",
+      role: "AI SME & Lead Developer",
+      bio: "Technology visionary with 15+ years in AI research, leading our platform architecture and innovation roadmap."
     },
     {
-      image: "https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=2",
-      name: "Emily Rodriguez",
-      role: "UX/UI Design Director",
-      bio: "Design leader creating intuitive interfaces that simplify complex career decisions and job search processes."
+      image: "https://drive.google.com/thumbnail?id=1j3x3M5xMwVpQZ5KXrXHD2awdAGBRAYU2",
+      name: "Yatharath Chopra",
+      role: "AI Lead Developer",
+      bio: "Full-stack developer building scalable systems that power millions of job applications and career transformations."
     },
     {
-      image: "https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=2",
-      name: "Michael Thompson",
-      role: "Business Development Manager",
-      bio: "Strategic partnerships expert connecting job seekers with top employers across various industries and sectors."
+      image: "https://drive.google.com/thumbnail?id=1HOZ6jypOi_9ORPqM0LHZNOePPRgN7IJL",
+      name: "Vernessa",
+      role: "Digital Marketing Manager",
+      bio: "Customer advocate ensuring every user achieves their career goals through personalized support and guidance."
     },
     {
-      image: "https://images.pexels.com/photos/1036623/pexels-photo-1036623.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=2",
-      name: "Lisa Chang",
-      role: "Customer Success Manager",
-      bio: "Dedicated to ensuring every user achieves their career goals through personalized support and guidance."
+      image: "https://drive.google.com/thumbnail?id=1Nh11K1mpTnYTU7yVLemomEcomx-5Mufd",
+      name: "Medhat Mikhail",
+      role: "UX/UI Lead Designer",
+      bio: "Growth strategist connecting job seekers with our platform through data-driven marketing and community building."
     },
     {
-      image: "https://images.pexels.com/photos/1212984/pexels-photo-1212984.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=2",
-      name: "Ryan O'Connor",
-      role: "Market Research Analyst",
-      bio: "Labor market specialist analyzing industry trends and salary data to provide accurate career insights."
+      image: "https://drive.google.com/thumbnail?id=1ScTXmo95xMRJn-8FJsiNWalxAoFNSviW",
+      name: "Harkeerat Mauder",
+      role: "AI Full Stack Developer",
+      bio: "Infrastructure specialist ensuring 99.9% uptime and lightning-fast performance for our global user base."
     },
     {
-      image: "https://images.pexels.com/photos/1181424/pexels-photo-1181424.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=2",
-      name: "Amanda Foster",
-      role: "Content Strategy Lead",
-      bio: "Career content expert creating resources and guides that empower job seekers with actionable insights."
+      image: "https://drive.google.com/thumbnail?id=1wPs8IytWyKB9QUZ6dEH4Q6UlKVc8GDR_",
+      name: "Prathamesh Chaudhari",
+      role: "AI Developer",
+      bio: "Partnership expert building strategic alliances with top companies to create exclusive job opportunities for our users."
     },
     {
-      image: "https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=2",
-      name: "Carlos Mendez",
-      role: "Quality Assurance Manager",
-      bio: "Ensuring platform reliability and user experience excellence through comprehensive testing and optimization."
+      image: "https://images.pexels.com/photos/3184306/pexels-photo-3184306.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+      name: "Michael",
+      role: "AI Project Business Analyst",
+      bio: "Partnership expert building strategic alliances with top companies to create exclusive job opportunities for our users."
     },
     {
-      image: "https://images.pexels.com/photos/1024311/pexels-photo-1024311.jpeg?auto=compress&cs=tinysrgb&w=400&h=400&dpr=2",
-      name: "Jennifer Lee",
-      role: "HR Technology Consultant",
-      bio: "Former CHRO helping bridge the gap between job seekers and modern recruitment technologies and processes."
+      image: "https://images.pexels.com/photos/3184306/pexels-photo-3184306.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+      name: "Nidhi Bajoria",
+      role: "AI QA Tester",
+      bio: "Partnership expert building strategic alliances with top companies to create exclusive job opportunities for our users."
     }
   ];
 
