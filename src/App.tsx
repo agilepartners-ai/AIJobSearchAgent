@@ -16,6 +16,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import PublicRoute from './components/auth/PublicRoute';
 import JobSearchPage from './components/pages/JobSearchPage';
 import JobListingsPage from './components/pages/JobListingsPage';
+import AIInterviewPage from './components/pages/AIInterviewPage';
 import Dashboard from './components/dashboard/DashboardMain';
 
 function App() {
@@ -57,10 +58,14 @@ function App() {
           <ProtectedRoute>
             <JobListingsPage />
           </ProtectedRoute>
-        } />
-        <Route path="/dashboard" element={
+        } />        <Route path="/dashboard" element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/ai-interview" element={
+          <ProtectedRoute>
+            <AIInterviewPage />
           </ProtectedRoute>
         } /><Route
           path="/"
