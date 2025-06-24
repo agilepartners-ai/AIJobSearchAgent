@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, Video, FileText, Briefcase, ExternalLink, Loader } from 'lucide-react';
 import { JobApplication } from '../../types/jobApplication';
 import { createConversation } from '../../services/interviewService';
@@ -14,38 +14,28 @@ const InterviewModal: React.FC<InterviewModalProps> = ({ application, onClose })
   const [error, setError] = useState('');
   const [conversation, setConversation] = useState<IConversation | null>(null);
 
-  // Create conversation when modal opens
-  useEffect(() => {
-    const initializeInterview = async () => {
-      setLoading(true);
-      setError('');
-      
-      try {
-        // Prepare context from job application
-        const context = `
-          Job Title: ${application.position}
-          Company: ${application.company_name}
-          Job Description: ${application.job_description || 'Not provided'}
-          
-          This is a mock interview for the position above. Please tailor your questions to this specific role and company.
-        `;
-        
-        const conversationData = await createConversation(context);
-        setConversation(conversationData);
-        
-        // Auto-open the conversation URL if available
-        if (conversationData.conversation_url) {
-          window.open(conversationData.conversation_url, '_blank');
-        }
-      } catch (err: any) {
-        setError(err.message || 'Failed to create interview session');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const handleStartInterview = async () => {
+    setLoading(true);
+    setError('');
     
-    initializeInterview();
-  }, [application]);
+    try {
+      // Prepare context from job application
+      const context = `
+        Job Title: ${application.position}
+        Company: ${application.company_name}
+        Job Description: ${application.job_description || 'Not provided'}
+        
+        This is a mock interview for the position above. Please tailor your questions to this specific role and company.
+      `;
+      
+      const conversationData = await createConversation(context);
+      setConversation(conversationData);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create interview session');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOpenInterview = () => {
     if (conversation?.conversation_url) {
@@ -125,6 +115,24 @@ const InterviewModal: React.FC<InterviewModalProps> = ({ application, onClose })
             </div>
           )}
           
+          {!conversation && !loading && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg text-center">
+              <Video className="h-12 w-12 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-2">
+                Ready for Your Interview?
+              </h3>
+              <p className="text-blue-700 dark:text-blue-400 mb-6">
+                Click the button below to start your AI-powered interview practice session for this position.
+              </p>
+              <button
+                onClick={handleStartInterview}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-3 px-6 rounded-lg font-medium transition-all"
+              >
+                Let's Start Interview
+              </button>
+            </div>
+          )}
+          
           {conversation && (
             <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
@@ -150,11 +158,11 @@ const InterviewModal: React.FC<InterviewModalProps> = ({ application, onClose })
           )}
           
           {/* Instructions */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-            <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">
+          <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">
               Interview Tips
             </h3>
-            <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
+            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
               <li>• Ensure your camera and microphone are working properly</li>
               <li>• Find a quiet space with good lighting</li>
               <li>• Dress professionally as you would for a real interview</li>
