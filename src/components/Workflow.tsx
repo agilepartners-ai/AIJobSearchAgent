@@ -9,7 +9,7 @@ interface WorkflowStepProps {
 
 const WorkflowStep: React.FC<WorkflowStepProps> = ({ imageSrc, title, description, index }) => {
   return (
-    <div className="bg-purple-600/20 backdrop-blur-sm rounded-2xl p-6 sm:p-8 shadow-lg border-2 border-transparent hover:border-blue-500/30 transition-all hover:-translate-y-1 hover:shadow-blue-500/10 hover:shadow-xl" >
+    <div className="relative bg-purple-600/20 backdrop-blur-sm rounded-2xl p-6 sm:p-8 shadow-lg border-2 border-transparent hover:border-blue-500/30 transition-all hover:-translate-y-1 hover:shadow-blue-500/10 hover:shadow-xl" >
       <div className="flex flex-col items-center text-center">
         <img 
           src={imageSrc} 
