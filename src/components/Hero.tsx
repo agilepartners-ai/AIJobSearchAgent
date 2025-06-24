@@ -54,7 +54,7 @@ const Hero: React.FC = () => {
           {/* Centered Content */}
           <div className="max-w-4xl text-center">            <span className="inline-block px-6 py-2 bg-blue-600/40 dark:bg-blue-500/40 rounded-full text-blue-200 dark:text-blue-100 font-medium mb-3 backdrop-blur-md animate-fadeIn border border-blue-400/30 shadow-lg">
               AI-Powered Career Success
-            </span>            <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-bold text-white mb-3 leading-tight drop-shadow-2xl">
+            </span>            <h1 className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-bold text-white mb-3 leading-tight drop-shadow-2xl">
               <Typewriter 
                 text="Land Your Dream Job"
                 speed={60}
@@ -68,7 +68,7 @@ const Hero: React.FC = () => {
                   delay={1800}
                 />
               </span>
-            </h1>            <p className="text-lg lg:text-xl text-gray-100 dark:text-gray-200 mb-6 leading-relaxed max-w-3xl mx-auto drop-shadow-lg font-medium opacity-0 animate-fadeIn" style={{ animationDelay: '3s', animationFillMode: 'forwards' }}>
+            </h1><p className="text-lg lg:text-xl text-gray-100 dark:text-gray-200 mb-6 leading-relaxed max-w-3xl mx-auto drop-shadow-lg font-medium opacity-0 animate-fadeIn" style={{ animationDelay: '3s', animationFillMode: 'forwards' }}>
               Transform your job search with our intelligent platform. Get personalized resume optimization, practice with AI-powered mock interviews, and discover opportunities tailored to your skills and career goals.
             </p>            <div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0 animate-fadeIn" style={{ animationDelay: '3.5s', animationFillMode: 'forwards' }}>
               <a 
