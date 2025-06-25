@@ -9,7 +9,7 @@ interface PublicRouteProps {
 
 const PublicRoute: React.FC<PublicRouteProps> = ({ 
   children, 
-  redirectTo = '/job-search' 
+  redirectTo = '/dashboard' 
 }) => {
   const { isAuthenticated, loading } = useAuth();
 
