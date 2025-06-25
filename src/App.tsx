@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import Hero from './components/Hero';
+import Workflow from './components/Workflow';
 import Services from './components/Services';
 import Testimonials from './components/Testimonials';
 import Team from './components/Team';
@@ -74,6 +75,7 @@ function App() {
               <Header />
               <main>
                 <Hero />
+                <Workflow />
                 <Services />
                 <CaseStudies />
                 <Testimonials />
