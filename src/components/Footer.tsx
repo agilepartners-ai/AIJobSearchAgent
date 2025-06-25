@@ -56,39 +56,12 @@ const Footer: React.FC = () => {
               </a>
             </div>
           </div>
-          
-          <div>
-            <h3 className="text-lg font-semibold mb-6">Services</h3>
-            <ul className="space-y-4">
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Resume Optimization</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Interview Coaching</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Job Dashboard</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Career Planning</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Professional Networking</a></li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-semibold mb-6">Resources</h3>
-            <ul className="space-y-4">
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Career Blog</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Success Stories</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Interview Tips</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Resume Templates</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Salary Guide</a></li>
-            </ul>
-          </div>
         </div>
         
         <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-400 text-sm mb-4 md:mb-0">
             © {new Date().getFullYear()} MyJobSearchAgent. All rights reserved.
           </p>
-          <div className="flex space-x-6">
-            <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">Privacy Policy</a>
-            <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">Terms of Service</a>
-            <a href="#" className="text-gray-400 hover:text-white text-sm transition-colors">Cookie Policy</a>
-          </div>
         </div>
       </div>
       

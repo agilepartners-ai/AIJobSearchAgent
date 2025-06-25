@@ -22,7 +22,6 @@ const Contact: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Phone Support</h3>
-                  <p className="text-gray-600 dark:text-gray-300">+1 (555) 123-4567</p>
                   <p className="text-gray-600 dark:text-gray-300">+1 (610) 704-2184</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Mon-Fri, 9AM-6PM EST</p>
                 </div>
@@ -48,7 +47,7 @@ const Contact: React.FC = () => {
                   <p className="text-gray-600 dark:text-gray-300">
                     1125 PARK PL APT 206<br />
                     San Mateo, CA 94403-1578,<br />
-                    Uinted States
+                    United States
                   </p>
                 </div>
               </div>
