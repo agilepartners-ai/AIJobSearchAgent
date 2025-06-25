@@ -2,10 +2,9 @@ import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import Hero from './components/Hero';
-import Services from './components/Services';
+import Workflow from './components/Workflow';
 import Testimonials from './components/Testimonials';
 import Team from './components/Team';
-import CaseStudies from './components/CaseStudies';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
 import LoginForm from './components/auth/LoginForm';
@@ -78,8 +77,7 @@ function App() {
                 <Header />
                 <main>
                   <Hero />
-                  <Services />
-                  <CaseStudies />
+                  <Workflow />
                   <Testimonials />
                   <Team />
                   <Contact />

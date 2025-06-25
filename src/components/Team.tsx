@@ -121,18 +121,6 @@ const Team: React.FC = () => {
       bio: "Infrastructure specialist ensuring 99.9% uptime and lightning-fast performance for our global user base."
     },
     {
-      image: "https://drive.google.com/thumbnail?id=1wPs8IytWyKB9QUZ6dEH4Q6UlKVc8GDR_",
-      name: "Prathamesh Chaudhari",
-      role: "AI Developer",
-      bio: "Partnership expert building strategic alliances with top companies to create exclusive job opportunities for our users."
-    },
-    {
-      image: "https://images.pexels.com/photos/3184306/pexels-photo-3184306.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-      name: "Michael",
-      role: "AI Project Business Analyst",
-      bio: "Partnership expert building strategic alliances with top companies to create exclusive job opportunities for our users."
-    },
-    {
       image: "https://images.pexels.com/photos/3184306/pexels-photo-3184306.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
       name: "Nidhi Bajoria",
       role: "AI QA Tester",

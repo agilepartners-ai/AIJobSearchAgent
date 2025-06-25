@@ -78,26 +78,6 @@ const Footer: React.FC = () => {
               <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Salary Guide</a></li>
             </ul>
           </div>
-          
-          <div>
-            <h3 className="text-lg font-semibold mb-6">Career Newsletter</h3>
-            <p className="text-gray-400 mb-4">
-              Get weekly career tips, job market insights, and exclusive opportunities delivered to your inbox.
-            </p>
-            <form className="flex">
-              <input 
-                type="email" 
-                placeholder="Your email" 
-                className="px-4 py-2 rounded-l-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent flex-1"
-              />
-              <button 
-                type="submit" 
-                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-r-lg text-white font-medium transition-colors"
-              >
-                Subscribe
-              </button>
-            </form>
-          </div>
         </div>
         
         <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">

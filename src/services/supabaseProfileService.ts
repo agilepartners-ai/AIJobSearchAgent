@@ -2,18 +2,29 @@ import { supabase, TABLES } from '../lib/supabase';
 import { Profile, ProfileInsert, ProfileUpdate } from '../types/supabase';
 
 export interface CreateProfileData {
-  full_name?: string;
-  phone?: string;
-  location?: string;
-  resume_url?: string;
-  linkedin_url?: string;
-  github_url?: string;
-  portfolio_url?: string;
-  current_job_title?: string;
+  full_name?: string | null;
+  phone?: string | null;
+  location?: string | null;
+  resume_url?: string | null;
+  linkedin_url?: string | null;
+  github_url?: string | null;
+  portfolio_url?: string | null;
+  current_job_title?: string | null;
   years_of_experience?: number;
-  skills?: string[];
-  bio?: string;
-  avatar_url?: string;
+  skills?: string[] | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+  expected_salary?: string | null;
+  current_ctc?: string | null;
+  work_authorization?: string | null;
+  notice_period?: string | null;
+  availability?: string | null;
+  willingness_to_relocate?: boolean;
+  twitter_url?: string | null;
+  dribbble_url?: string | null;
+  medium_url?: string | null;
+  reference_contacts?: string | null;
+  job_preferences?: any;
 }
 
 export class SupabaseProfileService {
@@ -55,6 +66,17 @@ export class SupabaseProfileService {
         skills: profileData.skills || null,
         bio: profileData.bio || null,
         avatar_url: profileData.avatar_url || null,
+        expected_salary: profileData.expected_salary || null,
+        current_ctc: profileData.current_ctc || null,
+        work_authorization: profileData.work_authorization || null,
+        notice_period: profileData.notice_period || null,
+        availability: profileData.availability || null,
+        willingness_to_relocate: profileData.willingness_to_relocate || false,
+        twitter_url: profileData.twitter_url || null,
+        dribbble_url: profileData.dribbble_url || null,
+        medium_url: profileData.medium_url || null,
+        reference_contacts: profileData.reference_contacts || null,
+        job_preferences: profileData.job_preferences || null,
       };
 
       const { data, error } = await supabase
@@ -74,10 +96,15 @@ export class SupabaseProfileService {
   // Update user profile
   static async updateProfile(userId: string, updates: CreateProfileData): Promise<Profile> {
     try {
+      console.log('SupabaseProfileService: Updating profile for user:', userId);
+      console.log('SupabaseProfileService: Update data:', updates);
+
       const updateData: ProfileUpdate = {
         ...updates,
         updated_at: new Date().toISOString(),
       };
+
+      console.log('SupabaseProfileService: Final update data:', updateData);
 
       const { data, error } = await supabase
         .from(TABLES.PROFILES)
@@ -86,7 +113,12 @@ export class SupabaseProfileService {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('SupabaseProfileService: Database error:', error);
+        throw error;
+      }
+
+      console.log('SupabaseProfileService: Update successful:', data);
       return data;
     } catch (error) {
       console.error('Error updating user profile:', error);

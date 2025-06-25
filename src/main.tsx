@@ -9,6 +9,13 @@ import './index.css';
 
 // Validate environment configuration
 import { EnvironmentValidator } from './utils/environmentValidator';
+import { supabase } from './lib/supabase';
+
+// Expose supabase to window for debugging in development
+if (import.meta.env.DEV) {
+  (window as any).supabase = supabase;
+  console.log('🔧 Supabase client exposed to window.supabase for debugging');
+}
 
 // Validate and log environment status
 try {

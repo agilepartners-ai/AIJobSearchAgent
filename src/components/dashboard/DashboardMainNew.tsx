@@ -14,7 +14,6 @@ import SupabaseJobApplicationService from '../../services/supabaseJobApplication
 import { JobSearchService } from '../../services/jobSearchService';
 import { useAuth } from '../../hooks/useAuth';
 import { useToastContext } from '../ui/ToastProvider';
-import { debugSupabaseConnection } from '../../utils/debugSupabase';
 
 
 const Dashboard: React.FC = () => {
@@ -58,7 +57,7 @@ const Dashboard: React.FC = () => {
   });
 
   const { user, userProfile, loading: authLoading } = useAuth();
-  const { showSuccess, showError, showInfo } = useToastContext();
+  const { showSuccess, showError } = useToastContext();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -121,8 +120,6 @@ const Dashboard: React.FC = () => {
     setSearchError('');
     
     try {
-      console.log('Starting job search with form:', searchForm);
-      
       // Call the actual job search API
       const searchParams = {
         jobProfile: searchForm.query,
@@ -134,8 +131,6 @@ const Dashboard: React.FC = () => {
       const searchResponse = await JobSearchService.searchJobs(searchParams);
       
       if (searchResponse.success && searchResponse.jobs.length > 0) {
-        console.log(`Found ${searchResponse.jobs.length} jobs`);
-        
         // Set search results for the modal
         setSearchResults(searchResponse.jobs);
         
@@ -177,11 +172,6 @@ const Dashboard: React.FC = () => {
 
     try {
       setError('');
-      console.log('Saving job to Firebase:', {
-        userId: user.uid,
-        jobTitle: job.job_title,
-        company: job.employer_name
-      });
       
       // Use the SAME proven method that works for manual job additions
       const applicationData = {
@@ -197,8 +187,6 @@ const Dashboard: React.FC = () => {
       };
       
       const newApplication = await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
-      console.log('Job saved successfully');
-      
       // Update local state instead of reloading all data
       setApplications(prev => [newApplication, ...prev]);
       setStats(prev => ({ 
@@ -226,10 +214,6 @@ const Dashboard: React.FC = () => {
 
     try {
       setError('');
-      console.log('Saving multiple jobs to Firebase:', {
-        userId: user.uid,
-        jobCount: jobs.length
-      });
       
       let savedCount = 0;
       let errorCount = 0;
@@ -362,14 +346,12 @@ const Dashboard: React.FC = () => {
 
     try {
       setError('');
-      console.log('Updating application status:', { applicationId, newStatus });
       
       await SupabaseJobApplicationService.updateApplication(applicationId, { status: newStatus as any });
       
       // Reload applications to reflect the change
       await loadApplications();
       
-      console.log('Application status updated successfully');
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to update application status';
       setError(errorMessage);

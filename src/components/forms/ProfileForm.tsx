@@ -1,12 +1,66 @@
 import React, { useState, useRef } from 'react';
-import { User, MapPin, Briefcase, ChevronDown, Camera, X } from 'lucide-react';
+import { User, MapPin, Briefcase, ChevronDown, Camera, X, Phone, Mail, Globe, DollarSign, Clock, Shield, UserCheck, ExternalLink } from 'lucide-react';
 import { JobSearchService } from '../../services/jobSearchService';
 import { FileUploadService } from '../../services/fileUploadService';
 
+export interface WorkExperience {
+  jobTitle: string;
+  company: string;
+  duration: string;
+}
+
+export interface Education {
+  degree: string;
+  institution: string;
+  graduationYear: string;
+}
+
+export interface SocialLinks {
+  twitter?: string;
+  linkedin?: string;
+  github?: string;
+  dribbble?: string;
+  medium?: string;
+  portfolio?: string;
+}
+
 export interface ProfileData {
-  jobProfile: string;
-  experience: 'Fresher' | 'Experienced';
-  location: string;
+  // Basic Information
+  fullName: string;
+  email: string;
+  phone: string;
+  location: string; // City, State, Country
+  
+  // Job Information
+  currentJobTitle: string;
+  jobProfile: string; // From job search page
+  experience: 'Fresher' | 'Experienced'; // From job search page
+  workExperience: WorkExperience[];
+  
+  // Education
+  education: Education[];
+  
+  // Skills and Preferences
+  skills: string[];
+  expectedSalary: string;
+  currentCTC: string;
+  
+  // Job Search Preferences (from job search page)
+  employmentType: string;
+  remoteJobsOnly: boolean;
+  datePosted: string;
+  
+  // Work Authorization
+  willingnessToRelocate: boolean;
+  workAuthorization: string;
+  noticePeriod: string;
+  availability: string;
+  
+  // References and Social Links
+  references: string;
+  socialLinks: SocialLinks;
+  
+  // Profile Picture
   profilePicture?: string;
 }
 
