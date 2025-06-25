@@ -14,7 +14,7 @@ const LoginForm: React.FC = () => {  const [email, setEmail] = useState('');
 
     try {
       await AuthService.signIn(email, password);
-      // Route guard will handle redirect to /job-search
+      // Route guard will handle redirect to /dashboard
     } catch (err: any) {
       setError(err.message);
     } finally {

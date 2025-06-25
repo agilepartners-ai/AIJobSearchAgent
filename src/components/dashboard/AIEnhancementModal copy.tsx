@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { X, Upload, FileText, Sparkles, Cloud, HardDrive, Link as LinkIcon, ExternalLink, Zap, AlertTriangle } from 'lucide-react';
+import { X, Upload, FileText, Sparkles, Cloud, HardDrive, Link as LinkIcon, ExternalLink, Database, Zap, AlertTriangle } from 'lucide-react';
 import OptimizedResultsPage from './OptimizedResultsPage';
 import { PDFExtractionService } from '../../services/pdfExtractionService';
 import { ResumeOptimizationService } from '../../services/resumeOptimizationService';
 import { useAuth } from '../../hooks/useAuth';
-import ApiErrorHandler from '../common/ApiErrorHandler';
 
 interface AIEnhancementModalProps {
   jobDescription: string;
@@ -24,7 +23,6 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   const [pdfDirectLink, setPdfDirectLink] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [apiError, setApiError] = useState<any>(null);
   const [showResults, setShowResults] = useState(false);
   const [optimizationResults, setOptimizationResults] = useState<any>(null);
   const [extractedText, setExtractedText] = useState<string>('');
@@ -108,7 +106,6 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
     setLoading(true);
     setError('');
-    setApiError(null);
     setCurrentStep('extract');
 
     try {
@@ -162,7 +159,6 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
     setLoading(true);
     setError('');
-    setApiError(null);
     setCurrentStep('optimize');
 
     try {
@@ -189,99 +185,14 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       // Transform API response to our format
       const transformedResults = ResumeOptimizationService.transformApiResponse(apiResponse);
 
-      // Ensure all required properties are set for OptimizedResultsPage
-      const resultsWithRequiredProps = {
-        ...transformedResults,
-        // Ensure array properties are always defined
-        strengths: transformedResults.strengths || [],
-        gaps: transformedResults.gaps || [],
-        suggestions: transformedResults.suggestions || [],
-        // Ensure other required properties have defaults
-        matchScore: transformedResults.matchScore || 0,
-        summary: transformedResults.summary || '',
-        optimizedResumeText: transformedResults.optimizedResumeText || '',
-        tweakedText: transformedResults.tweakedText || '',
-        optimizedResumeUrl: transformedResults.optimizedResumeUrl || '',
-        optimizedCoverLetterUrl: transformedResults.optimizedCoverLetterUrl || '',
-        djangoUserId: transformedResults.djangoUserId || 0,
-        firebaseUid: transformedResults.firebaseUid || user.uid,
-        optimizationSuccessful: transformedResults.optimizationSuccessful || false
-      };
-
-      setOptimizationResults(resultsWithRequiredProps);
+      setOptimizationResults(transformedResults);
       setShowResults(true);
       
       console.log('✅ AI optimization completed successfully');
       
     } catch (err: any) {
       console.error('❌ AI optimization error:', err);
-      
-      // Check if it's an API error with additional metadata
-      if (err.endpoint) {
-        setApiError(err);
-      } else {
-        setError(err.message || 'Failed to generate AI-enhanced documents. Please try again.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleApiRetry = async (endpoint: string, params: Record<string, any>) => {
-    setLoading(true);
-    setApiError(null);
-    
-    try {
-      // Send optimization request to API with modified parameters
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(params)
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API error: ${response.status} - ${errorText || 'Unknown error'}`);
-      }
-      
-      const apiResponse = await response.json();
-      
-      // Transform API response to our format
-      const transformedResults = ResumeOptimizationService.transformApiResponse(apiResponse);
-
-      // Ensure all required properties are set for OptimizedResultsPage
-      const resultsWithRequiredProps = {
-        ...transformedResults,
-        // Ensure array properties are always defined
-        strengths: transformedResults.strengths || [],
-        gaps: transformedResults.gaps || [],
-        suggestions: transformedResults.suggestions || [],
-        // Ensure other required properties have defaults
-        matchScore: transformedResults.matchScore || 0,
-        summary: transformedResults.summary || '',
-        optimizedResumeText: transformedResults.optimizedResumeText || '',
-        tweakedText: transformedResults.tweakedText || '',
-        optimizedResumeUrl: transformedResults.optimizedResumeUrl || '',
-        optimizedCoverLetterUrl: transformedResults.optimizedCoverLetterUrl || '',
-        djangoUserId: transformedResults.djangoUserId || 0,
-        firebaseUid: transformedResults.firebaseUid || user?.uid || 'unknown',
-        optimizationSuccessful: transformedResults.optimizationSuccessful || false
-      };
-
-      setOptimizationResults(resultsWithRequiredProps);
-      setShowResults(true);
-      
-    } catch (err: any) {
-      console.error('❌ API retry error:', err);
-      
-      // Check if it's an API error with additional metadata
-      if (err.endpoint) {
-        setApiError(err);
-      } else {
-        setError(err.message || 'Failed to generate AI-enhanced documents. Please try again.');
-      }
+      setError(err.message || 'Failed to generate AI-enhanced documents. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -300,27 +211,6 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     setShowResults(false);
     onClose();
   };
-
-  // If we have API error, show the error handler
-  if (apiError) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="p-6">
-            <ApiErrorHandler
-              error={apiError}
-              endpoint={apiError.endpoint}
-              params={apiError.params}
-              statusCode={apiError.statusCode}
-              responseData={apiError.responseData}
-              onRetry={handleApiRetry}
-              onClose={() => setApiError(null)}
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (showResults && optimizationResults) {
     return (
@@ -530,7 +420,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-6 border border-green-200 dark:border-green-700">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
-                <FileText className="text-green-600 dark:text-green-400 mr-2" size={20} />
+                <Database className="text-green-600 dark:text-green-400 mr-2" size={20} />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white">Step 1: Extract Text from PDF</h3>
               </div>
               <button
@@ -546,7 +436,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                   </>
                 ) : (
                   <>
-                    <FileText size={16} />
+                    <Database size={16} />
                     Extract Text from PDF
                   </>
                 )}
@@ -622,7 +512,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                 🤖 Now we'll send your extracted text and job description to our AI service for optimization and analysis.
               </p>
               <div className="mt-3 text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 p-2 rounded">
-                <strong>API Endpoint:</strong> https://resumebuilder-arfb.onrender.com/optimizer/api/optimize-resume/
+                <strong>API Endpoint:</strong> https://resumebuilder-arfb.onrender.com/api/optimize-resume/
               </div>
             </div>
           )}

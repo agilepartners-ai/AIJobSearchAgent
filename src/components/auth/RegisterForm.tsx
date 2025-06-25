@@ -62,7 +62,7 @@ const RegisterForm: React.FC = () => {
       if (formattedPhone) {
         navigate('/verify-phone');
       } else {
-        // Route guard will handle redirect to /job-search
+        // Route guard will handle redirect to /dashboard
       }
     } catch (err: any) {
       setError(err.message);
