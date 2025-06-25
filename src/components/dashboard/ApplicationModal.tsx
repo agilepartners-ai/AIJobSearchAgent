@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Building, FileText, User, Link, Sparkles } from 'lucide-react';
-import { JobApplication, ApplicationStatus } from '../../types/jobApplication';
+import { JobApplication, ApplicationStatus } from '../../types/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import AIEnhancementModal from './AIEnhancementModal';
 
@@ -36,13 +36,13 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, onSave
         job_posting_url: application.job_posting_url || '',
         job_description: application.job_description || '',
         notes: application.notes || '',
-        resume_url: application.resume_url || '',
-        cover_letter_url: application.cover_letter_url || ''
+        resume_url: '', // Note: This field doesn't exist in Supabase schema
+        cover_letter_url: '' // Note: This field doesn't exist in Supabase schema
       });
     } else {      setFormData({
         company_name: '',
         position: '',
-        status: 'NOT_APPLIED',
+        status: 'not_applied',
         application_date: new Date().toISOString().split('T')[0],
         job_posting_url: '',
         job_description: '',

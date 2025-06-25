@@ -8,8 +8,8 @@ import ApplicationModal from './ApplicationModal';
 import JobPreferencesModal from './JobPreferencesModal';
 import JobSearchModal from './JobSearchModal';
 import ProfileModal from './ProfileModal';
-import { JobApplication } from '../../types/jobApplication';
-import { JobApplicationService } from '../../services/jobApplicationService';
+import { JobApplication } from '../../types/supabase';
+import SupabaseJobApplicationService from '../../services/supabaseJobApplicationService';
 import { JobSearchService } from '../../services/jobSearchService';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -160,60 +160,86 @@ const Dashboard: React.FC = () => {
       setSearchLoading(false);
     }
   };
+  const handleSaveJobFromSearch = async (job: any) => {
+    if (!user) {
+      console.error('User not authenticated');
+      return;
+    }
 
-  const handleSaveJobFromSearch = (job: any) => {
-    // Convert search result to application format and add to listings
-    const now = new Date().toISOString();
-    const newApplication = {
-      id: `temp-${Date.now()}`,
-      user_id: user?.uid || '',
-      company_name: job.employer_name || 'Unknown Company',
-      position: job.job_title || 'Unknown Position',
-      status: 'not_applied' as const,
-      application_date: now,
-      last_updated: now,
-      job_posting_url: job.job_apply_link || '',
-      job_description: job.job_description || '',
-      notes: `Added from job search: ${job.job_country || 'Unknown location'}`,
-      created_at: now,
-      updated_at: now
-    };
+    try {
+      await JobApplicationService.saveJobFromSearch(user.uid, job);
+      
+      // Also update the local state for immediate UI feedback
+      const now = new Date().toISOString();
+      const newApplication = {
+        id: `temp-${Date.now()}`,
+        user_id: user?.uid || '',
+        company_name: job.employer_name || 'Unknown Company',
+        position: job.job_title || 'Unknown Position',
+        status: 'not_applied' as const,
+        application_date: now,
+        last_updated: now,
+        job_posting_url: job.job_apply_link || '',
+        job_description: job.job_description || '',
+        notes: `Added from job search: ${job.job_country || 'Unknown location'}`,
+        created_at: now,
+        updated_at: now
+      };
 
-    setCombinedListings(prev => {
-      const existingIds = new Set(prev.map(app => app.company_name + app.position));
-      if (!existingIds.has(newApplication.company_name + newApplication.position)) {
-        return [...prev, newApplication];
-      }
-      return prev;
-    });    alert(`"${job.job_title}" at "${job.employer_name}" added to your applications!`);
+      setCombinedListings(prev => {
+        const existingIds = new Set(prev.map(app => app.company_name + app.position));
+        if (!existingIds.has(newApplication.company_name + newApplication.position)) {
+          return [...prev, newApplication];
+        }
+        return prev;
+      });
+
+      alert(`"${job.job_title}" at "${job.employer_name}" saved to your applications!`);
+    } catch (err: any) {
+      console.error('Error saving job from search:', err);
+      alert('Failed to save job. Please try again.');
+    }
   };
 
-  const handleSaveMultipleJobsFromSearch = (jobs: any[]) => {
-    const now = new Date().toISOString();
-    const newApplications = jobs.map(job => ({
-      id: `temp-${Date.now()}-${Math.random()}`,
-      user_id: user?.uid || '',
-      company_name: job.employer_name || 'Unknown Company',
-      position: job.job_title || 'Unknown Position',
-      status: 'not_applied' as const,
-      application_date: now,
-      last_updated: now,
-      job_posting_url: job.job_apply_link || '',
-      job_description: job.job_description || '',
-      notes: `Added from job search: ${job.job_country || 'Unknown location'}`,
-      created_at: now,
-      updated_at: now
-    }));
+  const handleSaveMultipleJobsFromSearch = async (jobs: any[]) => {
+    if (!user) {
+      console.error('User not authenticated');
+      return;
+    }
 
-    setCombinedListings(prev => {
-      const existingIds = new Set(prev.map(app => app.company_name + app.position));
-      const uniqueNewApplications = newApplications.filter(app => 
-        !existingIds.has(app.company_name + app.position)
-      );
-      return [...prev, ...uniqueNewApplications];
-    });
+    try {
+      await JobApplicationService.saveMultipleJobsFromSearch(user.uid, jobs);
+      
+      // Also update the local state for immediate UI feedback
+      const now = new Date().toISOString();
+      const newApplications = jobs.map(job => ({
+        id: `temp-${Date.now()}-${Math.random()}`,
+        user_id: user?.uid || '',
+        company_name: job.employer_name || 'Unknown Company',
+        position: job.job_title || 'Unknown Position',
+        status: 'not_applied' as const,
+        application_date: now,
+        last_updated: now,
+        job_posting_url: job.job_apply_link || '',
+        job_description: job.job_description || '',
+        notes: `Added from job search: ${job.job_country || 'Unknown location'}`,
+        created_at: now,
+        updated_at: now
+      }));
 
-    alert(`${jobs.length} jobs added to your applications!`);
+      setCombinedListings(prev => {
+        const existingIds = new Set(prev.map(app => app.company_name + app.position));
+        const uniqueNewApplications = newApplications.filter(app => 
+          !existingIds.has(app.company_name + app.position)
+        );
+        return [...prev, ...uniqueNewApplications];
+      });
+
+      alert(`${jobs.length} jobs saved to your applications!`);
+    } catch (err: any) {
+      console.error('Error saving multiple jobs from search:', err);
+      alert('Failed to save jobs. Please try again.');
+    }
   };
   const handleClearJobSearch = () => {
     setSearchForm({

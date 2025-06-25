@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Video, User, LogOut, LayoutDashboard, Loader, ExternalLink, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { AuthService } from '../../services/authService';
+import SupabaseAuthService from '../../services/supabaseAuthService';
 
 const AIInterviewPage: React.FC = () => {
   const navigate = useNavigate();
@@ -20,7 +20,7 @@ const AIInterviewPage: React.FC = () => {
 
   const handleSignOut = async () => {
     try {
-      await AuthService.signOut();
+      await SupabaseAuthService.signOut();
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);

@@ -1,20 +1,54 @@
 import { useState, useEffect } from 'react';
-import { User, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../lib/firebase';
-import { AuthService, UserProfile } from '../services/authService';
+import SupabaseAuthService, { AuthUser } from '../services/supabaseAuthService';
+import SupabaseProfileService from '../services/supabaseProfileService';
+import { Profile } from '../types/supabase';
 
 export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    // Get initial user
+    const initializeAuth = async () => {
+      try {
+        const currentUser = await SupabaseAuthService.getCurrentUser();
+        setUser(currentUser);
+        
+        if (currentUser) {
+          try {
+            const profile = await SupabaseProfileService.getOrCreateProfile(
+              currentUser.uid, 
+              currentUser.email || '', 
+              currentUser.displayName || ''
+            );
+            setUserProfile(profile);
+          } catch (error) {
+            console.error('Error fetching user profile:', error);
+          }
+        } else {
+          setUserProfile(null);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = SupabaseAuthService.onAuthStateChange(async (user) => {
       setUser(user);
       
       if (user) {
         try {
-          const profile = await AuthService.getUserProfile(user.uid);
+          const profile = await SupabaseProfileService.getOrCreateProfile(
+            user.uid, 
+            user.email || '', 
+            user.displayName || ''
+          );
           setUserProfile(profile);
         } catch (error) {
           console.error('Error fetching user profile:', error);
@@ -26,7 +60,9 @@ export const useAuth = () => {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   return {

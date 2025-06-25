@@ -4,82 +4,103 @@
  */
 
 export interface EnvironmentConfig {
-  firebase: {
-    apiKey: string;
-    authDomain: string;
-    projectId: string;
-    storageBucket: string;
-    messagingSenderId: string;
-    appId: string;
-    measurementId: string;
+  supabase: {
+    url: string;
+    anonKey: string;
   };
   jsearch: {
     apiKey: string;
     apiHost: string;
   };
+  tavus: {
+    apiKey: string;
+  };
 }
 
 export class EnvironmentValidator {
-  /**
-   * Validates that all required environment variables are present
-   * @throws Error if any required environment variables are missing
-   */
-  static validateEnvironment(): EnvironmentConfig {
-    const config: EnvironmentConfig = {
-      firebase: {
-        apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-        authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-        storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-        messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-        appId: import.meta.env.VITE_FIREBASE_APP_ID,
-        measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  private static requiredVariables = {
+    supabase: {
+      url: import.meta.env.VITE_SUPABASE_URL,
+      anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+    },
+    jsearch: {
+      apiKey: import.meta.env.VITE_JSEARCH_API_KEY,
+      apiHost: import.meta.env.VITE_JSEARCH_API_HOST,
+    },
+    tavus: {
+      apiKey: import.meta.env.VITE_TAVUS_API_KEY,
+    }
+  };
+
+  static validateEnvironment(): boolean {
+    const config = {
+      supabase: {
+        url: import.meta.env.VITE_SUPABASE_URL,
+        anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
       },
       jsearch: {
         apiKey: import.meta.env.VITE_JSEARCH_API_KEY,
-        apiHost: import.meta.env.VITE_JSEARCH_API_HOST || 'jsearch.p.rapidapi.com',
+        apiHost: import.meta.env.VITE_JSEARCH_API_HOST,
       },
-    };    // Check Firebase configuration
-    const missingFirebaseVars = Object.entries(config.firebase)
-      .filter(([, value]) => !value || value.trim() === '')
-      .map(([key]) => `VITE_FIREBASE_${key.toUpperCase()}`);
+      tavus: {
+        apiKey: import.meta.env.VITE_TAVUS_API_KEY,
+      }
+    };
+
+    // Check Supabase configuration
+    const missingSupabaseVars = Object.entries(config.supabase)
+      .filter(([, value]) => !value)
+      .map(([key]) => `VITE_SUPABASE_${key.toUpperCase()}`);
 
     // Check JSearch configuration
     const missingJSearchVars = Object.entries(config.jsearch)
-      .filter(([, value]) => !value || value.trim() === '')
-      .map(([key]) => `VITE_JSEARCH_${key === 'apiKey' ? 'API_KEY' : 'API_HOST'}`);
+      .filter(([, value]) => !value)
+      .map(([key]) => `VITE_JSEARCH_${key.toUpperCase()}`);
 
-    const missingVars = [...missingFirebaseVars, ...missingJSearchVars];
+    // Check Tavus configuration (optional)
+    const missingTavusVars = Object.entries(config.tavus)
+      .filter(([, value]) => !value)
+      .map(([key]) => `VITE_TAVUS_${key.toUpperCase()}`);
+
+    const missingVars = [...missingSupabaseVars, ...missingJSearchVars];
 
     if (missingVars.length > 0) {
-      throw new Error(
-        `Missing required environment variables: ${missingVars.join(', ')}. ` +
-        'Please check your .env file and ensure all variables are properly configured.'
-      );
+      console.error('❌ Missing required environment variables:');
+      missingVars.forEach(varName => {
+        console.error(`  - ${varName}`);
+      });
+      console.error('\nPlease check your .env file and ensure all required variables are set.');
+      return false;
     }
 
-    return config;
+    // Log success with current configuration
+    console.log('✅ Environment validation passed!');
+    console.log('\n📋 Current configuration:');
+    
+    if (config.supabase.url && config.supabase.anonKey) {
+      console.log('  🗄️ Supabase: Configured');
+      console.log(`    - URL: ${config.supabase.url}`);
+      console.log(`    - Anon Key: ${config.supabase.anonKey.substring(0, 20)}...`);
+    }
+    
+    if (config.jsearch.apiKey && config.jsearch.apiHost) {
+      console.log('  🔍 JSearch API: Configured');
+      console.log(`    - Host: ${config.jsearch.apiHost}`);
+      console.log(`    - API Key: ${config.jsearch.apiKey.substring(0, 10)}...`);
+    }
+    
+    if (config.tavus.apiKey) {
+      console.log('  🎥 Tavus AI: Configured');
+      console.log(`    - API Key: ${config.tavus.apiKey.substring(0, 10)}...`);
+    } else {
+      console.log('  🎥 Tavus AI: Not configured (optional)');
+    }
+
+    console.log('\n🚀 Ready to start the application!');
+    return true;
   }
 
-  /**
-   * Logs the current environment configuration status (without exposing sensitive data)
-   */
-  static logEnvironmentStatus(): void {
-    try {
-      const config = this.validateEnvironment();
-      
-      console.log('✅ Environment Configuration Status:');
-      console.log('  🔥 Firebase: Configured');
-      console.log(`    - Project ID: ${config.firebase.projectId}`);
-      console.log(`    - Auth Domain: ${config.firebase.authDomain}`);
-      console.log('  🔍 JSearch API: Configured');
-      console.log(`    - API Host: ${config.jsearch.apiHost}`);
-      console.log(`    - API Key: ${config.jsearch.apiKey ? '***configured***' : 'MISSING'}`);
-      
-    } catch (error) {
-      console.error('❌ Environment Configuration Error:', error);
-    }
+  static getConfig() {
+    return this.requiredVariables;
   }
 }
-
-export default EnvironmentValidator;

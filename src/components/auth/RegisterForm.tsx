@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthService } from '../../services/authService';
+import SupabaseAuthService from '../../services/supabaseAuthService';
 import AuthLayout from './AuthLayout';
 import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 
@@ -57,7 +57,11 @@ const RegisterForm: React.FC = () => {
     setLoading(true);
 
     try {
-      await AuthService.signUp(email, password, formattedPhone);
+      await SupabaseAuthService.signUp({ 
+        email, 
+        password, 
+        phone: formattedPhone 
+      });
       
       if (formattedPhone) {
         navigate('/verify-phone');

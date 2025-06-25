@@ -17,7 +17,8 @@ import PublicRoute from './components/auth/PublicRoute';
 import JobSearchPage from './components/pages/JobSearchPage';
 import JobListingsPage from './components/pages/JobListingsPage';
 import AIInterviewPage from './components/pages/AIInterviewPage';
-import Dashboard from './components/dashboard/DashboardMain';
+import Dashboard from './components/dashboard/DashboardMainNew';
+import { ToastProvider } from './components/ui/ToastProvider';
 
 function App() {
   useEffect(() => {
@@ -27,65 +28,69 @@ function App() {
     // The CSS will automatically handle light/dark mode switching
   }, []);
 
-  return (    <Router>
-      <Routes>
-        <Route path="/login" element={
-          <PublicRoute>
-            <LoginForm />
-          </PublicRoute>
-        } />
-        <Route path="/register" element={
-          <PublicRoute>
-            <RegisterForm />
-          </PublicRoute>
-        } />
-        <Route path="/forgot-password" element={
-          <PublicRoute>
-            <ForgotPassword />
-          </PublicRoute>
-        } />
-        <Route path="/verify-phone" element={
-          <PublicRoute>
-            <VerifyPhone />
-          </PublicRoute>
-        } />
-        <Route path="/job-search" element={
-          <ProtectedRoute>
-            <JobSearchPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/job-listings" element={
-          <ProtectedRoute>
-            <JobListingsPage />
-          </ProtectedRoute>
-        } />        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/ai-interview" element={
-          <ProtectedRoute>
-            <AIInterviewPage />
-          </ProtectedRoute>
-        } /><Route
-          path="/"
-          element={
-            <div className="min-h-screen bg-white dark:bg-gray-900 theme-transition">
-              <Header />
-              <main>
-                <Hero />
-                <Services />
-                <CaseStudies />
-                <Testimonials />
-                <Team />
-                <Contact />
-              </main>
-              <Footer />
-            </div>
-          }
-        />
-      </Routes>
-    </Router>
+  return (
+    <ToastProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={
+            <PublicRoute>
+              <LoginForm />
+            </PublicRoute>
+          } />
+          <Route path="/register" element={
+            <PublicRoute>
+              <RegisterForm />
+            </PublicRoute>
+          } />
+          <Route path="/forgot-password" element={
+            <PublicRoute>
+              <ForgotPassword />
+            </PublicRoute>
+          } />
+          <Route path="/verify-phone" element={
+            <PublicRoute>
+              <VerifyPhone />
+            </PublicRoute>
+          } />
+          <Route path="/job-search" element={
+            <ProtectedRoute>
+              <JobSearchPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/job-listings" element={
+            <ProtectedRoute>
+              <JobListingsPage />
+            </ProtectedRoute>
+          } />        <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/ai-interview" element={
+            <ProtectedRoute>
+              <AIInterviewPage />
+            </ProtectedRoute>
+          } />
+          <Route
+            path="/"
+            element={
+              <div className="min-h-screen bg-white dark:bg-gray-900 theme-transition">
+                <Header />
+                <main>
+                  <Hero />
+                  <Services />
+                  <CaseStudies />
+                  <Testimonials />
+                  <Team />
+                  <Contact />
+                </main>
+                <Footer />
+              </div>
+            }
+          />
+        </Routes>
+      </Router>
+    </ToastProvider>
   );
 }
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AuthService } from '../../services/authService';
+import SupabaseAuthService from '../../services/supabaseAuthService';
 import AuthLayout from './AuthLayout';
 
 const ForgotPassword: React.FC = () => {
@@ -15,7 +15,7 @@ const ForgotPassword: React.FC = () => {
     setLoading(true);
 
     try {
-      await AuthService.resetPassword(email);
+      await SupabaseAuthService.sendPasswordResetEmail(email);
       setSuccess(true);
     } catch (err: any) {
       setError(err.message);
