@@ -67,7 +67,7 @@ const Workflow: React.FC = () => {
       
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center max-w-4xl mx-auto mb-16">
-          <span className="text-blue-400 font-medium text-lg">Our Process</span>
+          <span className="text-blue-400 font-medium text-lg">What we offer</span>
           <h2 className="text-4xl md:text-5xl font-bold mt-4 mb-6 text-white">
             Effortless Job Hunting!
           </h2>
