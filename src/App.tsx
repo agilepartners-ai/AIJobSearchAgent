@@ -60,7 +60,8 @@ function App() {
             <ProtectedRoute>
               <JobListingsPage />
             </ProtectedRoute>
-          } />        <Route path="/dashboard" element={
+          } />
+          <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
