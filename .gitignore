@@ -28,4 +28,7 @@ test-*
 # Temporary files
 *.tmp
 *.temp
+
+# Team updates folder
+latest updates from team/
 *~
