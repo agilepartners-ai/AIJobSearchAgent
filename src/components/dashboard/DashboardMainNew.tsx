@@ -38,6 +38,7 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedJobDescription, setSelectedJobDescription] = useState<{title: string, company: string, description: string} | null>(null);
+  
   const [confirmationModal, setConfirmationModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -385,7 +386,10 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-        <StatsCards stats={stats} />        <div className="space-y-8">          <ApplicationsTable
+        <StatsCards stats={stats} />
+        
+        <div className="space-y-8">
+          <ApplicationsTable
             applications={applications}
             searchTerm={searchTerm}
             statusFilter={statusFilter}

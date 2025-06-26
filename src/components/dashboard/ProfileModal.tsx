@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import ProfileForm, { ProfileData } from '../forms/ProfileFormNew';
-import { SupabaseProfileService } from '../../services/supabaseProfileService';
+import { SupabaseProfileService } from '../../services/profileService';
 import { supabase } from '../../lib/supabase';
 
 interface ProfileModalProps {

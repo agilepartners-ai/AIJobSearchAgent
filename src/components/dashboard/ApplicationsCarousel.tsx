@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { Search, Filter, Edit3, Eye, Trash2, ExternalLink, ChevronLeft, ChevronRight, Briefcase, Calendar, Clock, Video } from 'lucide-react';
 import { format } from 'date-fns';
-import { JobApplication } from '../../types/jobApplication';
+import { JobApplication } from '../../types/supabase';
 
-interface ApplicationsTableProps {
+interface ApplicationsCarouselProps {
   applications: JobApplication[];
   searchTerm: string;
   statusFilter: string;
@@ -16,7 +16,7 @@ interface ApplicationsTableProps {
   onStartInterview?: (application: JobApplication) => void;
 }
 
-const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
+const ApplicationsCarousel: React.FC<ApplicationsCarouselProps> = ({
   applications,
   searchTerm,
   statusFilter,
@@ -250,7 +250,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                         
                         {application.job_posting_url && application.status === 'applied' && (
                           <button
-                            onClick={() => window.open(application.job_posting_url, '_blank')}
+                            onClick={() => application.job_posting_url && window.open(application.job_posting_url, '_blank')}
                             className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
                           >
                             <ExternalLink size={14} className="mr-2" />
@@ -345,4 +345,4 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   );
 };
 
-export default ApplicationsTable;
+export default ApplicationsCarousel;

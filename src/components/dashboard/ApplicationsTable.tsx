@@ -141,26 +141,26 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
           </div>        </div>
       </div>
 
-      {/* Carousel Container */}
-      <div className="relative">
+      {/* Carousel Container with space for external navigation */}
+      <div className="relative mx-12">
         {filteredApplications.length > 0 ? (
           <>
-            {/* Carousel Navigation Buttons */}
+            {/* Carousel Navigation Buttons - Moved outside */}
             {filteredApplications.length > 3 && (
               <>
                 <button
                   onClick={scrollLeft}
                   disabled={currentIndex === 0}
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-white dark:bg-gray-700 shadow-lg rounded-full p-2 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="absolute -left-12 top-1/2 transform -translate-y-1/2 z-10 bg-white dark:bg-gray-700 shadow-lg rounded-full p-3 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200 dark:border-gray-600"
                 >
-                  <ChevronLeft size={20} className="text-gray-600 dark:text-gray-300" />
+                  <ChevronLeft size={24} className="text-gray-600 dark:text-gray-300" />
                 </button>
                 <button
                   onClick={scrollRight}
                   disabled={currentIndex >= Math.max(0, filteredApplications.length - 3)}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-white dark:bg-gray-700 shadow-lg rounded-full p-2 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="absolute -right-12 top-1/2 transform -translate-y-1/2 z-10 bg-white dark:bg-gray-700 shadow-lg rounded-full p-3 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200 dark:border-gray-600"
                 >
-                  <ChevronRight size={20} className="text-gray-600 dark:text-gray-300" />
+                  <ChevronRight size={24} className="text-gray-600 dark:text-gray-300" />
                 </button>
               </>
             )}

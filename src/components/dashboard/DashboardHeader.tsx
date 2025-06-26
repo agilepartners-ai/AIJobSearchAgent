@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, LogOut, User, Settings, ChevronDown, Menu } from 'lucide-react';
+import { Plus, Search, LogOut, User, Settings, ChevronDown, Menu, Video } from 'lucide-react';
 import SupabaseAuthService from '../../services/supabaseAuthService';
 import { useNavigate } from 'react-router-dom';
 
@@ -57,16 +57,25 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Job Search Dashboard</h1>
             </div>
           </div>
-            {/* Navbar with Job Search and Add Application */}          <div className="hidden md:flex items-center space-x-4">
+            {/* Navbar with Job Search and Add Application */}          
+          <div className="hidden md:flex items-center space-x-4">
             {onFindMoreJobs && (
               <button
                 onClick={onFindMoreJobs}
                 className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
               >
                 <Search size={20} />
-                Find More Jobs
+                Find Jobs
               </button>
             )}
+
+            <button
+              onClick={() => navigate('/ai-interview')}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
+            >
+              <Video size={20} />
+              AI Interview
+            </button>
             
             <button
               onClick={onAddApplication}

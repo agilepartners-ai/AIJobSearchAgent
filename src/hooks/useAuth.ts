@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import SupabaseAuthService, { AuthUser } from '../services/supabaseAuthService';
-import { SupabaseProfileService } from '../services/supabaseProfileService';
+import { SupabaseProfileService } from '../services/profileService';
 import { Profile } from '../types/supabase';
 
 export const useAuth = () => {

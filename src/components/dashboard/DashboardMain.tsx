@@ -8,10 +8,11 @@ import ApplicationModal from './ApplicationModal';
 import JobPreferencesModal from './JobPreferencesModal';
 import JobSearchModal from './JobSearchModal';
 import ProfileModal from './ProfileModal';
-import { JobApplication } from '../../types/supabase';
-import SupabaseJobApplicationService from '../../services/supabaseJobApplicationService';
+import { JobApplication } from '../../types/jobApplication';
+import SupabaseJobApplicationService, { CreateJobApplicationData } from '../../services/supabaseJobApplicationService';
 import { JobSearchService } from '../../services/jobSearchService';
 import { useAuth } from '../../hooks/useAuth';
+import { useToastContext } from '../ui/ToastProvider';
 
 const Dashboard: React.FC = () => {
   const [applications, setApplications] = useState<JobApplication[]>([]);
@@ -42,6 +43,7 @@ const Dashboard: React.FC = () => {
   });
 
   const { user, userProfile, loading: authLoading } = useAuth();
+  const { showSuccess, showError } = useToastContext();
   const navigate = useNavigate();  useEffect(() => {
     if (!authLoading && !user) {
       navigate('/login');
@@ -108,8 +110,8 @@ const Dashboard: React.FC = () => {
       setError('');
 
       const [applicationsData, statsData] = await Promise.all([
-        JobApplicationService.getUserApplications(user.uid),
-        JobApplicationService.getApplicationStats(user.uid)
+        SupabaseJobApplicationService.getUserApplications(user.uid),
+        SupabaseJobApplicationService.getApplicationStats(user.uid)
       ]);
       
       setApplications(applicationsData);
@@ -167,7 +169,25 @@ const Dashboard: React.FC = () => {
     }
 
     try {
-      await JobApplicationService.saveJobFromSearch(user.uid, job);
+      const applicationData: CreateJobApplicationData = {
+        company_name: job.employer_name || 'Unknown Company',
+        position: job.job_title || 'Unknown Position',
+        status: 'not_applied',
+        job_posting_url: job.job_apply_link || '',
+        job_description: job.job_description || '',
+        notes: `Added from job search: ${job.job_country || 'Unknown location'}`,
+        location: job.job_city || job.job_country || '',
+        employment_type: job.job_employment_type || '',
+        source: 'job_search'
+      };
+
+      await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
+      
+      // Show success message
+      showSuccess(
+        'Job Saved!', 
+        `"${job.job_title}" at "${job.employer_name}" has been saved to your applications!`
+      );
       
       // Also update the local state for immediate UI feedback
       const now = new Date().toISOString();
@@ -194,10 +214,9 @@ const Dashboard: React.FC = () => {
         return prev;
       });
 
-      alert(`"${job.job_title}" at "${job.employer_name}" saved to your applications!`);
     } catch (err: any) {
       console.error('Error saving job from search:', err);
-      alert('Failed to save job. Please try again.');
+      showError('Failed to Save Job', err.message || 'Failed to save job. Please try again.');
     }
   };
 
@@ -208,7 +227,23 @@ const Dashboard: React.FC = () => {
     }
 
     try {
-      await JobApplicationService.saveMultipleJobsFromSearch(user.uid, jobs);
+      // Save each job individually
+      const savedJobs = await Promise.all(
+        jobs.map(async (job: any) => {
+          const applicationData: CreateJobApplicationData = {
+            company_name: job.employer_name || 'Unknown Company',
+            position: job.job_title || 'Unknown Position',
+            status: 'not_applied',
+            job_posting_url: job.job_apply_link || '',
+            job_description: job.job_description || '',
+            notes: `Added from job search: ${job.job_country || 'Unknown location'}`,
+            location: job.job_city || job.job_country || '',
+            employment_type: job.job_employment_type || '',
+            source: 'job_search'
+          };
+          return await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
+        })
+      );
       
       // Also update the local state for immediate UI feedback
       const now = new Date().toISOString();
@@ -266,15 +301,18 @@ const Dashboard: React.FC = () => {
       setError('');
       
       if (editingApplication) {
-        await JobApplicationService.updateApplication(editingApplication.id, applicationData);
+        await SupabaseJobApplicationService.updateApplication(editingApplication.id, applicationData);
+        showSuccess('Application Updated', 'The application has been successfully updated.');
       } else {
-        await JobApplicationService.addApplication(user.uid, applicationData);
+        await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
+        showSuccess('Application Added', 'The application has been successfully added.');
       }
       
       setShowModal(false);
       await loadApplications();    } catch (err: any) {
       setError(err.message || 'Failed to save application');
       console.error('Error saving application:', err);
+      showError('Save Failed', err.message || 'Failed to save application');
     }
   };
 
@@ -285,11 +323,13 @@ const Dashboard: React.FC = () => {
 
     try {
       setError('');
-      await JobApplicationService.deleteApplication(applicationId);
+      await SupabaseJobApplicationService.deleteApplication(applicationId);
       await loadApplications();
+      showSuccess('Application Deleted', 'The application has been successfully removed.');
     } catch (err: any) {
       setError(err.message || 'Failed to delete application');
       console.error('Error deleting application:', err);
+      showError('Delete Failed', err.message || 'Failed to delete application');
     }
   };  const handleUpdateApplicationStatus = async (applicationId: string, newStatus: string) => {
     try {
@@ -313,7 +353,7 @@ const Dashboard: React.FC = () => {
             cover_letter_url: ''
           };
           
-          await JobApplicationService.addApplication(user.uid, applicationData);
+          await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
           
           // Remove from job listings and refresh data
           setCombinedListings(prev => prev.filter(job => job.id !== applicationId));
@@ -323,7 +363,7 @@ const Dashboard: React.FC = () => {
       }
       
       // Handle regular application status updates
-      await JobApplicationService.updateApplication(applicationId, { status: newStatus });
+      await SupabaseJobApplicationService.updateApplication(applicationId, { status: newStatus });
       await loadApplications();
     } catch (err: any) {
       setError(err.message || 'Failed to update application status');
