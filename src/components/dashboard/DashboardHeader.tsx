@@ -82,7 +82,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
             >
               <Plus size={20} />
-              Add Application
+              Manual Application
             </button>
             
             {/* Profile Dropdown */}
