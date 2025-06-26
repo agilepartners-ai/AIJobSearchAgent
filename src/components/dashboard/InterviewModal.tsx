@@ -39,7 +39,7 @@ const InterviewModal: React.FC<InterviewModalProps> = ({ application, onClose })
 
   const handleOpenInterview = () => {
     if (conversation?.conversation_url) {
-      window.open(conversation.conversation_url, '_blank');
+      window.open(`https://myjobsearchagent.web.app/${conversation.conversation_id}`, '_blank');
     }
   };
 
