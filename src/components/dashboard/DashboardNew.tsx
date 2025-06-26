@@ -1,8 +1,8 @@
 import React from 'react';
-import DashboardMain from './DashboardMain';
+import DashboardMainNew from './DashboardMainNew';
 
 const Dashboard: React.FC = () => {
-  return <DashboardMain />;
+  return <DashboardMainNew />;
 };
 
 export default Dashboard;

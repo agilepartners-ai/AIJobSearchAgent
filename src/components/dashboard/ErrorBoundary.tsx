@@ -89,7 +89,6 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
           />
         );
       }
-      
       // Use custom fallback if provided
       if (this.props.fallback) {
         return this.props.fallback;

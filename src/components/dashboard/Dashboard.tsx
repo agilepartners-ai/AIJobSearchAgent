@@ -8,6 +8,7 @@ import JobPreferencesModal from './JobPreferencesModal';
 import { JobApplication, ApplicationStatus } from '../../types/jobApplication';
 import { JobApplicationService } from '../../services/jobApplicationService';
 import { useAuth } from '../../hooks/useAuth';
+import { useToastContext } from '../ui/ToastProvider';
 import { AuthService } from '../../services/authService';
 
 const Dashboard: React.FC = () => {

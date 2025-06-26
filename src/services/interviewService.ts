@@ -43,3 +43,31 @@ export const createConversation = async (context?: string): Promise<IConversatio
     throw error;
   }
 };
+
+/**
+ * Ends an active conversation
+ * @param conversationId The ID of the conversation to end
+ */
+export const endConversation = async (conversationId: string): Promise<void> => {
+  try {
+    const apiKey = import.meta.env.VITE_TAVUS_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error('Tavus API key not found. Please check your environment configuration.');
+    }
+
+    const response = await fetch(`https://tavusapi.com/v2/conversations/${conversationId}`, {
+      method: 'DELETE',
+      headers: {
+        "x-api-key": apiKey
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to end conversation: ${response.status} ${response.statusText}`);
+    }
+  } catch (error) {
+    console.error('Error ending conversation:', error);
+    throw error;
+  }
+};

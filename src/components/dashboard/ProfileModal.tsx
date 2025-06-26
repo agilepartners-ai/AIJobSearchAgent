@@ -1,606 +1,667 @@
-import React, { useState, useEffect } from 'react';
-import { X, User, Calendar, Shield, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { ProfileService } from '../../services/profileService';
-
-interface Reference {
-  fullName: string;
-  relationship: string;
-  companyName: string;
-  jobTitle: string;
-  companyAddress: string;
-  phoneNumber: string;
-  email: string;
-}
-
-interface Education {
-  degreeType: string;
-  universityName: string;
-  universityAddress: string;
-  major: string;
-  minor: string;
-  timeframeFrom: string;
-  timeframeTo: string;
-  gpa: string;
-}
-
-interface Certification {
-  name: string;
-  licenseNumber: string;
-  issuingOrganization: string;
-  dateAchieved: string;
-  expirationDate: string;
-}
-
-interface ProfileData {
-  fullName: string;
-  streetAddress: string;
-  city: string;
-  county: string;
-  state: string;
-  zipCode: string;
-  contactNumber: string;
-  dateOfBirth: string;
-  hasPhoneAccess: boolean;
-  gender: string;
-  ethnicity: string;
-  race: string;
-  veteranStatus: string;
-  travelPercentage: string;
-  otherLanguages: string;
-  nationality: string;
-  additionalNationalities: string;
-  openToTravel: boolean;
-  willingToRelocate: boolean;
-  canWorkEveningsWeekends: boolean;
-  authorizedToWork: boolean;
-  requiresSponsorship: boolean;
-  expectedSalaryFrom: string;
-  expectedSalaryTo: string;
-  salaryNotes: string;
-  references: Reference[];
-  education: Education[];
-  certifications: Certification[];
-  governmentEmployment: boolean;
-  hasAgreements: boolean;
-  hasConvictions: boolean;
-  interviewAvailability: string;
-  // Missing fields from UserProfileData
-  includeAge: boolean;
-  hasDisabilities: boolean;
-  disabilityDescription: string;
-  hasOtherCitizenship: boolean;
-  visaType: string;
-  sponsorshipType: string;
-  governmentDetails: string;
-  agreementDetails: string;
-  convictionDetails: string;
-}
+import ProfileForm, { ProfileData } from '../forms/ProfileFormNew';
+import { SupabaseProfileService } from '../../services/profileService';
+import { supabase } from '../../lib/supabase';
 
 interface ProfileModalProps {
   onClose: () => void;
 }
 
 const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [formData, setFormData] = useState<ProfileData>({
-    fullName: '',
-    streetAddress: '',
-    city: '',
-    county: '',
-    state: '',
-    zipCode: '',
-    contactNumber: '',
-    dateOfBirth: '',
-    hasPhoneAccess: false,
-    gender: '',
-    ethnicity: '',
-    race: '',
-    veteranStatus: '',
-    travelPercentage: '',
-    otherLanguages: '',
-    nationality: '',
-    additionalNationalities: '',
-    openToTravel: false,
-    willingToRelocate: false,
-    canWorkEveningsWeekends: false,
-    authorizedToWork: false,
-    requiresSponsorship: false,
-    expectedSalaryFrom: '',
-    expectedSalaryTo: '',
-    salaryNotes: '',
-    references: [
-      { fullName: '', relationship: '', companyName: '', jobTitle: '', companyAddress: '', phoneNumber: '', email: '' }
-    ],
-    education: [
-      { degreeType: '', universityName: '', universityAddress: '', major: '', minor: '', timeframeFrom: '', timeframeTo: '', gpa: '' }
-    ],
-    certifications: [
-      { name: '', licenseNumber: '', issuingOrganization: '', dateAchieved: '', expirationDate: '' }
-    ],
-    governmentEmployment: false,
-    hasAgreements: false,
-    hasConvictions: false,
-    interviewAvailability: '',
-    // Add missing fields with default values
-    includeAge: false,
-    hasDisabilities: false,
-    disabilityDescription: '',
-    hasOtherCitizenship: false,
-    visaType: '',
-    sponsorshipType: '',
-    governmentDetails: '',
-    agreementDetails: '',
-    convictionDetails: ''
-  });
+  const { user, userProfile } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [lastSaveData, setLastSaveData] = useState<ProfileData | null>(null);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [debugSteps, setDebugSteps] = useState<string[]>([]);
+  const [localUserProfile, setLocalUserProfile] = useState<any>(null);
 
-  useEffect(() => {
-    if (user) {
-      loadProfile();
+  // Load profile data when modal opens or user changes
+  React.useEffect(() => {
+    const loadProfile = async () => {
+      if (user && !userProfile && !localUserProfile) {
+        try {
+          console.log('🔄 Loading profile for user:', user.uid);
+          const profile = await SupabaseProfileService.getOrCreateProfile(
+            user.uid, 
+            user.email || '', 
+            user.displayName || 'New User'
+          );
+          setLocalUserProfile(profile);
+          console.log('✅ Profile loaded:', profile);
+        } catch (error) {
+          console.error('❌ Error loading profile:', error);
+        }
+      } else if (userProfile) {
+        setLocalUserProfile(userProfile);
+      }
+    };
+
+    loadProfile();
+  }, [user, userProfile]);
+
+  // Use local profile data or auth profile data
+  const currentProfile = localUserProfile || userProfile;
+
+  // Make debug functions globally available for console testing
+  React.useEffect(() => {
+    (window as any).profileModalDebug = {
+      testAuth: async () => {
+        console.log('Testing auth:', user);
+        const { data, error } = await supabase.auth.getUser();
+        console.log('Supabase auth result:', { data, error });
+        return { data, error };
+      },
+      testProfileFetch: async () => {
+        if (!user) {
+          console.log('No user available');
+          return null;
+        }
+        console.log('Testing profile fetch for user:', user.uid);
+        try {
+          const result = await SupabaseProfileService.getUserProfile(user.uid);
+          console.log('Profile fetch result:', result);
+          return result;
+        } catch (error) {
+          console.error('Profile fetch error:', error);
+          return null;
+        }
+      },
+      testProfileUpdate: async () => {
+        if (!user) {
+          console.log('No user available');
+          return null;
+        }
+        const testData = {
+          full_name: 'Test Update ' + Date.now(),
+          bio: 'Test bio ' + new Date().toISOString()
+        };
+        console.log('Testing profile update with:', testData);
+        try {
+          const result = await SupabaseProfileService.updateProfile(user.uid, testData);
+          console.log('Profile update result:', result);
+          return result;
+        } catch (error) {
+          console.error('Profile update error:', error);
+          return null;
+        }
+      },
+      getCurrentState: () => ({
+        user,
+        userProfile: currentProfile,
+        isLoading,
+        error,
+        success,
+        debugSteps
+      })
+    };
+    
+    // Only log debug info once per user
+    if (user && !(window as any).profileDebugLogged) {
+      console.log('🔧 Profile Modal Debug Functions Available:');
+      console.log('- window.profileModalDebug.testAuth()');
+      console.log('- window.profileModalDebug.testProfileFetch()');
+      console.log('- window.profileModalDebug.testProfileUpdate()');
+      console.log('- window.profileModalDebug.getCurrentState()');
+      (window as any).profileDebugLogged = true;
     }
-  }, [user]);
+  }, [user]); // Only depend on user to avoid repeated logs
 
-  const loadProfile = async () => {
-    if (!user) return;
+  const handleEditProfile = async (profileData: ProfileData) => {
+    // IMMEDIATE DEBUGGING - This should appear as soon as function is called
+    console.log('🔥 handleEditProfile FUNCTION CALLED!');
+    console.log('🔥 Raw profileData received:', profileData);
+    console.log('🔥 Function called at:', new Date().toISOString());
+    
+    // Store the data for potential retry
+    setLastSaveData(profileData);
+    
+    // Clear previous messages and reset debug steps
+    setError(null);
+    setSuccess(null);
+    setDebugSteps([]);
+
+    // IMMEDIATE CONSOLE LOG FOR DEBUGGING
+    console.log('🚀 PROFILE SAVE STARTED');
+    console.log('Profile Data:', profileData);
+    console.log('User:', user);
+    console.log('User Profile:', userProfile);
+
+    // Validate user exists
+    if (!user) {
+      const errorMsg = 'No user found. Please login again.';
+      console.error(errorMsg);
+      setError(errorMsg);
+      setDebugSteps(prev => [...prev, '❌ No user found']);
+      return;
+    }
+
+    // Validate required fields
+    if (!profileData.fullName?.trim()) {
+      const errorMsg = 'Full name is required';
+      setError(errorMsg);
+      setDebugSteps(prev => [...prev, '❌ Validation failed: Full name required']);
+      return;
+    }
+
+    if (!profileData.email?.trim()) {
+      const errorMsg = 'Email is required';
+      setError(errorMsg);
+      setDebugSteps(prev => [...prev, '❌ Validation failed: Email required']);
+      return;
+    }
+
+    setDebugSteps(prev => [...prev, '✅ Validation passed']);
+
+    console.log('=== PROFILE SAVE DEBUG INFO ===');
+    console.log('User:', user);
+    console.log('User ID:', user.uid);
+    console.log('User Profile from auth:', userProfile);
+    console.log('Profile data to save:', profileData);
+
+    setIsLoading(true);
     
     try {
-      setLoading(true);
-      const profile = await ProfileService.getUserProfile(user.uid);
-      if (profile) {
-        setFormData(profile);
+      // First, let's verify the Supabase connection and authentication
+      console.log('Step 1: Testing Supabase authentication...');
+      setDebugSteps(prev => [...prev, '🔄 Testing authentication...']);
+      
+      const { data: authUser, error: authError } = await supabase.auth.getUser();
+      console.log('Auth user:', authUser);
+      if (authError) {
+        console.error('Auth error:', authError);
+        setDebugSteps(prev => [...prev, '❌ Authentication failed']);
+        throw new Error(`Authentication failed: ${authError.message}`);
       }
-    } catch (err: any) {
-      setError('Failed to load profile: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Simple form update function exactly like ApplyJobsModal
-  const updateForm = (field: keyof ProfileData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const updateArrayItem = (arrayName: keyof ProfileData, index: number, field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [arrayName]: (prev[arrayName] as any[]).map((item, i) => 
-        i === index ? { ...item, [field]: value } : item
-      )
-    }));
-  };
-
-  const addArrayItem = (arrayName: keyof ProfileData, newItem: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [arrayName]: [...(prev[arrayName] as any[]), newItem]
-    }));
-  };
-
-  const removeArrayItem = (arrayName: keyof ProfileData, index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      [arrayName]: (prev[arrayName] as any[]).filter((_, i) => i !== index)
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    try {
-      setLoading(true);
-      setError('');
       
-      await ProfileService.saveUserProfile(user.uid, formData);
-      setSuccess('Profile saved successfully!');
+      if (!authUser.user) {
+        setDebugSteps(prev => [...prev, '❌ No authenticated user']);
+        throw new Error('No authenticated user found');
+      }
       
+      setDebugSteps(prev => [...prev, '✅ Authentication successful']);
+      
+      console.log('Step 2: Getting or creating profile...');
+      setDebugSteps(prev => [...prev, '🔄 Getting or creating profile...']);
+      
+      const currentProfile = await SupabaseProfileService.getOrCreateProfile(
+        user.uid, 
+        authUser.user.email || '', 
+        profileData.fullName?.trim() || 'New User'
+      );
+      console.log('Profile from database:', currentProfile);
+      setDebugSteps(prev => [...prev, '✅ Profile ready']);
+      
+      // Prepare update data with all profile fields for database
+      console.log('Step 3: Preparing update data...');
+      setDebugSteps(prev => [...prev, '🔄 Preparing update data...']);
+      const updateData = {
+        full_name: profileData.fullName?.trim(),
+        phone: profileData.phone?.trim() || null,
+        location: profileData.location?.trim() || null,
+        current_job_title: profileData.currentJobTitle?.trim() || null,
+        years_of_experience: profileData.experience === 'Fresher' ? 0 : 2,
+        skills: Array.isArray(profileData.skills) ? profileData.skills.filter(s => s?.trim()) : [],
+        linkedin_url: profileData.socialLinks?.linkedin?.trim() || null,
+        github_url: profileData.socialLinks?.github?.trim() || null,
+        portfolio_url: profileData.socialLinks?.portfolio?.trim() || null,
+        bio: profileData.currentJobTitle || null,
+        expected_salary: profileData.expectedSalary?.trim() || null,
+        current_ctc: profileData.currentCTC?.trim() || null,
+        work_authorization: profileData.workAuthorization?.trim() || null,
+        notice_period: profileData.noticePeriod?.trim() || null,
+        availability: profileData.availability?.trim() || null,
+        willingness_to_relocate: profileData.willingnessToRelocate || false,
+        twitter_url: profileData.socialLinks?.twitter?.trim() || null,
+        dribbble_url: profileData.socialLinks?.dribbble?.trim() || null,
+        medium_url: profileData.socialLinks?.medium?.trim() || null,
+        reference_contacts: profileData.references?.trim() || null,
+        job_preferences: {
+          jobProfile: profileData.jobProfile || '',
+          employmentType: profileData.employmentType || '',
+          remoteJobsOnly: profileData.remoteJobsOnly || false,
+          datePosted: profileData.datePosted || '',
+          experience: profileData.experience || 'Fresher',
+          workExperience: profileData.workExperience || [],
+          education: profileData.education || []
+        }
+      };
+
+      console.log('Step 3: Prepared update data:', updateData);
+      setDebugSteps(prev => [...prev, '✅ Update data prepared']);
+
+      // Attempt profile update
+      console.log('Step 4: Attempting profile update...');
+      setDebugSteps(prev => [...prev, '🔄 Updating profile...']);
+      
+      const updateResult = await SupabaseProfileService.updateProfile(user.uid, updateData);
+      console.log('Profile update result:', updateResult);
+      setDebugSteps(prev => [...prev, '✅ Profile update completed']);
+      
+      // Verify the update actually happened
+      console.log('Step 5: Verifying update...');
+      setDebugSteps(prev => [...prev, '🔄 Verifying update...']);
+      
+      const verifyResult = await SupabaseProfileService.getUserProfile(user.uid);
+      console.log('Profile after update:', verifyResult);
+      
+      if (!verifyResult || verifyResult.full_name !== updateData.full_name) {
+        setDebugSteps(prev => [...prev, '❌ Verification failed']);
+        throw new Error('Profile update verification failed - changes may not have been saved');
+      }
+      
+      setDebugSteps(prev => [...prev, '✅ Update verified successfully']);
+      
+      console.log('✅ Profile saved successfully to database!');
+      setDebugSteps(prev => [...prev, '✅ All steps completed successfully']);
+      setSuccess('Profile saved successfully! All data has been saved to the database.');
+      
+      // Update local profile with the verified result
+      setLocalUserProfile(verifyResult);
+      
+      // Clear the saved data since save was successful
+      setLastSaveData(null);
+      
+      // Close the editing modal after a brief delay
       setTimeout(() => {
+        setIsEditing(false);
+        setSuccess(null);
+        setDebugSteps([]);
+        // Also close the entire modal after successful save
         onClose();
-      }, 1000);
-    } catch (err: any) {
-      setError('Failed to save profile: ' + err.message);
+      }, 2000); // Reduced delay to 2 seconds
+      
+    } catch (error) {
+      console.error('❌ Error updating profile:', error);
+      
+      let errorMessage = 'Failed to save profile. ';
+      
+      if (error instanceof Error) {
+        // Handle common error cases with user-friendly messages
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = 'Network error: Please check your internet connection and try again.';
+        } else if (error.message.includes('auth') || error.message.includes('unauthorized')) {
+          errorMessage = 'Authentication error: Please log out and log back in, then try again.';
+        } else if (error.message.includes('permission') || error.message.includes('denied')) {
+          errorMessage = 'Permission error: You do not have permission to update this profile.';
+        } else {
+          errorMessage += error.message;
+        }
+        console.error('Error details:', error);
+      } else if (typeof error === 'object' && error !== null) {
+        // Handle Supabase errors
+        const supabaseError = error as any;
+        if (supabaseError.code) {
+          switch (supabaseError.code) {
+            case 'PGRST116':
+              errorMessage = 'Database error: Profile not found. Please try logging out and back in.';
+              break;
+            case '23505':
+              errorMessage = 'Database error: Duplicate entry detected. Please check your input values.';
+              break;
+            case '42501':
+              errorMessage = 'Permission error: You do not have permission to update this profile.';
+              break;
+            case '08006':
+              errorMessage = 'Database connection error: Please check your internet connection and try again.';
+              break;
+            default:
+              errorMessage = `Database error: ${supabaseError.message || 'Unknown database error'}`;
+          }
+        } else if (supabaseError.message) {
+          errorMessage += supabaseError.message;
+        } else {
+          errorMessage = 'Unknown database error occurred. Please try again.';
+        }
+        console.error('Supabase error details:', supabaseError);
+      } else {
+        errorMessage = 'Unknown error occurred. Please try again or contact support.';
+        console.error('Unknown error:', error);
+      }
+      
+      // Additional debugging information
+      console.error('=== DEBUG INFO ===');
+      console.error('User object:', user);
+      console.error('User profile:', userProfile);
+      console.error('Profile data received:', profileData);
+      
+      setError(errorMessage);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const yesNoOptions = [
-    { value: true, label: 'Yes' },
-    { value: false, label: 'No' }
-  ];
+  const handleRetry = () => {
+    if (lastSaveData) {
+      handleEditProfile(lastSaveData);
+    }
+  };
 
-  const genderOptions = [
-    { value: 'male', label: 'Male' },
-    { value: 'female', label: 'Female' },
-    { value: 'other', label: 'Other' }
-  ];
+  const getInitialProfileData = (): Partial<ProfileData> => {
+    const profileToUse = currentProfile;
+    if (!profileToUse) return {};
 
-  const raceOptions = [
-    { value: '', label: 'Select race' },
-    { value: 'white', label: 'White' },
-    { value: 'black', label: 'Black or African American' },
-    { value: 'asian', label: 'Asian' },
-    { value: 'native-american', label: 'American Indian or Alaska Native' },
-    { value: 'pacific-islander', label: 'Native Hawaiian or Other Pacific Islander' },
-    { value: 'two-or-more', label: 'Two or More Races' }
-  ];
+    // Parse job_preferences from database if available
+    let jobPrefs = {};
+    if (profileToUse.job_preferences) {
+      try {
+        jobPrefs = typeof profileToUse.job_preferences === 'string' ? 
+          JSON.parse(profileToUse.job_preferences) : profileToUse.job_preferences;
+      } catch (error) {
+        console.error('Error parsing job_preferences:', error);
+      }
+    }
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl max-w-6xl w-full max-h-[95vh] overflow-y-auto shadow-2xl">
-        {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 rounded-t-xl">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                <User className="text-blue-600 dark:text-blue-400" size={28} />
-                Update Profile
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Complete your professional profile information (all fields are optional)
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              <X size={24} />
-            </button>
-          </div>
-        </div>
+    return {
+      fullName: profileToUse.full_name || '',
+      email: profileToUse.email || '',
+      phone: profileToUse.phone || '',
+      location: profileToUse.location || '',
+      currentJobTitle: profileToUse.current_job_title || '',
+      skills: profileToUse.skills || [],
+      expectedSalary: profileToUse.expected_salary || '',
+      currentCTC: profileToUse.current_ctc || '',
+      workAuthorization: profileToUse.work_authorization || '',
+      noticePeriod: profileToUse.notice_period || '',
+      availability: profileToUse.availability || '',
+      willingnessToRelocate: profileToUse.willingness_to_relocate || false,
+      references: profileToUse.reference_contacts || '',
+      socialLinks: {
+        linkedin: profileToUse.linkedin_url || '',
+        github: profileToUse.github_url || '',
+        portfolio: profileToUse.portfolio_url || '',
+        twitter: profileToUse.twitter_url || '',
+        dribbble: profileToUse.dribbble_url || '',
+        medium: profileToUse.medium_url || ''
+      },
+      // From job_preferences JSON field
+      jobProfile: (jobPrefs as any)?.jobProfile || '',
+      employmentType: (jobPrefs as any)?.employmentType || '',
+      remoteJobsOnly: (jobPrefs as any)?.remoteJobsOnly || false,
+      datePosted: (jobPrefs as any)?.datePosted || '',
+      experience: (jobPrefs as any)?.experience || 'Fresher',
+      workExperience: (jobPrefs as any)?.workExperience || [{ jobTitle: '', company: '', duration: '' }],
+      education: (jobPrefs as any)?.education || [{ degree: '', institution: '', graduationYear: '' }]
+    };
+  };
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-3 rounded-lg text-sm">
-              {success}
-            </div>
-          )}
-
-          {/* Personal Information */}
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <User size={20} className="text-blue-600 dark:text-blue-400" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Personal Information</h3>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.fullName}
-                  onChange={(e) => updateForm('fullName', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="Enter your full name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Street Address
-                </label>
-                <input
-                  type="text"
-                  value={formData.streetAddress}
-                  onChange={(e) => updateForm('streetAddress', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="Enter street address"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  City
-                </label>
-                <input
-                  type="text"
-                  value={formData.city}
-                  onChange={(e) => updateForm('city', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="Enter city"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  State
-                </label>
-                <input
-                  type="text"
-                  value={formData.state}
-                  onChange={(e) => updateForm('state', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="Enter state"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Zip Code
-                </label>
-                <input
-                  type="text"
-                  value={formData.zipCode}
-                  onChange={(e) => updateForm('zipCode', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="Enter zip code"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Contact Number
-                </label>
-                <input
-                  type="tel"
-                  value={formData.contactNumber}
-                  onChange={(e) => updateForm('contactNumber', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="Enter phone number"
-                />
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Gender
-                </label>
-                <div className="flex flex-wrap gap-4">
-                  {genderOptions.map(option => (
-                    <label key={option.value} className="flex items-center">
-                      <input
-                        type="radio"
-                        name="gender"
-                        value={option.value}
-                        checked={formData.gender === option.value}
-                        onChange={() => updateForm('gender', option.value)}
-                        className="mr-2 text-blue-600"
-                      />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Race
-                </label>
-                <select
-                  value={formData.race}
-                  onChange={(e) => updateForm('race', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                >
-                  {raceOptions.map(option => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Work Authorization */}
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <Shield size={20} className="text-green-600 dark:text-green-400" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Work Authorization</h3>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Legally authorized to work in the USA?
-                </label>
-                <div className="flex flex-wrap gap-4">
-                  {yesNoOptions.map(option => (
-                    <label key={String(option.value)} className="flex items-center">
-                      <input
-                        type="radio"
-                        name="authorizedToWork"
-                        value={String(option.value)}
-                        checked={formData.authorizedToWork === option.value}
-                        onChange={() => updateForm('authorizedToWork', option.value)}
-                        className="mr-2 text-blue-600"
-                      />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Require sponsorship for employment eligibility?
-                </label>
-                <div className="flex flex-wrap gap-4">
-                  {yesNoOptions.map(option => (
-                    <label key={String(option.value)} className="flex items-center">
-                      <input
-                        type="radio"
-                        name="requiresSponsorship"
-                        value={String(option.value)}
-                        checked={formData.requiresSponsorship === option.value}
-                        onChange={() => updateForm('requiresSponsorship', option.value)}
-                        className="mr-2 text-blue-600"
-                      />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Salary Expectations */}
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <Calendar size={20} className="text-purple-600 dark:text-purple-400" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Salary Expectations</h3>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Expected Salary From (USD)
-                </label>
-                <input
-                  type="number"
-                  value={formData.expectedSalaryFrom}
-                  onChange={(e) => updateForm('expectedSalaryFrom', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="200000"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Expected Salary To (USD)
-                </label>
-                <input
-                  type="number"
-                  value={formData.expectedSalaryTo}
-                  onChange={(e) => updateForm('expectedSalaryTo', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="350000"
-                />
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Additional Notes for Salary Negotiations
-              </label>
-              <textarea
-                value={formData.salaryNotes}
-                onChange={(e) => updateForm('salaryNotes', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Negotiable based on future career growth..."
-                rows={3}
-              />
-            </div>
-          </div>
-
-          {/* References */}
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <Users size={20} className="text-orange-600 dark:text-orange-400" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Professional References</h3>
-            </div>
-
-            {formData.references.map((ref, index) => (
-              <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600 mb-4">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="font-semibold text-gray-900 dark:text-white">Reference {index + 1}</h4>
-                  {index > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => removeArrayItem('references', index)}
-                      className="text-red-500 hover:text-red-700 p-1"
-                    >
-                      <X size={16} />
-                    </button>
+  if (isEditing) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="p-6">
+            {/* Error Message in Edit Modal */}
+            {error && (
+              <div className="mb-4 flex items-start space-x-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-red-800 dark:text-red-300">
+                    Save Failed
+                  </h4>
+                  <p className="text-sm text-red-700 dark:text-red-400 mt-1">
+                    {error}
+                  </p>
+                  {lastSaveData && (
+                    <div className="mt-2 flex space-x-2">
+                      <button
+                        onClick={handleRetry}
+                        disabled={isLoading}
+                        className="px-3 py-1 text-xs bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded transition-colors"
+                      >
+                        {isLoading ? 'Retrying...' : 'Retry'}
+                      </button>
+                      <button
+                        onClick={() => setShowDebugInfo(!showDebugInfo)}
+                        className="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+                      >
+                        {showDebugInfo ? 'Hide' : 'Show'} Debug Info
+                      </button>
+                    </div>
+                  )}
+                  {showDebugInfo && (
+                    <div className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">
+                      <div><strong>User ID:</strong> {user?.uid || 'Not available'}</div>
+                      <div><strong>Database Connected:</strong> {userProfile ? 'Yes' : 'No'}</div>
+                      <div><strong>Last Error:</strong> {error}</div>
+                      <div><strong>Timestamp:</strong> {new Date().toISOString()}</div>
+                    </div>
                   )}
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      value={ref.fullName}
-                      onChange={(e) => updateArrayItem('references', index, 'fullName', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                      placeholder="Enter full name"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      value={ref.email}
-                      onChange={(e) => updateArrayItem('references', index, 'email', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                      placeholder="Enter email address"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      value={ref.phoneNumber}
-                      onChange={(e) => updateArrayItem('references', index, 'phoneNumber', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                      placeholder="Enter phone number"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Company Name
-                    </label>
-                    <input
-                      type="text"
-                      value={ref.companyName}
-                      onChange={(e) => updateArrayItem('references', index, 'companyName', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                      placeholder="Enter company name"
-                    />
-                  </div>
-                </div>
+                <button
+                  onClick={() => setError(null)}
+                  className="text-red-400 hover:text-red-600 dark:hover:text-red-300"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-            ))}
+            )}
 
-            <button
-              type="button"
-              onClick={() => addArrayItem('references', { 
-                fullName: '', relationship: '', companyName: '', jobTitle: '', 
-                companyAddress: '', phoneNumber: '', email: '' 
-              })}
-              className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
-            >
-              + Add Another Reference
-            </button>
+            {/* Success Message in Edit Modal */}
+            {success && (
+              <div className="mb-4 flex items-start space-x-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-green-800 dark:text-green-300">
+                    Profile Saved Successfully
+                  </h4>
+                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                    {success}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSuccess(null)}
+                  className="text-green-400 hover:text-green-600 dark:hover:text-green-300"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            <ProfileForm
+              onSubmit={handleEditProfile}
+              onCancel={() => {
+                setIsEditing(false);
+                setError(null);
+                setSuccess(null);
+                setLastSaveData(null);
+              }}
+              isLoading={isLoading}
+              initialData={getInitialProfileData()}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md mx-4 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Profile</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center space-x-3">
+            {userProfile?.avatar_url ? (
+              <img 
+                src={userProfile.avatar_url} 
+                alt="Profile" 
+                className="w-12 h-12 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                <User className="w-6 h-6 text-gray-400" />
+              </div>
+            )}
+            <div>
+              <h3 className="font-medium text-gray-900 dark:text-white">
+                {userProfile?.full_name || 'No name provided'}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {userProfile?.email}
+              </p>
+            </div>
           </div>
 
-          {/* Submit Button */}
-          <div className="flex gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          {userProfile?.phone && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Phone
+              </label>
+              <p className="text-gray-900 dark:text-white">{userProfile.phone}</p>
+            </div>
+          )}
+
+          {userProfile?.location && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Location
+              </label>
+              <p className="text-gray-900 dark:text-white">{userProfile.location}</p>
+            </div>
+          )}
+
+          {userProfile?.current_job_title && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Current Job Title
+              </label>
+              <p className="text-gray-900 dark:text-white">{userProfile.current_job_title}</p>
+            </div>
+          )}
+
+          {userProfile?.skills && userProfile.skills.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Skills
+              </label>
+              <div className="flex flex-wrap gap-1">
+                {userProfile.skills.slice(0, 3).map((skill, index) => (
+                  <span
+                    key={index}
+                    className="inline-block px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded"
+                  >
+                    {skill}
+                  </span>
+                ))}
+                {userProfile.skills.length > 3 && (
+                  <span className="inline-block px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+                    +{userProfile.skills.length - 3} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="pt-4 space-y-2">
+            {/* Error Message */}
+            {error && (
+              <div className="flex items-start space-x-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-red-800 dark:text-red-300">
+                    Save Failed
+                  </h4>
+                  <p className="text-sm text-red-700 dark:text-red-400 mt-1">
+                    {error}
+                  </p>
+                  {lastSaveData && (
+                    <div className="mt-2 flex space-x-2">
+                      <button
+                        onClick={handleRetry}
+                        disabled={isLoading}
+                        className="px-3 py-1 text-xs bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded transition-colors"
+                      >
+                        {isLoading ? 'Retrying...' : 'Retry'}
+                      </button>
+                      <button
+                        onClick={() => setIsEditing(true)}
+                        className="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+                      >
+                        Edit Again
+                      </button>
+                      <button
+                        onClick={() => setShowDebugInfo(!showDebugInfo)}
+                        className="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+                      >
+                        {showDebugInfo ? 'Hide' : 'Show'} Debug Info
+                      </button>
+                    </div>
+                  )}
+                  {showDebugInfo && (
+                    <div className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">
+                      <div><strong>User ID:</strong> {user?.uid || 'Not available'}</div>
+                      <div><strong>Database Connected:</strong> {userProfile ? 'Yes' : 'No'}</div>
+                      <div><strong>Last Error:</strong> {error}</div>
+                      <div><strong>Timestamp:</strong> {new Date().toISOString()}</div>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => setError(null)}
+                  className="text-red-400 hover:text-red-600 dark:hover:text-red-300"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Success Message */}
+            {success && (
+              <div className="flex items-start space-x-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-green-800 dark:text-green-300">
+                    Profile Saved
+                  </h4>
+                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                    {success}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSuccess(null)}
+                  className="text-green-400 hover:text-green-600 dark:hover:text-green-300"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 px-6 rounded-lg font-medium transition-all disabled:cursor-not-allowed"
+              onClick={() => {
+                setError(null);
+                setSuccess(null);
+                setLastSaveData(null);
+                setIsEditing(true);
+              }}
+              disabled={isLoading}
+              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center justify-center space-x-2"
             >
-              {loading ? 'Saving...' : 'Save Profile'}
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <span>Edit Profile</span>
+              )}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 px-6 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
-            >
-              Cancel
-            </button>
+            <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+              Update your profile to improve job matching
+            </p>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

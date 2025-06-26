@@ -1,12 +1,65 @@
 import React, { useState, useRef } from 'react';
-import { User, MapPin, Briefcase, ChevronDown, Camera, X } from 'lucide-react';
+import { User, MapPin, Briefcase, ChevronDown, Camera, X, Phone, Mail, Globe, DollarSign, Clock, Shield, UserCheck, ExternalLink } from 'lucide-react';
 import { JobSearchService } from '../../services/jobSearchService';
-import { FileUploadService } from '../../services/fileUploadService';
+
+export interface WorkExperience {
+  jobTitle: string;
+  company: string;
+  duration: string;
+}
+
+export interface Education {
+  degree: string;
+  institution: string;
+  graduationYear: string;
+}
+
+export interface SocialLinks {
+  twitter?: string;
+  linkedin?: string;
+  github?: string;
+  dribbble?: string;
+  medium?: string;
+  portfolio?: string;
+}
 
 export interface ProfileData {
-  jobProfile: string;
-  experience: 'Fresher' | 'Experienced';
-  location: string;
+  // Basic Information
+  fullName: string;
+  email: string;
+  phone: string;
+  location: string; // City, State, Country
+  
+  // Job Information
+  currentJobTitle: string;
+  jobProfile: string; // From job search page
+  experience: 'Fresher' | 'Experienced'; // From job search page
+  workExperience: WorkExperience[];
+  
+  // Education
+  education: Education[];
+  
+  // Skills and Preferences
+  skills: string[];
+  expectedSalary: string;
+  currentCTC: string;
+  
+  // Job Search Preferences (from job search page)
+  employmentType: string;
+  remoteJobsOnly: boolean;
+  datePosted: string;
+  
+  // Work Authorization
+  willingnessToRelocate: boolean;
+  workAuthorization: string;
+  noticePeriod: string;
+  availability: string;
+  
+  // References and Social Links
+  references: string;
+  socialLinks: SocialLinks;
+  
+  // Profile Picture
   profilePicture?: string;
 }
 
@@ -72,9 +125,13 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     if (!file) return;
 
     // Validate file
-    const validation = FileUploadService.validateProfilePicture(file);
-    if (!validation.isValid) {
-      setErrors(prev => ({ ...prev, profilePicture: validation.error }));
+    if (!file.type.startsWith('image/')) {
+      setErrors(prev => ({ ...prev, profilePicture: 'Please select an image file.' }));
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      setErrors(prev => ({ ...prev, profilePicture: 'File size must be less than 5MB.' }));
       return;
     }
 
@@ -88,12 +145,15 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     };
     reader.readAsDataURL(file);
 
-    // Upload file (for demo purposes, we'll just use a placeholder user ID)
+    // Upload file (for demo purposes, we'll just simulate upload)
     setIsUploadingProfilePic(true);
     try {
-      const userId = 'demo-user'; // In real app, get from auth context
-      const downloadURL = await FileUploadService.uploadFile(file, userId, 'profile_picture');
-      setFormData(prev => ({ ...prev, profilePicture: downloadURL }));
+      // Simulate upload delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // In a real app, this would upload to a file storage service
+      const simulatedURL = URL.createObjectURL(file);
+      setFormData(prev => ({ ...prev, profilePicture: simulatedURL }));
     } catch (error) {
       console.error('Upload failed:', error);
       setErrors(prev => ({ ...prev, profilePicture: 'Failed to upload profile picture' }));

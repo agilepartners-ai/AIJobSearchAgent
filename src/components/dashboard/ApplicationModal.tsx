@@ -38,8 +38,8 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
         job_posting_url: application.job_posting_url || '',
         job_description: application.job_description || '',
         notes: application.notes || '',
-        resume_url: application.resume_url || '',
-        cover_letter_url: application.cover_letter_url || ''
+        resume_url: '', // Note: This field doesn't exist in Supabase schema
+        cover_letter_url: '' // Note: This field doesn't exist in Supabase schema
       });
     } else {
       setFormData({

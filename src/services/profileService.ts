@@ -1,12 +1,31 @@
-import {
-  doc,
-  setDoc,
-  getDoc,
-  serverTimestamp
-} from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { supabase, TABLES } from '../lib/supabase';
+import { Profile } from '../types/supabase';
 
-const COLLECTION_NAME = 'userProfiles';
+export interface CreateProfileData {
+  full_name?: string | null;
+  phone?: string | null;
+  location?: string | null;
+  resume_url?: string | null;
+  linkedin_url?: string | null;
+  github_url?: string | null;
+  portfolio_url?: string | null;
+  current_job_title?: string | null;
+  years_of_experience?: number;
+  skills?: string[] | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+  expected_salary?: string | null;
+  current_ctc?: string | null;
+  work_authorization?: string | null;
+  notice_period?: string | null;
+  availability?: string | null;
+  willingness_to_relocate?: boolean;
+  twitter_url?: string | null;
+  dribbble_url?: string | null;
+  medium_url?: string | null;
+  reference_contacts?: string | null;
+  job_preferences?: any;
+}
 
 export interface UserProfileData {
   // Personal Information
@@ -38,7 +57,7 @@ export interface UserProfileData {
   expectedSalaryFrom: string;
   expectedSalaryTo: string;
   salaryNotes: string;
-  linkedin_url: string; // Added LinkedIn URL field
+  linkedin_url: string;
 
   // Professional Information
   authorizedToWork: boolean;
@@ -91,41 +110,161 @@ export interface UserProfileData {
   updated_at?: string;
 }
 
-export class ProfileService {
-  // Save user profile
-  static async saveUserProfile(userId: string, profileData: UserProfileData): Promise<void> {
+export class SupabaseProfileService {
+  // Get user profile
+  static async getUserProfile(userId: string): Promise<Profile | null> {
     try {
-      const docRef = doc(db, COLLECTION_NAME, userId);
-      await setDoc(docRef, {
-        ...profileData,
-        updated_at: serverTimestamp(),
-        created_at: serverTimestamp()
-      }, { merge: true });
+      const { data, error } = await supabase
+        .from(TABLES.PROFILES)
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') return null; // Not found
+        throw error;
+      }
+      return data;
     } catch (error) {
-      console.error('Error saving user profile:', error);
-      throw new Error('Failed to save profile');
+      console.error('Error fetching user profile:', error);
+      throw new Error('Failed to load user profile');
     }
   }
 
-  // Get user profile
-  static async getUserProfile(userId: string): Promise<UserProfileData | null> {
+  // Get or create user profile
+  static async getOrCreateProfile(userId: string, email?: string, displayName?: string): Promise<Profile> {
     try {
-      const docRef = doc(db, COLLECTION_NAME, userId);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        return {
-          ...data,
-          created_at: data.created_at?.toDate?.()?.toISOString() || data.created_at,
-          updated_at: data.updated_at?.toDate?.()?.toISOString() || data.updated_at
-        } as UserProfileData;
+      // First try to get existing profile
+      const existingProfile = await this.getUserProfile(userId);
+      if (existingProfile) {
+        return existingProfile;
       }
 
-      return null;
+      // If profile doesn't exist, create it
+      const defaultData: CreateProfileData = {
+        full_name: displayName || null,
+        phone: null,
+        location: null,
+        resume_url: null,
+        linkedin_url: null,
+        github_url: null,
+        portfolio_url: null,
+        current_job_title: null,
+        years_of_experience: 0,
+        skills: null,
+        bio: null,
+        avatar_url: null,
+        expected_salary: null,
+        current_ctc: null,
+        work_authorization: null,
+        notice_period: null,
+        availability: null,
+        willingness_to_relocate: false,
+        twitter_url: null,
+        dribbble_url: null,
+        medium_url: null,
+        reference_contacts: null,
+        job_preferences: null
+      };
+
+      return await this.saveUserProfile(userId, defaultData);
     } catch (error) {
-      console.error('Error getting user profile:', error);
-      throw new Error('Failed to get profile');
+      console.error('Error getting or creating user profile:', error);
+      throw new Error('Failed to get or create user profile');
+    }
+  }
+
+  // Create or update user profile
+  static async saveUserProfile(userId: string, profileData: CreateProfileData): Promise<Profile> {
+    try {
+      const { data, error } = await supabase
+        .from(TABLES.PROFILES)
+        .upsert({ 
+          id: userId, 
+          ...profileData,
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error saving user profile:', error);
+      throw new Error('Failed to save user profile');
+    }
+  }
+
+  // Update user profile
+  static async updateProfile(userId: string, updates: Partial<CreateProfileData>): Promise<Profile> {
+    try {
+      const { data, error } = await supabase
+        .from(TABLES.PROFILES)
+        .update({ 
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      throw new Error('Failed to update user profile');
+    }
+  }
+
+  // Upload and update resume
+  static async uploadResume(userId: string, file: File): Promise<string> {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}-resume-${Math.random()}.${fileExt}`;
+      const filePath = `resumes/${fileName}`;
+
+      // Upload file to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data } = supabase.storage
+        .from('documents')
+        .getPublicUrl(filePath);
+
+      // Update profile with new resume URL
+      await this.updateProfile(userId, { resume_url: data.publicUrl });
+
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error uploading resume:', error);
+      throw new Error('Failed to upload resume');
+    }
+  }
+
+  // Delete user profile
+  static async deleteProfile(userId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from(TABLES.PROFILES)
+        .delete()
+        .eq('id', userId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error deleting user profile:', error);
+      throw new Error('Failed to delete user profile');
     }
   }
 }
+
+// Export both class names for compatibility
+export class ProfileService extends SupabaseProfileService {
+  // Legacy alias for compatibility
+}
+
+// Export the service as default
+export default SupabaseProfileService;

@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { AuthService } from '../../services/authService';
+import SupabaseAuthService from '../../services/supabaseAuthService';
 import AuthLayout from './AuthLayout';
+import { useToastContext } from '../ui/ToastProvider';
 
 const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
+  const { showInfo } = useToastContext();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,10 +21,9 @@ const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
       // For demo purposes, accept any 6-digit code
       if (code.length !== 6) {
         throw new Error('Please enter a 6-digit verification code');
-      }      // Update user profile to mark phone as verified
-      await AuthService.updateUserProfile(user.uid, {
-        phone_verified: true
-      });
+      }      // Phone verification not yet implemented with Supabase
+      // For now, just simulate verification success
+      console.log('Phone verification simulated for code:', code);
 
       // Route guard will handle redirect to /dashboard
     } catch (err: any) {
@@ -35,7 +36,7 @@ const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
   const resendCode = async () => {
     try {
       // Simulate resend code
-      alert('Verification code has been resent');
+      showInfo('Code Resent', 'Verification code has been resent to your phone.');
     } catch (err: any) {
       setError(err.message);
     }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, Search, LogOut, User, Settings, ChevronDown, Menu } from 'lucide-react';
-import { AuthService } from '../../services/authService';
+import { Plus, Search, LogOut, User, Settings, ChevronDown, Menu, Video } from 'lucide-react';
+import SupabaseAuthService from '../../services/supabaseAuthService';
 import { useNavigate } from 'react-router-dom';
 
 interface DashboardHeaderProps {
@@ -23,7 +23,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
   const handleSignOut = async () => {
     try {
-      await AuthService.signOut();
+      await SupabaseAuthService.signOut();
       navigate('/login');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -48,22 +48,34 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+              <button
+                onClick={() => navigate('/')}
+                className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center hover:from-blue-700 hover:to-purple-700 transition-all cursor-pointer"
+              >
                 <span className="text-white font-bold text-sm">JS</span>
-              </div>
+              </button>
               <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Job Search Dashboard</h1>
             </div>
           </div>
-            {/* Navbar with Job Search and Add Application */}          <div className="hidden md:flex items-center space-x-4">
+            {/* Navbar with Job Search and Add Application */}          
+          <div className="hidden md:flex items-center space-x-4">
             {onFindMoreJobs && (
               <button
                 onClick={onFindMoreJobs}
                 className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
               >
                 <Search size={20} />
-                Find More Jobs
+                Find Jobs
               </button>
             )}
+
+            <button
+              onClick={() => navigate('/ai-interview')}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
+            >
+              <Video size={20} />
+              AI Interview
+            </button>
             
             <button
               onClick={onAddApplication}

@@ -17,6 +17,21 @@ Our application implements a comprehensive CORS solution with multiple layers:
 
 ## Client-Side Implementation
 
+### Enhanced Error Detection
+The application includes improved error detection for CORS issues with user-friendly error handling and helpful information for troubleshooting.
+
+### Development Setup
+For development, we use Vite's built-in proxy configuration to handle CORS issues locally.
+
+### Production Deployment
+In production, we use Supabase Edge Functions to handle API requests while maintaining proper CORS configuration.
+
+## Server-Side Configuration
+
+The Python backend (Flask) is configured with proper CORS settings to allow requests from:
+- Local development servers (localhost:5173, localhost:3000)
+- Production domains
+=======
 ### 1. Enhanced Error Detection
 
 The `apiErrorUtils.ts` file includes improved error detection for CORS issues:
@@ -182,13 +197,18 @@ location /optimizer/api/ {
 1. **Development**: Use the browser console to check for CORS errors
 2. **Production**: Test with actual frontend domain
 3. **Preflight Requests**: Test OPTIONS requests separately
+>>>>>>> origin/main
 
 ## Troubleshooting
 
 If you encounter CORS issues:
 
-1. Check browser console for specific error messages
-2. Verify server response headers using browser Network tab
-3. Test with a tool like Postman to isolate client vs. server issues
-4. Ensure proxy configurations are correct
-5. Check for typos in allowed origins
+1. Check that your API endpoints are properly configured
+2. Verify that your domain is included in the allowed origins
+3. Ensure preflight requests are handled correctly
+4. Check browser developer tools for specific CORS error messages
+5. Check browser console for specific error messages
+6. Verify server response headers using browser Network tab
+7. Test with a tool like Postman to isolate client vs. server issues
+8. Ensure proxy configurations are correct
+9. Check for typos in allowed origins

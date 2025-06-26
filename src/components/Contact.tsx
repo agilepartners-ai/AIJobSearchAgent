@@ -1,5 +1,5 @@
 import React from 'react';
-import { Phone, Mail, MapPin, MessageSquare } from 'lucide-react';
+import { Phone, Mail, MapPin } from 'lucide-react';
 
 const Contact: React.FC = () => {
   return (
@@ -46,8 +46,8 @@ const Contact: React.FC = () => {
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Office</h3>
                   <p className="text-gray-600 dark:text-gray-300">
                     1125 PARK PL APT 206<br />
-                    San Mateo, CA 94403-1578,
-                    Uinted States
+                    San Mateo, CA 94403-1578,<br />
+                    United States
                   </p>
                 </div>
               </div>

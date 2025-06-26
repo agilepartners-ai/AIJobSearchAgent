@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, MapPin, Calendar, Clock, ArrowRight, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { AuthService } from '../../services/authService';
+import SupabaseAuthService from '../../services/supabaseAuthService';
 
 interface JobSearchForm {
   query: string;
@@ -55,7 +55,7 @@ const JobSearchPage: React.FC = () => {  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
-      await AuthService.signOut();
+      await SupabaseAuthService.signOut();
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);

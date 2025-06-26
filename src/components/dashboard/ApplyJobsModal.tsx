@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Bot, Send, Settings } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { JobPreferencesService, JobPreferencesData } from '../../services/jobPreferencesService';
+import SupabaseJobPreferencesService from '../../services/supabaseJobPreferencesService';
+import { JobPreferences } from '../../types/supabase';
+import { useToastContext } from '../ui/ToastProvider';
 
 interface ApplyJobsForm {
   targetRole: string;
@@ -30,7 +32,8 @@ const ApplyJobsModal: React.FC<ApplyJobsModalProps> = ({
   onApply,
 }) => {
   const { user } = useAuth();
-  const [jobPreferences, setJobPreferences] = useState<JobPreferencesData | null>(null);
+  const { showError } = useToastContext();
+  const [jobPreferences, setJobPreferences] = useState<JobPreferences | null>(null);
   
   const [applyForm, setApplyForm] = useState<ApplyJobsForm>({
     targetRole: '',
@@ -107,7 +110,7 @@ const ApplyJobsModal: React.FC<ApplyJobsModalProps> = ({
 
   const handleApply = async () => {
     if (!applyForm.targetRole.trim()) {
-      alert('Please specify your target role');
+      showError('Target Role Required', 'Please specify your target role before applying to jobs.');
       return;
     }
 

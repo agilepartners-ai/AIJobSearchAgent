@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AuthService } from '../../services/authService';
+import SupabaseAuthService from '../../services/supabaseAuthService';
 import AuthLayout from './AuthLayout';
 
 const LoginForm: React.FC = () => {  const [email, setEmail] = useState('');
@@ -13,8 +13,8 @@ const LoginForm: React.FC = () => {  const [email, setEmail] = useState('');
     setLoading(true);
 
     try {
-      await AuthService.signIn(email, password);
-      // Route guard will handle redirect to /dashboard
+      await SupabaseAuthService.signIn({ email, password });
+      // Route guard will handle redirect to /job-search
     } catch (err: any) {
       setError(err.message);
     } finally {

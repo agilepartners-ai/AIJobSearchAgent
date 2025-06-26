@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Search, X, Plus, ExternalLink, Settings, Target, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../../hooks/useAuth';
-import { JobPreferencesService, JobPreferencesData } from '../../services/jobPreferencesService';
+import SupabaseJobPreferencesService from '../../services/supabaseJobPreferencesService';
+import { JobPreferences } from '../../types/supabase';
 
 interface JobSearchForm {
   query: string;
@@ -59,7 +60,7 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
   onClear,
 }) => {
   const { user } = useAuth();
-  const [jobPreferences, setJobPreferences] = useState<JobPreferencesData | null>(null);
+  const [jobPreferences, setJobPreferences] = useState<JobPreferences | null>(null);
   const [isFormCollapsed, setIsFormCollapsed] = useState(false);
   const [selectedJobs, setSelectedJobs] = useState<Set<number>>(new Set());
 
@@ -88,7 +89,7 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
     if (!user) return;
 
     try {
-      const preferences = await JobPreferencesService.getUserJobPreferences(user.uid);
+      const preferences = await SupabaseJobPreferencesService.getUserJobPreferences(user.uid);
       setJobPreferences(preferences);
     } catch (err: any) {
       console.error('Error loading job preferences:', err);
@@ -98,8 +99,11 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
   const applyPreferencesToSearch = () => {
     if (!jobPreferences) return;
 
-    const primaryJobTitle = jobPreferences.jobTitles.find(title => title.trim() !== '') || '';
-    const primaryLocation = jobPreferences.preferredLocations.find(loc => loc.trim() !== '') || '';
+    const jobTitles = jobPreferences.preferred_job_titles || [];
+    const locations = jobPreferences.preferred_locations || [];
+    
+    const primaryJobTitle = jobTitles.find((title: string) => title.trim() !== '') || '';
+    const primaryLocation = locations.find((loc: string) => loc.trim() !== '') || '';
     
     onFormChange({
       ...searchForm,
@@ -112,10 +116,12 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
     if (!jobPreferences) return;
 
     if (field === 'query') {
-      const primaryJobTitle = jobPreferences.jobTitles.find(title => title.trim() !== '') || '';
+      const jobTitles = jobPreferences.preferred_job_titles || [];
+      const primaryJobTitle = jobTitles.find((title: string) => title.trim() !== '') || '';
       onFormChange({ ...searchForm, query: primaryJobTitle });
     } else if (field === 'location') {
-      const primaryLocation = jobPreferences.preferredLocations.find(loc => loc.trim() !== '') || '';
+      const locations = jobPreferences.preferred_locations || [];
+      const primaryLocation = locations.find((loc: string) => loc.trim() !== '') || '';
       onFormChange({ ...searchForm, location: primaryLocation });
     }
   };
@@ -185,11 +191,11 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
                 </button>
               </div>
               <div className="mt-2 space-y-2 text-sm">
-                {jobPreferences.jobTitles.filter(title => title.trim()).length > 0 && (
+                {jobPreferences.preferred_job_titles && jobPreferences.preferred_job_titles.filter((title: string) => title.trim()).length > 0 && (
                   <div>
                     <span className="font-medium text-blue-700 dark:text-blue-300">Job Titles:</span>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {jobPreferences.jobTitles.filter(title => title.trim()).slice(0, 3).map((title, index) => (
+                      {jobPreferences.preferred_job_titles.filter((title: string) => title.trim()).slice(0, 3).map((title: string, index: number) => (
                         <span key={index} className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 rounded text-xs">
                           {title}
                         </span>
@@ -198,11 +204,11 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
                   </div>
                 )}
                 
-                {jobPreferences.preferredLocations.filter(loc => loc.trim()).length > 0 && (
+                {jobPreferences.preferred_locations && jobPreferences.preferred_locations.filter((loc: string) => loc.trim()).length > 0 && (
                   <div>
                     <span className="font-medium text-blue-700 dark:text-blue-300">Preferred Locations:</span>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {jobPreferences.preferredLocations.filter(loc => loc.trim()).slice(0, 3).map((location, index) => (
+                      {jobPreferences.preferred_locations.filter((loc: string) => loc.trim()).slice(0, 3).map((location: string, index: number) => (
                         <span key={index} className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 rounded text-xs">
                           {location}
                         </span>
@@ -431,7 +437,7 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
                 {searchResults.map((job, index) => (
                   <div 
                     key={index} 
-                    className={`border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-all ${
+                    className={`border border-gray-200 dark:border-gray-700 rounded-lg p-4 transition-all ${
                       selectedJobs.has(index) ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-600' : ''
                     }`}
                   >
@@ -506,12 +512,6 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
                             </div>
                           )}
                         </div>
-                        
-                        {job.job_description && (
-                          <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">
-                            {job.job_description.substring(0, 200)}...
-                          </p>
-                        )}
                       </div>
                     </div>
                   </div>
