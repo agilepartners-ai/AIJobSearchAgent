@@ -65,7 +65,7 @@ export interface AIEnhancementResponse {
 }
 
 export class AIEnhancementService {
-    private static readonly API_BASE_URL = import.meta.env.VITE_RESUME_API_BASE_URL || 'https://752e-108-18-123-32.ngrok-free.app';
+    private static readonly API_BASE_URL = import.meta.env.VITE_RESUME_API_BASE_URL || 'https://myjobsearchagent-backend.onrender.com';
     private static readonly API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
     private static readonly DEFAULT_MODEL_TYPE = import.meta.env.VITE_RESUME_API_MODEL_TYPE || 'OpenAI';
     private static readonly DEFAULT_MODEL = import.meta.env.VITE_RESUME_API_MODEL || 'gpt-4o';

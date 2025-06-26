@@ -55,7 +55,7 @@ export class ResumeExtractionService {
                     'ngrok-skip-browser-warning': 'true'
                 },
                 // 60 second timeout for AI processing
-                signal: AbortSignal.timeout(60000)
+                signal: AbortSignal.timeout(600000) // 10 minutes
             });
 
             if (!response.ok) {
