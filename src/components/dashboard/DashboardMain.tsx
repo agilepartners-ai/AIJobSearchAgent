@@ -8,24 +8,18 @@ import ApplicationModal from './ApplicationModal';
 import JobPreferencesModal from './JobPreferencesModal';
 import JobSearchModal from './JobSearchModal';
 import ProfileModal from './ProfileModal';
-import InterviewModal from './InterviewModal';
 import { JobApplication } from '../../types/jobApplication';
 import { JobApplicationService } from '../../services/jobApplicationService';
 import { JobSearchService } from '../../services/jobSearchService';
 import { useAuth } from '../../hooks/useAuth';
-import { createConversation } from '../../services/interviewService';
 
 const Dashboard: React.FC = () => {
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [combinedListings, setCombinedListings] = useState<JobApplication[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [showModal, setShowModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');  const [statusFilter, setStatusFilter] = useState<string>('all');  const [showModal, setShowModal] = useState(false);
   const [showJobPreferencesModal, setShowJobPreferencesModal] = useState(false);
   const [showJobSearchModal, setShowJobSearchModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showInterviewModal, setShowInterviewModal] = useState(false);
-  const [selectedApplication, setSelectedApplication] = useState<JobApplication | null>(null);
   const [searchForm, setSearchForm] = useState({
     query: '',
     location: '',
@@ -33,8 +27,7 @@ const Dashboard: React.FC = () => {
     employment_type: '',
     remote_jobs_only: false,
     date_posted: '',
-  });
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  });  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [editingApplication, setEditingApplication] = useState<JobApplication | null>(null);
@@ -49,9 +42,7 @@ const Dashboard: React.FC = () => {
   });
 
   const { user, userProfile, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
+  const navigate = useNavigate();  useEffect(() => {
     if (!authLoading && !user) {
       navigate('/login');
       return;
@@ -68,7 +59,7 @@ const Dashboard: React.FC = () => {
       const selectedJobsData = localStorage.getItem('selectedJobs');
       if (selectedJobsData) {
         const selectedJobs = JSON.parse(selectedJobsData);
-        // Convert JobResult[] to JobApplication[] format for display
+          // Convert JobResult[] to JobApplication[] format for display
         const jobApplications: JobApplication[] = selectedJobs.map((job: any, index: number) => ({
           id: `workflow-${Date.now()}-${index}`,
           user_id: user?.uid || '',
@@ -94,7 +85,6 @@ const Dashboard: React.FC = () => {
       console.error('Error loading selected jobs from workflow:', error);
     }
   };
-  
   // Update stats based on applications only (job listings added when user searches)
   useEffect(() => {
     const combined = [...applications, ...combinedListings];
@@ -110,7 +100,6 @@ const Dashboard: React.FC = () => {
       pending: appliedJobs
     });
   }, [applications, combinedListings]);
-  
   const loadApplications = async () => {
     if (!user) return;
 
@@ -126,22 +115,16 @@ const Dashboard: React.FC = () => {
       setApplications(applicationsData);
       setStats(statsData);
     } catch (err: any) {
-      setError(err.message || 'Failed to load applications');
-      console.error('Error loading applications:', err);
+      setError(err.message || 'Failed to load applications');      console.error('Error loading applications:', err);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleAddApplication = () => {
+  };  const handleAddApplication = () => {
     setEditingApplication(null);
     setShowModal(true);
-  };
-
-  const handleJobPreferences = () => {
+  };const handleJobPreferences = () => {
     setShowJobPreferencesModal(true);
   };
-  
   const handleUpdateProfile = () => {
     setShowProfileModal(true);
   };
@@ -149,15 +132,13 @@ const Dashboard: React.FC = () => {
   const handleJobSearchFormChange = (form: any) => {
     setSearchForm(form);
   };
-  
   const handleJobSearchSubmit = async () => {
     if (!user || !searchForm.query) return;
 
     setSearchLoading(true);
     setSearchError('');
 
-    try {
-      const jobSearchParams = {
+    try {      const jobSearchParams = {
         jobProfile: searchForm.query,
         experience: (searchForm.experience === 'Fresher' ? 'Fresher' : 'Experienced') as 'Fresher' | 'Experienced',
         location: searchForm.location || 'Remote',
@@ -204,9 +185,7 @@ const Dashboard: React.FC = () => {
         return [...prev, newApplication];
       }
       return prev;
-    });
-    
-    alert(`"${job.job_title}" at "${job.employer_name}" added to your applications!`);
+    });    alert(`"${job.job_title}" at "${job.employer_name}" added to your applications!`);
   };
 
   const handleSaveMultipleJobsFromSearch = (jobs: any[]) => {
@@ -236,7 +215,6 @@ const Dashboard: React.FC = () => {
 
     alert(`${jobs.length} jobs added to your applications!`);
   };
-  
   const handleClearJobSearch = () => {
     setSearchForm({
       query: '',
@@ -268,8 +246,7 @@ const Dashboard: React.FC = () => {
       }
       
       setShowModal(false);
-      await loadApplications();
-    } catch (err: any) {
+      await loadApplications();    } catch (err: any) {
       setError(err.message || 'Failed to save application');
       console.error('Error saving application:', err);
     }
@@ -288,9 +265,7 @@ const Dashboard: React.FC = () => {
       setError(err.message || 'Failed to delete application');
       console.error('Error deleting application:', err);
     }
-  };
-
-  const handleUpdateApplicationStatus = async (applicationId: string, newStatus: string) => {
+  };  const handleUpdateApplicationStatus = async (applicationId: string, newStatus: string) => {
     try {
       setError('');
       
@@ -328,24 +303,12 @@ const Dashboard: React.FC = () => {
       setError(err.message || 'Failed to update application status');
       console.error('Error updating application status:', err);
     }
-  };
-
-  const handleFindMoreJobs = () => {
+  };  const handleFindMoreJobs = () => {
     navigate('/job-search');
   };
 
   const handleViewJobDescription = (job: { title: string; company: string; description: string }) => {
     setSelectedJobDescription(job);
-  };
-
-  const handleStartInterview = async (application: JobApplication) => {
-    try {
-      setSelectedApplication(application);
-      setShowInterviewModal(true);
-    } catch (error) {
-      console.error('Error starting interview:', error);
-      setError('Failed to start interview. Please try again.');
-    }
   };
 
   if (authLoading || loading) {
@@ -361,16 +324,13 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <DashboardHeader
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">      <DashboardHeader
         userProfile={userProfile}
         onAddApplication={handleAddApplication}
         onJobPreferences={handleJobPreferences}
         onUpdateProfile={handleUpdateProfile}
         onFindMoreJobs={handleFindMoreJobs}
-      />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      /><main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
           <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-lg mb-6">
             {error}
@@ -407,8 +367,7 @@ const Dashboard: React.FC = () => {
 
         <StatsCards stats={stats} />
 
-        <div className="space-y-8">
-          <ApplicationsCarousel
+        <div className="space-y-8">          <ApplicationsCarousel
             applications={[...applications, ...combinedListings]}
             searchTerm={searchTerm}
             statusFilter={statusFilter}
@@ -418,12 +377,9 @@ const Dashboard: React.FC = () => {
             onViewJobDescription={handleViewJobDescription}
             onDeleteApplication={handleDeleteApplication}
             onUpdateApplicationStatus={handleUpdateApplicationStatus}
-            onStartInterview={handleStartInterview}
           />
         </div>
-      </main>
-
-      {/* Modals */}
+      </main>{/* Modals */}
       <JobDescriptionModal
         isOpen={!!selectedJobDescription}
         jobDescription={selectedJobDescription}
@@ -436,9 +392,7 @@ const Dashboard: React.FC = () => {
           onSave={handleSaveApplication}
           onClose={() => setShowModal(false)}
         />
-      )}
-
-      {showJobPreferencesModal && (
+      )}      {showJobPreferencesModal && (
         <JobPreferencesModal
           onClose={() => setShowJobPreferencesModal(false)}
         />
@@ -448,9 +402,7 @@ const Dashboard: React.FC = () => {
         <ProfileModal
           onClose={() => setShowProfileModal(false)}
         />
-      )}
-
-      {showJobSearchModal && (
+      )}      {showJobSearchModal && (
         <JobSearchModal
           isOpen={showJobSearchModal}
           searchForm={searchForm}
@@ -463,16 +415,6 @@ const Dashboard: React.FC = () => {
           onSaveJob={handleSaveJobFromSearch}
           onSaveMultipleJobs={handleSaveMultipleJobsFromSearch}
           onClear={handleClearJobSearch}
-        />
-      )}
-
-      {showInterviewModal && selectedApplication && (
-        <InterviewModal
-          application={selectedApplication}
-          onClose={() => {
-            setShowInterviewModal(false);
-            setSelectedApplication(null);
-          }}
         />
       )}
     </div>
