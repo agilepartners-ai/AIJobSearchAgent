@@ -1,6 +1,10 @@
 import React from 'react';
-import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain } from 'lucide-react';
+import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain, Settings } from 'lucide-react';
 import ResumeTemplateForm from './ResumeTemplateForm';
+import { PDFGenerationService } from '../../services/pdfGenerationService';
+import { UserProfileData, ProfileService } from '../../services/profileService';
+import { User } from 'firebase/auth';
+import { useAuth } from '../../hooks/useAuth';
 
 interface OptimizationResultsProps {
   results: {
@@ -28,13 +32,71 @@ interface OptimizationResultsProps {
       softSkills: string[];
       missingSkills: string[];
     };
-    parsedResume?: any; // Add parsed resume data
+    parsedResume?: any;
+    extractionMetadata?: {
+      documentId: string;
+      extractedTextLength: number;
+      processingTime: number;
+      modelUsed: string;
+      apiBaseUrl: string;
+      sectionsAnalyzed?: string[];
+    };
+    aiEnhancements?: {
+      enhancedSummary: string;
+      enhancedExperienceBullets: string[];
+      coverLetterOutline: {
+        opening: string;
+        body: string;
+        closing: string;
+      };
+      sectionRecommendations: {
+        skills: string;
+        experience: string;
+        education: string;
+      };
+    };
+    rawAIResponse?: any;
+    // Job application context for PDF generation
+    jobDescription?: string;
+    applicationData?: {
+      position: string;
+      company_name: string;
+      location?: string;
+    };
+    // User profile data for cover letter generation
+    detailedUserProfile?: UserProfileData | null;
+    user?: User | null;
   };
   onClose: () => void;
 }
 
 const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onClose }) => {
   const [showTemplateForm, setShowTemplateForm] = React.useState(false);
+  const [downloadingResume, setDownloadingResume] = React.useState(false);
+  const [downloadingCoverLetter, setDownloadingCoverLetter] = React.useState(false);
+  const [downloadError, setDownloadError] = React.useState('');
+  const [selectedTemplate, setSelectedTemplate] = React.useState('Simple');
+  const [currentUserProfile, setCurrentUserProfile] = React.useState<UserProfileData | null>(null);
+
+  const { user } = useAuth();
+
+  // Load fresh profile data when component mounts
+  React.useEffect(() => {
+    const loadFreshProfile = async () => {
+      if (user) {
+        try {
+          console.log('🔄 Loading fresh profile data for cover letter...');
+          const freshProfile = await ProfileService.getUserProfile(user.uid);
+          console.log('📋 Fresh profile loaded:', freshProfile);
+          setCurrentUserProfile(freshProfile);
+        } catch (error) {
+          console.error('❌ Error loading fresh profile:', error);
+        }
+      }
+    };
+
+    loadFreshProfile();
+  }, [user]);
 
   const getScoreBadge = (score: number) => {
     if (score >= 85) {
@@ -70,61 +132,113 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
 
   const scoreBadge = getScoreBadge(results.matchScore);
 
-  const handleContinueToApplication = () => {
-    // Mock parsed resume data - in real implementation, this would come from the backend
-    const mockParsedResume = {
-      personal: {
-        name: "John Doe",
-        email: "john.doe@email.com",
-        phone: "+1 (555) 123-4567",
-        location: "San Francisco, CA",
-        linkedin: "https://linkedin.com/in/johndoe",
-        website: "https://johndoe.dev"
-      },
-      education: [
-        {
-          school: "University of California, Berkeley",
-          degree: "Bachelor of Science",
-          field: "Computer Science",
-          gpa: "3.8",
-          start_date: "2018-08",
-          end_date: "2022-05",
-          location: "Berkeley, CA"
-        }
-      ],
-      experience: [
-        {
-          company: "Tech Solutions Inc",
-          position: "Senior Software Developer",
-          start_date: "2022-06",
-          end_date: "Present",
-          location: "San Francisco, CA",
-          highlights: [
-            "Led development of microservices architecture serving 1M+ users",
-            "Improved application performance by 40% through optimization",
-            "Mentored 3 junior developers and conducted code reviews"
-          ]
-        },
-        {
-          company: "StartupXYZ",
-          position: "Full Stack Developer",
-          start_date: "2021-01",
-          end_date: "2022-05",
-          location: "Remote",
-          highlights: [
-            "Built responsive web applications using React and Node.js",
-            "Implemented CI/CD pipelines reducing deployment time by 60%",
-            "Collaborated with design team to improve user experience"
-          ]
-        }
-      ],
-      skills: ["JavaScript", "React", "Node.js", "Python", "AWS", "MongoDB", "Git", "Docker", "Kubernetes"],
-      projects: [],
-      certifications: [],
-      awards: [],
-      languages: []
-    };
+  const handleDownloadOptimizedResume = async () => {
+    if (!results.extractionMetadata?.documentId || !results.jobDescription) {
+      setDownloadError('Missing required data for PDF generation. Please try the AI enhancement process again.');
+      return;
+    }
 
+    setDownloadingResume(true);
+    setDownloadError('');
+
+    try {
+      const pdfBlob = await PDFGenerationService.optimizeResume(
+        results.extractionMetadata.documentId,
+        results.jobDescription,
+        {
+          template: selectedTemplate,
+          improveResume: true,
+          sectionOrdering: ['education', 'work', 'skills', 'projects']
+        }
+      );
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().slice(0, 10);
+      const companyName = results.applicationData?.company_name || 'Company';
+      const position = results.applicationData?.position || 'Position';
+      const filename = `Optimized_Resume_${companyName}_${position}_${timestamp}.pdf`;
+
+      PDFGenerationService.downloadBlob(pdfBlob, filename);
+
+    } catch (error: any) {
+      console.error('Error downloading optimized resume:', error);
+      setDownloadError(error.message || 'Failed to download optimized resume');
+    } finally {
+      setDownloadingResume(false);
+    }
+  };
+
+  const handleDownloadCoverLetter = async () => {
+    if (!results.extractionMetadata?.documentId || !results.jobDescription || !results.applicationData) {
+      setDownloadError('Missing required data for cover letter generation. Please try the AI enhancement process again.');
+      return;
+    }
+
+    setDownloadingCoverLetter(true);
+    setDownloadError('');
+
+    try {
+      // 🔧 CRITICAL FIX: Use fresh profile data directly from database
+      let personalInfo;
+
+      if (currentUserProfile && user) {
+        console.log('✅ Using fresh profile data for cover letter generation');
+
+        // Build full address from profile components
+        const addressComponents = [
+          currentUserProfile.streetAddress,
+          currentUserProfile.city,
+          currentUserProfile.state,
+          currentUserProfile.zipCode
+        ].filter(Boolean);
+        const fullAddress = addressComponents.length > 0 ? addressComponents.join(', ') : '';
+
+        personalInfo = {
+          name: currentUserProfile.fullName || 'Unknown',
+          email: user.email || 'unknown@email.com',
+          phone: currentUserProfile.contactNumber || '',
+          address: fullAddress,
+          linkedin: currentUserProfile.linkedin_url || ''
+        };
+
+        console.log('🎯 Final personal info for API:', personalInfo);
+      } else {
+        console.log('⚠️ No profile data available, using resume fallback');
+        // Fallback to parsed resume data
+        personalInfo = PDFGenerationService.extractPersonalInfo(results.parsedResume);
+
+        // Use user email if available
+        if (user?.email) {
+          personalInfo.email = user.email;
+        }
+      }
+
+      const pdfBlob = await PDFGenerationService.generateCoverLetter(
+        results.extractionMetadata.documentId,
+        results.jobDescription,
+        results.applicationData.position,
+        results.applicationData.company_name,
+        results.applicationData.location || '',
+        personalInfo
+      );
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().slice(0, 10);
+      const companyName = results.applicationData.company_name;
+      const position = results.applicationData.position;
+      const filename = `Cover_Letter_${companyName}_${position}_${timestamp}.pdf`;
+
+      PDFGenerationService.downloadBlob(pdfBlob, filename);
+
+    } catch (error: any) {
+      console.error('Error downloading cover letter:', error);
+      setDownloadError(error.message || 'Failed to download cover letter');
+    } finally {
+      setDownloadingCoverLetter(false);
+    }
+  };
+
+  const handleContinueToApplication = () => {
     setShowTemplateForm(true);
   };
 
@@ -133,6 +247,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
   };
 
   const handleTemplateFormGenerate = (formData: any) => {
+    setShowTemplateForm(true);
     console.log('Generating PDF with data:', formData);
     // Here you would make the API call to generate the PDF
     setShowTemplateForm(false);
@@ -240,26 +355,80 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               Your optimized resume and cover letter have been generated and are ready for download.
             </p>
-            <div className="flex gap-4 flex-wrap">
-              <a
-                href={results.optimizedResumeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all hover:shadow-lg"
+
+            {downloadError && (
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                <p className="text-sm text-red-700 dark:text-red-300">
+                  <strong>Error:</strong> {downloadError}
+                </p>
+              </div>
+            )}
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <Settings size={16} className="inline mr-2" />
+                Resume Template
+              </label>
+              <select
+                value={selectedTemplate}
+                onChange={(e) => setSelectedTemplate(e.target.value)}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               >
-                <Download size={20} />
-                Download Optimized Resume
-              </a>
-              <a
-                href={results.optimizedCoverLetterUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all hover:shadow-lg"
-              >
-                <FileText size={20} />
-                Download Cover Letter
-              </a>
+                {PDFGenerationService.AVAILABLE_TEMPLATES.map(template => (
+                  <option key={template} value={template}>{template}</option>
+                ))}
+              </select>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Choose a LaTeX template for your optimized resume
+              </p>
             </div>
+
+            <div className="flex gap-4 flex-wrap">
+              <button
+                onClick={handleDownloadOptimizedResume}
+                disabled={downloadingResume || !results.extractionMetadata?.documentId}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all hover:shadow-lg disabled:cursor-not-allowed"
+              >
+                {downloadingResume ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Generating PDF...
+                  </>
+                ) : (
+                  <>
+                    <Download size={20} />
+                    Download Optimized Resume
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleDownloadCoverLetter}
+                disabled={downloadingCoverLetter || !results.extractionMetadata?.documentId || !results.applicationData}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all hover:shadow-lg disabled:cursor-not-allowed"
+              >
+                {downloadingCoverLetter ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Generating PDF...
+                  </>
+                ) : (
+                  <>
+                    <FileText size={20} />
+                    Download Cover Letter
+                  </>
+                )}
+              </button>
+            </div>
+
+            {(!results.extractionMetadata?.documentId || !results.applicationData) && (
+              <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                  <strong>Note:</strong> PDF generation requires complete job application data.
+                  {!results.extractionMetadata?.documentId && " Document ID is missing."}
+                  {!results.applicationData && " Job application details are missing."}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Experience Optimization */}
@@ -272,21 +441,19 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
                 {results.experienceOptimization.map((exp, index) => (
                   <div
                     key={index}
-                    className={`p-4 rounded-lg border-l-4 ${
-                      exp.included
+                    className={`p-4 rounded-lg border-l-4 ${exp.included
                         ? 'bg-green-50 dark:bg-green-900/20 border-green-500'
                         : 'bg-red-50 dark:bg-red-900/20 border-red-500'
-                    }`}
+                      }`}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <span className="font-semibold text-gray-900 dark:text-white">
                         {exp.included ? '✅' : '❌'} {exp.company} - {exp.position}
                       </span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        exp.relevanceScore >= 70 
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${exp.relevanceScore >= 70
                           ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                           : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                      }`}>
+                        }`}>
                         {exp.relevanceScore}% relevance
                       </span>
                     </div>

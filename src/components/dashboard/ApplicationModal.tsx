@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Building, FileText, User, Link, Sparkles } from 'lucide-react';
-import { JobApplication, ApplicationStatus } from '../../types/jobApplication';
-import { useAuth } from '../../hooks/useAuth';
+import { X, Calendar, Building, FileText, User, Link, Sparkles, MapPin } from 'lucide-react';
+import { JobApplication, ApplicationStatus, ApplicationStatusValue } from '../../types/jobApplication';
+import { UserProfileData } from '../../services/profileService';
 import AIEnhancementModal from './AIEnhancementModal';
 
 interface ApplicationModalProps {
   application: JobApplication | null;
+  detailedUserProfile?: UserProfileData | null;
   onSave: (data: any) => void;
   onClose: () => void;
 }
 
-const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, onSave, onClose }) => {
+const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detailedUserProfile, onSave, onClose }) => {
   const [formData, setFormData] = useState({
     company_name: '',
     position: '',
-    status: 'not_applied' as keyof typeof ApplicationStatus,
+    status: 'not_applied' as ApplicationStatusValue,
     application_date: '',
+    location: '',
     job_posting_url: '',
     job_description: '',
     notes: '',
@@ -25,25 +27,27 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, onSave
   const [error, setError] = useState('');
   const [showAIModal, setShowAIModal] = useState(false);
 
-  const { user } = useAuth();
   useEffect(() => {
     if (application) {
       setFormData({
         company_name: application.company_name,
         position: application.position,
-        status: application.status as keyof typeof ApplicationStatus,
+        status: application.status as ApplicationStatusValue,
         application_date: application.application_date ? application.application_date.split('T')[0] : new Date().toISOString().split('T')[0],
+        location: (application as any).location || '',
         job_posting_url: application.job_posting_url || '',
         job_description: application.job_description || '',
         notes: application.notes || '',
         resume_url: application.resume_url || '',
         cover_letter_url: application.cover_letter_url || ''
       });
-    } else {      setFormData({
+    } else {
+      setFormData({
         company_name: '',
         position: '',
-        status: 'NOT_APPLIED',
+        status: 'not_applied',
         application_date: new Date().toISOString().split('T')[0],
+        location: '',
         job_posting_url: '',
         job_description: '',
         notes: '',
@@ -56,7 +60,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, onSave
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     const submitData = {
       ...formData,
       application_date: new Date(formData.application_date).toISOString(),
@@ -78,8 +82,8 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, onSave
       ...prev,
       resume_url: resumeUrl,
       cover_letter_url: coverLetterUrl,
-      notes: prev.notes + (prev.notes ? '\n\n' : '') + 
-             `AI-enhanced documents generated on ${new Date().toLocaleDateString()} based on job posting analysis.`
+      notes: prev.notes + (prev.notes ? '\n\n' : '') +
+        `AI-enhanced documents generated on ${new Date().toLocaleDateString()} based on job posting analysis.`
     }));
     setShowAIModal(false);
   };
@@ -139,7 +143,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, onSave
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   <Calendar size={16} className="inline mr-2" />
@@ -156,17 +160,31 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, onSave
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <MapPin size={16} className="inline mr-2" />
+                  Location
+                </label>
+                <input
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="e.g., San Francisco, CA"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Status
                 </label>
                 <select
                   value={formData.status}
-                  onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as keyof typeof ApplicationStatus }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as ApplicationStatusValue }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 >
                   {Object.values(ApplicationStatus).map(status => (
                     <option key={status} value={status}>
-                      {status === 'not_applied' ? 'Not Applied' : 
-                       status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
+                      {status === 'not_applied' ? 'Not Applied' :
+                        status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
                     </option>
                   ))}
                 </select>
@@ -222,7 +240,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, onSave
                 </button>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Generate AI-optimized resume and cover letter tailored to this specific job posting. 
+                Generate AI-optimized resume and cover letter tailored to this specific job posting.
                 {!formData.job_description && " Please add a job description first."}
               </p>
             </div>
@@ -297,6 +315,12 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, onSave
       {showAIModal && (
         <AIEnhancementModal
           jobDescription={formData.job_description}
+          applicationData={{
+            position: formData.position,
+            company_name: formData.company_name,
+            location: formData.location
+          }}
+          detailedUserProfile={detailedUserProfile}
           onSave={handleAISave}
           onClose={() => setShowAIModal(false)}
         />

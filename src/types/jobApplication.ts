@@ -17,6 +17,7 @@ export const JobApplicationSchema = z.object({
   ]),
   application_date: z.string().datetime(),
   last_updated: z.string().datetime(),
+  location: z.string().optional(),
   job_posting_url: z.string().url().optional(),
   job_description: z.string().optional(),
   notes: z.string().optional(),
@@ -41,3 +42,4 @@ export const ApplicationStatus = {
 } as const;
 
 export type ApplicationStatusType = keyof typeof ApplicationStatus;
+export type ApplicationStatusValue = typeof ApplicationStatus[keyof typeof ApplicationStatus];
