@@ -28,4 +28,4 @@ const getInitialSettings = (): Settings => {
 
 export const settingsAtom = atom<Settings>(getInitialSettings());
 
-export const settingsSavedAtom = atom<boolean>(false); 
+export const settingsSavedAtom = atom<boolean>(false);
