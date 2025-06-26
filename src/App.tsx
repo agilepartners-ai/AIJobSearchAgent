@@ -17,6 +17,7 @@ import PublicRoute from './components/auth/PublicRoute';
 import JobSearchPage from './components/pages/JobSearchPage';
 import JobListingsPage from './components/pages/JobListingsPage';
 import Dashboard from './components/dashboard/DashboardMain';
+import AIInterviewPage from './components/pages/AIInterviewPage';
 import ErrorBoundary from './components/dashboard/ErrorBoundary';
 
 function App() {
@@ -27,64 +28,70 @@ function App() {
     // The CSS will automatically handle light/dark mode switching
   }, []);
 
-  return (    <Router>
-      <Routes>
-        <Route path="/login" element={
-          <PublicRoute>
-            <LoginForm />
-          </PublicRoute>
-        } />
-        <Route path="/register" element={
-          <PublicRoute>
-            <RegisterForm />
-          </PublicRoute>
-        } />
-        <Route path="/forgot-password" element={
-          <PublicRoute>
-            <ForgotPassword />
-          </PublicRoute>
-        } />
-        <Route path="/verify-phone" element={
-          <PublicRoute>
-            <VerifyPhone />
-          </PublicRoute>
-        } />
-        <Route path="/job-search" element={
-          <ProtectedRoute>
-            <JobSearchPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/job-listings" element={
-          <ProtectedRoute>
-            <JobListingsPage />
-          </ProtectedRoute>
-        } />        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/ai-interview" element={
-          <ProtectedRoute>
-            <AIInterviewPage />
-          </ProtectedRoute>
-        } /><Route
-          path="/"
-          element={
-            <div className="min-h-screen bg-white dark:bg-gray-900 theme-transition">
-              <Header />
-              <main>
-                <Hero />
-                <Workflow />
-                <Testimonials />
-                <Team />
-                <Contact />
-              </main>
-              <Footer />
-            </div>
-          }
-        />
-      </Routes>
-    </Router>
+  return (
+    <ErrorBoundary>
+      <Router>
+        <Routes>
+          <Route path="/login" element={
+            <PublicRoute>
+              <LoginForm />
+            </PublicRoute>
+          } />
+          <Route path="/register" element={
+            <PublicRoute>
+              <RegisterForm />
+            </PublicRoute>
+          } />
+          <Route path="/forgot-password" element={
+            <PublicRoute>
+              <ForgotPassword />
+            </PublicRoute>
+          } />
+          <Route path="/verify-phone" element={
+            <PublicRoute>
+              <VerifyPhone />
+            </PublicRoute>
+          } />
+          <Route path="/job-search" element={
+            <ProtectedRoute>
+              <JobSearchPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/job-listings" element={
+            <ProtectedRoute>
+              <JobListingsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/ai-interview" element={
+            <ProtectedRoute>
+              <AIInterviewPage />
+            </ProtectedRoute>
+          } />
+          <Route
+            path="/"
+            element={
+              <div className="min-h-screen bg-white dark:bg-gray-900 theme-transition">
+                <Header />
+                <main>
+                  <Hero />
+                  <Services />
+                  <Workflow />
+                  <Testimonials />
+                  <Team />
+                  <Contact />
+                </main>
+                <Footer />
+              </div>
+            }
+          />
+        </Routes>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

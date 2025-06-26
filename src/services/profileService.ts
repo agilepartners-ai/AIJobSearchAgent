@@ -1,8 +1,8 @@
-import { 
-  doc, 
-  setDoc, 
-  getDoc, 
-  serverTimestamp 
+import {
+  doc,
+  setDoc,
+  getDoc,
+  serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -38,12 +38,13 @@ export interface UserProfileData {
   expectedSalaryFrom: string;
   expectedSalaryTo: string;
   salaryNotes: string;
-  
+  linkedin_url: string; // Added LinkedIn URL field
+
   // Professional Information
   authorizedToWork: boolean;
   requiresSponsorship: boolean;
   sponsorshipType: string;
-  
+
   // References
   references: Array<{
     fullName: string;
@@ -54,7 +55,7 @@ export interface UserProfileData {
     phoneNumber: string;
     email: string;
   }>;
-  
+
   // Education
   education: Array<{
     degreeType: string;
@@ -66,7 +67,7 @@ export interface UserProfileData {
     timeframeTo: string;
     gpa: string;
   }>;
-  
+
   // Certifications
   certifications: Array<{
     name: string;
@@ -75,7 +76,7 @@ export interface UserProfileData {
     dateAchieved: string;
     expirationDate: string;
   }>;
-  
+
   // Additional Questions
   governmentEmployment: boolean;
   governmentDetails: string;
@@ -84,7 +85,7 @@ export interface UserProfileData {
   hasConvictions: boolean;
   convictionDetails: string;
   interviewAvailability: string;
-  
+
   // Metadata
   created_at?: string;
   updated_at?: string;
@@ -111,7 +112,7 @@ export class ProfileService {
     try {
       const docRef = doc(db, COLLECTION_NAME, userId);
       const docSnap = await getDoc(docRef);
-      
+
       if (docSnap.exists()) {
         const data = docSnap.data();
         return {
@@ -120,7 +121,7 @@ export class ProfileService {
           updated_at: data.updated_at?.toDate?.()?.toISOString() || data.updated_at
         } as UserProfileData;
       }
-      
+
       return null;
     } catch (error) {
       console.error('Error getting user profile:', error);
