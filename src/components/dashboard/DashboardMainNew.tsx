@@ -342,6 +342,17 @@ const Dashboard: React.FC = () => {
     setSelectedJobDescription(job);
   };
 
+  const handleStartInterview = (application: JobApplication) => {
+    // Navigate to AI Interview page with job details
+    navigate('/ai-interview', { 
+      state: { 
+        jobTitle: application.position,
+        companyName: application.company_name,
+        jobDescription: application.job_description
+      }
+    });
+  };
+
   const handleUpdateApplicationStatus = async (applicationId: string, newStatus: string) => {
     if (!user) return;
 
@@ -399,6 +410,7 @@ const Dashboard: React.FC = () => {
             onViewJobDescription={handleViewJobDescription}
             onDeleteApplication={handleDeleteApplication}
             onUpdateApplicationStatus={handleUpdateApplicationStatus}
+            onStartInterview={handleStartInterview}
           />
         </div>
       </main>      {/* Modals */}      <JobSearchModal

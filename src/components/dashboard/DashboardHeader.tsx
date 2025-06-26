@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, LogOut, User, Settings, ChevronDown, Menu, Video } from 'lucide-react';
+import { Plus, Search, LogOut, User, Settings, ChevronDown, Menu } from 'lucide-react';
 import SupabaseAuthService from '../../services/supabaseAuthService';
 import { useNavigate } from 'react-router-dom';
 
@@ -68,14 +68,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 Find Jobs
               </button>
             )}
-
-            <button
-              onClick={() => navigate('/ai-interview')}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
-            >
-              <Video size={20} />
-              AI Interview
-            </button>
             
             <button
               onClick={onAddApplication}
