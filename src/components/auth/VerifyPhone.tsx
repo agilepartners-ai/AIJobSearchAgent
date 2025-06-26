@@ -25,7 +25,7 @@ const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
       // For now, just simulate verification success
       console.log('Phone verification simulated for code:', code);
 
-      // Route guard will handle redirect to /job-search
+      // Route guard will handle redirect to /dashboard
     } catch (err: any) {
       setError(err.message);
     } finally {

@@ -17,7 +17,7 @@ import PublicRoute from './components/auth/PublicRoute';
 import JobSearchPage from './components/pages/JobSearchPage';
 import JobListingsPage from './components/pages/JobListingsPage';
 import AIInterviewPage from './components/pages/AIInterviewPage';
-import Dashboard from './components/dashboard/DashboardMainNew';
+import Dashboard from './components/dashboard/DashboardMain';
 import ErrorBoundary from './components/dashboard/ErrorBoundary';
 import { ToastProvider } from './components/ui/ToastProvider';
 

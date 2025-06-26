@@ -15,11 +15,12 @@ export const JobApplicationSchema = z.object({
     'declined'
   ]),
   application_date: z.string().datetime(),
+  last_updated: z.string().datetime(),
+  location: z.string().optional(),
   job_posting_url: z.string().url().optional(),
   job_description: z.string().optional(),
   notes: z.string().optional(),
   salary_range: z.string().optional(),
-  location: z.string().optional(),
   employment_type: z.string().optional(),
   remote_option: z.boolean().default(false),
   contact_person: z.string().optional(),
@@ -46,3 +47,4 @@ export const ApplicationStatus = {
 } as const;
 
 export type ApplicationStatusType = keyof typeof ApplicationStatus;
+export type ApplicationStatusValue = typeof ApplicationStatus[keyof typeof ApplicationStatus];

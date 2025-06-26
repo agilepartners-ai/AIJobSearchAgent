@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Search, Filter, Edit3, Eye, Trash2, ExternalLink, ChevronLeft, ChevronRight, Briefcase, Calendar, Clock } from 'lucide-react';
+import { Search, Filter, Edit3, Eye, Trash2, ExternalLink, ChevronLeft, ChevronRight, Briefcase, Calendar, Clock, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import { JobApplication } from '../../types/supabase';
 
@@ -13,6 +13,7 @@ interface ApplicationsTableProps {
   onViewJobDescription: (job: { title: string; company: string; description: string }) => void;
   onDeleteApplication: (id: string) => void;
   onUpdateApplicationStatus?: (id: string, status: string) => void;
+  onStartInterview?: (application: JobApplication) => void;
 }
 
 const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
@@ -25,6 +26,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   onViewJobDescription,
   onDeleteApplication,
   onUpdateApplicationStatus,
+  onStartInterview,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -233,60 +235,73 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
 
                   {/* Card Footer - Actions */}
                   <div className="p-6 pt-0">
-                    <div className="flex justify-between items-center space-x-2">
-                      {/* Quick Apply Button */}
-                      {application.job_posting_url && application.status === 'not_applied' && (
-                        <button
-                          onClick={() => handleQuickApply(application)}
-                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
-                        >
-                          <ExternalLink size={14} className="mr-2" />
-                          Apply Now
-                        </button>
-                      )}
-                      
-                      {application.job_posting_url && application.status !== 'not_applied' && (
-                        <button
-                          onClick={() => window.open(application.job_posting_url || '', '_blank')}
-                          className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
-                        >
-                          <ExternalLink size={14} className="mr-2" />
-                          View Job
-                        </button>
-                      )}
-
-                      {/* Action Buttons */}
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => onEditApplication(application)}
-                          className="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                          title="Edit Application"
-                        >
-                          <Edit3 size={16} />
-                        </button>
-                        
-                        {application.job_description && (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between items-center space-x-2">
+                        {/* Quick Apply Button */}
+                        {application.job_posting_url && application.status === 'not_applied' && (
                           <button
-                            onClick={() => onViewJobDescription({
-                              title: application.position,
-                              company: application.company_name,
-                              description: application.job_description || ''
-                            })}
-                            className="p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                            title="View Job Description"
+                            onClick={() => handleQuickApply(application)}
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
                           >
-                            <Eye size={16} />
+                            <ExternalLink size={14} className="mr-2" />
+                            Apply Now
                           </button>
                         )}
                         
-                        <button
-                          onClick={() => onDeleteApplication(application.id)}
-                          className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                          title="Delete Application"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        {application.job_posting_url && application.status !== 'not_applied' && (
+                          <button
+                            onClick={() => window.open(application.job_posting_url || '', '_blank')}
+                            className="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+                          >
+                            <ExternalLink size={14} className="mr-2" />
+                            View Job
+                          </button>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => onEditApplication(application)}
+                            className="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                            title="Edit Application"
+                          >
+                            <Edit3 size={16} />
+                          </button>
+                          
+                          {application.job_description && (
+                            <button
+                              onClick={() => onViewJobDescription({
+                                title: application.position,
+                                company: application.company_name,
+                                description: application.job_description || ''
+                              })}
+                              className="p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                              title="View Job Description"
+                            >
+                              <Eye size={16} />
+                            </button>
+                          )}
+                          
+                          <button
+                            onClick={() => onDeleteApplication(application.id)}
+                            className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Delete Application"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
+
+                      {/* Interview Button */}
+                      {application.job_description && onStartInterview && (
+                        <button
+                          onClick={() => onStartInterview(application)}
+                          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center"
+                        >
+                          <Video size={14} className="mr-2" />
+                          Practice Interview
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -326,7 +341,8 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
           </div>
         )}
       </div>
-    </div>  );
+    </div>
+  );
 };
 
 export default ApplicationsTable;

@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import ApiErrorHandler from '../common/ApiErrorHandler';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -40,8 +41,54 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     console.error('Error caught by boundary:', error, errorInfo);
   }
 
+  handleRetry = async (endpoint: string, params: Record<string, any>): Promise<void> => {
+    try {
+      // Make a new request with the modified parameters
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(params)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      // If successful, reset the error state
+      this.setState({
+        hasError: false,
+        error: null,
+        errorInfo: null
+      });
+      
+    } catch (error) {
+      // Update the error state with the new error
+      this.setState({
+        error: error instanceof Error ? error : new Error(String(error))
+      });
+    }
+  };
+
   render() {
     if (this.state.hasError) {
+      // Check if it's an API error with additional metadata
+      const apiError = this.state.error as any;
+      
+      if (apiError.endpoint && apiError.params) {
+        return (
+          <ApiErrorHandler
+            error={apiError}
+            endpoint={apiError.endpoint}
+            params={apiError.params}
+            statusCode={apiError.statusCode}
+            responseData={apiError.responseData}
+            onRetry={this.handleRetry}
+            onClose={() => this.setState({ hasError: false, error: null, errorInfo: null })}
+          />
+        );
+      }
       // Use custom fallback if provided
       if (this.props.fallback) {
         return this.props.fallback;

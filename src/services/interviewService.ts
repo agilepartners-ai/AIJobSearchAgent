@@ -1,4 +1,4 @@
-import { IConversation } from '../types/conversation';
+import { IConversation } from '../types';
 
 /**
  * Creates a new interview conversation with Tavus API

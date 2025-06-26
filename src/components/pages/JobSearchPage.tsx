@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, MapPin, Calendar, Clock, ArrowRight, User, LogOut, LayoutDashboard } from 'lucide-react';
+import { Search, MapPin, Calendar, Clock, ArrowRight, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import SupabaseAuthService from '../../services/supabaseAuthService';
 
@@ -109,19 +109,12 @@ const JobSearchPage: React.FC = () => {  const navigate = useNavigate();
               </div>
               <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Find Your Dream Job</h1>
             </div>
-              <div className="flex items-center space-x-4">
+            
+            <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
                 <User size={16} />
                 <span>Welcome, {userProfile?.email || user?.email}!</span>
               </div>
-              <button 
-                onClick={() => navigate('/dashboard')}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                title="Go to Dashboard"
-              >
-                <LayoutDashboard size={16} />
-                <span>Dashboard</span>
-              </button>
               <button 
                 onClick={handleSignOut}
                 className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
