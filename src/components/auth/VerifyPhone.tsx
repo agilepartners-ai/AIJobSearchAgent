@@ -24,7 +24,7 @@ const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
         phone_verified: true
       });
 
-      // Route guard will handle redirect to /job-search
+      // Route guard will handle redirect to /dashboard
     } catch (err: any) {
       setError(err.message);
     } finally {

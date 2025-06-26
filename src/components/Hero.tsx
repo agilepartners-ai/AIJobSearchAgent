@@ -68,7 +68,7 @@ const Hero: React.FC = () => {
                   delay={1800}
                 />
               </span>
-            </h1><p className="text-lg lg:text-xl text-gray-100 dark:text-gray-200 mb-6 leading-relaxed max-w-3xl mx-auto drop-shadow-lg font-medium opacity-0 animate-fadeIn" style={{ animationDelay: '3s', animationFillMode: 'forwards' }}>
+            </h1>            <p className="text-lg lg:text-xl text-gray-100 dark:text-gray-200 mb-6 leading-relaxed max-w-3xl mx-auto drop-shadow-lg font-medium opacity-0 animate-fadeIn" style={{ animationDelay: '3s', animationFillMode: 'forwards' }}>
               Transform your job search with our intelligent platform. Get personalized resume optimization, practice with AI-powered mock interviews, and discover opportunities tailored to your skills and career goals.
             </p>            <div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0 animate-fadeIn" style={{ animationDelay: '3.5s', animationFillMode: 'forwards' }}>
               <a 
