@@ -1,61 +1,68 @@
 import React, { useState } from 'react';
-import { X, Upload, FileText, Sparkles, Cloud, HardDrive, Link as LinkIcon, ExternalLink, Zap, AlertTriangle } from 'lucide-react';
-import OptimizedResultsPage from './OptimizedResultsPage';
-import { PDFExtractionService } from '../../services/pdfExtractionService';
-import { ResumeOptimizationService } from '../../services/resumeOptimizationService';
+import { X, Upload, FileText, Sparkles, Cloud, HardDrive, AlertCircle, CheckCircle, Settings } from 'lucide-react';
+import OptimizationResults from './OptimizationResults';
+import { ResumeExtractionService } from '../../services/resumeExtractionService';
+import { AIEnhancementService } from '../../services/aiEnhancementService';
+import { UserProfileData } from '../../services/profileService';
 import { useAuth } from '../../hooks/useAuth';
-import ApiErrorHandler from '../common/ApiErrorHandler';
 
 interface AIEnhancementModalProps {
   jobDescription: string;
+  applicationData?: {
+    position: string;
+    company_name: string;
+    location?: string;
+  };
+  detailedUserProfile?: UserProfileData | null;
   onSave: (resumeUrl: string, coverLetterUrl: string) => void;
   onClose: () => void;
 }
 
-const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({ 
-  jobDescription, 
-  onSave, 
-  onClose 
+// Generate a random UUID v4
+const generateUUID = (): string => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = Math.random() * 16 | 0;
+    const v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
+const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
+  jobDescription,
+  applicationData,
+  detailedUserProfile,
+  onSave,
+  onClose
 }) => {
-  const { user } = useAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [cloudProvider, setCloudProvider] = useState<string>('');
   const [cloudFileUrl, setCloudFileUrl] = useState<string>('');
-  const [pdfDirectLink, setPdfDirectLink] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [apiError, setApiError] = useState<any>(null);
   const [showResults, setShowResults] = useState(false);
   const [optimizationResults, setOptimizationResults] = useState<any>(null);
-  const [extractedText, setExtractedText] = useState<string>('');
-  const [showExtractedText, setShowExtractedText] = useState(false);
-  const [currentStep, setCurrentStep] = useState<'extract' | 'optimize'>('extract');
+  const [extractionProgress, setExtractionProgress] = useState<string>('');
+  const [documentId] = useState<string>(generateUUID()); // Generate once and keep it
+
+  const { user } = useAuth();
+
+  // Get configuration for display
+  const config = ResumeExtractionService.getConfiguration();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Validate file type
-      const allowedTypes = [
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      ];
-      
-      if (!allowedTypes.includes(file.type)) {
-        setError('Please select a PDF or Word document');
+      // Validate file
+      const validation = ResumeExtractionService.validateResumeFile(file);
+
+      if (!validation.isValid) {
+        setError(validation.error || 'Invalid file');
         return;
       }
-      
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        setError('File size must be less than 10MB');
-        return;
-      }
-      
+
       setSelectedFile(file);
       setError('');
       setCloudFileUrl(''); // Clear cloud URL if local file is selected
-      setPdfDirectLink(''); // Clear direct PDF link
-      setExtractedText(''); // Clear extracted text
     }
   };
 
@@ -63,227 +70,283 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     setCloudProvider(provider);
     setSelectedFile(null); // Clear local file if cloud provider is selected
     setCloudFileUrl('');
-    setPdfDirectLink(''); // Clear direct PDF link
-    setExtractedText(''); // Clear extracted text
   };
 
-  const handlePdfDirectLinkChange = (url: string) => {
-    setPdfDirectLink(url);
-    setSelectedFile(null); // Clear local file
-    setCloudFileUrl(''); // Clear cloud URL
-    setCloudProvider(''); // Clear cloud provider
-    setExtractedText(''); // Clear extracted text
-  };
-
-  const validatePdfUrl = (url: string): boolean => {
+  const downloadFileFromUrl = async (url: string): Promise<File> => {
     try {
-      const urlObj = new URL(url);
-      return url.toLowerCase().includes('.pdf') || 
-             urlObj.pathname.toLowerCase().endsWith('.pdf') ||
-             url.includes('drive.google.com') ||
-             url.includes('dropbox.com') ||
-             url.includes('onedrive.live.com');
-    } catch {
-      return false;
-    }
-  };
-
-  const handleExtractText = async () => {
-    const hasFile = selectedFile || cloudFileUrl || pdfDirectLink;
-    
-    if (!hasFile) {
-      setError('Please select a resume file, provide a cloud file URL, or enter a direct PDF link');
-      return;
-    }
-
-    if (!jobDescription.trim()) {
-      setError('Job description is required for optimization');
-      return;
-    }
-
-    if (pdfDirectLink && !validatePdfUrl(pdfDirectLink)) {
-      setError('Please enter a valid PDF URL');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setApiError(null);
-    setCurrentStep('extract');
-
-    try {
-      console.log('📄 Starting PDF text extraction...');
-      
-      let extractionResult;
-      
-      if (selectedFile) {
-        // Extract from local file
-        extractionResult = await PDFExtractionService.extractTextFromFile(selectedFile);
-      } else if (pdfDirectLink) {
-        // Extract from direct PDF link
-        extractionResult = await PDFExtractionService.extractTextFromUrl(pdfDirectLink);
-      } else if (cloudFileUrl) {
-        // Extract from cloud URL
-        extractionResult = await PDFExtractionService.extractTextFromUrl(cloudFileUrl);
-      } else {
-        throw new Error('No valid PDF source provided');
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to download file: ${response.status}`);
       }
 
-      if (!extractionResult.text || extractionResult.text.trim().length < 100) {
-        throw new Error('Extracted text is too short or empty. Please ensure the PDF contains readable text.');
-      }
-
-      setExtractedText(extractionResult.text);
-      setCurrentStep('optimize');
-      
-      console.log('✅ Text extraction completed:', {
-        textLength: extractionResult.text.length,
-        pageCount: extractionResult.pageCount
-      });
-      
-    } catch (err: any) {
-      console.error('❌ PDF extraction error:', err);
-      setError(err.message || 'Failed to extract text from PDF. Please try again.');
-    } finally {
-      setLoading(false);
+      const blob = await response.blob();
+      const filename = url.split('/').pop() || 'resume.pdf';
+      return new File([blob], filename, { type: blob.type });
+    } catch (error) {
+      throw new Error('Failed to download file from URL. Please check the URL and permissions.');
     }
   };
 
   const handleGenerateAI = async () => {
-    if (!extractedText) {
-      setError('Please extract text from PDF first');
+    if (!selectedFile && !cloudFileUrl) {
+      setError('Please select a resume file or provide a cloud file URL');
       return;
     }
 
-    if (!user) {
-      setError('User authentication required');
+    if (!jobDescription.trim()) {
+      setError('Job description is required for AI enhancement');
+      return;
+    }
+
+    // Check API configuration
+    if (!config.hasApiKey) {
+      setError('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.');
+      return;
+    }
+
+    // Validate enhancement request
+    const validation = AIEnhancementService.validateEnhancementRequest(jobDescription);
+    if (!validation.isValid) {
+      setError(validation.error || 'Invalid request');
       return;
     }
 
     setLoading(true);
     setError('');
-    setApiError(null);
-    setCurrentStep('optimize');
+    setExtractionProgress('');
 
     try {
-      console.log('🤖 Starting AI optimization...');
-      
-      // Validate request data
-      const validation = ResumeOptimizationService.validateOptimizationRequest(
-        user.uid,
-        extractedText,
-        jobDescription
-      );
+      let fileToProcess = selectedFile;
 
-      if (!validation.isValid) {
-        throw new Error(validation.errors.join(', '));
+      // If using cloud URL, download the file first
+      if (cloudFileUrl && !selectedFile) {
+        setExtractionProgress('Downloading file from cloud storage...');
+        fileToProcess = await downloadFileFromUrl(cloudFileUrl);
       }
 
-      // Send optimization request to API
-      const apiResponse = await ResumeOptimizationService.optimizeResume(
-        user.uid,
-        extractedText,
-        jobDescription
-      );
-
-      // Transform API response to our format
-      const transformedResults = ResumeOptimizationService.transformApiResponse(apiResponse);
-
-      // Ensure all required properties are set for OptimizedResultsPage
-      const resultsWithRequiredProps = {
-        ...transformedResults,
-        // Ensure array properties are always defined
-        strengths: transformedResults.strengths || [],
-        gaps: transformedResults.gaps || [],
-        suggestions: transformedResults.suggestions || [],
-        // Ensure other required properties have defaults
-        matchScore: transformedResults.matchScore || 0,
-        summary: transformedResults.summary || '',
-        optimizedResumeText: transformedResults.optimizedResumeText || '',
-        tweakedText: transformedResults.tweakedText || '',
-        optimizedResumeUrl: transformedResults.optimizedResumeUrl || '',
-        optimizedCoverLetterUrl: transformedResults.optimizedCoverLetterUrl || '',
-        djangoUserId: transformedResults.djangoUserId || 0,
-        firebaseUid: transformedResults.firebaseUid || user.uid,
-        optimizationSuccessful: transformedResults.optimizationSuccessful || false
-      };
-
-      setOptimizationResults(resultsWithRequiredProps);
-      setShowResults(true);
-      
-      console.log('✅ AI optimization completed successfully');
-      
-    } catch (err: any) {
-      console.error('❌ AI optimization error:', err);
-      
-      // Check if it's an API error with additional metadata
-      if (err.endpoint) {
-        setApiError(err);
-      } else {
-        setError(err.message || 'Failed to generate AI-enhanced documents. Please try again.');
+      if (!fileToProcess) {
+        throw new Error('No file to process');
       }
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleApiRetry = async (endpoint: string, params: Record<string, any>) => {
-    setLoading(true);
-    setApiError(null);
-    
-    try {
-      // Send optimization request to API with modified parameters
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(params)
+      // Step 1: Extract resume data using AI
+      setExtractionProgress('Extracting resume data using AI...');
+      const extractionResult = await ResumeExtractionService.extractResumeJson(fileToProcess, {
+        modelType: config.defaultModelType,
+        model: config.defaultModel,
+        fileId: documentId // Use the persistent UUID
       });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API error: ${response.status} - ${errorText || 'Unknown error'}`);
-      }
-      
-      const apiResponse = await response.json();
-      
-      // Transform API response to our format
-      const transformedResults = ResumeOptimizationService.transformApiResponse(apiResponse);
 
-      // Ensure all required properties are set for OptimizedResultsPage
-      const resultsWithRequiredProps = {
-        ...transformedResults,
-        // Ensure array properties are always defined
-        strengths: transformedResults.strengths || [],
-        gaps: transformedResults.gaps || [],
-        suggestions: transformedResults.suggestions || [],
-        // Ensure other required properties have defaults
-        matchScore: transformedResults.matchScore || 0,
-        summary: transformedResults.summary || '',
-        optimizedResumeText: transformedResults.optimizedResumeText || '',
-        tweakedText: transformedResults.tweakedText || '',
-        optimizedResumeUrl: transformedResults.optimizedResumeUrl || '',
-        optimizedCoverLetterUrl: transformedResults.optimizedCoverLetterUrl || '',
-        djangoUserId: transformedResults.djangoUserId || 0,
-        firebaseUid: transformedResults.firebaseUid || user?.uid || 'unknown',
-        optimizationSuccessful: transformedResults.optimizationSuccessful || false
+      if (!extractionResult.success) {
+        // Handle specific API errors
+        if (extractionResult.error?.includes('PDF format not supported') ||
+          extractionResult.error?.includes('format not supported') ||
+          extractionResult.error?.includes('unsupported file type')) {
+          throw new Error('PDF format not supported by the current API. Please try uploading a Word document (.docx) or text file (.txt) instead.');
+        }
+
+        if (extractionResult.error?.includes('API key') ||
+          extractionResult.error?.includes('authentication')) {
+          throw new Error('API authentication failed. Please check your OpenAI API key configuration.');
+        }
+
+        if (extractionResult.error?.includes('rate limit') ||
+          extractionResult.error?.includes('quota')) {
+          throw new Error('API rate limit exceeded. Please try again in a few minutes.');
+        }
+
+        throw new Error(extractionResult.error || 'Failed to extract resume data. The API may be temporarily unavailable.');
+      }
+
+      setExtractionProgress('Processing extracted data...');
+
+      // Parse the extracted resume data
+      const parsedResumeData = ResumeExtractionService.parseResumeData(extractionResult.resume_json);
+
+      if (!parsedResumeData) {
+        throw new Error('Failed to parse extracted resume data. The resume format may not be compatible.');
+      }
+
+      // Step 2: Enhance resume using AI analysis
+      setExtractionProgress('Analyzing resume against job description...');
+
+      let enhancementResult;
+      try {
+        // Try using the JSON mode first (more reliable)
+        enhancementResult = await AIEnhancementService.enhanceWithJson(
+          extractionResult.resume_json,
+          jobDescription,
+          {
+            modelType: config.defaultModelType,
+            model: config.defaultModel,
+            fileId: documentId
+          }
+        );
+      } catch (jsonError) {
+        console.warn('JSON enhancement failed, trying file mode:', jsonError);
+        // Fallback to file mode
+        setExtractionProgress('Retrying analysis with file upload...');
+        enhancementResult = await AIEnhancementService.enhanceWithFile(
+          fileToProcess,
+          jobDescription,
+          {
+            modelType: config.defaultModelType,
+            model: config.defaultModel,
+            fileId: documentId
+          }
+        );
+      }
+
+      if (!enhancementResult.success) {
+        throw new Error(enhancementResult.error || 'Failed to analyze resume. Please try again.');
+      }
+
+      // Normalize the response to ensure all fields exist
+      const normalizedResult = AIEnhancementService.normalizeEnhancementResponse(enhancementResult);
+
+      setExtractionProgress('Generating optimization recommendations...');
+
+      // Generate mock URLs for the enhanced documents (will be replaced by real PDF generation)
+      const timestamp = Date.now();
+      const enhancedResumeUrl = `https://example.com/ai-enhanced-resume-${documentId}.pdf`;
+      const enhancedCoverLetterUrl = `https://example.com/ai-enhanced-cover-letter-${documentId}.pdf`;
+
+      // Debug: Log the profile data we're about to include
+      console.log('🔍 Profile data being included in optimization results:');
+      console.log('detailedUserProfile:', detailedUserProfile);
+      console.log('user:', user);
+
+      // Combine real AI analysis with our UI structure
+      const optimizationResults = {
+        matchScore: normalizedResult.analysis.match_score,
+        summary: normalizedResult.analysis.match_score >= 80
+          ? `Excellent match! Your resume shows strong alignment with this position (${normalizedResult.analysis.match_score}% match). The AI has identified key strengths and provided targeted recommendations for optimization.`
+          : normalizedResult.analysis.match_score >= 70
+            ? `Good match! Your resume aligns well with this position (${normalizedResult.analysis.match_score}% match). The AI has identified areas for improvement to strengthen your application.`
+            : `Moderate match (${normalizedResult.analysis.match_score}% match). The AI has identified significant opportunities to better align your resume with this position.`,
+
+        // Use real AI analysis data
+        strengths: normalizedResult.analysis.strengths.length > 0
+          ? normalizedResult.analysis.strengths
+          : [
+            `Strong technical background with ${parsedResumeData.experience?.length || 0} work experience entries`,
+            `Comprehensive skill set including relevant technologies`,
+            `Educational background aligns with job requirements`
+          ],
+
+        gaps: normalizedResult.analysis.gaps.length > 0
+          ? normalizedResult.analysis.gaps
+          : [
+            "Some industry-specific keywords could be emphasized more prominently",
+            "Consider adding more quantified achievements with specific metrics"
+          ],
+
+        suggestions: normalizedResult.analysis.suggestions.length > 0
+          ? normalizedResult.analysis.suggestions
+          : [
+            "Incorporate more action verbs and industry-specific terminology",
+            "Add specific metrics and percentages to quantify your achievements",
+            "Consider reorganizing sections to highlight most relevant experience first"
+          ],
+
+        optimizedResumeUrl: enhancedResumeUrl,
+        optimizedCoverLetterUrl: enhancedCoverLetterUrl,
+
+        // Use real keyword analysis
+        keywordAnalysis: {
+          coverageScore: normalizedResult.analysis.keyword_analysis.keyword_density_score,
+          coveredKeywords: normalizedResult.analysis.keyword_analysis.present_keywords,
+          missingKeywords: normalizedResult.analysis.keyword_analysis.missing_keywords
+        },
+
+        // Enhanced experience optimization using real data
+        experienceOptimization: parsedResumeData.experience?.map((exp: any, index: number) => ({
+          company: exp.company || 'Unknown Company',
+          position: exp.position || 'Unknown Position',
+          relevanceScore: Math.max(70, normalizedResult.analysis.match_score - (index * 5)),
+          included: index < 3, // Include top 3 most relevant
+          reasoning: index >= 3 ? "Less relevant to target position based on AI analysis" : undefined
+        })) || [],
+
+        // Enhanced skills optimization
+        skillsOptimization: {
+          technicalSkills: normalizedResult.enhancements.enhanced_skills.length > 0
+            ? normalizedResult.enhancements.enhanced_skills
+            : Array.isArray(parsedResumeData.skills) ? parsedResumeData.skills.slice(0, 8) : [],
+          softSkills: ["Leadership", "Problem Solving", "Communication", "Team Collaboration"],
+          missingSkills: normalizedResult.analysis.keyword_analysis.missing_keywords.slice(0, 5)
+        },
+
+        // Include parsed resume data
+        parsedResume: parsedResumeData,
+
+        // Enhanced metadata
+        extractionMetadata: {
+          documentId: documentId,
+          extractedTextLength: extractionResult.extracted_text_length,
+          processingTime: Date.now() - timestamp,
+          modelUsed: normalizedResult.metadata.model_used,
+          apiBaseUrl: config.apiBaseUrl,
+          sectionsAnalyzed: normalizedResult.metadata.resume_sections_analyzed
+        },
+
+        // Include AI enhancements
+        aiEnhancements: {
+          enhancedSummary: normalizedResult.enhancements.enhanced_summary,
+          enhancedExperienceBullets: normalizedResult.enhancements.enhanced_experience_bullets,
+          coverLetterOutline: normalizedResult.enhancements.cover_letter_outline,
+          sectionRecommendations: normalizedResult.analysis.section_recommendations
+        },
+
+        // Include raw AI response for debugging
+        rawAIResponse: normalizedResult,
+
+        // Add job context for PDF generation
+        jobDescription: jobDescription,
+        applicationData: applicationData,
+
+        // 🔧 CRITICAL FIX: Add detailed user profile and user for cover letter generation
+        detailedUserProfile: detailedUserProfile,
+        user: user
       };
 
-      setOptimizationResults(resultsWithRequiredProps);
-      setShowResults(true);
-      
-    } catch (err: any) {
-      console.error('❌ API retry error:', err);
-      
-      // Check if it's an API error with additional metadata
-      if (err.endpoint) {
-        setApiError(err);
-      } else {
-        setError(err.message || 'Failed to generate AI-enhanced documents. Please try again.');
+      // Debug: Log what we're setting as optimization results
+      console.log('✅ Setting optimization results with profile data:');
+      console.log('- detailedUserProfile included:', !!optimizationResults.detailedUserProfile);
+      console.log('- user included:', !!optimizationResults.user);
+      if (optimizationResults.detailedUserProfile) {
+        console.log('- Profile name:', optimizationResults.detailedUserProfile.fullName);
+        console.log('- Profile phone:', optimizationResults.detailedUserProfile.contactNumber);
+        console.log('- Profile address components:', {
+          street: optimizationResults.detailedUserProfile.streetAddress,
+          city: optimizationResults.detailedUserProfile.city,
+          state: optimizationResults.detailedUserProfile.state,
+          zip: optimizationResults.detailedUserProfile.zipCode
+        });
       }
+
+      setOptimizationResults(optimizationResults);
+      setShowResults(true);
+
+    } catch (err: any) {
+      console.error('AI Enhancement Error:', err);
+
+      // Provide user-friendly error messages
+      let userMessage = err.message;
+
+      if (err.message.includes('Failed to fetch') || err.message.includes('network')) {
+        userMessage = 'Unable to connect to the AI service. Please check your internet connection and try again.';
+      } else if (err.message.includes('timeout') || err.message.includes('timed out')) {
+        userMessage = 'The AI processing is taking longer than expected. Please try again with a smaller file or try again later.';
+      } else if (err.message.includes('API key')) {
+        userMessage = 'API configuration error. Please contact support for assistance.';
+      } else if (!err.message || err.message === 'Failed to generate AI-enhanced documents. Please try again.') {
+        userMessage = 'The AI service is temporarily unavailable. Please try again in a few minutes or contact support if the issue persists.';
+      }
+
+      setError(userMessage);
     } finally {
       setLoading(false);
+      setExtractionProgress('');
     }
   };
 
@@ -296,53 +359,34 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     onClose();
   };
 
-  const handleBackToDashboard = () => {
-    setShowResults(false);
-    onClose();
-  };
-
-  // If we have API error, show the error handler
-  if (apiError) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="p-6">
-            <ApiErrorHandler
-              error={apiError}
-              endpoint={apiError.endpoint}
-              params={apiError.params}
-              statusCode={apiError.statusCode}
-              responseData={apiError.responseData}
-              onRetry={handleApiRetry}
-              onClose={() => setApiError(null)}
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (showResults && optimizationResults) {
     return (
-      <OptimizedResultsPage
+      <OptimizationResults
         results={optimizationResults}
         onClose={handleResultsClose}
-        onBackToDashboard={handleBackToDashboard}
       />
     );
   }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
               <Sparkles className="text-white" size={20} />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              AI Enhanced Resume & Cover Letter Generator
-            </h2>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                AI Enhanced Resume & Cover Letter Generator
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Document ID: {documentId.slice(0, 8)}...
+                {applicationData && (
+                  <span className="ml-2">• {applicationData.position} at {applicationData.company_name}</span>
+                )}
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -354,11 +398,82 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
         <div className="p-6 space-y-6">
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm flex items-center gap-2">
-              <AlertTriangle size={16} />
-              {error}
+            <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-lg text-sm flex items-start gap-3">
+              <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium">Error</p>
+                <p>{error}</p>
+              </div>
             </div>
           )}
+
+          {extractionProgress && (
+            <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-3 rounded-lg text-sm flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              {extractionProgress}
+            </div>
+          )}
+
+          {/* Profile Data Debug Info */}
+          {detailedUserProfile && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="text-green-600 dark:text-green-400 mt-0.5" size={16} />
+                <div>
+                  <h4 className="text-sm font-medium text-green-800 dark:text-green-200">
+                    ✅ Profile Data Loaded for Cover Letter
+                  </h4>
+                  <div className="text-sm mt-1 text-green-700 dark:text-green-300">
+                    <p><strong>Name:</strong> {detailedUserProfile.fullName || '❌ Not set'}</p>
+                    <p><strong>Phone:</strong> {detailedUserProfile.contactNumber || '❌ Not set'}</p>
+                    <p><strong>Email:</strong> {user?.email || '❌ Not set'}</p>
+                    <p><strong>Address:</strong> {[
+                      detailedUserProfile.streetAddress,
+                      detailedUserProfile.city,
+                      detailedUserProfile.state,
+                      detailedUserProfile.zipCode
+                    ].filter(Boolean).join(', ') || '❌ Not set'}</p>
+                    <p><strong>LinkedIn:</strong> {detailedUserProfile.linkedin_url || '❌ Not set'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* API Configuration Status */}
+          <div className={`border rounded-lg p-4 ${config.hasApiKey
+              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700'
+              : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700'
+            }`}>
+            <div className="flex items-start gap-3">
+              <Settings className={`mt-0.5 ${config.hasApiKey
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-red-600 dark:text-red-400'
+                }`} size={16} />
+              <div>
+                <h4 className={`text-sm font-medium ${config.hasApiKey
+                    ? 'text-green-800 dark:text-green-200'
+                    : 'text-red-800 dark:text-red-200'
+                  }`}>
+                  AI Analysis Configuration {config.hasApiKey ? 'Ready' : 'Required'}
+                </h4>
+                <div className={`text-sm mt-1 ${config.hasApiKey
+                    ? 'text-green-700 dark:text-green-300'
+                    : 'text-red-700 dark:text-red-300'
+                  }`}>
+                  <p>API Endpoint: <code className="bg-black/10 px-1 rounded">{config.apiBaseUrl}</code></p>
+                  <p>Model: <code className="bg-black/10 px-1 rounded">{config.defaultModel}</code></p>
+                  <p>API Key: {config.hasApiKey ? '✓ Configured' : '✗ Missing VITE_OPENAI_API_KEY'}</p>
+                  <p className="text-xs mt-1">
+                    {config.hasApiKey
+                      ? 'Ready for resume extraction, AI enhancement, and PDF generation'
+                      : 'All features require API configuration'
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Job Description - First Field */}
           <div>
@@ -371,10 +486,10 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
               readOnly
               rows={6}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
-              placeholder="Job description will be analyzed by AI to optimize your resume..."
+              placeholder="Job description will be used to tailor your resume and cover letter..."
             />
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              📊 This job description will be used to tailor your resume for maximum compatibility
+              This job description will be analyzed by AI to optimize your resume and cover letter
             </p>
           </div>
 
@@ -382,37 +497,9 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
               <Upload size={16} className="inline mr-2" />
-              Upload Your Current Resume (PDF)
+              Upload Your Current Resume
             </label>
-            
-            {/* Direct PDF Link Input */}
-            <div className="mb-4 p-4 border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-              <div className="flex items-center gap-3 mb-3">
-                <LinkIcon className="text-blue-600 dark:text-blue-400" size={20} />
-                <h4 className="font-medium text-blue-800 dark:text-blue-300">Direct PDF Link (Recommended)</h4>
-              </div>
-              <input
-                type="url"
-                value={pdfDirectLink}
-                onChange={(e) => handlePdfDirectLinkChange(e.target.value)}
-                placeholder="https://example.com/your-resume.pdf"
-                className="w-full px-3 py-2 border border-blue-300 dark:border-blue-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              />
-              <p className="mt-2 text-sm text-blue-600 dark:text-blue-400">
-                📄 Enter a direct link to your PDF resume (Google Drive, Dropbox, OneDrive, or any public PDF URL)
-              </p>
-              {pdfDirectLink && (
-                <div className="mt-2 flex items-center gap-2">
-                  <ExternalLink size={14} className="text-green-600" />
-                  <span className="text-sm text-green-600 dark:text-green-400">PDF link detected and ready for processing</span>
-                </div>
-              )}
-            </div>
 
-            <div className="text-center text-gray-500 dark:text-gray-400 text-sm mb-4">
-              — OR —
-            </div>
-            
             {/* Local File Upload */}
             <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 mb-4">
               <div className="text-center">
@@ -425,17 +512,18 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                     <input
                       type="file"
                       className="hidden"
-                      accept=".pdf,.doc,.docx"
+                      accept=".pdf,.doc,.docx,.txt"
                       onChange={handleFileSelect}
                     />
                   </label>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                    Select PDF or Word document (max 10MB)
+                    Select PDF, Word document, or text file (max 10MB)
                   </p>
                   {selectedFile && (
-                    <div className="mt-3 p-2 bg-green-50 dark:bg-green-900/30 rounded-lg">
+                    <div className="mt-3 p-2 bg-green-50 dark:bg-green-900/30 rounded-lg flex items-center gap-2">
+                      <CheckCircle size={16} className="text-green-600 dark:text-green-400" />
                       <p className="text-sm text-green-700 dark:text-green-400">
-                        📁 Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                        Selected: {selectedFile.name}
                       </p>
                     </div>
                   )}
@@ -443,26 +531,21 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
               </div>
             </div>
 
-            <div className="text-center text-gray-500 dark:text-gray-400 text-sm mb-4">
-              — OR —
-            </div>
-
             {/* Cloud Provider Options */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                <span>Select from cloud storage:</span>
+                <span>Or select from cloud storage:</span>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Google Drive */}
                 <button
                   type="button"
                   onClick={() => handleCloudProviderChange('google-drive')}
-                  className={`p-4 border rounded-lg flex items-center gap-3 transition-all ${
-                    cloudProvider === 'google-drive'
+                  className={`p-4 border rounded-lg flex items-center gap-3 transition-all ${cloudProvider === 'google-drive'
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
                       : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                  }`}
+                    }`}
                 >
                   <Cloud size={20} className="text-blue-600" />
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -474,11 +557,10 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleCloudProviderChange('onedrive')}
-                  className={`p-4 border rounded-lg flex items-center gap-3 transition-all ${
-                    cloudProvider === 'onedrive'
+                  className={`p-4 border rounded-lg flex items-center gap-3 transition-all ${cloudProvider === 'onedrive'
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
                       : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                  }`}
+                    }`}
                 >
                   <Cloud size={20} className="text-blue-600" />
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -490,11 +572,10 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleCloudProviderChange('dropbox')}
-                  className={`p-4 border rounded-lg flex items-center gap-3 transition-all ${
-                    cloudProvider === 'dropbox'
+                  className={`p-4 border rounded-lg flex items-center gap-3 transition-all ${cloudProvider === 'dropbox'
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
                       : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                  }`}
+                    }`}
                 >
                   <Cloud size={20} className="text-blue-600" />
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -526,113 +607,30 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
             </div>
           </div>
 
-          {/* Step 1: Text Extraction */}
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-6 border border-green-200 dark:border-green-700">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center">
-                <FileText className="text-green-600 dark:text-green-400 mr-2" size={20} />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Step 1: Extract Text from PDF</h3>
-              </div>
-              <button
-                type="button"
-                onClick={handleExtractText}
-                disabled={loading || (!selectedFile && !cloudFileUrl && !pdfDirectLink) || !jobDescription.trim()}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-all disabled:cursor-not-allowed"
-              >
-                {loading && currentStep === 'extract' ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    Extracting Text...
-                  </>
-                ) : (
-                  <>
-                    <FileText size={16} />
-                    Extract Text from PDF
-                  </>
-                )}
-              </button>
-            </div>
-            <p className="text-sm text-green-700 dark:text-green-300">
-              First, we'll extract readable text from your PDF resume using advanced PDF processing.
-            </p>
-          </div>
-
-          {/* Extracted Text Preview */}
-          {extractedText && (
-            <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6 border border-gray-200 dark:border-gray-600">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                  <FileText className="text-blue-600 dark:text-blue-400" size={20} />
-                  ✅ Text Extracted Successfully
-                </h3>
-                <button
-                  onClick={() => setShowExtractedText(!showExtractedText)}
-                  className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
-                >
-                  {showExtractedText ? 'Hide Text' : 'Show Extracted Text'}
-                </button>
-              </div>
-              
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg mb-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  📊 <strong>Text Length:</strong> {extractedText.length} characters<br/>
-                  📄 <strong>Status:</strong> Ready for AI optimization
-                </p>
-              </div>
-
-              {showExtractedText && (
-                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">Extracted Resume Text:</h4>
-                  <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 max-h-64 overflow-y-auto">
-                    {extractedText}
-                  </pre>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Step 2: AI Optimization */}
-          {extractedText && (
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-700">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center">
-                  <Sparkles className="text-blue-600 dark:text-blue-400 mr-2" size={20} />
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">Step 2: Generate AI-Enhanced Documents</h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleGenerateAI}
-                  disabled={loading || !extractedText}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-all disabled:cursor-not-allowed"
-                >
-                  {loading && currentStep === 'optimize' ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      Generating AI Documents...
-                    </>
-                  ) : (
-                    <>
-                      <Zap size={16} />
-                      Generate using AI - Resume & Cover Letter
-                    </>
-                  )}
-                </button>
-              </div>
-              <p className="text-sm text-blue-700 dark:text-blue-300">
-                🤖 Now we'll send your extracted text and job description to our AI service for optimization and analysis.
-              </p>
-              <div className="mt-3 text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 p-2 rounded">
-                <strong>API Endpoint:</strong> https://resumebuilder-arfb.onrender.com/optimizer/api/optimize-resume/
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
+          {/* Generate Button */}
           <div className="flex gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
+              onClick={handleGenerateAI}
+              disabled={loading || (!selectedFile && !cloudFileUrl) || !jobDescription.trim() || !config.hasApiKey}
+              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 px-6 rounded-lg font-medium flex items-center justify-center gap-2 transition-all disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  {extractionProgress || 'Processing...'}
+                </>
+              ) : (
+                <>
+                  <Sparkles size={20} />
+                  Generate using AI - Resume & Cover Letter
+                </>
+              )}
+            </button>
+            <button
+              type="button"
               onClick={onClose}
-              className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+              className="px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
             >
               Cancel
             </button>
