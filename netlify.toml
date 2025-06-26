@@ -1,9 +1,10 @@
 [build]
   publish = "dist"
-  command = "npm run build"
+  command = "npm ci && npm run build"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"
 
 # Redirect all requests to index.html for SPA routing
 [[redirects]]
