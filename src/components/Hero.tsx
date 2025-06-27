@@ -50,11 +50,12 @@ const Hero: React.FC = () => {
 
       {/* Content Layer */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="flex items-center justify-center min-h-screen py-20">
-          {/* Centered Content */}
-          <div className="max-w-4xl text-center">            <span className="inline-block px-6 py-2 bg-blue-600/40 dark:bg-blue-500/40 rounded-full text-blue-200 dark:text-blue-100 font-medium mb-3 backdrop-blur-md animate-fadeIn border border-blue-400/30 shadow-lg">
+        <div className="flex flex-col-reverse lg:flex-row items-center justify-between min-h-screen py-20 gap-4 sm:gap-6 lg:gap-12">
+          {/* Left: Text */}
+          <div className="text-center lg:text-left flex-1 max-w-2xl mx-auto lg:mx-0">
+            <span className="inline-block px-6 py-2 bg-blue-600/40 dark:bg-blue-500/40 rounded-full text-blue-200 dark:text-blue-100 font-medium mb-3 backdrop-blur-md animate-fadeIn border border-blue-400/30 shadow-lg">
               AI-Powered Career Success
-            </span>            <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold text-white mb-3 leading-tight drop-shadow-2xl">
+            </span>            <h1 className="text-3xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-bold text-white mb-3 leading-tight drop-shadow-2xl">
               <Typewriter 
                 text="Land Your Dream Job"
                 speed={60}
@@ -68,9 +69,9 @@ const Hero: React.FC = () => {
                   delay={1800}
                 />
               </span>
-            </h1><p className="text-lg lg:text-xl text-gray-100 dark:text-gray-200 mb-6 leading-relaxed max-w-3xl mx-auto drop-shadow-lg font-medium opacity-0 animate-fadeIn" style={{ animationDelay: '3s', animationFillMode: 'forwards' }}>
+            </h1><p className="text-lg lg:text-xl text-gray-100 dark:text-gray-200 mb-6 leading-relaxed max-w-xl lg:max-w-none mx-auto lg:mx-0 drop-shadow-lg font-medium opacity-0 animate-fadeIn" style={{ animationDelay: '3s', animationFillMode: 'forwards' }}>
               Transform your job search with our intelligent platform. Get personalized resume optimization, practice with AI-powered mock interviews, and discover opportunities tailored to your skills and career goals.
-            </p>            <div className="flex flex-col sm:flex-row gap-4 justify-center opacity-0 animate-fadeIn" style={{ animationDelay: '3.5s', animationFillMode: 'forwards' }}>
+            </p>            <div className="flex flex-col sm:flex-row gap-4 lg:justify-start justify-center items-center lg:items-start opacity-0 animate-fadeIn" style={{ animationDelay: '3.5s', animationFillMode: 'forwards' }}>
               <a 
                 href="/login" 
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-10 py-5 rounded-xl font-semibold text-center flex items-center justify-center gap-2 group transition-all hover:-translate-y-2 hover:shadow-2xl shadow-blue-500/40 backdrop-blur-sm border border-blue-400/20 text-lg"
@@ -86,11 +87,15 @@ const Hero: React.FC = () => {
               </a>
             </div>
           </div>
+          {/* Right: Main Image */}
+          <div className="flex-1 flex justify-center items-center animate-fadeIn" style={{ animationDelay: '1.5s', animationFillMode: 'forwards' }}>
+            <img
+              src="/Man_and_AI_2_Glow.png"
+              alt="ManAndAI"
+              className="w-48 sm:w-64 md:w-[20rem] lg:w-[24rem] xl:w-[28rem] max-w-full h-auto animate-float-slow transition-all duration-300"
+            />
+          </div>
         </div>
-      </div>      {/* Enhanced Scrolldown Indicator */}
-      <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 flex flex-col items-center animate-bounce z-10">
-        <span className="block w-2 h-12 bg-gradient-to-b from-blue-400 dark:from-blue-300 to-transparent rounded-full shadow-lg"></span>
-        <span className="text-gray-200 dark:text-gray-300 text-sm mt-3 font-medium drop-shadow-lg">Scroll Down</span>
       </div>
     </div>
   );
