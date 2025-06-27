@@ -5,10 +5,9 @@ interface TeamMemberProps {
   image: string;
   name: string;
   role: string;
-  bio: string;
 }
 
-const TeamMember: React.FC<TeamMemberProps> = ({ image, name, role, bio }) => {
+const TeamMember: React.FC<TeamMemberProps> = ({ image, name, role }) => {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all group p-6">
       <div className="flex flex-col items-center text-center">
@@ -21,7 +20,6 @@ const TeamMember: React.FC<TeamMemberProps> = ({ image, name, role, bio }) => {
         </div>
         <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">{name}</h3>
         <p className="text-blue-600 dark:text-blue-400 font-medium mb-3">{role}</p>
-        <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-4">{bio}</p>
         <div className="flex gap-3">
           <a 
             href="#" 
@@ -52,79 +50,68 @@ const TeamMember: React.FC<TeamMemberProps> = ({ image, name, role, bio }) => {
 
 const Team: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
   
   const teamMembers = [
     {
       image: "https://drive.google.com/thumbnail?id=1vu-VaTML_UREGBrcNaLNVC6MW3PbkNwV",
       name: "Alex Aggarwal",
       role: "CEO & Co-Founder",
-      bio: "Visionary leader driving AI innovation and strategic partnerships to transform businesses across multiple industries."
     },
     {
       image: "https://drive.google.com/thumbnail?id=18EP-eQovSW7pduE7mSaERO213hobW63U",
       name: "Rahul Chandai",
       role: "AI Strategist & Co-Founder",
-      bio: "Specialized in deep learning and computer vision, developing cutting-edge AI models for real-world applications."
     },
     {
       image: "https://drive.google.com/thumbnail?id=1FwU4tdaQKljzIjkeFKZnlMouqiTcinJx",
       name: "Mona Aggarwal",
       role: "AI Product Manager & Co-Founder",
-      bio: "UX/UI expert crafting intuitive user experiences that make job searching seamless and engaging for our users."
     },
     {
       image: "https://drive.google.com/thumbnail?id=1vDtI7L9KvUsEHgcdFyz8miFQrPB3LNPk",
       name: "Vandana Pawar",
-      role: "AI Project/ Process Manager and Cyber Security Consultant",
-      bio: "Machine learning researcher developing next-generation algorithms for resume optimization and interview analysis."
+      role: "AI Process and Cyber Security Manager",
     },
     {
       image: "https://drive.google.com/thumbnail?id=1tq4tc35fh_gUxIS9O1--2k06uE_8mBTq",
       name: "Dawood Wasif",
       role: "AI SME & Development Manager",
-      bio: "Operations expert ensuring seamless delivery of AI solutions and maintaining the highest standards of client satisfaction."
     },
     {
       image: "https://drive.google.com/thumbnail?id=1oda0llnHkikvQAF7nKY7Xnk3sNTecV2t",
       name: "Tejas Bachhav",
       role: "DevOps & Infrastructure Manager",
-      bio: "Leading data scientist with expertise in machine learning algorithms and statistical modeling for enterprise solutions."
     },
     {
       image: "https://drive.google.com/thumbnail?id=1aW8o1PupeEgLEYDqJr-wmyktT4WCyhew",
       name: "Darcy Liu",
       role: "AI SME & Lead Developer",
-      bio: "Technology visionary with 15+ years in AI research, leading our platform architecture and innovation roadmap."
     },
     {
       image: "https://drive.google.com/thumbnail?id=1j3x3M5xMwVpQZ5KXrXHD2awdAGBRAYU2",
       name: "Yatharath Chopra",
       role: "AI Lead Developer",
-      bio: "Full-stack developer building scalable systems that power millions of job applications and career transformations."
     },
     {
       image: "https://drive.google.com/thumbnail?id=1HOZ6jypOi_9ORPqM0LHZNOePPRgN7IJL",
       name: "Vernessa",
       role: "Digital Marketing Manager",
-      bio: "Customer advocate ensuring every user achieves their career goals through personalized support and guidance."
     },
     {
       image: "https://drive.google.com/thumbnail?id=1Nh11K1mpTnYTU7yVLemomEcomx-5Mufd",
       name: "Medhat Mikhail",
       role: "UX/UI Lead Designer",
-      bio: "Growth strategist connecting job seekers with our platform through data-driven marketing and community building."
     },
     {
       image: "https://drive.google.com/thumbnail?id=1ScTXmo95xMRJn-8FJsiNWalxAoFNSviW",
       name: "Harkeerat Mauder",
       role: "AI Full Stack Developer",
-      bio: "Infrastructure specialist ensuring 99.9% uptime and lightning-fast performance for our global user base."
     },
     {
-      image: "https://images.pexels.com/photos/3184306/pexels-photo-3184306.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+      image: "https://drive.google.com/thumbnail?id=1Oh_uloq3B9DiUWLkxQ62_sxcymIRx-NL",
       name: "Nidhi Bajoria",
-      role: "AI QA Tester",
-      bio: "Partnership expert building strategic alliances with top companies to create exclusive job opportunities for our users."
+      role: "Co-op Student",
     }
   ];
 
@@ -151,16 +138,18 @@ const Team: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   // Auto-scroll functionality - Continuous rotation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentIndex((prevIndex) => {
-        const maxIndex = teamMembers.length - cardsToShow;
-        return prevIndex >= maxIndex ? 0 : prevIndex + 1;
-      });
-    }, 3000); // Change slide every 3 seconds
+ useEffect(() => {
+  if (isHovered) return;
 
-    return () => clearInterval(interval);
-  }, [teamMembers.length, cardsToShow]);
+  const interval = setInterval(() => {
+    setCurrentIndex((prevIndex) => {
+      const maxIndex = teamMembers.length - cardsToShow;
+      return prevIndex >= maxIndex ? 0 : prevIndex + 1;
+    });
+  }, 2000);
+
+  return () => clearInterval(interval);
+}, [isHovered, teamMembers.length, cardsToShow]);
 
   const nextSlide = () => {
     setCurrentIndex((prevIndex) => {
@@ -211,24 +200,29 @@ const Team: React.FC = () => {
 
           {/* Carousel Track */}
           <div className="overflow-hidden mx-16">
-            <div 
-              className="flex transition-transform duration-500 ease-in-out"
-              style={{ transform: `translateX(-${currentIndex * (100 / cardsToShow)}%)` }}
+            <div
+              className="overflow-hidden mx-16"
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
             >
-              {teamMembers.map((member, index) => (
-                <div
-                  key={index}
-                  className={`flex-shrink-0 px-3`}
-                  style={{ width: `${100 / cardsToShow}%` }}
-                >
-                  <TeamMember 
-                    image={member.image}
-                    name={member.name}
-                    role={member.role}
-                    bio={member.bio}
-                  />
-                </div>
-              ))}
+              <div
+                className="flex transition-transform duration-500 ease-in-out"
+                style={{ transform: `translateX(-${currentIndex * (100 / cardsToShow)}%)` }}
+              >
+                {teamMembers.map((member, index) => (
+                  <div
+                    key={index}
+                    className="flex-shrink-0 px-3"
+                    style={{ width: `${100 / cardsToShow}%` }}
+                  >
+                    <TeamMember 
+                      image={member.image}
+                      name={member.name}
+                      role={member.role}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
