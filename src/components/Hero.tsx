@@ -91,7 +91,7 @@ const Hero: React.FC = () => {
           <div className="flex-1 flex justify-center items-center animate-fadeIn" style={{ animationDelay: '1.5s', animationFillMode: 'forwards' }}>
             <img
               src="/Man_and_AI_2_Glow.png"
-              alt="ManAndAI"
+              alt="A man interacting with an AI-powered interface, symbolizing career success through technology"
               className="w-48 sm:w-64 md:w-[20rem] lg:w-[24rem] xl:w-[28rem] max-w-full h-auto animate-float-slow transition-all duration-300"
             />
           </div>
