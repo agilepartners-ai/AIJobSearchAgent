@@ -1,15 +1,22 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Video, User, LogOut, LayoutDashboard, Loader, ExternalLink, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import SupabaseAuthService from '../../services/supabaseAuthService';
+import { createConversation as createInterviewConversation } from '../../services/interviewService';
 
 const AIInterviewPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, userProfile, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [conversationData, setConversationData] = useState<any>(null);
+
+  // Extract job context from navigation state
+  const jobTitle = location.state?.jobTitle || '';
+  const companyName = location.state?.companyName || '';
+  const jobDescription = location.state?.jobDescription || '';
 
   // Redirect to login if not authenticated
   React.useEffect(() => {
@@ -29,41 +36,16 @@ const AIInterviewPage: React.FC = () => {
   const createConversation = async () => {
     setLoading(true);
     setError('');
-    
     try {
-      const apiKey = import.meta.env.VITE_TAVUS_API_KEY;
-      
-      if (!apiKey) {
-        throw new Error('Tavus API key not found. Please check your environment configuration.');
-      }
-
-      const response = await fetch('https://tavusapi.com/v2/conversations', {
-        method: 'POST',
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey
-        },
-        body: JSON.stringify({
-          "replica_id": "r9d30b0e55ac",
-          "persona_id": "pf19822be876"
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('Conversation created:', data);
+      // Compose context for the interview
+      const context = `Job Title: ${jobTitle}\nCompany: ${companyName}\nJob Description: ${jobDescription}\n\nThis is a mock interview for the position above. Please tailor your questions to this specific role and company.`;
+      const data = await createInterviewConversation(context);
       setConversationData(data);
-
-      // If there's a conversation URL, open it in a new tab
       if (data.conversation_url) {
         window.open(data.conversation_url, '_blank');
       } else if (data.url) {
         window.open(data.url, '_blank');
       } else {
-        console.log('Conversation data:', data);
         setError('Conversation created but no URL found. Check console for details.');
       }
     } catch (error) {
