@@ -5,6 +5,7 @@ import StatsCards from './StatsCards';
 import ApplicationsTable from './ApplicationsTable';
 import JobDescriptionModal from './JobDescriptionModal';
 import ApplicationModal from './ApplicationModal';
+import AIEnhancementModal from './AIEnhancementModal';
 import ProfileModal from './ProfileModal';
 import JobPreferencesModal from './JobPreferencesModal';
 import JobSearchModal from './JobSearchModal';
@@ -14,6 +15,7 @@ import SupabaseJobApplicationService from '../../services/supabaseJobApplication
 import { JobSearchService } from '../../services/jobSearchService';
 import { useAuth } from '../../hooks/useAuth';
 import { useToastContext } from '../ui/ToastProvider';
+import '../../styles/dashboard-responsive.css';
 
 
 const Dashboard: React.FC = () => {
@@ -23,6 +25,8 @@ const Dashboard: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showJobPreferencesModal, setShowJobPreferencesModal] = useState(false);  const [showJobSearchModal, setShowJobSearchModal] = useState(false);
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [selectedApplicationForAI, setSelectedApplicationForAI] = useState<JobApplication | null>(null);
   const [searchForm, setSearchForm] = useState({
     query: '',
     location: '',
@@ -353,6 +357,39 @@ const Dashboard: React.FC = () => {
     });
   };
 
+  const handleLoadAIEnhanced = (application: JobApplication) => {
+    if (!application.job_description?.trim()) {
+      showError('Please add a job description first to use AI enhancement');
+      return;
+    }
+    setSelectedApplicationForAI(application);
+    setShowAIModal(true);
+  };
+
+  const handleAISave = async (resumeUrl: string, coverLetterUrl: string) => {
+    if (!selectedApplicationForAI || !user) return;
+
+    try {
+      const updatedNotes = selectedApplicationForAI.notes 
+        ? `${selectedApplicationForAI.notes}\n\nAI-enhanced documents generated on ${new Date().toLocaleDateString()} based on job posting analysis.`
+        : `AI-enhanced documents generated on ${new Date().toLocaleDateString()} based on job posting analysis.`;
+
+      await SupabaseJobApplicationService.updateApplication(selectedApplicationForAI.id, {
+        notes: updatedNotes
+      });
+
+      showSuccess('AI-enhanced resume and cover letter saved successfully!');
+      setShowAIModal(false);
+      setSelectedApplicationForAI(null);
+      
+      // Reload applications to reflect the changes
+      await loadApplications();
+    } catch (err: any) {
+      console.error('Error saving AI-enhanced documents:', err);
+      showError('Failed to save AI-enhanced documents. Please try again.');
+    }
+  };
+
   const handleUpdateApplicationStatus = async (applicationId: string, newStatus: string) => {
     if (!user) return;
 
@@ -384,34 +421,49 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">      <DashboardHeader
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+      <DashboardHeader
         userProfile={userProfile}
         onAddApplication={handleAddApplication}
         onFindMoreJobs={handleJobSearch}
         onJobPreferences={handleJobPreferences}
         onUpdateProfile={handleUpdateProfile}
-      />      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      />
+      
+      <main className="container max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-lg mb-6">
-            {error}
+          <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 sm:p-4 rounded-lg mb-4 sm:mb-6 border border-red-200 dark:border-red-800">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium">{error}</p>
+              </div>
+            </div>
           </div>
         )}
 
-        <StatsCards stats={stats} />
-        
-        <div className="space-y-8">
-          <ApplicationsTable
-            applications={applications}
-            searchTerm={searchTerm}
-            statusFilter={statusFilter}
-            onSearchTermChange={setSearchTerm}
-            onStatusFilterChange={setStatusFilter}
-            onEditApplication={handleEditApplication}
-            onViewJobDescription={handleViewJobDescription}
-            onDeleteApplication={handleDeleteApplication}
-            onUpdateApplicationStatus={handleUpdateApplicationStatus}
-            onStartInterview={handleStartInterview}
-          />
+        <div className="space-y-6 sm:space-y-8">
+          <StatsCards stats={stats} />
+          
+          <div className="w-full">
+            <ApplicationsTable
+              applications={applications}
+              searchTerm={searchTerm}
+              statusFilter={statusFilter}
+              onSearchTermChange={setSearchTerm}
+              onStatusFilterChange={setStatusFilter}
+              onEditApplication={handleEditApplication}
+              onViewJobDescription={handleViewJobDescription}
+              onDeleteApplication={handleDeleteApplication}
+              onUpdateApplicationStatus={handleUpdateApplicationStatus}
+              onStartInterview={handleStartInterview}
+              onLoadAIEnhanced={handleLoadAIEnhanced}
+            />
+          </div>
         </div>
       </main>      {/* Modals */}      <JobSearchModal
         isOpen={showJobSearchModal}
@@ -450,6 +502,22 @@ const Dashboard: React.FC = () => {
           application={editingApplication}
           onSave={handleSaveApplication}
           onClose={() => setShowModal(false)}
+        />
+      )}
+
+      {showAIModal && selectedApplicationForAI && (
+        <AIEnhancementModal
+          jobDescription={selectedApplicationForAI.job_description || ''}
+          applicationData={{
+            position: selectedApplicationForAI.position,
+            company_name: selectedApplicationForAI.company_name,
+            location: selectedApplicationForAI.location || undefined
+          }}
+          onSave={handleAISave}
+          onClose={() => {
+            setShowAIModal(false);
+            setSelectedApplicationForAI(null);
+          }}
         />
       )}
 
