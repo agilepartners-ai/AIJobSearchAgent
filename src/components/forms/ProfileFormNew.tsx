@@ -117,6 +117,60 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [skillInput, setSkillInput] = useState('');
   const [currentSection, setCurrentSection] = useState(0);
+  const [formInitialized, setFormInitialized] = useState(false);
+
+  // Initialize form data with initialData when it changes
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0 && !formInitialized) {
+      console.log('📋 Initializing form with data:', initialData);
+      
+      // Create a new form data object with initialData values or defaults
+      const newFormData: ProfileData = {
+        // Basic Information
+        fullName: initialData.fullName || '',
+        email: initialData.email || '',
+        phone: initialData.phone || '',
+        location: initialData.location || '',
+        
+        // Job Information
+        currentJobTitle: initialData.currentJobTitle || '',
+        jobProfile: initialData.jobProfile || '',
+        experience: initialData.experience || 'Fresher',
+        workExperience: initialData.workExperience && initialData.workExperience.length > 0 
+          ? initialData.workExperience 
+          : [{ jobTitle: '', company: '', duration: '' }],
+        
+        // Education
+        education: initialData.education && initialData.education.length > 0 
+          ? initialData.education 
+          : [{ degree: '', institution: '', graduationYear: '' }],
+        
+        // Skills and Preferences
+        skills: Array.isArray(initialData.skills) ? [...initialData.skills] : [],
+        expectedSalary: initialData.expectedSalary || '',
+        currentCTC: initialData.currentCTC || '',
+        
+        // Job Search Preferences
+        employmentType: initialData.employmentType || '',
+        remoteJobsOnly: initialData.remoteJobsOnly || false,
+        datePosted: initialData.datePosted || '',
+        
+        // Work Authorization
+        willingnessToRelocate: initialData.willingnessToRelocate || false,
+        workAuthorization: initialData.workAuthorization || '',
+        noticePeriod: initialData.noticePeriod || '',
+        availability: initialData.availability || '',
+        
+        // References and Social Links
+        references: initialData.references || '',
+        socialLinks: initialData.socialLinks || {}
+      };
+      
+      setFormData(newFormData);
+      setFormInitialized(true);
+      console.log('✅ Form initialized with data');
+    }
+  }, [initialData, formInitialized]);
 
   // Load job search criteria from localStorage if available
   useEffect(() => {

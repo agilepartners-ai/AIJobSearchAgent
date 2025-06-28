@@ -12,7 +12,7 @@ interface ProfileModalProps {
 const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   const { user, userProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(true); // Start in editing mode immediately
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start with loading state
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [lastSaveData, setLastSaveData] = useState<ProfileData | null>(null);
@@ -21,28 +21,34 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   const [localUserProfile, setLocalUserProfile] = useState<any>(null);
 
   // Load profile data when modal opens or user changes
-  React.useEffect(() => {
+  useEffect(() => {
     const loadProfile = async () => {
-      if (user && !userProfile && !localUserProfile) {
-        try {
-          console.log('🔄 Loading profile for user:', user.uid);
-          const profile = await SupabaseProfileService.getOrCreateProfile(
-            user.uid, 
-            user.email || '', 
-            user.displayName || 'New User'
-          );
-          setLocalUserProfile(profile);
-          console.log('✅ Profile loaded:', profile);
-        } catch (error) {
-          console.error('❌ Error loading profile:', error);
-        }
-      } else if (userProfile) {
-        setLocalUserProfile(userProfile);
+      if (!user) return;
+      
+      try {
+        console.log('🔄 Loading profile for user:', user.uid);
+        setDebugSteps(prev => [...prev, '🔄 Loading profile data from database...']);
+        
+        const profile = await SupabaseProfileService.getOrCreateProfile(
+          user.uid, 
+          user.email || '', 
+          user.displayName || 'New User'
+        );
+        
+        console.log('✅ Profile loaded:', profile);
+        setLocalUserProfile(profile);
+        setDebugSteps(prev => [...prev, '✅ Profile data loaded successfully']);
+      } catch (error) {
+        console.error('❌ Error loading profile:', error);
+        setDebugSteps(prev => [...prev, '❌ Error loading profile data']);
+        setError('Failed to load profile data. Please try again.');
+      } finally {
+        setIsLoading(false);
       }
     };
 
     loadProfile();
-  }, [user, userProfile]);
+  }, [user]);
 
   // Use local profile data or auth profile data
   const currentProfile = localUserProfile || userProfile;
@@ -271,6 +277,8 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         setIsEditing(false);
         setSuccess(null);
         setDebugSteps([]);
+        // Also close the entire modal after successful save
+        onClose();
       }, 2000); // Reduced delay to 2 seconds
       
     } catch (error) {
@@ -386,6 +394,19 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       education: (jobPrefs as any)?.education || [{ degree: '', institution: '', graduationYear: '' }]
     };
   };
+
+  // Show loading state while fetching profile data
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 border-4 border-t-blue-600 border-blue-200 rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Loading Profile</h3>
+          <p className="text-gray-600 dark:text-gray-400">Retrieving your profile data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
