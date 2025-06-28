@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Upload, FileText, Sparkles, Cloud, HardDrive, AlertCircle, CheckCircle, Settings } from 'lucide-react';
+import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain, Settings } from 'lucide-react';
 import OptimizationResults from './OptimizationResults';
 import { ResumeExtractionService } from '../../services/resumeExtractionService';
 import { AIEnhancementService } from '../../services/aiEnhancementService';
@@ -67,7 +67,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     if (jobDescription && jobDescription !== persistedJobDescription) {
       dispatch({ type: 'aiEnhancementModal/openModal', payload: { jobDescription } });
     }
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobDescription]);
 
   // File select handler: reads file as base64 and stores meta/content in Redux
