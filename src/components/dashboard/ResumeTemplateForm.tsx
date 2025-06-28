@@ -1,4 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import {
+  setFormData,
+  setExpandedSections,
+  setFormatChoice,
+  setSelectedTemplate,
+  resetResumeTemplateForm
+} from '../../store/resumeTemplateFormSlice';
 import { X, Plus, Minus, User, GraduationCap, Briefcase, Wrench, Rocket, Award, Trophy, Globe, Palette, FileText, Edit, Download } from 'lucide-react';
 
 interface ParsedResume {
@@ -63,12 +71,11 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
   onClose, 
   onGenerate 
 }) => {
-  const [formData, setFormData] = useState<any>({});
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(['personal', 'education', 'experience', 'skills', 'template'])
-  );
-  const [formatChoice, setFormatChoice] = useState('html');
-  const [selectedTemplate, setSelectedTemplate] = useState('modern');
+  const dispatch = useAppDispatch();
+  const formData = useAppSelector((state) => state.resumeTemplateForm.formData);
+  const expandedSections = useAppSelector((state) => state.resumeTemplateForm.expandedSections);
+  const formatChoice = useAppSelector((state) => state.resumeTemplateForm.formatChoice);
+  const selectedTemplate = useAppSelector((state) => state.resumeTemplateForm.selectedTemplate);
 
   // Mock templates data
   const templates = [
@@ -78,35 +85,41 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
     { id: 'minimal', name: 'Minimal Clean', preview: '/api/placeholder/200/250' }
   ];
 
+  // (Removed duplicate useEffect that caused syntax error)
+  // Only initialize form data on first mount, not every time parsedResume changes
   useEffect(() => {
-    // Initialize form data with parsed resume
-    setFormData({
-      personal: parsedResume.personal || {
-        name: '',
-        email: '',
-        phone: '',
-        location: '',
-        linkedin: '',
-        website: ''
-      },
-      education: parsedResume.education || [{}],
-      experience: parsedResume.experience || [{}],
-      skills: parsedResume.skills?.join(', ') || '',
-      projects: parsedResume.projects || [],
-      certifications: parsedResume.certifications || [],
-      awards: parsedResume.awards || [],
-      languages: parsedResume.languages || []
-    });
-  }, [parsedResume]);
+    if (!formData || Object.keys(formData).length === 0) {
+      dispatch(setFormData({
+        personal: parsedResume.personal || {
+          name: '',
+          email: '',
+          phone: '',
+          location: '',
+          linkedin: '',
+          website: ''
+        },
+        education: parsedResume.education || [{}],
+        experience: parsedResume.experience || [{}],
+        skills: parsedResume.skills?.join(', ') || '',
+        projects: parsedResume.projects || [],
+        certifications: parsedResume.certifications || [],
+        awards: parsedResume.awards || [],
+        languages: parsedResume.languages || []
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleSection = (sectionId: string) => {
-    const newExpanded = new Set(expandedSections);
-    if (newExpanded.has(sectionId)) {
-      newExpanded.delete(sectionId);
+    let newExpanded: string[] = Array.isArray(expandedSections)
+      ? [...expandedSections]
+      : Array.from(expandedSections as any);
+    if (newExpanded.includes(sectionId)) {
+      newExpanded = newExpanded.filter((id) => id !== sectionId);
     } else {
-      newExpanded.add(sectionId);
+      newExpanded.push(sectionId);
     }
-    setExpandedSections(newExpanded);
+    dispatch(setExpandedSections(newExpanded));
   };
 
   const addEntry = (section: string) => {
@@ -114,7 +127,6 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
     if (!newFormData[section]) {
       newFormData[section] = [];
     }
-    
     const emptyEntry = section === 'education' ? {
       school: '', degree: '', field: '', gpa: '', start_date: '', end_date: '', location: ''
     } : section === 'experience' ? {
@@ -128,18 +140,22 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
     } : section === 'languages' ? {
       name: '', proficiency: ''
     } : {};
-
     newFormData[section].push(emptyEntry);
-    setFormData(newFormData);
-    
+    dispatch(setFormData(newFormData));
     // Auto-expand section
-    setExpandedSections(prev => new Set([...prev, section]));
+    let newExpanded: string[] = Array.isArray(expandedSections)
+      ? [...expandedSections]
+      : Array.from(expandedSections as any);
+    if (!newExpanded.includes(section)) {
+      newExpanded.push(section);
+      dispatch(setExpandedSections(newExpanded));
+    }
   };
 
   const removeEntry = (section: string, index: number) => {
     const newFormData = { ...formData };
     newFormData[section].splice(index, 1);
-    setFormData(newFormData);
+    dispatch(setFormData(newFormData));
   };
 
   const updateField = (section: string, field: string, value: string, index?: number) => {
@@ -153,7 +169,7 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
     } else {
       newFormData[field] = value;
     }
-    setFormData(newFormData);
+    dispatch(setFormData(newFormData));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -163,6 +179,7 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
       format_choice: formatChoice,
       template: selectedTemplate
     });
+    dispatch(resetResumeTemplateForm());
   };
 
   const SectionHeader = ({ 
@@ -675,7 +692,7 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
                         name="format_choice"
                         value="html"
                         checked={formatChoice === 'html'}
-                        onChange={(e) => setFormatChoice(e.target.value)}
+                        onChange={(e) => dispatch(setFormatChoice(e.target.value))}
                         className="text-blue-600"
                       />
                       <div className="text-2xl">📋</div>
@@ -694,7 +711,7 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
                         name="format_choice"
                         value="markdown"
                         checked={formatChoice === 'markdown'}
-                        onChange={(e) => setFormatChoice(e.target.value)}
+                        onChange={(e) => dispatch(setFormatChoice(e.target.value))}
                         className="text-blue-600"
                       />
                       <div className="text-2xl">✏️</div>
@@ -731,7 +748,7 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
                               name="template"
                               value={template.id}
                               checked={selectedTemplate === template.id}
-                              onChange={(e) => setSelectedTemplate(e.target.value)}
+                              onChange={(e) => dispatch(setSelectedTemplate(e.target.value))}
                               className="mr-2"
                             />
                             <span className="font-medium text-gray-900 dark:text-white">{template.name}</span>

@@ -1,10 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { X, Upload, FileText, Sparkles, Cloud, HardDrive, AlertCircle, CheckCircle, Settings } from 'lucide-react';
 import OptimizationResults from './OptimizationResults';
 import { ResumeExtractionService } from '../../services/resumeExtractionService';
 import { AIEnhancementService } from '../../services/aiEnhancementService';
 import { UserProfileData } from '../../services/profileService';
 import { useAuth } from '../../hooks/useAuth';
+
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import {
+  setSelectedFile,
+  setCloudProvider,
+  setCloudFileUrl,
+  setError,
+  setShowResults,
+  setOptimizationResults,
+  resetState,
+} from '../../store/aiEnhancementModalSlice';
 
 interface AIEnhancementModalProps {
   jobDescription: string;
@@ -34,42 +45,68 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   onSave,
   onClose
 }) => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [cloudProvider, setCloudProvider] = useState<string>('');
-  const [cloudFileUrl, setCloudFileUrl] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showResults, setShowResults] = useState(false);
-  const [optimizationResults, setOptimizationResults] = useState<any>(null);
-  const [extractionProgress, setExtractionProgress] = useState<string>('');
-  const [documentId] = useState<string>(generateUUID()); // Generate once and keep it
-
+  const dispatch = useAppDispatch();
+  const {
+    selectedFileMeta,
+    selectedFileContent,
+    cloudProvider,
+    cloudFileUrl,
+    error,
+    showResults,
+    optimizationResults,
+    jobDescription: persistedJobDescription,
+  } = useAppSelector((state) => state.aiEnhancementModal);
+  const [loading, setLoading] = React.useState(false);
+  const [extractionProgress, setExtractionProgress] = React.useState<string>('');
+  const [documentId] = React.useState<string>(generateUUID());
   const { user } = useAuth();
-
-  // Get configuration for display
   const config = ResumeExtractionService.getConfiguration();
 
+  // Keep jobDescription in sync with Redux (for persistence)
+  useEffect(() => {
+    if (jobDescription && jobDescription !== persistedJobDescription) {
+      dispatch({ type: 'aiEnhancementModal/openModal', payload: { jobDescription } });
+    }
+    // eslint-disable-next-line
+  }, [jobDescription]);
+
+  // File select handler: reads file as base64 and stores meta/content in Redux
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Validate file
       const validation = ResumeExtractionService.validateResumeFile(file);
-
       if (!validation.isValid) {
-        setError(validation.error || 'Invalid file');
+        dispatch(setError(validation.error || 'Invalid file'));
         return;
       }
-
-      setSelectedFile(file);
-      setError('');
-      setCloudFileUrl(''); // Clear cloud URL if local file is selected
+      const reader = new FileReader();
+      reader.onload = () => {
+        // Always use base64 string after comma (DataURL format)
+        const base64 = reader.result as string;
+        dispatch(setSelectedFile({
+          meta: {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            lastModified: file.lastModified,
+          },
+          content: base64,
+        }));
+        dispatch(setError(''));
+        dispatch(setCloudFileUrl(''));
+      };
+      reader.onerror = () => {
+        dispatch(setError('Failed to read file. Please try again.'));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const handleCloudProviderChange = (provider: string) => {
-    setCloudProvider(provider);
-    setSelectedFile(null); // Clear local file if cloud provider is selected
-    setCloudFileUrl('');
+    dispatch(setCloudProvider(provider));
+    // Clear local file if cloud provider is selected
+    dispatch(setSelectedFile({ meta: { name: '', type: '', size: 0, lastModified: 0 }, content: '' }));
+    dispatch(setCloudFileUrl(''));
   };
 
   const downloadFileFromUrl = async (url: string): Promise<File> => {
@@ -88,8 +125,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   };
 
   const handleGenerateAI = async () => {
-    if (!selectedFile && !cloudFileUrl) {
-      setError('Please select a resume file or provide a cloud file URL');
+    if (!selectedFileMeta && !cloudFileUrl) {
+      dispatch(setError('Please select a resume file or provide a cloud file URL'));
       return;
     }
 
@@ -116,10 +153,19 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     setExtractionProgress('');
 
     try {
-      let fileToProcess = selectedFile;
-
+      let fileToProcess: File | null = null;
+      if (selectedFileMeta && selectedFileContent) {
+        // Convert base64 to File (with null check)
+        const arr = selectedFileContent.split(',');
+        const mimeMatch = arr[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+        const bstr = arr[1] ? atob(arr[1]) : '';
+        let n = bstr.length, u8arr = new Uint8Array(n);
+        while (n--) u8arr[n] = bstr.charCodeAt(n);
+        fileToProcess = new File([u8arr], selectedFileMeta.name, { type: mime });
+      }
       // If using cloud URL, download the file first
-      if (cloudFileUrl && !selectedFile) {
+      if (cloudFileUrl && !fileToProcess) {
         setExtractionProgress('Downloading file from cloud storage...');
         fileToProcess = await downloadFileFromUrl(cloudFileUrl);
       }
@@ -482,7 +528,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
               Job Description
             </label>
             <textarea
-              value={jobDescription}
+              value={jobDescription || persistedJobDescription || ''}
               readOnly
               rows={6}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
@@ -514,16 +560,17 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                       className="hidden"
                       accept=".pdf,.doc,.docx,.txt"
                       onChange={handleFileSelect}
+                      key={selectedFileMeta ? selectedFileMeta.name + selectedFileMeta.lastModified : 'empty'}
                     />
                   </label>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                     Select PDF, Word document, or text file (max 10MB)
                   </p>
-                  {selectedFile && (
+                  {selectedFileMeta && (
                     <div className="mt-3 p-2 bg-green-50 dark:bg-green-900/30 rounded-lg flex items-center gap-2">
                       <CheckCircle size={16} className="text-green-600 dark:text-green-400" />
                       <p className="text-sm text-green-700 dark:text-green-400">
-                        Selected: {selectedFile.name}
+                        Selected: {selectedFileMeta.name}
                       </p>
                     </div>
                   )}
@@ -595,7 +642,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                   <input
                     type="url"
                     value={cloudFileUrl}
-                    onChange={(e) => setCloudFileUrl(e.target.value)}
+                    onChange={(e) => dispatch(setCloudFileUrl(e.target.value))}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     placeholder={`Enter your ${cloudProvider} file URL...`}
                   />
@@ -612,7 +659,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
             <button
               type="button"
               onClick={handleGenerateAI}
-              disabled={loading || (!selectedFile && !cloudFileUrl) || !jobDescription.trim() || !config.hasApiKey}
+              disabled={loading || (!selectedFileMeta && !cloudFileUrl) || !(jobDescription || persistedJobDescription || '').trim() || !config.hasApiKey}
               className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 px-6 rounded-lg font-medium flex items-center justify-center gap-2 transition-all disabled:cursor-not-allowed"
             >
               {loading ? (

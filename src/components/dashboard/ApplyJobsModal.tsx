@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Bot, Send, Settings } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import SupabaseJobPreferencesService from '../../services/supabaseJobPreferencesService';
+import JobPreferencesService from '../../services/supabaseJobPreferencesService';
 import { JobPreferences } from '../../types/supabase';
 import { useToastContext } from '../ui/ToastProvider';
 
@@ -50,11 +50,15 @@ const ApplyJobsModal: React.FC<ApplyJobsModalProps> = ({
 
   const [isProcessing, setIsProcessing] = useState(false);
 
+
+  // (Removed resetting effect on modal open)
+
+  // Only load job preferences once per user session, not every time modal opens
   useEffect(() => {
-    if (isOpen && user) {
+    if (user && !jobPreferences) {
       loadJobPreferences();
     }
-  }, [isOpen, user]);
+  }, [user]);
 
   const loadJobPreferences = async () => {
     if (!user) return;
@@ -63,20 +67,21 @@ const ApplyJobsModal: React.FC<ApplyJobsModalProps> = ({
       const preferences = await JobPreferencesService.getUserJobPreferences(user.uid);
       if (preferences) {
         setJobPreferences(preferences);
-        
-        // Auto-populate form with preferences
-        const primaryJobTitle = preferences.jobTitles.find(title => title.trim() !== '') || '';
-        const primaryLocation = preferences.preferredLocations.find(loc => loc.trim() !== '') || '';
-        const primaryIndustry = preferences.preferredIndustries.find(ind => ind.trim() !== '') || '';
-        
+        // Use correct property names from your JobPreferences type
+        const jobTitles = preferences.preferred_job_titles || [];
+        const locations = preferences.preferred_locations || [];
+        const industries = preferences.preferred_industries || [];
+        const primaryJobTitle = jobTitles.find((title: string) => title.trim() !== '') || '';
+        const primaryLocation = locations.find((loc: string) => loc.trim() !== '') || '';
+        const primaryIndustry = industries.find((ind: string) => ind.trim() !== '') || '';
         setApplyForm(prev => ({
           ...prev,
           targetRole: primaryJobTitle,
           preferredLocation: primaryLocation,
           industries: primaryIndustry,
-          salaryExpectation: preferences.expectedSalaryFrom ? 
-            `$${preferences.expectedSalaryFrom}${preferences.expectedSalaryTo ? ` - $${preferences.expectedSalaryTo}` : ''}` : '',
-          remotePreference: !preferences.willingToRelocate
+          salaryExpectation: preferences.preferred_salary_min ?
+            `$${preferences.preferred_salary_min}${preferences.preferred_salary_max ? ` - $${preferences.preferred_salary_max}` : ''}` : '',
+          remotePreference: preferences.willing_to_relocate === false
         }));
       }
     } catch (err: any) {
@@ -86,22 +91,25 @@ const ApplyJobsModal: React.FC<ApplyJobsModalProps> = ({
 
   const applyPreferencesToForm = () => {
     if (!jobPreferences) return;
-
-    const primaryJobTitle = jobPreferences.jobTitles.find(title => title.trim() !== '') || '';
-    const primaryLocation = jobPreferences.preferredLocations.find(loc => loc.trim() !== '') || '';
-    const primaryIndustry = jobPreferences.preferredIndustries.find(ind => ind.trim() !== '') || '';
-    
+    const jobTitles = jobPreferences.preferred_job_titles || [];
+    const locations = jobPreferences.preferred_locations || [];
+    const industries = jobPreferences.preferred_industries || [];
+    const primaryJobTitle = jobTitles.find((title: string) => title.trim() !== '') || '';
+    const primaryLocation = locations.find((loc: string) => loc.trim() !== '') || '';
+    const primaryIndustry = industries.find((ind: string) => ind.trim() !== '') || '';
     setApplyForm(prev => ({
       ...prev,
       targetRole: primaryJobTitle,
       preferredLocation: primaryLocation,
       industries: primaryIndustry,
-      salaryExpectation: jobPreferences.expectedSalaryFrom ? 
-        `$${jobPreferences.expectedSalaryFrom}${jobPreferences.expectedSalaryTo ? ` - $${jobPreferences.expectedSalaryTo}` : ''}` : prev.salaryExpectation,
-      remotePreference: !jobPreferences.willingToRelocate
+      salaryExpectation: jobPreferences.preferred_salary_min ?
+        `$${jobPreferences.preferred_salary_min}${jobPreferences.preferred_salary_max ? ` - $${jobPreferences.preferred_salary_max}` : ''}` : prev.salaryExpectation,
+      remotePreference: jobPreferences.willing_to_relocate === false
     }));
   };
 
+
+  // Don't reset form on modal open; just hide modal visually
   if (!isOpen) return null;
 
   const updateForm = (field: keyof ApplyJobsForm, value: any) => {
@@ -194,30 +202,28 @@ const ApplyJobsModal: React.FC<ApplyJobsModalProps> = ({
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                {jobPreferences.jobTitles.filter(title => title.trim()).length > 0 && (
+                {(jobPreferences.preferred_job_titles || []).filter((title: string) => title.trim()).length > 0 && (
                   <div>
                     <span className="font-medium text-purple-700 dark:text-purple-300">Job Titles:</span>
                     <div className="text-purple-600 dark:text-purple-400">
-                      {jobPreferences.jobTitles.filter(title => title.trim()).slice(0, 2).join(', ')}
+                      {(jobPreferences.preferred_job_titles || []).filter((title: string) => title.trim()).slice(0, 2).join(', ')}
                     </div>
                   </div>
                 )}
-                
-                {jobPreferences.preferredLocations.filter(loc => loc.trim()).length > 0 && (
+                {(jobPreferences.preferred_locations || []).filter((loc: string) => loc.trim()).length > 0 && (
                   <div>
                     <span className="font-medium text-purple-700 dark:text-purple-300">Locations:</span>
                     <div className="text-purple-600 dark:text-purple-400">
-                      {jobPreferences.preferredLocations.filter(loc => loc.trim()).slice(0, 2).join(', ')}
+                      {(jobPreferences.preferred_locations || []).filter((loc: string) => loc.trim()).slice(0, 2).join(', ')}
                     </div>
                   </div>
                 )}
-                
-                {jobPreferences.expectedSalaryFrom && (
+                {typeof jobPreferences.preferred_salary_min === 'number' && (
                   <div>
                     <span className="font-medium text-purple-700 dark:text-purple-300">Salary:</span>
                     <div className="text-purple-600 dark:text-purple-400">
-                      ${jobPreferences.expectedSalaryFrom}
-                      {jobPreferences.expectedSalaryTo && ` - $${jobPreferences.expectedSalaryTo}`}
+                      ${jobPreferences.preferred_salary_min}
+                      {jobPreferences.preferred_salary_max && ` - $${jobPreferences.preferred_salary_max}`}
                     </div>
                   </div>
                 )}

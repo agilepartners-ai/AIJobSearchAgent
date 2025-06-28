@@ -24,7 +24,8 @@ const Dashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showJobPreferencesModal, setShowJobPreferencesModal] = useState(false);  const [showJobSearchModal, setShowJobSearchModal] = useState(false);
+  const [showJobPreferencesModal, setShowJobPreferencesModal] = useState(false);
+  const [showJobSearchModal, setShowJobSearchModal] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
   const [selectedApplicationForAI, setSelectedApplicationForAI] = useState<JobApplication | null>(null);
   const [searchForm, setSearchForm] = useState({
@@ -39,6 +40,35 @@ const Dashboard: React.FC = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [editingApplication, setEditingApplication] = useState<JobApplication | null>(null);
+
+  // Persist modal open state and editing application to localStorage
+  useEffect(() => {
+    // On mount, restore modal state if present
+    const modalStateRaw = localStorage.getItem('dashboard-application-modal');
+    if (modalStateRaw) {
+      try {
+        const modalState = JSON.parse(modalStateRaw);
+        if (modalState.showModal) {
+          setShowModal(true);
+          setEditingApplication(modalState.editingApplication || null);
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+  }, []);
+
+  // Whenever showModal or editingApplication changes, persist to localStorage
+  useEffect(() => {
+    if (showModal) {
+      localStorage.setItem(
+        'dashboard-application-modal',
+        JSON.stringify({ showModal: true, editingApplication })
+      );
+    } else {
+      localStorage.removeItem('dashboard-application-modal');
+    }
+  }, [showModal, editingApplication]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedJobDescription, setSelectedJobDescription] = useState<{title: string, company: string, description: string} | null>(null);
@@ -305,6 +335,7 @@ const Dashboard: React.FC = () => {
       }
       
       setShowModal(false);
+      // editingApplication will be reset by modal close logic
     } catch (err: any) {
       setError(err.message || 'Failed to save application');
       console.error('Error saving application:', err);
@@ -501,7 +532,10 @@ const Dashboard: React.FC = () => {
         <ApplicationModal
           application={editingApplication}
           onSave={handleSaveApplication}
-          onClose={() => setShowModal(false)}
+      onClose={() => {
+        setShowModal(false);
+        setEditingApplication(null);
+      }}
         />
       )}
 
