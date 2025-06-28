@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   User, MapPin, Briefcase, ChevronDown, X, Phone, Mail, 
   Globe, DollarSign, Clock, Shield, UserCheck, ExternalLink,
@@ -77,6 +77,15 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   isLoading = false, 
   initialData = {} 
 }) => {
+  // Create a ref to track if the component is mounted
+  const isMounted = useRef(true);
+  
+  // Track if form has been initialized with data
+  const [formInitialized, setFormInitialized] = useState(false);
+  
+  // Store form data for each section to prevent loss when navigating
+  const [sectionData, setSectionData] = useState<Record<number, Partial<ProfileData>>>({});
+  
   const [formData, setFormData] = useState<ProfileData>({
     // Basic Information
     fullName: initialData.fullName || '',
@@ -89,12 +98,12 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     jobProfile: initialData.jobProfile || '',
     experience: initialData.experience || 'Fresher',
     workExperience: initialData.workExperience && initialData.workExperience.length > 0 
-      ? [...initialData.workExperience] 
+      ? JSON.parse(JSON.stringify(initialData.workExperience)) 
       : [{ jobTitle: '', company: '', duration: '' }],
     
     // Education
     education: initialData.education && initialData.education.length > 0 
-      ? [...initialData.education] 
+      ? JSON.parse(JSON.stringify(initialData.education)) 
       : [{ degree: '', institution: '', graduationYear: '' }],
     
     // Skills and Preferences
@@ -121,8 +130,13 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [skillInput, setSkillInput] = useState('');
   const [currentSection, setCurrentSection] = useState(0);
-  const [formInitialized, setFormInitialized] = useState(false);
-  const [formState, setFormState] = useState<Record<number, any>>({});
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   // Initialize form data with initialData when it changes
   useEffect(() => {
@@ -142,12 +156,12 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
         jobProfile: initialData.jobProfile || '',
         experience: initialData.experience || 'Fresher',
         workExperience: initialData.workExperience && initialData.workExperience.length > 0 
-          ? initialData.workExperience 
+          ? JSON.parse(JSON.stringify(initialData.workExperience))
           : [{ jobTitle: '', company: '', duration: '' }],
         
         // Education
         education: initialData.education && initialData.education.length > 0 
-          ? initialData.education 
+          ? JSON.parse(JSON.stringify(initialData.education))
           : [{ degree: '', institution: '', graduationYear: '' }],
         
         // Skills and Preferences
@@ -172,20 +186,21 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       };
       
       setFormData(newFormData);
+      
+      // Initialize section data with the form data
+      setSectionData({
+        0: { ...newFormData },
+        1: { ...newFormData },
+        2: { ...newFormData },
+        3: { ...newFormData },
+        4: { ...newFormData },
+        5: { ...newFormData }
+      });
+      
       setFormInitialized(true);
       console.log('✅ Form initialized with data');
     }
   }, [initialData, formInitialized]);
-
-  // Save form state when changing sections
-  useEffect(() => {
-    if (formInitialized) {
-      setFormState(prev => ({
-        ...prev,
-        [currentSection]: { ...formData }
-      }));
-    }
-  }, [currentSection, formData, formInitialized]);
 
   // Load job search criteria from localStorage if available
   useEffect(() => {
@@ -238,11 +253,6 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       newErrors.location = 'Location is required';
       console.log('❌ location validation failed:', formData.location);
     }
-    // Make currentJobTitle optional by commenting out this validation
-    // if (!formData.currentJobTitle.trim()) {
-    //   newErrors.currentJobTitle = 'Current job title is required';
-    //   console.log('❌ currentJobTitle validation failed:', formData.currentJobTitle);
-    // }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -281,6 +291,16 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
 
   const handleInputChange = (field: keyof ProfileData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Update section data for the current section
+    setSectionData(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        [field]: value
+      }
+    }));
+    
     // Clear error when user starts typing
     if (errors[field]) {
       const newErrors = { ...errors };
@@ -290,74 +310,168 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   };
 
   const addWorkExperience = () => {
+    const newWorkExperience = [...formData.workExperience, { jobTitle: '', company: '', duration: '' }];
     setFormData(prev => ({
       ...prev,
-      workExperience: [...prev.workExperience, { jobTitle: '', company: '', duration: '' }]
+      workExperience: newWorkExperience
+    }));
+    
+    // Update section data
+    setSectionData(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        workExperience: newWorkExperience
+      }
     }));
   };
 
   const removeWorkExperience = (index: number) => {
+    const newWorkExperience = formData.workExperience.filter((_, i) => i !== index);
     setFormData(prev => ({
       ...prev,
-      workExperience: prev.workExperience.filter((_, i) => i !== index)
+      workExperience: newWorkExperience
+    }));
+    
+    // Update section data
+    setSectionData(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        workExperience: newWorkExperience
+      }
     }));
   };
 
   const updateWorkExperience = (index: number, field: keyof WorkExperience, value: string) => {
+    const newWorkExperience = formData.workExperience.map((exp, i) => 
+      i === index ? { ...exp, [field]: value } : exp
+    );
+    
     setFormData(prev => ({
       ...prev,
-      workExperience: prev.workExperience.map((exp, i) => 
-        i === index ? { ...exp, [field]: value } : exp
-      )
+      workExperience: newWorkExperience
+    }));
+    
+    // Update section data
+    setSectionData(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        workExperience: newWorkExperience
+      }
     }));
   };
 
   const addEducation = () => {
+    const newEducation = [...formData.education, { degree: '', institution: '', graduationYear: '' }];
     setFormData(prev => ({
       ...prev,
-      education: [...prev.education, { degree: '', institution: '', graduationYear: '' }]
+      education: newEducation
+    }));
+    
+    // Update section data
+    setSectionData(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        education: newEducation
+      }
     }));
   };
 
   const removeEducation = (index: number) => {
+    const newEducation = formData.education.filter((_, i) => i !== index);
     setFormData(prev => ({
       ...prev,
-      education: prev.education.filter((_, i) => i !== index)
+      education: newEducation
+    }));
+    
+    // Update section data
+    setSectionData(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        education: newEducation
+      }
     }));
   };
 
   const updateEducation = (index: number, field: keyof Education, value: string) => {
+    const newEducation = formData.education.map((edu, i) => 
+      i === index ? { ...edu, [field]: value } : edu
+    );
+    
     setFormData(prev => ({
       ...prev,
-      education: prev.education.map((edu, i) => 
-        i === index ? { ...edu, [field]: value } : edu
-      )
+      education: newEducation
+    }));
+    
+    // Update section data
+    setSectionData(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        education: newEducation
+      }
     }));
   };
 
   const addSkill = () => {
     if (skillInput.trim() && !formData.skills.includes(skillInput.trim())) {
+      const newSkills = [...formData.skills, skillInput.trim()];
       setFormData(prev => ({
         ...prev,
-        skills: [...prev.skills, skillInput.trim()]
+        skills: newSkills
       }));
+      
+      // Update section data
+      setSectionData(prev => ({
+        ...prev,
+        [currentSection]: {
+          ...prev[currentSection],
+          skills: newSkills
+        }
+      }));
+      
       setSkillInput('');
     }
   };
 
   const removeSkill = (skill: string) => {
+    const newSkills = formData.skills.filter(s => s !== skill);
     setFormData(prev => ({
       ...prev,
-      skills: prev.skills.filter(s => s !== skill)
+      skills: newSkills
+    }));
+    
+    // Update section data
+    setSectionData(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        skills: newSkills
+      }
     }));
   };
 
   const updateSocialLink = (platform: keyof SocialLinks, value: string) => {
+    const newSocialLinks = {
+      ...formData.socialLinks,
+      [platform]: value
+    };
+    
     setFormData(prev => ({
       ...prev,
-      socialLinks: {
-        ...prev.socialLinks,
-        [platform]: value
+      socialLinks: newSocialLinks
+    }));
+    
+    // Update section data
+    setSectionData(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        socialLinks: newSocialLinks
       }
     }));
   };
@@ -365,32 +479,54 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   const nextSection = () => {
     if (currentSection < sections.length - 1) {
       // Save current section data
-      setFormState(prev => ({
-        ...prev,
+      const updatedSectionData = {
+        ...sectionData,
         [currentSection]: { ...formData }
-      }));
+      };
+      setSectionData(updatedSectionData);
       
       // Move to next section
-      setCurrentSection(currentSection + 1);
+      const nextSectionIndex = currentSection + 1;
+      setCurrentSection(nextSectionIndex);
+      
+      // Merge the current form data with any existing data for the next section
+      const nextSectionData = updatedSectionData[nextSectionIndex] || {};
+      setFormData(prev => ({
+        ...prev,
+        ...nextSectionData
+      }));
       
       // Scroll to top
       window.scrollTo(0, 0);
+      
+      console.log(`✅ Moving to section ${nextSectionIndex}: ${sections[nextSectionIndex]}`);
     }
   };
 
   const prevSection = () => {
     if (currentSection > 0) {
       // Save current section data
-      setFormState(prev => ({
-        ...prev,
+      const updatedSectionData = {
+        ...sectionData,
         [currentSection]: { ...formData }
-      }));
+      };
+      setSectionData(updatedSectionData);
       
       // Move to previous section
-      setCurrentSection(currentSection - 1);
+      const prevSectionIndex = currentSection - 1;
+      setCurrentSection(prevSectionIndex);
+      
+      // Merge the current form data with any existing data for the previous section
+      const prevSectionData = updatedSectionData[prevSectionIndex] || {};
+      setFormData(prev => ({
+        ...prev,
+        ...prevSectionData
+      }));
       
       // Scroll to top
       window.scrollTo(0, 0);
+      
+      console.log(`✅ Moving to section ${prevSectionIndex}: ${sections[prevSectionIndex]}`);
     }
   };
 

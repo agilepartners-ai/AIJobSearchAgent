@@ -19,6 +19,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   const [showDebugInfo, setShowDebugInfo] = useState(false);
   const [debugSteps, setDebugSteps] = useState<string[]>([]);
   const [localUserProfile, setLocalUserProfile] = useState<any>(null);
+  const [formSubmitted, setFormSubmitted] = useState(false);
 
   // Load profile data when modal opens or user changes
   useEffect(() => {
@@ -122,6 +123,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
     console.log('🔥 handleEditProfile FUNCTION CALLED!');
     console.log('🔥 Raw profileData received:', profileData);
     console.log('🔥 Function called at:', new Date().toISOString());
+    
+    // Set form as submitted to prevent auto-closing
+    setFormSubmitted(true);
     
     // Store the data for potential retry
     setLastSaveData(profileData);
@@ -396,7 +400,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   };
 
   // Show loading state while fetching profile data
-  if (isLoading) {
+  if (isLoading && !formSubmitted) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div className="bg-white dark:bg-gray-800 rounded-lg p-8 max-w-md w-full text-center">
