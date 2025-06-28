@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import ProfileForm, { ProfileData } from '../forms/ProfileFormNew';
@@ -11,7 +11,7 @@ interface ProfileModalProps {
 
 const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   const { user, userProfile } = useAuth();
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(true); // Start in editing mode immediately
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -271,8 +271,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         setIsEditing(false);
         setSuccess(null);
         setDebugSteps([]);
-        // Also close the entire modal after successful save
-        onClose();
       }, 2000); // Reduced delay to 2 seconds
       
     } catch (error) {
@@ -389,278 +387,89 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
     };
   };
 
-  if (isEditing) {
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-          <div className="p-6">
-            {/* Error Message in Edit Modal */}
-            {error && (
-              <div className="mb-4 flex items-start space-x-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-red-800 dark:text-red-300">
-                    Save Failed
-                  </h4>
-                  <p className="text-sm text-red-700 dark:text-red-400 mt-1">
-                    {error}
-                  </p>
-                  {lastSaveData && (
-                    <div className="mt-2 flex space-x-2">
-                      <button
-                        onClick={handleRetry}
-                        disabled={isLoading}
-                        className="px-3 py-1 text-xs bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded transition-colors"
-                      >
-                        {isLoading ? 'Retrying...' : 'Retry'}
-                      </button>
-                      <button
-                        onClick={() => setShowDebugInfo(!showDebugInfo)}
-                        className="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
-                      >
-                        {showDebugInfo ? 'Hide' : 'Show'} Debug Info
-                      </button>
-                    </div>
-                  )}
-                  {showDebugInfo && (
-                    <div className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">
-                      <div><strong>User ID:</strong> {user?.uid || 'Not available'}</div>
-                      <div><strong>Database Connected:</strong> {userProfile ? 'Yes' : 'No'}</div>
-                      <div><strong>Last Error:</strong> {error}</div>
-                      <div><strong>Timestamp:</strong> {new Date().toISOString()}</div>
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => setError(null)}
-                  className="text-red-400 hover:text-red-600 dark:hover:text-red-300"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-
-            {/* Success Message in Edit Modal */}
-            {success && (
-              <div className="mb-4 flex items-start space-x-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-green-800 dark:text-green-300">
-                    Profile Saved Successfully
-                  </h4>
-                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">
-                    {success}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSuccess(null)}
-                  className="text-green-400 hover:text-green-600 dark:hover:text-green-300"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-
-            <ProfileForm
-              onSubmit={handleEditProfile}
-              onCancel={() => {
-                setIsEditing(false);
-                setError(null);
-                setSuccess(null);
-                setLastSaveData(null);
-              }}
-              isLoading={isLoading}
-              initialData={getInitialProfileData()}
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md mx-4 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Profile</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center space-x-3">
-            {userProfile?.avatar_url ? (
-              <img 
-                src={userProfile.avatar_url} 
-                alt="Profile" 
-                className="w-12 h-12 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                <User className="w-6 h-6 text-gray-400" />
-              </div>
-            )}
-            <div>
-              <h3 className="font-medium text-gray-900 dark:text-white">
-                {userProfile?.full_name || 'No name provided'}
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {userProfile?.email}
-              </p>
-            </div>
-          </div>
-
-          {userProfile?.phone && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Phone
-              </label>
-              <p className="text-gray-900 dark:text-white">{userProfile.phone}</p>
-            </div>
-          )}
-
-          {userProfile?.location && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Location
-              </label>
-              <p className="text-gray-900 dark:text-white">{userProfile.location}</p>
-            </div>
-          )}
-
-          {userProfile?.current_job_title && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Current Job Title
-              </label>
-              <p className="text-gray-900 dark:text-white">{userProfile.current_job_title}</p>
-            </div>
-          )}
-
-          {userProfile?.skills && userProfile.skills.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Skills
-              </label>
-              <div className="flex flex-wrap gap-1">
-                {userProfile.skills.slice(0, 3).map((skill, index) => (
-                  <span
-                    key={index}
-                    className="inline-block px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded"
-                  >
-                    {skill}
-                  </span>
-                ))}
-                {userProfile.skills.length > 3 && (
-                  <span className="inline-block px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
-                    +{userProfile.skills.length - 3} more
-                  </span>
+      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          {/* Error Message in Edit Modal */}
+          {error && (
+            <div className="mb-4 flex items-start space-x-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="text-sm font-medium text-red-800 dark:text-red-300">
+                  Save Failed
+                </h4>
+                <p className="text-sm text-red-700 dark:text-red-400 mt-1">
+                  {error}
+                </p>
+                {lastSaveData && (
+                  <div className="mt-2 flex space-x-2">
+                    <button
+                      onClick={handleRetry}
+                      disabled={isLoading}
+                      className="px-3 py-1 text-xs bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded transition-colors"
+                    >
+                      {isLoading ? 'Retrying...' : 'Retry'}
+                    </button>
+                    <button
+                      onClick={() => setShowDebugInfo(!showDebugInfo)}
+                      className="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
+                    >
+                      {showDebugInfo ? 'Hide' : 'Show'} Debug Info
+                    </button>
+                  </div>
+                )}
+                {showDebugInfo && (
+                  <div className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">
+                    <div><strong>User ID:</strong> {user?.uid || 'Not available'}</div>
+                    <div><strong>Database Connected:</strong> {userProfile ? 'Yes' : 'No'}</div>
+                    <div><strong>Last Error:</strong> {error}</div>
+                    <div><strong>Timestamp:</strong> {new Date().toISOString()}</div>
+                  </div>
                 )}
               </div>
+              <button
+                onClick={() => setError(null)}
+                className="text-red-400 hover:text-red-600 dark:hover:text-red-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
           )}
 
-          <div className="pt-4 space-y-2">
-            {/* Error Message */}
-            {error && (
-              <div className="flex items-start space-x-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-red-800 dark:text-red-300">
-                    Save Failed
-                  </h4>
-                  <p className="text-sm text-red-700 dark:text-red-400 mt-1">
-                    {error}
-                  </p>
-                  {lastSaveData && (
-                    <div className="mt-2 flex space-x-2">
-                      <button
-                        onClick={handleRetry}
-                        disabled={isLoading}
-                        className="px-3 py-1 text-xs bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded transition-colors"
-                      >
-                        {isLoading ? 'Retrying...' : 'Retry'}
-                      </button>
-                      <button
-                        onClick={() => setIsEditing(true)}
-                        className="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
-                      >
-                        Edit Again
-                      </button>
-                      <button
-                        onClick={() => setShowDebugInfo(!showDebugInfo)}
-                        className="px-3 py-1 text-xs bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors"
-                      >
-                        {showDebugInfo ? 'Hide' : 'Show'} Debug Info
-                      </button>
-                    </div>
-                  )}
-                  {showDebugInfo && (
-                    <div className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">
-                      <div><strong>User ID:</strong> {user?.uid || 'Not available'}</div>
-                      <div><strong>Database Connected:</strong> {userProfile ? 'Yes' : 'No'}</div>
-                      <div><strong>Last Error:</strong> {error}</div>
-                      <div><strong>Timestamp:</strong> {new Date().toISOString()}</div>
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => setError(null)}
-                  className="text-red-400 hover:text-red-600 dark:hover:text-red-300"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+          {/* Success Message in Edit Modal */}
+          {success && (
+            <div className="mb-4 flex items-start space-x-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="text-sm font-medium text-green-800 dark:text-green-300">
+                  Profile Saved Successfully
+                </h4>
+                <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                  {success}
+                </p>
               </div>
-            )}
+              <button
+                onClick={() => setSuccess(null)}
+                className="text-green-400 hover:text-green-600 dark:hover:text-green-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
-            {/* Success Message */}
-            {success && (
-              <div className="flex items-start space-x-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-green-800 dark:text-green-300">
-                    Profile Saved
-                  </h4>
-                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">
-                    {success}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSuccess(null)}
-                  className="text-green-400 hover:text-green-600 dark:hover:text-green-300"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-
-            <button
-              onClick={() => {
-                setError(null);
-                setSuccess(null);
-                setLastSaveData(null);
-                setIsEditing(true);
-              }}
-              disabled={isLoading}
-              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center justify-center space-x-2"
-            >
-              {isLoading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <span>Edit Profile</span>
-              )}
-            </button>
-            <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-              Update your profile to improve job matching
-            </p>
-          </div>
+          <ProfileForm
+            onSubmit={handleEditProfile}
+            onCancel={() => {
+              setIsEditing(false);
+              setError(null);
+              setSuccess(null);
+              setLastSaveData(null);
+              onClose();
+            }}
+            isLoading={isLoading}
+            initialData={getInitialProfileData()}
+          />
         </div>
       </div>
     </div>

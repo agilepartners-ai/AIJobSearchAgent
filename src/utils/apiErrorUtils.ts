@@ -6,16 +6,16 @@
  * Creates an enhanced Error object with API request details
  */
 export function createApiError(
-  message: string,
   endpoint: string,
+  method: string,
   params: Record<string, any>,
-  statusCode?: number,
-  responseData?: any
+  responseData?: any,
+  message?: string
 ): Error {
-  const error = new Error(message) as any;
+  const error = new Error(message || `API request to ${endpoint} failed`) as any;
   error.endpoint = endpoint;
+  error.method = method;
   error.params = params;
-  error.statusCode = statusCode;
   error.responseData = responseData;
   return error;
 }
@@ -34,11 +34,11 @@ export async function handleApiError(
   // Check for CORS errors
   if (response.status === 0 || response.type === 'opaqueredirect') {
     throw createApiError(
-      'CORS error: The request was blocked due to cross-origin restrictions. Please check server CORS configuration.',
       endpoint,
+      'POST',
       params,
-      0,
-      { type: 'CORS_ERROR' }
+      { type: 'CORS_ERROR' },
+      'CORS error: The request was blocked due to cross-origin restrictions. Please check server CORS configuration.'
     );
   }
   
@@ -61,11 +61,11 @@ export async function handleApiError(
   }
   
   throw createApiError(
-    errorMessage,
     endpoint,
+    'POST',
     params,
-    response.status,
-    responseData
+    responseData,
+    errorMessage
   );
 }
 
@@ -89,11 +89,11 @@ export async function fetchWithErrorHandling<T>(
     // Handle network errors (including CORS)
     if (error instanceof TypeError && error.message.includes('NetworkError')) {
       throw createApiError(
-        'Network error: This could be due to CORS restrictions. Please check server configuration.',
         endpoint,
+        options.method || 'GET',
         params,
-        0,
-        { type: 'NETWORK_ERROR' }
+        { type: 'NETWORK_ERROR' },
+        'Network error: This could be due to CORS restrictions. Please check server configuration.'
       );
     }
     
@@ -104,9 +104,11 @@ export async function fetchWithErrorHandling<T>(
     
     // Convert regular error to API error
     throw createApiError(
-      error instanceof Error ? error.message : String(error),
       endpoint,
-      params
+      options.method || 'GET',
+      params,
+      null,
+      error instanceof Error ? error.message : String(error)
     );
   }
 }
