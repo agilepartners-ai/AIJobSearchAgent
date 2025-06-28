@@ -79,12 +79,16 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
 }) => {
   // Create a ref to track if the component is mounted
   const isMounted = useRef(true);
+  const formContainerRef = useRef<HTMLDivElement>(null);
   
   // Track if form has been initialized with data
   const [formInitialized, setFormInitialized] = useState(false);
   
   // Store form data for each section to prevent loss when navigating
   const [sectionData, setSectionData] = useState<Record<number, Partial<ProfileData>>>({});
+  
+  // Track if form is being submitted to prevent auto-closing
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [formData, setFormData] = useState<ProfileData>({
     // Basic Information
@@ -224,6 +228,24 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     }
   }, []);
 
+  // Prevent scrolling when on the last section
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (currentSection === 5) {
+        e.preventDefault();
+      }
+    };
+
+    const formContainer = formContainerRef.current;
+    if (formContainer && currentSection === 5) {
+      formContainer.addEventListener('wheel', handleWheel, { passive: false });
+      
+      return () => {
+        formContainer.removeEventListener('wheel', handleWheel);
+      };
+    }
+  }, [currentSection]);
+
   const jobProfiles = JobSearchService.getCommonJobProfiles();
   const locations = JobSearchService.getPopularLocations();
 
@@ -276,6 +298,9 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     
     e.preventDefault();
     
+    // Set submitting state to prevent auto-closing
+    setIsSubmitting(true);
+    
     console.log('🔥 Running form validation...');
     if (validateForm()) {
       console.log('🔥 Validation passed! Calling onSubmit...');
@@ -286,6 +311,8 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       console.log('🔥 Validation failed!');
       console.log('🔥 Validation errors:', errors);
       console.log('🔥 Form data that failed validation:', formData);
+      // Reset submitting state if validation fails
+      setIsSubmitting(false);
     }
   };
 
@@ -1080,7 +1107,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={formContainerRef}>
       <div className="text-center">
         <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
           <User className="h-8 w-8 text-white" />

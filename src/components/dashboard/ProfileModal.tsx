@@ -20,6 +20,22 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   const [debugSteps, setDebugSteps] = useState<string[]>([]);
   const [localUserProfile, setLocalUserProfile] = useState<any>(null);
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  // Prevent accidental closing
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (formSubmitted || isClosing) return;
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [formSubmitted, isClosing]);
 
   // Load profile data when modal opens or user changes
   useEffect(() => {
@@ -278,6 +294,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       
       // Close the editing modal after a brief delay
       setTimeout(() => {
+        setIsClosing(true);
         setIsEditing(false);
         setSuccess(null);
         setDebugSteps([]);
@@ -340,6 +357,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       console.error('Profile data received:', profileData);
       
       setError(errorMessage);
+      setFormSubmitted(false);
     } finally {
       setIsLoading(false);
     }
@@ -487,6 +505,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
           <ProfileForm
             onSubmit={handleEditProfile}
             onCancel={() => {
+              setIsClosing(true);
               setIsEditing(false);
               setError(null);
               setSuccess(null);
