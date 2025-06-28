@@ -233,6 +233,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     const handleWheel = (e: WheelEvent) => {
       if (currentSection === 5) {
         e.preventDefault();
+        e.stopPropagation();
       }
     };
 
@@ -297,6 +298,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     console.log('🔥 Submit timestamp:', new Date().toISOString());
     
     e.preventDefault();
+    e.stopPropagation(); // Prevent event from bubbling up
     
     // Set submitting state to prevent auto-closing
     setIsSubmitting(true);
@@ -503,7 +505,10 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     }));
   };
 
-  const nextSection = () => {
+  const nextSection = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (currentSection < sections.length - 1) {
       // Save current section data
       const updatedSectionData = {
@@ -524,13 +529,18 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       }));
       
       // Scroll to top
-      window.scrollTo(0, 0);
+      if (formContainerRef.current) {
+        formContainerRef.current.scrollTop = 0;
+      }
       
       console.log(`✅ Moving to section ${nextSectionIndex}: ${sections[nextSectionIndex]}`);
     }
   };
 
-  const prevSection = () => {
+  const prevSection = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (currentSection > 0) {
       // Save current section data
       const updatedSectionData = {
@@ -551,7 +561,9 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       }));
       
       // Scroll to top
-      window.scrollTo(0, 0);
+      if (formContainerRef.current) {
+        formContainerRef.current.scrollTop = 0;
+      }
       
       console.log(`✅ Moving to section ${prevSectionIndex}: ${sections[prevSectionIndex]}`);
     }
@@ -1106,8 +1118,18 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     }
   };
 
+  const handleCancelClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onCancel();
+  };
+
   return (
-    <div className="space-y-6" ref={formContainerRef}>
+    <div 
+      className="space-y-6" 
+      ref={formContainerRef}
+      onClick={(e) => e.stopPropagation()} // Stop clicks from propagating
+    >
       <div className="text-center">
         <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
           <User className="h-8 w-8 text-white" />
@@ -1144,14 +1166,18 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
         </h3>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form 
+        onSubmit={handleSubmit} 
+        className="space-y-6"
+        onClick={(e) => e.stopPropagation()} // Stop clicks from propagating
+      >
         {renderCurrentSection()}
 
         {/* Navigation Buttons */}
         <div className="flex gap-4 pt-6">
           <button
             type="button"
-            onClick={onCancel}
+            onClick={handleCancelClick}
             className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             disabled={isLoading}
           >

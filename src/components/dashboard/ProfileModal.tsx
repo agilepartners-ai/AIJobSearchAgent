@@ -21,6 +21,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   const [localUserProfile, setLocalUserProfile] = useState<any>(null);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   // Prevent accidental closing
   useEffect(() => {
@@ -133,6 +134,28 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       (window as any).profileDebugLogged = true;
     }
   }, [user]); // Only depend on user to avoid repeated logs
+
+  // Add click outside handler
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Don't close if form is being submitted or is already closing
+      if (formSubmitted || isClosing) return;
+      
+      // Don't close if clicking inside the modal
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        // Ignore clicks outside - don't close the modal
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+
+    // Add event listener with capture phase to intercept events early
+    document.addEventListener('mousedown', handleClickOutside, true);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside, true);
+    };
+  }, [formSubmitted, isClosing]);
 
   const handleEditProfile = async (profileData: ProfileData) => {
     // IMMEDIATE DEBUGGING - This should appear as soon as function is called
@@ -437,9 +460,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       onClick={(e) => {
         // This prevents the modal from closing when clicking on the backdrop
         e.stopPropagation();
+        e.preventDefault();
       }}
     >
       <div 
+        ref={modalRef}
         className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => {
           // This prevents clicks inside the modal from propagating to the backdrop
