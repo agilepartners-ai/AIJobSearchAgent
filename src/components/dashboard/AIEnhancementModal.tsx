@@ -131,25 +131,25 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     }
 
     if (!jobDescription.trim()) {
-      setError('Job description is required for AI enhancement');
+      dispatch(setError('Job description is required for AI enhancement'));
       return;
     }
 
     // Check API configuration
     if (!config.hasApiKey) {
-      setError('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.');
+      dispatch(setError('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.'));
       return;
     }
 
     // Validate enhancement request
     const validation = AIEnhancementService.validateEnhancementRequest(jobDescription);
     if (!validation.isValid) {
-      setError(validation.error || 'Invalid request');
+      dispatch(setError(validation.error || 'Invalid request'));
       return;
     }
 
     setLoading(true);
-    setError('');
+    dispatch(setError(''));
     setExtractionProgress('');
 
     try {
@@ -370,16 +370,19 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         });
       }
 
-      setOptimizationResults(optimizationResults);
-      setShowResults(true);
+      dispatch(setOptimizationResults(optimizationResults));
+      dispatch(setShowResults(true));
 
     } catch (err: any) {
       console.error('AI Enhancement Error:', err);
 
-      // Provide user-friendly error messages
+      // Provide user-friendly error messages with improved HTTP 500 handling
       let userMessage = err.message;
 
-      if (err.message.includes('Failed to fetch') || err.message.includes('network')) {
+      // Handle HTTP 500 errors specifically
+      if (err.message.includes('HTTP error! status: 500') || err.message.includes('status: 500')) {
+        userMessage = 'The AI service is experiencing temporary issues on the server side. This is usually resolved quickly. Please try again in a few moments, or contact support if the problem persists.';
+      } else if (err.message.includes('Failed to fetch') || err.message.includes('network')) {
         userMessage = 'Unable to connect to the AI service. Please check your internet connection and try again.';
       } else if (err.message.includes('timeout') || err.message.includes('timed out')) {
         userMessage = 'The AI processing is taking longer than expected. Please try again with a smaller file or try again later.';
@@ -389,7 +392,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         userMessage = 'The AI service is temporarily unavailable. Please try again in a few minutes or contact support if the issue persists.';
       }
 
-      setError(userMessage);
+      dispatch(setError(userMessage));
     } finally {
       setLoading(false);
       setExtractionProgress('');
@@ -397,7 +400,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   };
 
   const handleResultsClose = () => {
-    setShowResults(false);
+    dispatch(setShowResults(false));
     // Save the URLs to the parent component
     if (optimizationResults) {
       onSave(optimizationResults.optimizedResumeUrl, optimizationResults.optimizedCoverLetterUrl);
