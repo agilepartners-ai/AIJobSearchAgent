@@ -1,3 +1,5 @@
+import { createApiError, handleApiError } from '../utils/apiErrorUtils';
+
 export interface OptimizeResumeOptions {
     template?: string;
     sectionOrdering?: string[];
@@ -71,21 +73,41 @@ export class PDFGenerationService {
         jobDescription: string,
         options: OptimizeResumeOptions = {}
     ): Promise<Blob> {
+        const endpoint = `${this.API_BASE_URL}/api/optimize-resume`;
+        
         try {
             // Validate API key
             if (!this.API_KEY) {
-                throw new Error('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.');
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    { fileId, hasJobDescription: !!jobDescription, options },
+                    null,
+                    'OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.'
+                );
             }
 
             // Validate inputs
             if (!fileId || !jobDescription.trim()) {
-                throw new Error('File ID and job description are required for resume optimization');
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    { fileId, hasJobDescription: !!jobDescription, options },
+                    null,
+                    'File ID and job description are required for resume optimization'
+                );
             }
 
             // Validate template
             const template = options.template || 'Modern';
             if (!this.validateTemplate(template)) {
-                throw new Error(`Invalid template "${template}". Available templates: ${this.AVAILABLE_TEMPLATES.join(', ')}`);
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    { fileId, template, options },
+                    null,
+                    `Invalid template "${template}". Available templates: ${this.AVAILABLE_TEMPLATES.join(', ')}`
+                );
             }
 
             const requestData: OptimizeResumeRequest = {
@@ -99,11 +121,11 @@ export class PDFGenerationService {
                 improve_resume: options.improveResume !== false // Default to true
             };
 
-            console.log('Making optimize resume request to:', `${this.API_BASE_URL}/api/optimize-resume`);
+            console.log('Making optimize resume request to:', endpoint);
             console.log('Using template:', requestData.template);
             console.log('File ID:', fileId);
 
-            const response = await fetch(`${this.API_BASE_URL}/api/optimize-resume`, {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -115,33 +137,67 @@ export class PDFGenerationService {
             });
 
             if (!response.ok) {
-                let errorMessage = `HTTP error! status: ${response.status}`;
+                let errorData = null;
                 try {
-                    const errorData = await response.json();
-                    errorMessage = errorData.message || errorData.error || errorMessage;
+                    errorData = await response.json();
                 } catch (e) {
-                    // If we can't parse JSON, use the status text
-                    errorMessage = response.statusText || errorMessage;
+                    // If we can't parse JSON, errorData remains null
                 }
-                throw new Error(errorMessage);
+                
+                const errorMessage = errorData?.message || errorData?.error || response.statusText || `HTTP error! status: ${response.status}`;
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    requestData,
+                    {
+                        status: response.status,
+                        statusText: response.statusText,
+                        data: errorData
+                    },
+                    errorMessage
+                );
             }
 
             // Check if response is actually a PDF
             const contentType = response.headers.get('content-type');
             if (!contentType?.includes('application/pdf')) {
-                // Try to parse as JSON to get error message
+                let errorData = null;
                 try {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || errorData.error || 'Expected PDF but received different content type');
+                    errorData = await response.json();
                 } catch (jsonError) {
-                    throw new Error('Expected PDF but received different content type');
+                    // If we can't parse JSON, errorData remains null
                 }
+                
+                const errorMessage = errorData?.message || errorData?.error || 'Expected PDF but received different content type';
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    requestData,
+                    {
+                        status: response.status,
+                        statusText: response.statusText,
+                        contentType,
+                        data: errorData
+                    },
+                    errorMessage
+                );
             }
 
             const pdfBlob = await response.blob();
 
             if (pdfBlob.size === 0) {
-                throw new Error('Received empty PDF file');
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    requestData,
+                    {
+                        status: response.status,
+                        statusText: response.statusText,
+                        contentType,
+                        blobSize: pdfBlob.size
+                    },
+                    'Received empty PDF file'
+                );
             }
 
             console.log('Resume optimization successful, PDF size:', pdfBlob.size, 'bytes');
@@ -151,22 +207,59 @@ export class PDFGenerationService {
             console.error('Error optimizing resume:', error);
 
             if (error.name === 'AbortError') {
-                throw new Error('PDF generation timed out. The process is taking longer than expected. Please try again.');
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    { fileId, options },
+                    null,
+                    'PDF generation timed out. The process is taking longer than expected. Please try again.'
+                );
             }
 
-            if (error.message.includes('Failed to fetch')) {
-                throw new Error('Unable to connect to the PDF generation service. Please check your internet connection and try again.');
+            if (error.message?.includes('Failed to fetch')) {
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    { fileId, options },
+                    null,
+                    'Unable to connect to the PDF generation service. Please check your internet connection and try again.'
+                );
             }
 
-            if (error.message.includes('file_id not found') || error.message.includes('resume data not found')) {
-                throw new Error('Resume data not found. Please re-upload your resume and try the AI enhancement process again.');
+            // If it's already an API error, re-throw it
+            if (error.endpoint) {
+                throw error;
             }
 
-            if (error.message.includes('LaTeX') || error.message.includes('template')) {
-                throw new Error(`PDF template processing failed. Please try a different template. Available templates: ${this.AVAILABLE_TEMPLATES.join(', ')}`);
+            // Handle specific error patterns
+            if (error.message?.includes('file_id not found') || error.message?.includes('resume data not found')) {
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    { fileId, options },
+                    null,
+                    'Resume data not found. Please re-upload your resume and try the AI enhancement process again.'
+                );
             }
 
-            throw new Error(error.message || 'Failed to generate optimized resume PDF');
+            if (error.message?.includes('LaTeX') || error.message?.includes('template')) {
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    { fileId, options },
+                    null,
+                    `PDF template processing failed. Please try a different template. Available templates: ${this.AVAILABLE_TEMPLATES.join(', ')}`
+                );
+            }
+
+            // For any other error, wrap it in an API error
+            throw createApiError(
+                endpoint,
+                'POST',
+                { fileId, options },
+                null,
+                error.message || 'Failed to generate optimized resume PDF'
+            );
         }
     }
 
@@ -180,19 +273,39 @@ export class PDFGenerationService {
         personalInfo: PersonalInfo,
         options: GenerateCoverLetterOptions = {}
     ): Promise<Blob> {
+        const endpoint = `${this.API_BASE_URL}/api/generate-cover-letter`;
+        
         try {
             // Validate API key
             if (!this.API_KEY) {
-                throw new Error('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.');
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    { fileId, position, companyName, personalInfo, options },
+                    null,
+                    'OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.'
+                );
             }
 
             // Validate inputs
             if (!fileId || !jobDescription.trim() || !position.trim() || !companyName.trim()) {
-                throw new Error('File ID, job description, position, and company name are required for cover letter generation');
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    { fileId, hasJobDescription: !!jobDescription, position, companyName, personalInfo, options },
+                    null,
+                    'File ID, job description, position, and company name are required for cover letter generation'
+                );
             }
 
             if (!personalInfo.name || !personalInfo.email) {
-                throw new Error('Personal name and email are required for cover letter generation');
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    { fileId, personalInfo, options },
+                    null,
+                    'Personal name and email are required for cover letter generation'
+                );
             }
 
             // Debug: Log the personal info being sent to API
@@ -231,12 +344,12 @@ export class PDFGenerationService {
             console.log('📤 Complete request data being sent to API:');
             console.log('Request data:', JSON.stringify(requestData, null, 2));
 
-            console.log('Making generate cover letter request to:', `${this.API_BASE_URL}/api/generate-cover-letter`);
+            console.log('Making generate cover letter request to:', endpoint);
             console.log('Position:', position);
             console.log('Company:', companyName);
             console.log('File ID:', fileId);
 
-            const response = await fetch(`${this.API_BASE_URL}/api/generate-cover-letter`, {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -248,33 +361,67 @@ export class PDFGenerationService {
             });
 
             if (!response.ok) {
-                let errorMessage = `HTTP error! status: ${response.status}`;
+                let errorData = null;
                 try {
-                    const errorData = await response.json();
-                    errorMessage = errorData.message || errorData.error || errorMessage;
+                    errorData = await response.json();
                 } catch (e) {
-                    // If we can't parse JSON, use the status text
-                    errorMessage = response.statusText || errorMessage;
+                    // If we can't parse JSON, errorData remains null
                 }
-                throw new Error(errorMessage);
+                
+                const errorMessage = errorData?.message || errorData?.error || response.statusText || `HTTP error! status: ${response.status}`;
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    requestData,
+                    {
+                        status: response.status,
+                        statusText: response.statusText,
+                        data: errorData
+                    },
+                    errorMessage
+                );
             }
 
             // Check if response is actually a PDF
             const contentType = response.headers.get('content-type');
             if (!contentType?.includes('application/pdf')) {
-                // Try to parse as JSON to get error message
+                let errorData = null;
                 try {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || errorData.error || 'Expected PDF but received different content type');
+                    errorData = await response.json();
                 } catch (jsonError) {
-                    throw new Error('Expected PDF but received different content type');
+                    // If we can't parse JSON, errorData remains null
                 }
+                
+                const errorMessage = errorData?.message || errorData?.error || 'Expected PDF but received different content type';
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    requestData,
+                    {
+                        status: response.status,
+                        statusText: response.statusText,
+                        contentType,
+                        data: errorData
+                    },
+                    errorMessage
+                );
             }
 
             const pdfBlob = await response.blob();
 
             if (pdfBlob.size === 0) {
-                throw new Error('Received empty PDF file');
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    requestData,
+                    {
+                        status: response.status,
+                        statusText: response.statusText,
+                        contentType,
+                        blobSize: pdfBlob.size
+                    },
+                    'Received empty PDF file'
+                );
             }
 
             console.log('✅ Cover letter generation successful, PDF size:', pdfBlob.size, 'bytes');
@@ -284,22 +431,59 @@ export class PDFGenerationService {
             console.error('❌ Error generating cover letter:', error);
 
             if (error.name === 'AbortError') {
-                throw new Error('PDF generation timed out. The process is taking longer than expected. Please try again.');
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    { fileId, position, companyName, personalInfo, options },
+                    null,
+                    'PDF generation timed out. The process is taking longer than expected. Please try again.'
+                );
             }
 
-            if (error.message.includes('Failed to fetch')) {
-                throw new Error('Unable to connect to the PDF generation service. Please check your internet connection and try again.');
+            if (error.message?.includes('Failed to fetch')) {
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    { fileId, position, companyName, personalInfo, options },
+                    null,
+                    'Unable to connect to the PDF generation service. Please check your internet connection and try again.'
+                );
             }
 
-            if (error.message.includes('file_id not found') || error.message.includes('resume data not found')) {
-                throw new Error('Resume data not found. Please re-upload your resume and try the AI enhancement process again.');
+            // If it's already an API error, re-throw it
+            if (error.endpoint) {
+                throw error;
             }
 
-            if (error.message.includes('LaTeX') || error.message.includes('template')) {
-                throw new Error('PDF template processing failed. Please contact support for assistance.');
+            // Handle specific error patterns
+            if (error.message?.includes('file_id not found') || error.message?.includes('resume data not found')) {
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    { fileId, position, companyName, personalInfo, options },
+                    null,
+                    'Resume data not found. Please re-upload your resume and try the AI enhancement process again.'
+                );
             }
 
-            throw new Error(error.message || 'Failed to generate cover letter PDF');
+            if (error.message?.includes('LaTeX') || error.message?.includes('template')) {
+                throw createApiError(
+                    endpoint,
+                    'POST',
+                    { fileId, position, companyName, personalInfo, options },
+                    null,
+                    'PDF template processing failed. Please contact support for assistance.'
+                );
+            }
+
+            // For any other error, wrap it in an API error
+            throw createApiError(
+                endpoint,
+                'POST',
+                { fileId, position, companyName, personalInfo, options },
+                null,
+                error.message || 'Failed to generate cover letter PDF'
+            );
         }
     }
 
