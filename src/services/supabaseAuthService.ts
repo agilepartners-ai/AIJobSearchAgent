@@ -96,6 +96,12 @@ export class SupabaseAuthService {
   static async getCurrentUser(): Promise<AuthUser | null> {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
+      
+      // Handle expected "Auth session missing!" error gracefully
+      if (error && error.message === 'Auth session missing!') {
+        return null;
+      }
+      
       if (error) throw error;
       return user ? this.convertUser(user) : null;
     } catch (error) {
