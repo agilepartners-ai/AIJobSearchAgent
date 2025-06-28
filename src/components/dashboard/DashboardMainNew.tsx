@@ -531,11 +531,12 @@ const Dashboard: React.FC = () => {
       {showModal && (
         <ApplicationModal
           application={editingApplication}
+          detailedUserProfile={userProfile}
           onSave={handleSaveApplication}
-      onClose={() => {
-        setShowModal(false);
-        setEditingApplication(null);
-      }}
+          onClose={() => {
+            setShowModal(false);
+            setEditingApplication(null);
+          }}
         />
       )}
 
@@ -547,6 +548,7 @@ const Dashboard: React.FC = () => {
             company_name: selectedApplicationForAI.company_name,
             location: selectedApplicationForAI.location || undefined
           }}
+          detailedUserProfile={userProfile}
           onSave={handleAISave}
           onClose={() => {
             setShowAIModal(false);
