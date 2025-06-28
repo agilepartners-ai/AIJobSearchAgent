@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setFormData, updateFormField, resetForm } from '../../store/applicationModalSlice';
 import { openModal as openAIModal, closeModal as closeAIModal, resetState as resetAIState } from '../../store/aiEnhancementModalSlice';
@@ -20,6 +20,26 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
   const formData = useAppSelector((state) => state.applicationModal.formData);
   const [error, setError] = useState('');
   const [showAIModal, setShowAIModal] = useState(false);
+
+  // Initialize form data when application changes
+  useEffect(() => {
+    if (application) {
+      dispatch(setFormData({
+        company_name: application.company_name || '',
+        position: application.position || '',
+        status: application.status || 'not_applied',
+        application_date: application.application_date ? new Date(application.application_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        location: application.location || '',
+        job_posting_url: application.job_posting_url || '',
+        job_description: application.job_description || '',
+        notes: application.notes || '',
+        resume_url: application.resume_url || '',
+        cover_letter_url: application.cover_letter_url || ''
+      }));
+    } else {
+      dispatch(resetForm());
+    }
+  }, [application, dispatch]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +87,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
               {application ? 'Edit Application' : 'Add New Application'}
             </h2>
             <button
-              onClick={() => { clearLocalForm(); onClose(); }}
+              onClick={() => { dispatch(resetForm()); onClose(); }}
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             >
               <X size={24} />
