@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain, Settings, Sparkles, Upload, HardDrive, Cloud } from 'lucide-react';
+import { X, Upload, FileText, Sparkles, Cloud, HardDrive, AlertCircle, CheckCircle, Settings } from 'lucide-react';
 import OptimizationResults from './OptimizationResults';
 import { ResumeExtractionService } from '../../services/resumeExtractionService';
 import { AIEnhancementService } from '../../services/aiEnhancementService';
@@ -476,12 +476,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                     <p><strong>Name:</strong> {detailedUserProfile.fullName || '❌ Not set'}</p>
                     <p><strong>Phone:</strong> {detailedUserProfile.contactNumber || '❌ Not set'}</p>
                     <p><strong>Email:</strong> {user?.email || '❌ Not set'}</p>
-                    <p><strong>Address:</strong> {[
-                      detailedUserProfile.streetAddress,
-                      detailedUserProfile.city,
-                      detailedUserProfile.state,
-                      detailedUserProfile.zipCode
-                    ].filter(Boolean).join(', ') || '❌ Not set'}</p>
+                    <p><strong>Address:</strong> {detailedUserProfile.streetAddress || '❌ Not set'}</p>
                     <p><strong>LinkedIn:</strong> {detailedUserProfile.linkedin_url || '❌ Not set'}</p>
                   </div>
                 </div>

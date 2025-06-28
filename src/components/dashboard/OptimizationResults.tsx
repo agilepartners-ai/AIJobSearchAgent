@@ -88,7 +88,57 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
           console.log('🔄 Loading fresh profile data for cover letter...');
           const freshProfile = await ProfileService.getUserProfile(user.uid);
           console.log('📋 Fresh profile loaded:', freshProfile);
-          setCurrentUserProfile(freshProfile);
+          
+          // Map the Supabase Profile fields to UserProfileData structure
+          if (freshProfile) {
+            const mappedProfile: UserProfileData = {
+              fullName: freshProfile.full_name || '',
+              email: freshProfile.email || '',
+              contactNumber: freshProfile.phone || '',
+              streetAddress: freshProfile.location || '', // Use location as street address
+              city: '',  // Not directly available in Profile
+              county: '', // Not directly available in Profile
+              state: '',  // Not directly available in Profile
+              zipCode: '', // Not directly available in Profile
+              hasPhoneAccess: !!freshProfile.phone,
+              gender: '',
+              dateOfBirth: '',
+              includeAge: false,
+              ethnicity: '',
+              race: '',
+              hasDisabilities: false,
+              disabilityDescription: '',
+              veteranStatus: '',
+              travelPercentage: '',
+              openToTravel: false,
+              willingToRelocate: freshProfile.willingness_to_relocate || false,
+              canWorkEveningsWeekends: false,
+              otherLanguages: '',
+              nationality: '',
+              additionalNationalities: '',
+              hasOtherCitizenship: false,
+              visaType: freshProfile.work_authorization || '',
+              expectedSalaryFrom: freshProfile.expected_salary || '',
+              expectedSalaryTo: '',
+              salaryNotes: '',
+              linkedin_url: freshProfile.linkedin_url || '',
+              authorizedToWork: true,
+              requiresSponsorship: false,
+              sponsorshipType: '',
+              references: [],
+              education: [],
+              certifications: [],
+              governmentEmployment: false,
+              governmentDetails: '',
+              hasAgreements: false,
+              agreementDetails: '',
+              hasConvictions: false,
+              convictionDetails: '',
+              interviewAvailability: freshProfile.availability || '',
+            };
+            
+            setCurrentUserProfile(mappedProfile);
+          }
         } catch (error) {
           console.error('❌ Error loading fresh profile:', error);
         }
