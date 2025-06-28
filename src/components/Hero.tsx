@@ -50,7 +50,7 @@ const Hero: React.FC = () => {
 
       {/* Content Layer */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="flex flex-col-reverse lg:flex-row items-center justify-between min-h-screen py-20 gap-4 sm:gap-6 lg:gap-12">
+        <div className="flex flex-col-reverse lg:flex-row items-center justify-between min-h-screen py-20 pb-28 sm:pb-32 gap-4 sm:gap-6 lg:gap-12">
           {/* Left: Text */}
           <div className="text-center lg:text-left flex-1 max-w-2xl mx-auto lg:mx-0">
             <span className="inline-block px-6 py-2 bg-blue-600/40 dark:bg-blue-500/40 rounded-full text-blue-200 dark:text-blue-100 font-medium mb-3 backdrop-blur-md animate-fadeIn border border-blue-400/30 shadow-lg">
@@ -94,6 +94,15 @@ const Hero: React.FC = () => {
               alt="A man interacting with an AI-powered interface, symbolizing career success through technology"
               className="w-48 sm:w-64 md:w-[20rem] lg:w-[24rem] xl:w-[28rem] max-w-full h-auto animate-float-slow transition-all duration-300"
             />
+          </div>
+        </div>
+      </div>
+      {/* Enhanced Scrolldown Indicator */}
+      <div className="absolute bottom-6 w-full flex justify-center z-20 pointer-events-none">
+        <div className="flex flex-col items-center animate-bounce">
+          <div className="w-1 h-10 bg-gradient-to-b from-blue-400 dark:from-blue-300 to-transparent rounded-full mb-2 shadow-lg shadow-blue-400/40"></div>
+          <div className="flex items-center gap-2 text-sm font-medium text-gray-200 dark:text-gray-300 drop-shadow-md">
+            Scroll Down
           </div>
         </div>
       </div>

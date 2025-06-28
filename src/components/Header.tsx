@@ -37,7 +37,7 @@ const Header: React.FC = () => {
             <Link to="/" className="flex items-center space-x-2">
               <img 
                 src="/AGENT_Logo.png" 
-                alt="MyJobSearchAgent" 
+                alt="AIJobSearchAgent" 
                 className="h-6 sm:h-7 md:h-10 lg:h-11 w-auto transition-all duration-300"
               />
             </Link>

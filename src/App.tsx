@@ -22,7 +22,7 @@ import { ToastProvider } from './components/ui/ToastProvider';
 
 function App() {
   useEffect(() => {
-    document.title = 'MyJobSearchAgent | AI-Powered Career Success Platform';
+    document.title = 'AIJobSearchAgent | AI-Powered Career Success Platform';
     
     // Remove forced dark mode - let system preference handle it
     // The CSS will automatically handle light/dark mode switching
