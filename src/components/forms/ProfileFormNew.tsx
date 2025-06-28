@@ -88,13 +88,17 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     currentJobTitle: initialData.currentJobTitle || '',
     jobProfile: initialData.jobProfile || '',
     experience: initialData.experience || 'Fresher',
-    workExperience: initialData.workExperience || [{ jobTitle: '', company: '', duration: '' }],
+    workExperience: initialData.workExperience && initialData.workExperience.length > 0 
+      ? [...initialData.workExperience] 
+      : [{ jobTitle: '', company: '', duration: '' }],
     
     // Education
-    education: initialData.education || [{ degree: '', institution: '', graduationYear: '' }],
+    education: initialData.education && initialData.education.length > 0 
+      ? [...initialData.education] 
+      : [{ degree: '', institution: '', graduationYear: '' }],
     
     // Skills and Preferences
-    skills: initialData.skills || [],
+    skills: Array.isArray(initialData.skills) ? [...initialData.skills] : [],
     expectedSalary: initialData.expectedSalary || '',
     currentCTC: initialData.currentCTC || '',
     
@@ -118,6 +122,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   const [skillInput, setSkillInput] = useState('');
   const [currentSection, setCurrentSection] = useState(0);
   const [formInitialized, setFormInitialized] = useState(false);
+  const [formState, setFormState] = useState<Record<number, any>>({});
 
   // Initialize form data with initialData when it changes
   useEffect(() => {
@@ -171,6 +176,16 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       console.log('✅ Form initialized with data');
     }
   }, [initialData, formInitialized]);
+
+  // Save form state when changing sections
+  useEffect(() => {
+    if (formInitialized) {
+      setFormState(prev => ({
+        ...prev,
+        [currentSection]: { ...formData }
+      }));
+    }
+  }, [currentSection, formData, formInitialized]);
 
   // Load job search criteria from localStorage if available
   useEffect(() => {
@@ -349,13 +364,33 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
 
   const nextSection = () => {
     if (currentSection < sections.length - 1) {
+      // Save current section data
+      setFormState(prev => ({
+        ...prev,
+        [currentSection]: { ...formData }
+      }));
+      
+      // Move to next section
       setCurrentSection(currentSection + 1);
+      
+      // Scroll to top
+      window.scrollTo(0, 0);
     }
   };
 
   const prevSection = () => {
     if (currentSection > 0) {
+      // Save current section data
+      setFormState(prev => ({
+        ...prev,
+        [currentSection]: { ...formData }
+      }));
+      
+      // Move to previous section
       setCurrentSection(currentSection - 1);
+      
+      // Scroll to top
+      window.scrollTo(0, 0);
     }
   };
 
@@ -457,7 +492,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           <Briefcase className="h-4 w-4 inline mr-2" />
-          Current Job Title / Employment Status *
+          Current Job Title / Employment Status
         </label>
         <input
           type="text"
