@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import Interactive3DVisualization from './Interactive3DVisualization';
 import Mobile3DFallback from './Mobile3DFallback';
 import Typewriter from './Typewriter';
@@ -72,13 +73,13 @@ const Hero: React.FC = () => {
             </h1><p className="text-lg lg:text-xl text-gray-100 dark:text-gray-200 mb-6 leading-relaxed max-w-xl lg:max-w-none mx-auto lg:mx-0 drop-shadow-lg font-medium opacity-0 animate-fadeIn" style={{ animationDelay: '3s', animationFillMode: 'forwards' }}>
               Transform your job search with our intelligent platform. Get personalized resume optimization, practice with AI-powered mock interviews, and discover opportunities tailored to your skills and career goals.
             </p>            <div className="flex flex-col sm:flex-row gap-4 lg:justify-start justify-center items-center lg:items-start opacity-0 animate-fadeIn" style={{ animationDelay: '3.5s', animationFillMode: 'forwards' }}>
-              <a 
-                href="/login" 
+              <Link 
+                to="/login" 
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-10 py-5 rounded-xl font-semibold text-center flex items-center justify-center gap-2 group transition-all hover:-translate-y-2 hover:shadow-2xl shadow-blue-500/40 backdrop-blur-sm border border-blue-400/20 text-lg"
               >
                 Start Your Career Journey
                 <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
-              </a>
+              </Link>
               <a 
                 href="#services" 
                 className="bg-white/20 dark:bg-white/15 backdrop-blur-md text-white hover:bg-white/30 dark:hover:bg-white/25 px-10 py-5 rounded-xl font-semibold text-center transition-all hover:-translate-y-2 border border-white/30 hover:border-white/50 shadow-lg text-lg"

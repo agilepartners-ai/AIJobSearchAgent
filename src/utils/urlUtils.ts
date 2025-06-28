@@ -28,10 +28,21 @@ export const isDirectConversationAccess = (): boolean => {
   return getConversationIdFromUrl() !== null;
 };
 
-export const navigateToConversation = (conversationId: string): void => {
-  window.location.href = `/${conversationId}`;
+
+// Use React Router navigation for client-side routing
+// Pass a navigate function from useNavigate to this util when needed
+export const navigateToConversation = (conversationId: string, navigate?: (path: string) => void): void => {
+  if (navigate) {
+    navigate(`/${conversationId}`);
+  } else {
+    window.history.pushState({}, '', `/${conversationId}`);
+  }
 };
 
-export const navigateToHome = (): void => {
-  window.location.href = '/';
+export const navigateToHome = (navigate?: (path: string) => void): void => {
+  if (navigate) {
+    navigate('/');
+  } else {
+    window.history.pushState({}, '', '/');
+  }
 };

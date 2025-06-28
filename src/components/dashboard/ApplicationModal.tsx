@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { setFormData, updateFormField, resetForm } from '../../store/applicationModalSlice';
+import { openModal as openAIModal, closeModal as closeAIModal, resetState as resetAIState } from '../../store/aiEnhancementModalSlice';
 import { X, Calendar, Building, FileText, User, Link, Sparkles, MapPin } from 'lucide-react';
 import { JobApplication, ApplicationStatus, ApplicationStatusValue } from '../../types/jobApplication';
 import { UserProfileData } from '../../services/profileService';
@@ -11,51 +14,12 @@ interface ApplicationModalProps {
   onClose: () => void;
 }
 
+
 const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detailedUserProfile, onSave, onClose }) => {
-  const [formData, setFormData] = useState({
-    company_name: '',
-    position: '',
-    status: 'not_applied' as ApplicationStatusValue,
-    application_date: '',
-    location: '',
-    job_posting_url: '',
-    job_description: '',
-    notes: '',
-    resume_url: '',
-    cover_letter_url: ''
-  });
+  const dispatch = useAppDispatch();
+  const formData = useAppSelector((state) => state.applicationModal.formData);
   const [error, setError] = useState('');
   const [showAIModal, setShowAIModal] = useState(false);
-
-  useEffect(() => {
-    if (application) {
-      setFormData({
-        company_name: application.company_name,
-        position: application.position,
-        status: application.status as ApplicationStatusValue,
-        application_date: application.application_date ? application.application_date.split('T')[0] : new Date().toISOString().split('T')[0],
-        location: (application as any).location || '',
-        job_posting_url: application.job_posting_url || '',
-        job_description: application.job_description || '',
-        notes: application.notes || '',
-        resume_url: '', // Note: This field doesn't exist in Supabase schema
-        cover_letter_url: '' // Note: This field doesn't exist in Supabase schema
-      });
-    } else {
-      setFormData({
-        company_name: '',
-        position: '',
-        status: 'not_applied',
-        application_date: new Date().toISOString().split('T')[0],
-        location: '',
-        job_posting_url: '',
-        job_description: '',
-        notes: '',
-        resume_url: '',
-        cover_letter_url: ''
-      });
-    }
-  }, [application]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +31,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
     };
 
     onSave(submitData);
+    dispatch(resetForm());
   };
 
   const handleLoadAIEnhanced = () => {
@@ -74,30 +39,35 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
       setError('Please add a job description first to use AI enhancement');
       return;
     }
+    // Reset AI modal state and open it
+    dispatch(resetAIState());
+    dispatch(openAIModal({ jobDescription: formData.job_description }));
     setShowAIModal(true);
   };
 
   const handleAISave = (resumeUrl: string, coverLetterUrl: string) => {
-    setFormData(prev => ({
-      ...prev,
+    dispatch(setFormData({
+      ...formData,
       resume_url: resumeUrl,
       cover_letter_url: coverLetterUrl,
-      notes: prev.notes + (prev.notes ? '\n\n' : '') +
+      notes: formData.notes + (formData.notes ? '\n\n' : '') +
         `AI-enhanced documents generated on ${new Date().toLocaleDateString()} based on job posting analysis.`
     }));
+    dispatch(closeAIModal());
     setShowAIModal(false);
   };
 
   return (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        {/* The form will only initialize/reset when the modal is first opened, not on every prop change */}
         <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
               {application ? 'Edit Application' : 'Add New Application'}
             </h2>
             <button
-              onClick={onClose}
+              onClick={() => { clearLocalForm(); onClose(); }}
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             >
               <X size={24} />
@@ -121,7 +91,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
                   type="text"
                   required
                   value={formData.company_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, company_name: e.target.value }))}
+                  onChange={(e) => dispatch(updateFormField({ field: 'company_name', value: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   placeholder="Enter company name"
                 />
@@ -136,7 +106,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
                   type="text"
                   required
                   value={formData.position}
-                  onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+                  onChange={(e) => dispatch(updateFormField({ field: 'position', value: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   placeholder="Enter position title"
                 />
@@ -153,7 +123,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
                   type="date"
                   required
                   value={formData.application_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, application_date: e.target.value }))}
+                  onChange={(e) => dispatch(updateFormField({ field: 'application_date', value: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
@@ -166,7 +136,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
                 <input
                   type="text"
                   value={formData.location}
-                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                  onChange={(e) => dispatch(updateFormField({ field: 'location', value: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   placeholder="e.g., San Francisco, CA"
                 />
@@ -178,7 +148,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
                 </label>
                 <select
                   value={formData.status}
-                  onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as ApplicationStatusValue }))}
+                  onChange={(e) => dispatch(updateFormField({ field: 'status', value: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 >
                   {Object.values(ApplicationStatus).map(status => (
@@ -199,7 +169,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
               <input
                 type="url"
                 value={formData.job_posting_url}
-                onChange={(e) => setFormData(prev => ({ ...prev, job_posting_url: e.target.value }))}
+                onChange={(e) => dispatch(updateFormField({ field: 'job_posting_url', value: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 placeholder="https://example.com/job-posting"
               />
@@ -215,7 +185,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
               </label>
               <textarea
                 value={formData.job_description}
-                onChange={(e) => setFormData(prev => ({ ...prev, job_description: e.target.value }))}
+                onChange={(e) => dispatch(updateFormField({ field: 'job_description', value: e.target.value }))}
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 placeholder="Paste or type the job description here..."
@@ -253,7 +223,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
                 <input
                   type="url"
                   value={formData.resume_url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, resume_url: e.target.value }))}
+                  onChange={(e) => dispatch(updateFormField({ field: 'resume_url', value: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   placeholder="https://example.com/resume.pdf"
                 />
@@ -269,7 +239,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
                 <input
                   type="url"
                   value={formData.cover_letter_url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cover_letter_url: e.target.value }))}
+                  onChange={(e) => dispatch(updateFormField({ field: 'cover_letter_url', value: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   placeholder="https://example.com/cover-letter.pdf"
                 />
@@ -285,7 +255,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
               </label>
               <textarea
                 value={formData.notes}
-                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                onChange={(e) => dispatch(updateFormField({ field: 'notes', value: e.target.value }))}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 placeholder="Add any notes about this application..."
@@ -322,7 +292,10 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
           }}
           detailedUserProfile={detailedUserProfile}
           onSave={handleAISave}
-          onClose={() => setShowAIModal(false)}
+          onClose={() => {
+            dispatch(closeAIModal());
+            setShowAIModal(false);
+          }}
         />
       )}
     </>

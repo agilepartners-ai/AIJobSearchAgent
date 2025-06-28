@@ -1,4 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import {
+  setShowModal,
+  setShowJobPreferencesModal,
+  setShowJobSearchModal,
+  setShowProfileModal,
+  setEditingApplication,
+  setSearchForm,
+  setSearchResults,
+  setSearchLoading,
+  setSearchError,
+  setSelectedJobDescription
+} from '../../store/dashboardSlice';
 import { useNavigate } from 'react-router-dom';
 import DashboardHeader from './DashboardHeader';
 import StatsCards from './StatsCards';
@@ -15,26 +28,25 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToastContext } from '../ui/ToastProvider';
 
 const Dashboard: React.FC = () => {
+  const dispatch = useAppDispatch();
+  // Redux-persisted dashboard UI state
+  const showModal = useAppSelector((state) => state.dashboard.showModal);
+  const showJobPreferencesModal = useAppSelector((state) => state.dashboard.showJobPreferencesModal);
+  const showJobSearchModal = useAppSelector((state) => state.dashboard.showJobSearchModal);
+  const showProfileModal = useAppSelector((state) => state.dashboard.showProfileModal);
+  const editingApplication = useAppSelector((state) => state.dashboard.editingApplication);
+  const searchForm = useAppSelector((state) => state.dashboard.searchForm);
+  const searchResults = useAppSelector((state) => state.dashboard.searchResults);
+  const searchLoading = useAppSelector((state) => state.dashboard.searchLoading);
+  const searchError = useAppSelector((state) => state.dashboard.searchError);
+  const selectedJobDescription = useAppSelector((state) => state.dashboard.selectedJobDescription);
+  // Local state for non-UI data
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [combinedListings, setCombinedListings] = useState<JobApplication[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');  const [statusFilter, setStatusFilter] = useState<string>('all');  const [showModal, setShowModal] = useState(false);
-  const [showJobPreferencesModal, setShowJobPreferencesModal] = useState(false);
-  const [showJobSearchModal, setShowJobSearchModal] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [searchForm, setSearchForm] = useState({
-    query: '',
-    location: '',
-    experience: '',
-    employment_type: '',
-    remote_jobs_only: false,
-    date_posted: '',
-  });  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState('');
-  const [editingApplication, setEditingApplication] = useState<JobApplication | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedJobDescription, setSelectedJobDescription] = useState<{title: string, company: string, description: string} | null>(null);
   const [stats, setStats] = useState({
     total: 0,
     interviews: 0,
@@ -61,7 +73,6 @@ const Dashboard: React.FC = () => {
       const selectedJobsData = localStorage.getItem('selectedJobs');
       if (selectedJobsData) {
         const selectedJobs = JSON.parse(selectedJobsData);
-          // Convert JobResult[] to JobApplication[] format for display
         const jobApplications: JobApplication[] = selectedJobs.map((job: any, index: number) => ({
           id: `workflow-${Date.now()}-${index}`,
           user_id: user?.uid || '',
@@ -77,14 +88,13 @@ const Dashboard: React.FC = () => {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }));
-
         setCombinedListings(prev => [...prev, ...jobApplications]);
-        
-        // Clear the localStorage after loading to prevent duplicates
         localStorage.removeItem('selectedJobs');
       }
     } catch (error) {
       console.error('Error loading selected jobs from workflow:', error);
+    }
+  };
     }
   };
   // Update stats based on applications only (job listings added when user searches)
@@ -120,47 +130,49 @@ const Dashboard: React.FC = () => {
       setError(err.message || 'Failed to load applications');      console.error('Error loading applications:', err);
     } finally {
       setLoading(false);
-    }
-  };  const handleAddApplication = () => {
-    setEditingApplication(null);
-    setShowModal(true);
-  };const handleJobPreferences = () => {
-    setShowJobPreferencesModal(true);
+  const handleAddApplication = () => {
+    dispatch(setEditingApplication(null));
+    dispatch(setShowModal(true));
+  };
+  const handleJobPreferences = () => {
+    dispatch(setShowJobPreferencesModal(true));
   };
   const handleUpdateProfile = () => {
-    setShowProfileModal(true);
+    dispatch(setShowProfileModal(true));
   };
 
   const handleJobSearchFormChange = (form: any) => {
-    setSearchForm(form);
+    dispatch(setSearchForm(form));
   };
   const handleJobSearchSubmit = async () => {
     if (!user || !searchForm.query) return;
 
-    setSearchLoading(true);
-    setSearchError('');
+    dispatch(setSearchLoading(true));
+    dispatch(setSearchError(''));
 
-    try {      const jobSearchParams = {
+    try {
+      const jobSearchParams = {
         jobProfile: searchForm.query,
         experience: (searchForm.experience === 'Fresher' ? 'Fresher' : 'Experienced') as 'Fresher' | 'Experienced',
         location: searchForm.location || 'Remote',
         numPages: 1
       };
-      
+
       const results = await JobSearchService.searchJobs(jobSearchParams);
-      setSearchResults(results.jobs || []);
-      
+      dispatch(setSearchResults(results.jobs || []));
+
       if (results.jobs && results.jobs.length > 0) {
         console.log(`Found ${results.jobs.length} job opportunities!`);
       } else {
-        setSearchError('No jobs found. Try different search criteria.');
+        dispatch(setSearchError('No jobs found. Try different search criteria.'));
       }
     } catch (err: any) {
-      setSearchError(err.message || 'Failed to search for jobs');
+      dispatch(setSearchError(err.message || 'Failed to search for jobs'));
       console.error('Error searching for jobs:', err);
     } finally {
-      setSearchLoading(false);
+      dispatch(setSearchLoading(false));
     }
+  };
   };
   const handleSaveJobFromSearch = async (job: any) => {
     if (!user) {
@@ -290,8 +302,8 @@ const Dashboard: React.FC = () => {
   };
 
   const handleEditApplication = (application: JobApplication) => {
-    setEditingApplication(application);
-    setShowModal(true);
+    dispatch(setEditingApplication(application));
+    dispatch(setShowModal(true));
   };
 
   const handleSaveApplication = async (applicationData: any) => {
@@ -299,7 +311,7 @@ const Dashboard: React.FC = () => {
 
     try {
       setError('');
-      
+
       if (editingApplication) {
         await SupabaseJobApplicationService.updateApplication(editingApplication.id, applicationData);
         showSuccess('Application Updated', 'The application has been successfully updated.');
@@ -307,9 +319,10 @@ const Dashboard: React.FC = () => {
         await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
         showSuccess('Application Added', 'The application has been successfully added.');
       }
-      
-      setShowModal(false);
-      await loadApplications();    } catch (err: any) {
+
+      dispatch(setShowModal(false));
+      await loadApplications();
+    } catch (err: any) {
       setError(err.message || 'Failed to save application');
       console.error('Error saving application:', err);
       showError('Save Failed', err.message || 'Failed to save application');
@@ -374,7 +387,7 @@ const Dashboard: React.FC = () => {
   };
 
   const handleViewJobDescription = (job: { title: string; company: string; description: string }) => {
-    setSelectedJobDescription(job);
+    dispatch(setSelectedJobDescription(job));
   };
 
   if (authLoading || loading) {
@@ -390,13 +403,15 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">      <DashboardHeader
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <DashboardHeader
         userProfile={userProfile}
         onAddApplication={handleAddApplication}
         onJobPreferences={handleJobPreferences}
         onUpdateProfile={handleUpdateProfile}
         onFindMoreJobs={handleFindMoreJobs}
-      /><main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
           <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-lg mb-6">
             {error}
@@ -433,7 +448,8 @@ const Dashboard: React.FC = () => {
 
         <StatsCards stats={stats} />
 
-        <div className="space-y-8">          <ApplicationsCarousel
+        <div className="space-y-8">
+          <ApplicationsCarousel
             applications={[...applications, ...combinedListings]}
             searchTerm={searchTerm}
             statusFilter={statusFilter}
@@ -445,37 +461,40 @@ const Dashboard: React.FC = () => {
             onUpdateApplicationStatus={handleUpdateApplicationStatus}
           />
         </div>
-      </main>{/* Modals */}
+      </main>
+      {/* Modals */}
       <JobDescriptionModal
         isOpen={!!selectedJobDescription}
         jobDescription={selectedJobDescription}
-        onClose={() => setSelectedJobDescription(null)}
+        onClose={() => dispatch(setSelectedJobDescription(null))}
       />
 
       {showModal && (
         <ApplicationModal
           application={editingApplication}
           onSave={handleSaveApplication}
-          onClose={() => setShowModal(false)}
+          onClose={() => dispatch(setShowModal(false))}
         />
-      )}      {showJobPreferencesModal && (
+      )}
+      {showJobPreferencesModal && (
         <JobPreferencesModal
-          onClose={() => setShowJobPreferencesModal(false)}
+          onClose={() => dispatch(setShowJobPreferencesModal(false))}
         />
       )}
 
       {showProfileModal && (
         <ProfileModal
-          onClose={() => setShowProfileModal(false)}
+          onClose={() => dispatch(setShowProfileModal(false))}
         />
-      )}      {showJobSearchModal && (
+      )}
+      {showJobSearchModal && (
         <JobSearchModal
           isOpen={showJobSearchModal}
           searchForm={searchForm}
           searchResults={searchResults}
           searchLoading={searchLoading}
           searchError={searchError}
-          onClose={() => setShowJobSearchModal(false)}
+          onClose={() => dispatch(setShowJobSearchModal(false))}
           onFormChange={handleJobSearchFormChange}
           onSearch={handleJobSearchSubmit}
           onSaveJob={handleSaveJobFromSearch}

@@ -12,6 +12,7 @@
   "dependencies": {
     "@daily-co/daily-js": "^0.57.0",
     "@daily-co/daily-react": "^0.15.0",
+    "@reduxjs/toolkit": "^2.8.2",
     "@supabase/supabase-js": "^2.50.1",
     "@types/three": "^0.177.0",
     "class-variance-authority": "^0.7.0",
@@ -26,7 +27,9 @@
     "pdfjs-dist": "^3.11.174",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-redux": "^9.2.0",
     "react-router-dom": "^6.22.2",
+    "redux-persist": "^6.0.0",
     "tailwind-merge": "^2.2.1",
     "three": "^0.177.0",
     "zod": "^3.22.4"
