@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import ProfileForm, { ProfileData } from '../forms/ProfileFormNew';
@@ -432,8 +432,20 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
 
   // Show the profile form directly
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      onClick={(e) => {
+        // This prevents the modal from closing when clicking on the backdrop
+        e.stopPropagation();
+      }}
+    >
+      <div 
+        className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+        onClick={(e) => {
+          // This prevents clicks inside the modal from propagating to the backdrop
+          e.stopPropagation();
+        }}
+      >
         <div className="p-6">
           {/* Error Message in Edit Modal */}
           {error && (
