@@ -6,9 +6,10 @@ interface TeamMemberProps {
   name: string;
   role: string;
   linkedin: string;
+  mail: string;
 }
 
-const TeamMember: React.FC<TeamMemberProps> = ({ image, name, role, linkedin }) => {
+const TeamMember: React.FC<TeamMemberProps> = ({ image, name, role, linkedin, mail }) => {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all group px-4 py-6 sm:p-6">
       <div className="flex flex-col items-center text-center">
@@ -30,7 +31,7 @@ const TeamMember: React.FC<TeamMemberProps> = ({ image, name, role, linkedin }) 
             <Linkedin size={16} />
           </a>
           <a 
-            href="#" 
+            href={mail} 
             className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             aria-label="Email"
           >
@@ -51,73 +52,85 @@ const Team: React.FC = () => {
       image: "https://drive.google.com/thumbnail?id=1vu-VaTML_UREGBrcNaLNVC6MW3PbkNwV",
       name: "Alex Aggarwal",
       role: "CEO & Co-Founder",
-      linkedin: "https://www.linkedin.com/in/alexaggarwal/"
+      linkedin: "https://www.linkedin.com/in/alexaggarwal/",
+      mail: "mailto: alex@agilepartnersinc.com"
     },
     {
       image: "https://drive.google.com/thumbnail?id=18EP-eQovSW7pduE7mSaERO213hobW63U",
       name: "Rahul Chandai",
       role: "AI Strategist & Co-Founder",
-      linkedin: "https://www.linkedin.com/in/rchandai/"
+      linkedin: "https://www.linkedin.com/in/rchandai/",
+      mail: "#"
     },
     {
       image: "https://drive.google.com/thumbnail?id=1FwU4tdaQKljzIjkeFKZnlMouqiTcinJx",
       name: "Mona Aggarwal",
       role: "AI Product Manager & Co-Founder",
-      linkedin: "https://www.linkedin.com/in/mona-aggarwal-a81b25a/"
+      linkedin: "https://www.linkedin.com/in/mona-aggarwal-a81b25a/",
+      mail : "mailto: monaaggarwal@gmail.com"
     },
     {
       image: "https://drive.google.com/thumbnail?id=1vDtI7L9KvUsEHgcdFyz8miFQrPB3LNPk",
       name: "Vandana Pawar",
       role: "AI Process and Cyber Security Manager",
-      linkedin: "https://www.linkedin.com/in/vandana-pawar"
+      linkedin: "https://www.linkedin.com/in/vandana-pawar",
+      mail: "mailto: vandana.pawar16@yahoo.ca"
     },
     {
       image: "https://drive.google.com/thumbnail?id=1tq4tc35fh_gUxIS9O1--2k06uE_8mBTq",
       name: "Dawood Wasif",
       role: "AI SME & Development Manager",
-      linkedin: "https://www.linkedin.com/in/dwasif/"
+      linkedin: "https://www.linkedin.com/in/dwasif/",
+      mail: "#"
     },
     {
       image: "https://drive.google.com/thumbnail?id=1oda0llnHkikvQAF7nKY7Xnk3sNTecV2t",
       name: "Tejas Bachhav",
       role: "DevOps & Infrastructure Manager",
-      linkedin: "https://www.linkedin.com/in/tejasbachhav/"
+      linkedin: "https://www.linkedin.com/in/tejasbachhav/",
+      mail: "mailto: tejasbachhav98@gmail.com"
     },
     {
       image: "https://drive.google.com/thumbnail?id=1aW8o1PupeEgLEYDqJr-wmyktT4WCyhew",
       name: "Darcy Liu",
       role: "AI SME & Lead Developer",
-      linkedin: "https://www.linkedin.com/in/codejediatuw/"
+      linkedin: "https://www.linkedin.com/in/codejediatuw/",
+      mail: "mailto: darcy.ldx@gmail.com"
     },
     {
       image: "https://drive.google.com/thumbnail?id=1j3x3M5xMwVpQZ5KXrXHD2awdAGBRAYU2",
       name: "Yatharath Chopra",
       role: "AI Lead Developer",
-      linkedin: "https://www.linkedin.com/in/yatharth-chopra--/"
+      linkedin: "https://www.linkedin.com/in/yatharth-chopra--/",
+      mail: "mailto: yc9891966@gmail.com"
     },
     {
       image: "https://drive.google.com/thumbnail?id=1HOZ6jypOi_9ORPqM0LHZNOePPRgN7IJL",
       name: "Vernessa Oraegbu",
       role: "Digital Marketing Manager",
-      linkedin: "https://www.linkedin.com/in/vernessa-oraegbu/"
+      linkedin: "https://www.linkedin.com/in/vernessa-oraegbu/",
+      mail: "mailto: v.oraegbu01@gmail.com"
     },
     {
       image: "https://drive.google.com/thumbnail?id=1Nh11K1mpTnYTU7yVLemomEcomx-5Mufd",
       name: "Medhat Mikhail",
       role: "UX/UI Lead Designer",
-      linkedin: "https://www.linkedin.com/in/medhat-mikhail-7886391a4/"
+      linkedin: "https://www.linkedin.com/in/medhat-mikhail-7886391a4/",
+      mail: "mailto: medhat.mikhail10@gmail.com"
     },
     {
       image: "https://drive.google.com/thumbnail?id=1ScTXmo95xMRJn-8FJsiNWalxAoFNSviW",
       name: "Harkeerat Mauder",
       role: "AI Full Stack Developer",
-      linkedin: "http://www.linkedin.com/in/harkeerat-mander"
+      linkedin: "http://www.linkedin.com/in/harkeerat-mander",
+      mail: "#"
     },
     {
       image: "https://drive.google.com/thumbnail?id=1Oh_uloq3B9DiUWLkxQ62_sxcymIRx-NL",
       name: "Nidhi Bajoria",
       role: "Co-op Student",
-      linkedin: "#"
+      linkedin: "#",
+      mail: "#"
     }
   ];
 
@@ -226,6 +239,7 @@ const Team: React.FC = () => {
                       name={member.name}
                       role={member.role}
                       linkedin={member.linkedin}
+                      mail={member.mail}
                     />
                   </div>
                 ))}
