@@ -231,7 +231,7 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
           </span>
         )}
         <div className="text-blue-600 dark:text-blue-400">
-          {expandedSections.has(id) ? <Minus size={20} /> : <Plus size={20} />}
+          {expandedSections.includes(id) ? <Minus size={20} /> : <Plus size={20} />}
         </div>
       </div>
     </div>
@@ -359,7 +359,7 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
               title="Personal Information"
               status="required"
             />
-            {expandedSections.has('personal') && (
+            {expandedSections.includes('personal') && (
               <div className="p-6">
                 <FormGrid>
                   <FormField label="Full Name" required>
@@ -423,7 +423,7 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
               title="Education"
               onAdd={() => addEntry('education')}
             />
-            {expandedSections.has('education') && (
+            {expandedSections.includes('education') && (
               <div className="p-6 space-y-6">
                 {formData.education?.map((edu: any, index: number) => (
                   <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
@@ -508,7 +508,7 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
               title="Work Experience"
               onAdd={() => addEntry('experience')}
             />
-            {expandedSections.has('experience') && (
+            {expandedSections.includes('experience') && (
               <div className="p-6 space-y-6">
                 {formData.experience?.map((exp: any, index: number) => (
                   <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
@@ -587,7 +587,7 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
               title="Skills"
               status="recommended"
             />
-            {expandedSections.has('skills') && (
+            {expandedSections.includes('skills') && (
               <div className="p-6">
                 <FormField label="Skills (comma-separated)">
                   <TextArea
@@ -613,7 +613,7 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
               status="optional"
               onAdd={() => addEntry('projects')}
             />
-            {expandedSections.has('projects') && (
+            {expandedSections.includes('projects') && (
               <div className="p-6 space-y-6">
                 {formData.projects?.map((project: any, index: number) => (
                   <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
@@ -676,7 +676,7 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
               title="Template & Format"
               status="required"
             />
-            {expandedSections.has('template') && (
+            {expandedSections.includes('template') && (
               <div className="p-6 space-y-6">
                 {/* Format Selection */}
                 <div>
