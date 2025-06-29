@@ -475,41 +475,6 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           )}
 
 
-          {/* API Configuration Status */}
-          <div className={`border rounded-lg p-4 ${config.hasApiKey
-              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700'
-              : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700'
-            }`}>
-            <div className="flex items-start gap-3">
-              <Settings className={`mt-0.5 ${config.hasApiKey
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-red-600 dark:text-red-400'
-                }`} size={16} />
-              <div>
-                <h4 className={`text-sm font-medium ${config.hasApiKey
-                    ? 'text-green-800 dark:text-green-200'
-                    : 'text-red-800 dark:text-red-200'
-                  }`}>
-                  AI Analysis Configuration {config.hasApiKey ? 'Ready' : 'Required'}
-                </h4>
-                <div className={`text-sm mt-1 ${config.hasApiKey
-                    ? 'text-green-700 dark:text-green-300'
-                    : 'text-red-700 dark:text-red-300'
-                  }`}>
-                  <p>API Endpoint: <code className="bg-black/10 px-1 rounded">{config.apiBaseUrl}</code></p>
-                  <p>Model: <code className="bg-black/10 px-1 rounded">{config.defaultModel}</code></p>
-                  <p>API Key: {config.hasApiKey ? '✓ Configured' : '✗ Missing VITE_OPENAI_API_KEY'}</p>
-                  <p className="text-xs mt-1">
-                    {config.hasApiKey
-                      ? 'Ready for resume extraction, AI enhancement, and PDF generation'
-                      : 'All features require API configuration'
-                    }
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Job Description - First Field */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
