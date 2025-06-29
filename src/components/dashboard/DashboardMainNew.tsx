@@ -99,12 +99,12 @@ const Dashboard: React.FC = () => {
   // Debug logging for user and profile data
   useEffect(() => {
     console.log('Full user profile data:', userProfile);
-    console.log('Current user ID:', user?.id);
+    console.log('Current user UID:', user?.uid);
     
     if (user) {
       // Log the Supabase query that would be executed
       console.log('Supabase query that would be executed:');
-      console.log(`SELECT * FROM profiles WHERE id = '${user.id}' LIMIT 1`);
+      console.log(`SELECT * FROM profiles WHERE id = '${user.uid}' LIMIT 1`);
     }
     
     // Log user object for debugging
@@ -129,11 +129,11 @@ const Dashboard: React.FC = () => {
       setLoading(true);
       setError('');
 
-      console.log('Loading applications for user ID:', user.id);
+      console.log('Loading applications for user UID:', user.uid);
 
       const [applicationsData, statsData] = await Promise.all([
-        SupabaseJobApplicationService.getUserApplications(user.id),
-        SupabaseJobApplicationService.getApplicationStats(user.id)
+        SupabaseJobApplicationService.getUserApplications(user.uid),
+        SupabaseJobApplicationService.getApplicationStats(user.uid)
       ]);
       
       console.log('Applications loaded:', applicationsData);
@@ -248,7 +248,7 @@ const Dashboard: React.FC = () => {
                `Employment Type: ${job.job_employment_type || 'Not specified'}`,
       };
       
-      const newApplication = await SupabaseJobApplicationService.addApplication(user.id, applicationData);
+      const newApplication = await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
       // Update local state instead of reloading all data
       setApplications(prev => [newApplication, ...prev]);
       setStats(prev => ({ 
@@ -297,7 +297,7 @@ const Dashboard: React.FC = () => {
                    `Location: ${job.job_city && job.job_state ? `${job.job_city}, ${job.job_state}` : job.job_country || 'Not specified'}${job.job_is_remote ? ' (Remote)' : ''}`,
           };
           
-          const newApplication = await SupabaseJobApplicationService.addApplication(user.id, applicationData);
+          const newApplication = await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
           savedApplications.push(newApplication);
           savedCount++;
         } catch (error) {
@@ -351,7 +351,7 @@ const Dashboard: React.FC = () => {
         showSuccess('Application Updated', 'The application has been successfully updated.');
       } else {
         // Add new application
-        const newApplication = await SupabaseJobApplicationService.addApplication(user.id, applicationData);
+        const newApplication = await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
         
         // Update local state instead of reloading all data
         setApplications(prev => [newApplication, ...prev]);
