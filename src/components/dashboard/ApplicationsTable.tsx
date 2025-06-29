@@ -265,7 +265,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                           {application.job_posting_url && application.status === 'not_applied' && (
                             <button
                               onClick={() => handleQuickApply(application)}
-                              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md"
+                              className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md"
                             >
                               <ExternalLink size={14} className="mr-2" />
                               Apply Now
@@ -275,7 +275,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                           {application.job_posting_url && application.status !== 'not_applied' && (
                             <button
                               onClick={() => window.open(application.job_posting_url || '', '_blank')}
-                              className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md"
+                              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md"
                             >
                               <ExternalLink size={14} className="mr-2" />
                               View Job
@@ -286,7 +286,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                           {application.job_description && onStartInterview && (
                             <button
                               onClick={() => onStartInterview(application)}
-                              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md mt-2"
+                              className="w-full bg-gradient-to-r from-fuchsia-500 to-pink-500 hover:from-fuchsia-600 hover:to-pink-600 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md mt-2"
                             >
                               <Video size={14} className="mr-2" />
                               Practice Interview
@@ -296,7 +296,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                           {onLoadAIEnhanced && (
                             <button
                               onClick={() => onLoadAIEnhanced(application)}
-                              className="w-full bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md mt-2"
+                              className="w-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md mt-2"
                             >
                               <Sparkles size={14} className="mr-2" />
                               AI Resume & Cover Letter
@@ -308,7 +308,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                         <div className="flex justify-center space-x-2 pt-2">
                           <button
                             onClick={() => onEditApplication(application)}
-                            className="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                            className="p-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
                             title="Edit Application"
                           >
                             <Edit3 size={16} />
@@ -321,7 +321,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                                 company: application.company_name,
                                 description: application.job_description || ''
                               })}
-                              className="p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                              className="p-2 text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
                               title="View Job Description"
                             >
                               <Eye size={16} />
@@ -330,7 +330,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                           
                           <button
                             onClick={() => onDeleteApplication(application.id)}
-                            className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            className="p-2 text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
                             title="Delete Application"
                           >
                             <Trash2 size={16} />
@@ -435,7 +435,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                       <div className="flex space-x-2">
                         <button
                           onClick={() => onEditApplication(application)}
-                          className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
+                          className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
                           title="Edit application"
                         >
                           <Edit3 size={16} />
@@ -448,7 +448,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                               company: application.company_name,
                               description: application.job_description || ''
                             })}
-                            className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300"
+                            className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 p-1 rounded hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
                             title="View job description"
                           >
                             <Eye size={16} />
@@ -458,7 +458,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                         {onStartInterview && application.job_description && (
                           <button
                             onClick={() => onStartInterview(application)}
-                            className="text-purple-600 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300"
+                            className="text-fuchsia-600 dark:text-fuchsia-400 hover:text-fuchsia-800 dark:hover:text-fuchsia-300 p-1 rounded hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-colors"
                             title="Practice interview"
                           >
                             <Video size={16} />
@@ -468,7 +468,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                         {onLoadAIEnhanced && (
                           <button
                             onClick={() => onLoadAIEnhanced(application)}
-                            className="text-violet-600 dark:text-violet-400 hover:text-violet-900 dark:hover:text-violet-300"
+                            className="text-violet-600 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 p-1 rounded hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
                             title="AI Resume & Cover Letter"
                           >
                             <Sparkles size={16} />
@@ -477,7 +477,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                         
                         <button
                           onClick={() => onDeleteApplication(application.id)}
-                          className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
+                          className="text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
                           title="Delete application"
                         >
                           <Trash2 size={16} />
