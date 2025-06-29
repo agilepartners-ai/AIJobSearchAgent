@@ -69,6 +69,7 @@ const Dashboard: React.FC = () => {
       localStorage.removeItem('dashboard-application-modal');
     }
   }, [showModal, editingApplication]);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedJobDescription, setSelectedJobDescription] = useState<{title: string, company: string, description: string} | null>(null);
@@ -95,6 +96,21 @@ const Dashboard: React.FC = () => {
   const { showSuccess, showError } = useToastContext();
   const navigate = useNavigate();
 
+  // Debug logging for user and profile data
+  useEffect(() => {
+    console.log('Full user profile data:', userProfile);
+    console.log('Current user UID:', user?.uid);
+    
+    if (user) {
+      // Log the Supabase query that would be executed
+      console.log('Supabase query that would be executed:');
+      console.log(`SELECT * FROM profiles WHERE id = '${user.uid}' LIMIT 1`);
+    }
+    
+    // Log user object for debugging
+    console.log('Auth user object:', user);
+  }, [userProfile, user]);
+
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/login');
@@ -113,20 +129,26 @@ const Dashboard: React.FC = () => {
       setLoading(true);
       setError('');
 
+      console.log('Loading applications for user UID:', user.uid);
+
       const [applicationsData, statsData] = await Promise.all([
         SupabaseJobApplicationService.getUserApplications(user.uid),
         SupabaseJobApplicationService.getApplicationStats(user.uid)
       ]);
       
+      console.log('Applications loaded:', applicationsData);
+      console.log('Stats loaded:', statsData);
+      
       setApplications(applicationsData);
       setStats(statsData);
     } catch (err: any) {
-      setError(err.message || 'Failed to load applications');
       console.error('Error loading applications:', err);
+      setError(err.message || 'Failed to load applications');
     } finally {
       setLoading(false);
     }
   };
+  
   const handleAddApplication = () => {
     setEditingApplication(null);
     setShowModal(true);
@@ -139,13 +161,16 @@ const Dashboard: React.FC = () => {
   const handleJobPreferences = () => {
     setShowJobPreferencesModal(true);
   };
+  
   const handleUpdateProfile = () => {
     setShowProfileModal(true);
   };
 
   const handleSearchFormChange = (form: any) => {
     setSearchForm(form);
-  };  const handleSearch = async () => {
+  };
+  
+  const handleSearch = async () => {
     if (!user) {
       setSearchError('Please log in to search for jobs');
       return;
@@ -198,7 +223,9 @@ const Dashboard: React.FC = () => {
     });
     setSearchResults([]);
     setSearchError('');
-  };  const handleSaveJobFromSearch = async (job: any) => {
+  };
+  
+  const handleSaveJobFromSearch = async (job: any) => {
     if (!user) {
       console.error('User not authenticated');
       showError('Authentication Required', 'Please log in to save jobs.');
@@ -240,7 +267,9 @@ const Dashboard: React.FC = () => {
       console.error('Error saving job from search:', err);
       showError('Failed to Save Job', errorMessage);
     }
-  };  const handleSaveMultipleJobsFromSearch = async (jobs: any[]) => {
+  };
+  
+  const handleSaveMultipleJobsFromSearch = async (jobs: any[]) => {
     if (!user) {
       console.error('User not authenticated');
       showError('Authentication Required', 'Please log in to save jobs.');
@@ -373,6 +402,7 @@ const Dashboard: React.FC = () => {
       setConfirmationModal(prev => ({ ...prev, isOpen: false }));
     }
   };
+  
   const handleViewJobDescription = (job: { title: string; company: string; description: string }) => {
     setSelectedJobDescription(job);
   };
@@ -496,7 +526,10 @@ const Dashboard: React.FC = () => {
             />
           </div>
         </div>
-      </main>      {/* Modals */}      <JobSearchModal
+      </main>
+      
+      {/* Modals */}
+      <JobSearchModal
         isOpen={showJobSearchModal}
         searchForm={searchForm}
         searchResults={searchResults}

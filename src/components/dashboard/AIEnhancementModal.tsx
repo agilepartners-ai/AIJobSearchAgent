@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Upload, FileText, Sparkles, Cloud, HardDrive, AlertCircle, CheckCircle, Settings } from 'lucide-react';
+import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain, Settings, Upload, HardDrive, Cloud } from 'lucide-react';
 import OptimizationResults from './OptimizationResults';
 import { ResumeExtractionService } from '../../services/resumeExtractionService';
 import { AIEnhancementService } from '../../services/aiEnhancementService';
@@ -67,8 +67,23 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     if (jobDescription && jobDescription !== persistedJobDescription) {
       dispatch({ type: 'aiEnhancementModal/openModal', payload: { jobDescription } });
     }
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobDescription]);
+
+  // Debug logging for profile data
+  useEffect(() => {
+    console.log('Full user profile data:', detailedUserProfile);
+    console.log('Current user ID:', user?.id);
+    
+    if (user) {
+      // Log the Supabase query that would be executed
+      console.log('Supabase query that would be executed:');
+      console.log(`SELECT * FROM profiles WHERE id = '${user.id}' LIMIT 1`);
+    }
+    
+    // Log user object for debugging
+    console.log('Auth user object:', user);
+  }, [detailedUserProfile, user]);
 
   // File select handler: reads file as base64 and stores meta/content in Redux
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,25 +146,25 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     }
 
     if (!jobDescription.trim()) {
-      setError('Job description is required for AI enhancement');
+      dispatch(setError('Job description is required for AI enhancement'));
       return;
     }
 
     // Check API configuration
     if (!config.hasApiKey) {
-      setError('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.');
+      dispatch(setError('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.'));
       return;
     }
 
     // Validate enhancement request
     const validation = AIEnhancementService.validateEnhancementRequest(jobDescription);
     if (!validation.isValid) {
-      setError(validation.error || 'Invalid request');
+      dispatch(setError(validation.error || 'Invalid request'));
       return;
     }
 
     setLoading(true);
-    setError('');
+    dispatch(setError(''));
     setExtractionProgress('');
 
     try {
@@ -362,24 +377,23 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       if (optimizationResults.detailedUserProfile) {
         console.log('- Profile name:', optimizationResults.detailedUserProfile.fullName);
         console.log('- Profile phone:', optimizationResults.detailedUserProfile.contactNumber);
-        console.log('- Profile address components:', {
-          street: optimizationResults.detailedUserProfile.streetAddress,
-          city: optimizationResults.detailedUserProfile.city,
-          state: optimizationResults.detailedUserProfile.state,
-          zip: optimizationResults.detailedUserProfile.zipCode
-        });
+        console.log('- Profile address:', optimizationResults.detailedUserProfile.streetAddress);
+        console.log('- Profile LinkedIn:', optimizationResults.detailedUserProfile.linkedin_url);
       }
 
-      setOptimizationResults(optimizationResults);
-      setShowResults(true);
+      dispatch(setOptimizationResults(optimizationResults));
+      dispatch(setShowResults(true));
 
     } catch (err: any) {
       console.error('AI Enhancement Error:', err);
 
-      // Provide user-friendly error messages
+      // Provide user-friendly error messages with improved HTTP 500 handling
       let userMessage = err.message;
 
-      if (err.message.includes('Failed to fetch') || err.message.includes('network')) {
+      // Handle HTTP 500 errors specifically
+      if (err.message.includes('HTTP error! status: 500') || err.message.includes('status: 500')) {
+        userMessage = 'The AI service is experiencing temporary issues on the server side. This is usually resolved quickly. Please try again in a few moments, or contact support if the problem persists.';
+      } else if (err.message.includes('Failed to fetch') || err.message.includes('network')) {
         userMessage = 'Unable to connect to the AI service. Please check your internet connection and try again.';
       } else if (err.message.includes('timeout') || err.message.includes('timed out')) {
         userMessage = 'The AI processing is taking longer than expected. Please try again with a smaller file or try again later.';
@@ -389,7 +403,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         userMessage = 'The AI service is temporarily unavailable. Please try again in a few minutes or contact support if the issue persists.';
       }
 
-      setError(userMessage);
+      dispatch(setError(userMessage));
     } finally {
       setLoading(false);
       setExtractionProgress('');
@@ -397,7 +411,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   };
 
   const handleResultsClose = () => {
-    setShowResults(false);
+    dispatch(setShowResults(false));
     // Save the URLs to the parent component
     if (optimizationResults) {
       onSave(optimizationResults.optimizedResumeUrl, optimizationResults.optimizedCoverLetterUrl);
@@ -420,7 +434,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <Sparkles className="text-white" size={20} />
+              <Brain className="text-white" size={20} />
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -460,66 +474,6 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
             </div>
           )}
 
-          {/* Profile Data Debug Info */}
-          {detailedUserProfile && (
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <CheckCircle className="text-green-600 dark:text-green-400 mt-0.5" size={16} />
-                <div>
-                  <h4 className="text-sm font-medium text-green-800 dark:text-green-200">
-                    ✅ Profile Data Loaded for Cover Letter
-                  </h4>
-                  <div className="text-sm mt-1 text-green-700 dark:text-green-300">
-                    <p><strong>Name:</strong> {detailedUserProfile.fullName || '❌ Not set'}</p>
-                    <p><strong>Phone:</strong> {detailedUserProfile.contactNumber || '❌ Not set'}</p>
-                    <p><strong>Email:</strong> {user?.email || '❌ Not set'}</p>
-                    <p><strong>Address:</strong> {[
-                      detailedUserProfile.streetAddress,
-                      detailedUserProfile.city,
-                      detailedUserProfile.state,
-                      detailedUserProfile.zipCode
-                    ].filter(Boolean).join(', ') || '❌ Not set'}</p>
-                    <p><strong>LinkedIn:</strong> {detailedUserProfile.linkedin_url || '❌ Not set'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* API Configuration Status */}
-          <div className={`border rounded-lg p-4 ${config.hasApiKey
-              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700'
-              : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700'
-            }`}>
-            <div className="flex items-start gap-3">
-              <Settings className={`mt-0.5 ${config.hasApiKey
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-red-600 dark:text-red-400'
-                }`} size={16} />
-              <div>
-                <h4 className={`text-sm font-medium ${config.hasApiKey
-                    ? 'text-green-800 dark:text-green-200'
-                    : 'text-red-800 dark:text-red-200'
-                  }`}>
-                  AI Analysis Configuration {config.hasApiKey ? 'Ready' : 'Required'}
-                </h4>
-                <div className={`text-sm mt-1 ${config.hasApiKey
-                    ? 'text-green-700 dark:text-green-300'
-                    : 'text-red-700 dark:text-red-300'
-                  }`}>
-                  <p>API Endpoint: <code className="bg-black/10 px-1 rounded">{config.apiBaseUrl}</code></p>
-                  <p>Model: <code className="bg-black/10 px-1 rounded">{config.defaultModel}</code></p>
-                  <p>API Key: {config.hasApiKey ? '✓ Configured' : '✗ Missing VITE_OPENAI_API_KEY'}</p>
-                  <p className="text-xs mt-1">
-                    {config.hasApiKey
-                      ? 'Ready for resume extraction, AI enhancement, and PDF generation'
-                      : 'All features require API configuration'
-                    }
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Job Description - First Field */}
           <div>
@@ -669,7 +623,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                 </>
               ) : (
                 <>
-                  <Sparkles size={20} />
+                  <Brain size={20} />
                   Generate using AI - Resume & Cover Letter
                 </>
               )}

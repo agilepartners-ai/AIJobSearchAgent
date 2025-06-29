@@ -88,8 +88,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 xl:px-4 xl:py-2 rounded-lg flex items-center gap-2 transition-all text-sm font-medium"
             >
               <Plus size={18} />
-              <span className="hidden xl:inline">Manual Application</span>
-              <span className="xl:hidden">Add App</span>
+              <span className="hidden xl:inline">Manual Job Entry</span>
+              <span className="xl:hidden">Add Job</span>
             </button>
             
             {/* Desktop Profile Dropdown */}
@@ -176,7 +176,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all text-sm font-medium"
               >
                 <Plus size={18} />
-                Manual Application
+                Manual Job Entry
               </button>
 
               <div className="pt-2 border-t border-gray-200 dark:border-gray-600 space-y-1">

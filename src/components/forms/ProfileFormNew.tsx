@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   User, MapPin, Briefcase, ChevronDown, X, Phone, Mail, 
   Globe, DollarSign, Clock, Shield, UserCheck, ExternalLink,
@@ -77,6 +77,19 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   isLoading = false, 
   initialData = {} 
 }) => {
+  // Create a ref to track if the component is mounted
+  const isMounted = useRef(true);
+  const formContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Track if form has been initialized with data
+  const [formInitialized, setFormInitialized] = useState(false);
+  
+  // Store form data for each section to prevent loss when navigating
+  const [sectionData, setSectionData] = useState<Record<number, Partial<ProfileData>>>({});
+  
+  // Track if form is being submitted to prevent auto-closing
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [formData, setFormData] = useState<ProfileData>({
     // Basic Information
     fullName: initialData.fullName || '',
@@ -88,13 +101,17 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     currentJobTitle: initialData.currentJobTitle || '',
     jobProfile: initialData.jobProfile || '',
     experience: initialData.experience || 'Fresher',
-    workExperience: initialData.workExperience || [{ jobTitle: '', company: '', duration: '' }],
+    workExperience: initialData.workExperience && initialData.workExperience.length > 0 
+      ? JSON.parse(JSON.stringify(initialData.workExperience)) 
+      : [{ jobTitle: '', company: '', duration: '' }],
     
     // Education
-    education: initialData.education || [{ degree: '', institution: '', graduationYear: '' }],
+    education: initialData.education && initialData.education.length > 0 
+      ? JSON.parse(JSON.stringify(initialData.education)) 
+      : [{ degree: '', institution: '', graduationYear: '' }],
     
     // Skills and Preferences
-    skills: initialData.skills || [],
+    skills: Array.isArray(initialData.skills) ? [...initialData.skills] : [],
     expectedSalary: initialData.expectedSalary || '',
     currentCTC: initialData.currentCTC || '',
     
@@ -118,6 +135,77 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   const [skillInput, setSkillInput] = useState('');
   const [currentSection, setCurrentSection] = useState(0);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  // Initialize form data with initialData when it changes
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0 && !formInitialized) {
+      console.log('📋 Initializing form with data:', initialData);
+      
+      // Create a new form data object with initialData values or defaults
+      const newFormData: ProfileData = {
+        // Basic Information
+        fullName: initialData.fullName || '',
+        email: initialData.email || '',
+        phone: initialData.phone || '',
+        location: initialData.location || '',
+        
+        // Job Information
+        currentJobTitle: initialData.currentJobTitle || '',
+        jobProfile: initialData.jobProfile || '',
+        experience: initialData.experience || 'Fresher',
+        workExperience: initialData.workExperience && initialData.workExperience.length > 0 
+          ? JSON.parse(JSON.stringify(initialData.workExperience))
+          : [{ jobTitle: '', company: '', duration: '' }],
+        
+        // Education
+        education: initialData.education && initialData.education.length > 0 
+          ? JSON.parse(JSON.stringify(initialData.education))
+          : [{ degree: '', institution: '', graduationYear: '' }],
+        
+        // Skills and Preferences
+        skills: Array.isArray(initialData.skills) ? [...initialData.skills] : [],
+        expectedSalary: initialData.expectedSalary || '',
+        currentCTC: initialData.currentCTC || '',
+        
+        // Job Search Preferences
+        employmentType: initialData.employmentType || '',
+        remoteJobsOnly: initialData.remoteJobsOnly || false,
+        datePosted: initialData.datePosted || '',
+        
+        // Work Authorization
+        willingnessToRelocate: initialData.willingnessToRelocate || false,
+        workAuthorization: initialData.workAuthorization || '',
+        noticePeriod: initialData.noticePeriod || '',
+        availability: initialData.availability || '',
+        
+        // References and Social Links
+        references: initialData.references || '',
+        socialLinks: initialData.socialLinks || {}
+      };
+      
+      setFormData(newFormData);
+      
+      // Initialize section data with the form data
+      setSectionData({
+        0: { ...newFormData },
+        1: { ...newFormData },
+        2: { ...newFormData },
+        3: { ...newFormData },
+        4: { ...newFormData },
+        5: { ...newFormData }
+      });
+      
+      setFormInitialized(true);
+      console.log('✅ Form initialized with data');
+    }
+  }, [initialData, formInitialized]);
+
   // Load job search criteria from localStorage if available
   useEffect(() => {
     const jobSearchCriteria = localStorage.getItem('jobSearchCriteria');
@@ -139,6 +227,25 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       }
     }
   }, []);
+
+  // Prevent scrolling when on the last section
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (currentSection === 5) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    const formContainer = formContainerRef.current;
+    if (formContainer && currentSection === 5) {
+      formContainer.addEventListener('wheel', handleWheel, { passive: false });
+      
+      return () => {
+        formContainer.removeEventListener('wheel', handleWheel);
+      };
+    }
+  }, [currentSection]);
 
   const jobProfiles = JobSearchService.getCommonJobProfiles();
   const locations = JobSearchService.getPopularLocations();
@@ -169,11 +276,6 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       newErrors.location = 'Location is required';
       console.log('❌ location validation failed:', formData.location);
     }
-    // Make currentJobTitle optional by commenting out this validation
-    // if (!formData.currentJobTitle.trim()) {
-    //   newErrors.currentJobTitle = 'Current job title is required';
-    //   console.log('❌ currentJobTitle validation failed:', formData.currentJobTitle);
-    // }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -196,6 +298,10 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     console.log('🔥 Submit timestamp:', new Date().toISOString());
     
     e.preventDefault();
+    e.stopPropagation(); // Prevent event from bubbling up
+    
+    // Set submitting state to prevent auto-closing
+    setIsSubmitting(true);
     
     console.log('🔥 Running form validation...');
     if (validateForm()) {
@@ -207,11 +313,23 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       console.log('🔥 Validation failed!');
       console.log('🔥 Validation errors:', errors);
       console.log('🔥 Form data that failed validation:', formData);
+      // Reset submitting state if validation fails
+      setIsSubmitting(false);
     }
   };
 
   const handleInputChange = (field: keyof ProfileData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Update section data for the current section
+    setSectionData(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        [field]: value
+      }
+    }));
+    
     // Clear error when user starts typing
     if (errors[field]) {
       const newErrors = { ...errors };
@@ -221,87 +339,233 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   };
 
   const addWorkExperience = () => {
+    const newWorkExperience = [...formData.workExperience, { jobTitle: '', company: '', duration: '' }];
     setFormData(prev => ({
       ...prev,
-      workExperience: [...prev.workExperience, { jobTitle: '', company: '', duration: '' }]
+      workExperience: newWorkExperience
+    }));
+    
+    // Update section data
+    setSectionData(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        workExperience: newWorkExperience
+      }
     }));
   };
 
   const removeWorkExperience = (index: number) => {
+    const newWorkExperience = formData.workExperience.filter((_, i) => i !== index);
     setFormData(prev => ({
       ...prev,
-      workExperience: prev.workExperience.filter((_, i) => i !== index)
+      workExperience: newWorkExperience
+    }));
+    
+    // Update section data
+    setSectionData(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        workExperience: newWorkExperience
+      }
     }));
   };
 
   const updateWorkExperience = (index: number, field: keyof WorkExperience, value: string) => {
+    const newWorkExperience = formData.workExperience.map((exp, i) => 
+      i === index ? { ...exp, [field]: value } : exp
+    );
+    
     setFormData(prev => ({
       ...prev,
-      workExperience: prev.workExperience.map((exp, i) => 
-        i === index ? { ...exp, [field]: value } : exp
-      )
+      workExperience: newWorkExperience
+    }));
+    
+    // Update section data
+    setSectionData(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        workExperience: newWorkExperience
+      }
     }));
   };
 
   const addEducation = () => {
+    const newEducation = [...formData.education, { degree: '', institution: '', graduationYear: '' }];
     setFormData(prev => ({
       ...prev,
-      education: [...prev.education, { degree: '', institution: '', graduationYear: '' }]
+      education: newEducation
+    }));
+    
+    // Update section data
+    setSectionData(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        education: newEducation
+      }
     }));
   };
 
   const removeEducation = (index: number) => {
+    const newEducation = formData.education.filter((_, i) => i !== index);
     setFormData(prev => ({
       ...prev,
-      education: prev.education.filter((_, i) => i !== index)
+      education: newEducation
+    }));
+    
+    // Update section data
+    setSectionData(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        education: newEducation
+      }
     }));
   };
 
   const updateEducation = (index: number, field: keyof Education, value: string) => {
+    const newEducation = formData.education.map((edu, i) => 
+      i === index ? { ...edu, [field]: value } : edu
+    );
+    
     setFormData(prev => ({
       ...prev,
-      education: prev.education.map((edu, i) => 
-        i === index ? { ...edu, [field]: value } : edu
-      )
+      education: newEducation
+    }));
+    
+    // Update section data
+    setSectionData(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        education: newEducation
+      }
     }));
   };
 
   const addSkill = () => {
     if (skillInput.trim() && !formData.skills.includes(skillInput.trim())) {
+      const newSkills = [...formData.skills, skillInput.trim()];
       setFormData(prev => ({
         ...prev,
-        skills: [...prev.skills, skillInput.trim()]
+        skills: newSkills
       }));
+      
+      // Update section data
+      setSectionData(prev => ({
+        ...prev,
+        [currentSection]: {
+          ...prev[currentSection],
+          skills: newSkills
+        }
+      }));
+      
       setSkillInput('');
     }
   };
 
   const removeSkill = (skill: string) => {
+    const newSkills = formData.skills.filter(s => s !== skill);
     setFormData(prev => ({
       ...prev,
-      skills: prev.skills.filter(s => s !== skill)
+      skills: newSkills
     }));
-  };
-
-  const updateSocialLink = (platform: keyof SocialLinks, value: string) => {
-    setFormData(prev => ({
+    
+    // Update section data
+    setSectionData(prev => ({
       ...prev,
-      socialLinks: {
-        ...prev.socialLinks,
-        [platform]: value
+      [currentSection]: {
+        ...prev[currentSection],
+        skills: newSkills
       }
     }));
   };
 
-  const nextSection = () => {
+  const updateSocialLink = (platform: keyof SocialLinks, value: string) => {
+    const newSocialLinks = {
+      ...formData.socialLinks,
+      [platform]: value
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      socialLinks: newSocialLinks
+    }));
+    
+    // Update section data
+    setSectionData(prev => ({
+      ...prev,
+      [currentSection]: {
+        ...prev[currentSection],
+        socialLinks: newSocialLinks
+      }
+    }));
+  };
+
+  const nextSection = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (currentSection < sections.length - 1) {
-      setCurrentSection(currentSection + 1);
+      // Save current section data
+      const updatedSectionData = {
+        ...sectionData,
+        [currentSection]: { ...formData }
+      };
+      setSectionData(updatedSectionData);
+      
+      // Move to next section
+      const nextSectionIndex = currentSection + 1;
+      setCurrentSection(nextSectionIndex);
+      
+      // Merge the current form data with any existing data for the next section
+      const nextSectionData = updatedSectionData[nextSectionIndex] || {};
+      setFormData(prev => ({
+        ...prev,
+        ...nextSectionData
+      }));
+      
+      // Scroll to top
+      if (formContainerRef.current) {
+        formContainerRef.current.scrollTop = 0;
+      }
+      
+      console.log(`✅ Moving to section ${nextSectionIndex}: ${sections[nextSectionIndex]}`);
     }
   };
 
-  const prevSection = () => {
+  const prevSection = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (currentSection > 0) {
-      setCurrentSection(currentSection - 1);
+      // Save current section data
+      const updatedSectionData = {
+        ...sectionData,
+        [currentSection]: { ...formData }
+      };
+      setSectionData(updatedSectionData);
+      
+      // Move to previous section
+      const prevSectionIndex = currentSection - 1;
+      setCurrentSection(prevSectionIndex);
+      
+      // Merge the current form data with any existing data for the previous section
+      const prevSectionData = updatedSectionData[prevSectionIndex] || {};
+      setFormData(prev => ({
+        ...prev,
+        ...prevSectionData
+      }));
+      
+      // Scroll to top
+      if (formContainerRef.current) {
+        formContainerRef.current.scrollTop = 0;
+      }
+      
+      console.log(`✅ Moving to section ${prevSectionIndex}: ${sections[prevSectionIndex]}`);
     }
   };
 
@@ -403,7 +667,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           <Briefcase className="h-4 w-4 inline mr-2" />
-          Current Job Title / Employment Status *
+          Current Job Title / Employment Status
         </label>
         <input
           type="text"
@@ -854,8 +1118,18 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     }
   };
 
+  const handleCancelClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onCancel();
+  };
+
   return (
-    <div className="space-y-6">
+    <div 
+      className="space-y-6" 
+      ref={formContainerRef}
+      onClick={(e) => e.stopPropagation()} // Stop clicks from propagating
+    >
       <div className="text-center">
         <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
           <User className="h-8 w-8 text-white" />
@@ -892,14 +1166,18 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
         </h3>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form 
+        onSubmit={handleSubmit} 
+        className="space-y-6"
+        onClick={(e) => e.stopPropagation()} // Stop clicks from propagating
+      >
         {renderCurrentSection()}
 
         {/* Navigation Buttons */}
         <div className="flex gap-4 pt-6">
           <button
             type="button"
-            onClick={onCancel}
+            onClick={handleCancelClick}
             className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             disabled={isLoading}
           >

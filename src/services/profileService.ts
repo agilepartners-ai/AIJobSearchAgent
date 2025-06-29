@@ -30,42 +30,43 @@ export interface CreateProfileData {
 export interface UserProfileData {
   // Personal Information
   fullName: string;
-  streetAddress: string;
-  city: string;
-  county: string;
-  state: string;
-  zipCode: string;
-  contactNumber: string;
-  hasPhoneAccess: boolean;
-  gender: string;
-  dateOfBirth: string;
-  includeAge: boolean;
-  ethnicity: string;
-  race: string;
-  hasDisabilities: boolean;
-  disabilityDescription: string;
-  veteranStatus: string;
-  travelPercentage: string;
-  openToTravel: boolean;
-  willingToRelocate: boolean;
-  canWorkEveningsWeekends: boolean;
-  otherLanguages: string;
-  nationality: string;
-  additionalNationalities: string;
-  hasOtherCitizenship: boolean;
-  visaType: string;
-  expectedSalaryFrom: string;
-  expectedSalaryTo: string;
-  salaryNotes: string;
-  linkedin_url: string;
+  streetAddress?: string;
+  city?: string;
+  county?: string;
+  state?: string;
+  zipCode?: string;
+  contactNumber?: string;
+  hasPhoneAccess?: boolean;
+  gender?: string;
+  dateOfBirth?: string;
+  includeAge?: boolean;
+  ethnicity?: string;
+  race?: string;
+  hasDisabilities?: boolean;
+  disabilityDescription?: string;
+  veteranStatus?: string;
+  travelPercentage?: string;
+  openToTravel?: boolean;
+  willingToRelocate?: boolean;
+  canWorkEveningsWeekends?: boolean;
+  otherLanguages?: string;
+  nationality?: string;
+  additionalNationalities?: string;
+  hasOtherCitizenship?: boolean;
+  visaType?: string;
+  expectedSalaryFrom?: string;
+  expectedSalaryTo?: string;
+  salaryNotes?: string;
+  linkedin_url?: string;
+  location?: string;
 
   // Professional Information
-  authorizedToWork: boolean;
-  requiresSponsorship: boolean;
-  sponsorshipType: string;
+  authorizedToWork?: boolean;
+  requiresSponsorship?: boolean;
+  sponsorshipType?: string;
 
   // References
-  references: Array<{
+  references?: Array<{
     fullName: string;
     relationship: string;
     companyName: string;
@@ -76,7 +77,7 @@ export interface UserProfileData {
   }>;
 
   // Education
-  education: Array<{
+  education?: Array<{
     degreeType: string;
     universityName: string;
     universityAddress: string;
@@ -88,7 +89,7 @@ export interface UserProfileData {
   }>;
 
   // Certifications
-  certifications: Array<{
+  certifications?: Array<{
     name: string;
     licenseNumber: string;
     issuingOrganization: string;
@@ -97,13 +98,13 @@ export interface UserProfileData {
   }>;
 
   // Additional Questions
-  governmentEmployment: boolean;
-  governmentDetails: string;
-  hasAgreements: boolean;
-  agreementDetails: string;
-  hasConvictions: boolean;
-  convictionDetails: string;
-  interviewAvailability: string;
+  governmentEmployment?: boolean;
+  governmentDetails?: string;
+  hasAgreements?: boolean;
+  agreementDetails?: string;
+  hasConvictions?: boolean;
+  convictionDetails?: string;
+  interviewAvailability?: string;
 
   // Metadata
   created_at?: string;
@@ -114,6 +115,11 @@ export class SupabaseProfileService {
   // Get user profile
   static async getUserProfile(userId: string): Promise<Profile | null> {
     try {
+      console.log('Fetching profile for user ID:', userId);
+      
+      // Log the query that will be executed
+      console.log('Supabase query:', `SELECT * FROM ${TABLES.PROFILES} WHERE id = '${userId}' LIMIT 1`);
+      
       const { data, error } = await supabase
         .from(TABLES.PROFILES)
         .select('*')
@@ -121,9 +127,15 @@ export class SupabaseProfileService {
         .single();
 
       if (error) {
-        if (error.code === 'PGRST116') return null; // Not found
+        console.log('Error response from Supabase:', error);
+        if (error.code === 'PGRST116') {
+          console.log('Profile not found for user ID:', userId);
+          return null; // Not found
+        }
         throw error;
       }
+      
+      console.log('Profile data retrieved successfully:', data);
       return data;
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -134,12 +146,19 @@ export class SupabaseProfileService {
   // Get or create user profile
   static async getOrCreateProfile(userId: string, email?: string, displayName?: string): Promise<Profile> {
     try {
+      console.log('Getting or creating profile for user ID:', userId);
+      console.log('Email:', email);
+      console.log('Display name:', displayName);
+      
       // First try to get existing profile
       const existingProfile = await this.getUserProfile(userId);
       if (existingProfile) {
+        console.log('Existing profile found:', existingProfile);
         return existingProfile;
       }
 
+      console.log('No existing profile found, creating new profile');
+      
       // If profile doesn't exist, create it
       const defaultData: CreateProfileData = {
         full_name: displayName || null,
@@ -177,6 +196,9 @@ export class SupabaseProfileService {
   // Create or update user profile
   static async saveUserProfile(userId: string, profileData: CreateProfileData): Promise<Profile> {
     try {
+      console.log('Saving user profile for ID:', userId);
+      console.log('Profile data to save:', profileData);
+      
       const { data, error } = await supabase
         .from(TABLES.PROFILES)
         .upsert({ 
@@ -187,7 +209,12 @@ export class SupabaseProfileService {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.log('Error response from Supabase during save:', error);
+        throw error;
+      }
+      
+      console.log('Profile saved successfully:', data);
       return data;
     } catch (error) {
       console.error('Error saving user profile:', error);
@@ -198,6 +225,9 @@ export class SupabaseProfileService {
   // Update user profile
   static async updateProfile(userId: string, updates: Partial<CreateProfileData>): Promise<Profile> {
     try {
+      console.log('Updating profile for user ID:', userId);
+      console.log('Updates to apply:', updates);
+      
       const { data, error } = await supabase
         .from(TABLES.PROFILES)
         .update({ 
@@ -208,7 +238,12 @@ export class SupabaseProfileService {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.log('Error response from Supabase during update:', error);
+        throw error;
+      }
+      
+      console.log('Profile updated successfully:', data);
       return data;
     } catch (error) {
       console.error('Error updating user profile:', error);
@@ -258,6 +293,22 @@ export class SupabaseProfileService {
       console.error('Error deleting user profile:', error);
       throw new Error('Failed to delete user profile');
     }
+  }
+  
+  // Convert Supabase Profile to UserProfileData
+  static convertProfileToUserProfileData(profile: Profile): UserProfileData {
+    return {
+      fullName: profile.full_name || '',
+      contactNumber: profile.phone || '',
+      location: profile.location || '',
+      linkedin_url: profile.linkedin_url || '',
+      streetAddress: profile.location || '', // Use location as address
+      willingToRelocate: profile.willingness_to_relocate || false,
+      visaType: profile.work_authorization || '',
+      expectedSalaryFrom: profile.expected_salary || '',
+      interviewAvailability: profile.availability || '',
+      // Add other fields as needed
+    };
   }
 }
 
