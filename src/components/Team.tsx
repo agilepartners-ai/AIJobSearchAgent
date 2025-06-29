@@ -10,17 +10,17 @@ interface TeamMemberProps {
 
 const TeamMember: React.FC<TeamMemberProps> = ({ image, name, role, linkedin }) => {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all group p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all group px-4 py-6 sm:p-6">
       <div className="flex flex-col items-center text-center">
-        <div className="w-40 h-40 rounded-full overflow-hidden mb-4 ring-4 ring-gray-100 dark:ring-gray-700 group-hover:ring-blue-200 dark:group-hover:ring-blue-800 transition-all">
+        <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden mb-4 ring-4 ring-gray-100 dark:ring-gray-700 group-hover:ring-blue-200 dark:group-hover:ring-blue-800 transition-all">
           <img 
             src={image} 
             alt={name} 
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
         </div>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">{name}</h3>
-        <p className="text-blue-600 dark:text-blue-400 font-medium mb-3">{role}</p>
+        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-1">{name}</h3>
+        <p className="text-sm sm:text-base text-blue-600 dark:text-blue-400 font-medium mb-3">{role}</p>
         <div className="flex gap-3">
           <a 
             href={linkedin}
@@ -205,7 +205,7 @@ const Team: React.FC = () => {
           </button>
 
           {/* Carousel Track */}
-          <div className="overflow-hidden mx-16">
+          <div className="overflow-hidden px-4 sm:px-8 md:px-16">
             <div
               className="overflow-hidden mx-16"
               onMouseEnter={() => setIsHovered(true)}
