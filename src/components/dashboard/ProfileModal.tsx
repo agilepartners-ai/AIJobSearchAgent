@@ -17,7 +17,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   const [success, setSuccess] = useState<string | null>(null);
   const [lastSaveData, setLastSaveData] = useState<ProfileData | null>(null);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
-  const [debugSteps, setDebugSteps] = useState<string[]>([]);
   const [localUserProfile, setLocalUserProfile] = useState<any>(null);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
@@ -44,21 +43,14 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       if (!user) return;
       
       try {
-        console.log('🔄 Loading profile for user:', user.uid);
-        setDebugSteps(prev => [...prev, '🔄 Loading profile data from database...']);
-        
         const profile = await SupabaseProfileService.getOrCreateProfile(
           user.uid, 
           user.email || '', 
           user.displayName || 'New User'
         );
         
-        console.log('✅ Profile loaded:', profile);
         setLocalUserProfile(profile);
-        setDebugSteps(prev => [...prev, '✅ Profile data loaded successfully']);
       } catch (error) {
-        console.error('❌ Error loading profile:', error);
-        setDebugSteps(prev => [...prev, '❌ Error loading profile data']);
         setError('Failed to load profile data. Please try again.');
       } finally {
         setIsLoading(false);
@@ -70,70 +62,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
 
   // Use local profile data or auth profile data
   const currentProfile = localUserProfile || userProfile;
-
-  // Make debug functions globally available for console testing
-  React.useEffect(() => {
-    (window as any).profileModalDebug = {
-      testAuth: async () => {
-        console.log('Testing auth:', user);
-        const { data, error } = await supabase.auth.getUser();
-        console.log('Supabase auth result:', { data, error });
-        return { data, error };
-      },
-      testProfileFetch: async () => {
-        if (!user) {
-          console.log('No user available');
-          return null;
-        }
-        console.log('Testing profile fetch for user:', user.uid);
-        try {
-          const result = await SupabaseProfileService.getUserProfile(user.uid);
-          console.log('Profile fetch result:', result);
-          return result;
-        } catch (error) {
-          console.error('Profile fetch error:', error);
-          return null;
-        }
-      },
-      testProfileUpdate: async () => {
-        if (!user) {
-          console.log('No user available');
-          return null;
-        }
-        const testData = {
-          full_name: 'Test Update ' + Date.now(),
-          bio: 'Test bio ' + new Date().toISOString()
-        };
-        console.log('Testing profile update with:', testData);
-        try {
-          const result = await SupabaseProfileService.updateProfile(user.uid, testData);
-          console.log('Profile update result:', result);
-          return result;
-        } catch (error) {
-          console.error('Profile update error:', error);
-          return null;
-        }
-      },
-      getCurrentState: () => ({
-        user,
-        userProfile: currentProfile,
-        isLoading,
-        error,
-        success,
-        debugSteps
-      })
-    };
-    
-    // Only log debug info once per user
-    if (user && !(window as any).profileDebugLogged) {
-      console.log('🔧 Profile Modal Debug Functions Available:');
-      console.log('- window.profileModalDebug.testAuth()');
-      console.log('- window.profileModalDebug.testProfileFetch()');
-      console.log('- window.profileModalDebug.testProfileUpdate()');
-      console.log('- window.profileModalDebug.getCurrentState()');
-      (window as any).profileDebugLogged = true;
-    }
-  }, [user]); // Only depend on user to avoid repeated logs
 
   // Add click outside handler
   useEffect(() => {
@@ -158,11 +86,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   }, [formSubmitted, isClosing]);
 
   const handleEditProfile = async (profileData: ProfileData) => {
-    // IMMEDIATE DEBUGGING - This should appear as soon as function is called
-    console.log('🔥 handleEditProfile FUNCTION CALLED!');
-    console.log('🔥 Raw profileData received:', profileData);
-    console.log('🔥 Function called at:', new Date().toISOString());
-    
     // Set form as submitted to prevent auto-closing
     setFormSubmitted(true);
     
@@ -172,20 +95,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
     // Clear previous messages and reset debug steps
     setError(null);
     setSuccess(null);
-    setDebugSteps([]);
-
-    // IMMEDIATE CONSOLE LOG FOR DEBUGGING
-    console.log('🚀 PROFILE SAVE STARTED');
-    console.log('Profile Data:', profileData);
-    console.log('User:', user);
-    console.log('User Profile:', userProfile);
 
     // Validate user exists
     if (!user) {
       const errorMsg = 'No user found. Please login again.';
-      console.error(errorMsg);
       setError(errorMsg);
-      setDebugSteps(prev => [...prev, '❌ No user found']);
       return;
     }
 
@@ -193,61 +107,36 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
     if (!profileData.fullName?.trim()) {
       const errorMsg = 'Full name is required';
       setError(errorMsg);
-      setDebugSteps(prev => [...prev, '❌ Validation failed: Full name required']);
       return;
     }
 
     if (!profileData.email?.trim()) {
       const errorMsg = 'Email is required';
       setError(errorMsg);
-      setDebugSteps(prev => [...prev, '❌ Validation failed: Email required']);
       return;
     }
-
-    setDebugSteps(prev => [...prev, '✅ Validation passed']);
-
-    console.log('=== PROFILE SAVE DEBUG INFO ===');
-    console.log('User:', user);
-    console.log('User ID:', user.uid);
-    console.log('User Profile from auth:', userProfile);
-    console.log('Profile data to save:', profileData);
 
     setIsLoading(true);
     
     try {
       // First, let's verify the Supabase connection and authentication
-      console.log('Step 1: Testing Supabase authentication...');
-      setDebugSteps(prev => [...prev, '🔄 Testing authentication...']);
-      
       const { data: authUser, error: authError } = await supabase.auth.getUser();
-      console.log('Auth user:', authUser);
+      
       if (authError) {
-        console.error('Auth error:', authError);
-        setDebugSteps(prev => [...prev, '❌ Authentication failed']);
         throw new Error(`Authentication failed: ${authError.message}`);
       }
       
       if (!authUser.user) {
-        setDebugSteps(prev => [...prev, '❌ No authenticated user']);
         throw new Error('No authenticated user found');
       }
-      
-      setDebugSteps(prev => [...prev, '✅ Authentication successful']);
-      
-      console.log('Step 2: Getting or creating profile...');
-      setDebugSteps(prev => [...prev, '🔄 Getting or creating profile...']);
       
       const currentProfile = await SupabaseProfileService.getOrCreateProfile(
         user.uid, 
         authUser.user.email || '', 
         profileData.fullName?.trim() || 'New User'
       );
-      console.log('Profile from database:', currentProfile);
-      setDebugSteps(prev => [...prev, '✅ Profile ready']);
       
       // Prepare update data with all profile fields for database
-      console.log('Step 3: Preparing update data...');
-      setDebugSteps(prev => [...prev, '🔄 Preparing update data...']);
       const updateData = {
         full_name: profileData.fullName?.trim(),
         phone: profileData.phone?.trim() || null,
@@ -280,33 +169,16 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         }
       };
 
-      console.log('Step 3: Prepared update data:', updateData);
-      setDebugSteps(prev => [...prev, '✅ Update data prepared']);
-
       // Attempt profile update
-      console.log('Step 4: Attempting profile update...');
-      setDebugSteps(prev => [...prev, '🔄 Updating profile...']);
-      
       const updateResult = await SupabaseProfileService.updateProfile(user.uid, updateData);
-      console.log('Profile update result:', updateResult);
-      setDebugSteps(prev => [...prev, '✅ Profile update completed']);
       
       // Verify the update actually happened
-      console.log('Step 5: Verifying update...');
-      setDebugSteps(prev => [...prev, '🔄 Verifying update...']);
-      
       const verifyResult = await SupabaseProfileService.getUserProfile(user.uid);
-      console.log('Profile after update:', verifyResult);
       
       if (!verifyResult || verifyResult.full_name !== updateData.full_name) {
-        setDebugSteps(prev => [...prev, '❌ Verification failed']);
         throw new Error('Profile update verification failed - changes may not have been saved');
       }
       
-      setDebugSteps(prev => [...prev, '✅ Update verified successfully']);
-      
-      console.log('✅ Profile saved successfully to database!');
-      setDebugSteps(prev => [...prev, '✅ All steps completed successfully']);
       setSuccess('Profile saved successfully! All data has been saved to the database.');
       
       // Update local profile with the verified result
@@ -320,14 +192,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         setIsClosing(true);
         setIsEditing(false);
         setSuccess(null);
-        setDebugSteps([]);
         // Also close the entire modal after successful save
         onClose();
       }, 2000); // Reduced delay to 2 seconds
       
     } catch (error) {
-      console.error('❌ Error updating profile:', error);
-      
       let errorMessage = 'Failed to save profile. ';
       
       if (error instanceof Error) {
@@ -341,7 +210,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         } else {
           errorMessage += error.message;
         }
-        console.error('Error details:', error);
       } else if (typeof error === 'object' && error !== null) {
         // Handle Supabase errors
         const supabaseError = error as any;
@@ -367,17 +235,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         } else {
           errorMessage = 'Unknown database error occurred. Please try again.';
         }
-        console.error('Supabase error details:', supabaseError);
       } else {
         errorMessage = 'Unknown error occurred. Please try again or contact support.';
-        console.error('Unknown error:', error);
       }
-      
-      // Additional debugging information
-      console.error('=== DEBUG INFO ===');
-      console.error('User object:', user);
-      console.error('User profile:', userProfile);
-      console.error('Profile data received:', profileData);
       
       setError(errorMessage);
       setFormSubmitted(false);
@@ -403,7 +263,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         jobPrefs = typeof profileToUse.job_preferences === 'string' ? 
           JSON.parse(profileToUse.job_preferences) : profileToUse.job_preferences;
       } catch (error) {
-        console.error('Error parsing job_preferences:', error);
+        // Handle parse error silently
       }
     }
 

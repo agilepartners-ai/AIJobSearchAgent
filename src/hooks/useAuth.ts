@@ -12,29 +12,25 @@ export const useAuth = () => {
     // Get initial user
     const initializeAuth = async () => {
       try {
-        console.log('Initializing auth...');
         const currentUser = await SupabaseAuthService.getCurrentUser();
-        console.log('Current user from auth service:', currentUser);
         setUser(currentUser);
         
         if (currentUser) {
           try {
-            console.log('Fetching profile for user:', currentUser.uid);
             const profile = await SupabaseProfileService.getOrCreateProfile(
               currentUser.uid, 
               currentUser.email || '', 
               currentUser.displayName || ''
             );
-            console.log('Profile loaded:', profile);
             setUserProfile(profile);
           } catch (error) {
-            console.error('Error fetching user profile:', error);
+            // Handle error silently
           }
         } else {
           setUserProfile(null);
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        // Handle error silently
       } finally {
         setLoading(false);
       }
@@ -44,21 +40,18 @@ export const useAuth = () => {
 
     // Listen for auth state changes
     const { data: { subscription } } = SupabaseAuthService.onAuthStateChange(async (user) => {
-      console.log('Auth state changed:', user);
       setUser(user);
       
       if (user) {
         try {
-          console.log('Fetching profile after auth change for user:', user.uid);
           const profile = await SupabaseProfileService.getOrCreateProfile(
             user.uid, 
             user.email || '', 
             user.displayName || ''
           );
-          console.log('Profile after auth change:', profile);
           setUserProfile(profile);
         } catch (error) {
-          console.error('Error fetching user profile after auth change:', error);
+          // Handle error silently
         }
       } else {
         setUserProfile(null);

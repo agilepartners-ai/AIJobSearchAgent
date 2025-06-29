@@ -115,11 +115,6 @@ export class SupabaseProfileService {
   // Get user profile
   static async getUserProfile(userId: string): Promise<Profile | null> {
     try {
-      console.log('Fetching profile for user ID:', userId);
-      
-      // Log the query that will be executed
-      console.log('Supabase query:', `SELECT * FROM ${TABLES.PROFILES} WHERE id = '${userId}' LIMIT 1`);
-      
       const { data, error } = await supabase
         .from(TABLES.PROFILES)
         .select('*')
@@ -127,18 +122,14 @@ export class SupabaseProfileService {
         .single();
 
       if (error) {
-        console.log('Error response from Supabase:', error);
         if (error.code === 'PGRST116') {
-          console.log('Profile not found for user ID:', userId);
           return null; // Not found
         }
         throw error;
       }
       
-      console.log('Profile data retrieved successfully:', data);
       return data;
     } catch (error) {
-      console.error('Error fetching user profile:', error);
       throw new Error('Failed to load user profile');
     }
   }
@@ -146,18 +137,11 @@ export class SupabaseProfileService {
   // Get or create user profile
   static async getOrCreateProfile(userId: string, email?: string, displayName?: string): Promise<Profile> {
     try {
-      console.log('Getting or creating profile for user ID:', userId);
-      console.log('Email:', email);
-      console.log('Display name:', displayName);
-      
       // First try to get existing profile
       const existingProfile = await this.getUserProfile(userId);
       if (existingProfile) {
-        console.log('Existing profile found:', existingProfile);
         return existingProfile;
       }
-
-      console.log('No existing profile found, creating new profile');
       
       // If profile doesn't exist, create it
       const defaultData: CreateProfileData = {
@@ -188,7 +172,6 @@ export class SupabaseProfileService {
 
       return await this.saveUserProfile(userId, defaultData);
     } catch (error) {
-      console.error('Error getting or creating user profile:', error);
       throw new Error('Failed to get or create user profile');
     }
   }
@@ -196,9 +179,6 @@ export class SupabaseProfileService {
   // Create or update user profile
   static async saveUserProfile(userId: string, profileData: CreateProfileData): Promise<Profile> {
     try {
-      console.log('Saving user profile for ID:', userId);
-      console.log('Profile data to save:', profileData);
-      
       const { data, error } = await supabase
         .from(TABLES.PROFILES)
         .upsert({ 
@@ -210,14 +190,11 @@ export class SupabaseProfileService {
         .single();
 
       if (error) {
-        console.log('Error response from Supabase during save:', error);
         throw error;
       }
       
-      console.log('Profile saved successfully:', data);
       return data;
     } catch (error) {
-      console.error('Error saving user profile:', error);
       throw new Error('Failed to save user profile');
     }
   }
@@ -225,9 +202,6 @@ export class SupabaseProfileService {
   // Update user profile
   static async updateProfile(userId: string, updates: Partial<CreateProfileData>): Promise<Profile> {
     try {
-      console.log('Updating profile for user ID:', userId);
-      console.log('Updates to apply:', updates);
-      
       const { data, error } = await supabase
         .from(TABLES.PROFILES)
         .update({ 
@@ -239,14 +213,11 @@ export class SupabaseProfileService {
         .single();
 
       if (error) {
-        console.log('Error response from Supabase during update:', error);
         throw error;
       }
       
-      console.log('Profile updated successfully:', data);
       return data;
     } catch (error) {
-      console.error('Error updating user profile:', error);
       throw new Error('Failed to update user profile');
     }
   }
@@ -275,7 +246,6 @@ export class SupabaseProfileService {
 
       return data.publicUrl;
     } catch (error) {
-      console.error('Error uploading resume:', error);
       throw new Error('Failed to upload resume');
     }
   }
@@ -290,7 +260,6 @@ export class SupabaseProfileService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting user profile:', error);
       throw new Error('Failed to delete user profile');
     }
   }

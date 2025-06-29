@@ -85,9 +85,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
     const loadFreshProfile = async () => {
       if (user) {
         try {
-          console.log('🔄 Loading fresh profile data for cover letter...');
           const freshProfile = await ProfileService.getUserProfile(user.uid);
-          console.log('📋 Fresh profile loaded:', freshProfile);
           
           // Map the Supabase Profile fields to UserProfileData structure
           if (freshProfile) {
@@ -136,11 +134,10 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
               convictionDetails: '',
               interviewAvailability: freshProfile.availability || '',
             };
-             console.log('❌ DEBUG DEBUG  mappedPRofile=', mappedProfile);
             setCurrentUserProfile(mappedProfile);
           }
         } catch (error) {
-          console.error('❌ Error loading fresh profile:', error);
+          // Handle error silently
         }
       }
     };
@@ -211,7 +208,6 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
       PDFGenerationService.downloadBlob(pdfBlob, filename);
 
     } catch (error: any) {
-      console.error('Error downloading optimized resume:', error);
       setDownloadError(error.message || 'Failed to download optimized resume');
     } finally {
       setDownloadingResume(false);
@@ -228,13 +224,10 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
     setDownloadError('');
 
     try {
-      // 🔧 CRITICAL FIX: Use fresh profile data directly from database
+      // Use fresh profile data directly from database
       let personalInfo;
 
       if (currentUserProfile && user) {
-        console.log('✅ Using fresh profile data for cover letter generation');
-
-        console.log('DEBUG DEBUG --', currentUserProfile);
         personalInfo = {
           name: currentUserProfile.fullName || 'Unknown',
           email: user.email || 'unknown@email.com',
@@ -242,10 +235,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
           address: currentUserProfile.streetAddress || '',
           linkedin: currentUserProfile.linkedin_url || ''
         };
-
-        console.log('🎯 Final personal info for API:', personalInfo);
       } else {
-        console.log('⚠️ No profile data available, using resume fallback');
         // Fallback to parsed resume data
         personalInfo = PDFGenerationService.extractPersonalInfo(results.parsedResume);
 
@@ -273,7 +263,6 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
       PDFGenerationService.downloadBlob(pdfBlob, filename);
 
     } catch (error: any) {
-      console.error('Error downloading cover letter:', error);
       setDownloadError(error.message || 'Failed to download cover letter');
     } finally {
       setDownloadingCoverLetter(false);
@@ -286,7 +275,6 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
 
   const handleTemplateFormGenerate = (formData: any) => {
     setShowTemplateForm(true);
-    console.log('Generating PDF with data:', formData);
     // Here you would make the API call to generate the PDF
     setShowTemplateForm(false);
     onClose();

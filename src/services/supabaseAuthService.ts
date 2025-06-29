@@ -50,7 +50,6 @@ export class SupabaseAuthService {
 
       return this.convertUser(authData.user);
     } catch (error) {
-      console.error('Sign up error:', error);
       throw new Error(
         error instanceof AuthError 
           ? error.message 
@@ -72,7 +71,6 @@ export class SupabaseAuthService {
 
       return this.convertUser(authData.user);
     } catch (error) {
-      console.error('Sign in error:', error);
       throw new Error(
         error instanceof AuthError 
           ? error.message 
@@ -87,7 +85,6 @@ export class SupabaseAuthService {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
     } catch (error) {
-      console.error('Sign out error:', error);
       throw new Error('Failed to sign out');
     }
   }
@@ -105,7 +102,6 @@ export class SupabaseAuthService {
       if (error) throw error;
       return user ? this.convertUser(user) : null;
     } catch (error) {
-      console.error('Get current user error:', error);
       return null;
     }
   }
@@ -118,7 +114,6 @@ export class SupabaseAuthService {
       });
       if (error) throw error;
     } catch (error) {
-      console.error('Password reset error:', error);
       throw new Error('Failed to send password reset email');
     }
   }
@@ -131,7 +126,6 @@ export class SupabaseAuthService {
       });
       if (error) throw error;
     } catch (error) {
-      console.error('Update password error:', error);
       throw new Error('Failed to update password');
     }
   }
@@ -154,7 +148,6 @@ export class SupabaseAuthService {
 
       return this.convertUser(data.user);
     } catch (error) {
-      console.error('Update profile error:', error);
       throw new Error('Failed to update profile');
     }
   }
@@ -181,7 +174,6 @@ export class SupabaseAuthService {
 
       return this.convertUser(data.user);
     } catch (error) {
-      console.error('Phone verification error:', error);
       throw new Error('Failed to verify phone number');
     }
   }
@@ -192,7 +184,6 @@ export class SupabaseAuthService {
       const { error } = await supabase.auth.signInWithOtp({ phone });
       if (error) throw error;
     } catch (error) {
-      console.error('Send phone OTP error:', error);
       throw new Error('Failed to send verification code');
     }
   }
