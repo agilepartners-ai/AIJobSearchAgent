@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Search, Filter, Edit3, Eye, Trash2, ExternalLink, ChevronLeft, ChevronRight, Briefcase, Calendar, Clock, Video, Sparkles, LayoutGrid, LayoutList } from 'lucide-react';
+import { 
+  Search, Filter, Edit3, Eye, Trash2, ExternalLink, ChevronLeft, ChevronRight, Briefcase, Calendar, Clock, Video, Sparkles, LayoutGrid, LayoutList 
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { JobApplication } from '../../types/supabase';
 
@@ -258,12 +260,12 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                     <div className="p-6 pt-0">
                       <div className="space-y-3">
                         {/* Main Action Buttons - Grouped with visual distinction */}
-                        <div className="flex flex-col border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+                        <div className="flex flex-col rounded-lg overflow-hidden">
                           {/* Primary Action Button */}
                           {application.job_posting_url && application.status === 'not_applied' && (
                             <button
                               onClick={() => handleQuickApply(application)}
-                              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-sm font-medium transition-colors flex items-center justify-center border-b border-blue-200/30"
+                              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md"
                             >
                               <ExternalLink size={14} className="mr-2" />
                               Apply Now
@@ -273,7 +275,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                           {application.job_posting_url && application.status !== 'not_applied' && (
                             <button
                               onClick={() => window.open(application.job_posting_url || '', '_blank')}
-                              className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2.5 text-sm font-medium transition-colors flex items-center justify-center border-b border-gray-200/30"
+                              className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md"
                             >
                               <ExternalLink size={14} className="mr-2" />
                               View Job
@@ -284,9 +286,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                           {application.job_description && onStartInterview && (
                             <button
                               onClick={() => onStartInterview(application)}
-                              className={`w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2.5 text-sm font-medium transition-colors flex items-center justify-center ${
-                                onLoadAIEnhanced ? 'border-b border-purple-200/30' : ''
-                              }`}
+                              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md mt-2"
                             >
                               <Video size={14} className="mr-2" />
                               Practice Interview
@@ -296,7 +296,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                           {onLoadAIEnhanced && (
                             <button
                               onClick={() => onLoadAIEnhanced(application)}
-                              className="w-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white px-4 py-2.5 text-sm font-medium transition-colors flex items-center justify-center"
+                              className="w-full bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md mt-2"
                             >
                               <Sparkles size={14} className="mr-2" />
                               AI Resume & Cover Letter
@@ -305,7 +305,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                         </div>
 
                         {/* Secondary Action Buttons */}
-                        <div className="flex justify-center space-x-2">
+                        <div className="flex justify-center space-x-2 pt-2">
                           <button
                             onClick={() => onEditApplication(application)}
                             className="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
