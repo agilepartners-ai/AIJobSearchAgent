@@ -245,14 +245,19 @@ const Workflow: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom CTA */}
-        <div className="text-center mt-16">
-          <div className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-full hover:from-cyan-500 hover:to-blue-500 transition-all duration-300 group cursor-pointer shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-105">
+        {/* AI Job Search Agent */}
+        <div className="text-center">
+          <div className="flex justify-center mb-8">
             <img 
               src="/AGENT_Logo.png" 
               alt="AI Job Search Agent" 
-              className="h-8 w-auto group-hover:scale-110 transition-transform duration-300"
+              className="h-16 sm:h-20 md:h-24 w-auto"
             />
+          </div>
+        </div>
+        {/* Bottom CTA */}
+        <div className="text-center mt-16">
+          <div className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full hover:from-purple-500 hover:to-blue-500 transition-all duration-300 group cursor-pointer shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-105">
             <span className="text-white font-semibold text-lg">
               Start Your AI-Powered Journey
             </span>
