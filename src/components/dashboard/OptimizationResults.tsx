@@ -3,7 +3,7 @@ import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Aw
 import ResumeTemplateForm from './ResumeTemplateForm';
 import { PDFGenerationService } from '../../services/pdfGenerationService';
 import { UserProfileData, ProfileService } from '../../services/profileService';
-import { User } from 'firebase/auth';
+import { User } from '@supabase/supabase-js';
 import { useAuth } from '../../hooks/useAuth';
 
 interface OptimizationResultsProps {
@@ -86,7 +86,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
       if (user) {
         try {
           console.log('🔄 Loading fresh profile data for cover letter...');
-          const freshProfile = await ProfileService.getUserProfile(user.uid);
+          const freshProfile = await ProfileService.getUserProfile(user.id);
           console.log('📋 Fresh profile loaded:', freshProfile);
           
           // Map the Supabase Profile fields to UserProfileData structure
@@ -234,20 +234,11 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
       if (currentUserProfile && user) {
         console.log('✅ Using fresh profile data for cover letter generation');
 
-        // Build full address from profile components
-        const addressComponents = [
-          currentUserProfile.streetAddress,
-          currentUserProfile.city,
-          currentUserProfile.state,
-          currentUserProfile.zipCode
-        ].filter(Boolean);
-        const fullAddress = addressComponents.length > 0 ? addressComponents.join(', ') : '';
-
         personalInfo = {
           name: currentUserProfile.fullName || 'Unknown',
           email: user.email || 'unknown@email.com',
           phone: currentUserProfile.contactNumber || '',
-          address: fullAddress,
+          address: currentUserProfile.streetAddress || '',
           linkedin: currentUserProfile.linkedin_url || ''
         };
 

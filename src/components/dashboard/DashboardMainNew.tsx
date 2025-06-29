@@ -114,8 +114,8 @@ const Dashboard: React.FC = () => {
       setError('');
 
       const [applicationsData, statsData] = await Promise.all([
-        SupabaseJobApplicationService.getUserApplications(user.uid),
-        SupabaseJobApplicationService.getApplicationStats(user.uid)
+        SupabaseJobApplicationService.getUserApplications(user.id),
+        SupabaseJobApplicationService.getApplicationStats(user.id)
       ]);
       
       setApplications(applicationsData);
@@ -221,7 +221,7 @@ const Dashboard: React.FC = () => {
                `Employment Type: ${job.job_employment_type || 'Not specified'}`,
       };
       
-      const newApplication = await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
+      const newApplication = await SupabaseJobApplicationService.addApplication(user.id, applicationData);
       // Update local state instead of reloading all data
       setApplications(prev => [newApplication, ...prev]);
       setStats(prev => ({ 
@@ -268,7 +268,7 @@ const Dashboard: React.FC = () => {
                    `Location: ${job.job_city && job.job_state ? `${job.job_city}, ${job.job_state}` : job.job_country || 'Not specified'}${job.job_is_remote ? ' (Remote)' : ''}`,
           };
           
-          const newApplication = await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
+          const newApplication = await SupabaseJobApplicationService.addApplication(user.id, applicationData);
           savedApplications.push(newApplication);
           savedCount++;
         } catch (error) {
@@ -322,7 +322,7 @@ const Dashboard: React.FC = () => {
         showSuccess('Application Updated', 'The application has been successfully updated.');
       } else {
         // Add new application
-        const newApplication = await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
+        const newApplication = await SupabaseJobApplicationService.addApplication(user.id, applicationData);
         
         // Update local state instead of reloading all data
         setApplications(prev => [newApplication, ...prev]);

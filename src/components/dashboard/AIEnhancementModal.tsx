@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Upload, FileText, Sparkles, Cloud, HardDrive, AlertCircle, CheckCircle, Settings } from 'lucide-react';
+import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain, Settings } from 'lucide-react';
 import OptimizationResults from './OptimizationResults';
 import { ResumeExtractionService } from '../../services/resumeExtractionService';
 import { AIEnhancementService } from '../../services/aiEnhancementService';
@@ -423,7 +423,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <Sparkles className="text-white" size={20} />
+              <Brain className="text-white" size={20} />
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -476,7 +476,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                     <p><strong>Name:</strong> {detailedUserProfile.fullName || '❌ Not set'}</p>
                     <p><strong>Phone:</strong> {detailedUserProfile.contactNumber || '❌ Not set'}</p>
                     <p><strong>Email:</strong> {user?.email || '❌ Not set'}</p>
-                    <p><strong>Address:</strong> {detailedUserProfile.streetAddress || '❌ Not set'}</p>
+                    <p><strong>Address:</strong> {detailedUserProfile.location || '❌ Not set'}</p>
                     <p><strong>LinkedIn:</strong> {detailedUserProfile.linkedin_url || '❌ Not set'}</p>
                   </div>
                 </div>
@@ -667,7 +667,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                 </>
               ) : (
                 <>
-                  <Sparkles size={20} />
+                  <Brain size={20} />
                   Generate using AI - Resume & Cover Letter
                 </>
               )}
