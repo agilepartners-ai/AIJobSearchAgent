@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain, Settings, Upload, HardDrive, Cloud } from 'lucide-react';
+import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain, Settings, Upload, HardDrive } from 'lucide-react';
 import OptimizationResults from './OptimizationResults';
 import { ResumeExtractionService } from '../../services/resumeExtractionService';
 import { AIEnhancementService } from '../../services/aiEnhancementService';
@@ -531,82 +531,6 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                 </div>
               </div>
             </div>
-
-            {/* Cloud Provider Options */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                <span>Or select from cloud storage:</span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Google Drive */}
-                <button
-                  type="button"
-                  onClick={() => handleCloudProviderChange('google-drive')}
-                  className={`p-4 border rounded-lg flex items-center gap-3 transition-all ${cloudProvider === 'google-drive'
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                    }`}
-                >
-                  <Cloud size={20} className="text-blue-600" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Google Drive
-                  </span>
-                </button>
-
-                {/* OneDrive */}
-                <button
-                  type="button"
-                  onClick={() => handleCloudProviderChange('onedrive')}
-                  className={`p-4 border rounded-lg flex items-center gap-3 transition-all ${cloudProvider === 'onedrive'
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                    }`}
-                >
-                  <Cloud size={20} className="text-blue-600" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    OneDrive
-                  </span>
-                </button>
-
-                {/* Dropbox */}
-                <button
-                  type="button"
-                  onClick={() => handleCloudProviderChange('dropbox')}
-                  className={`p-4 border rounded-lg flex items-center gap-3 transition-all ${cloudProvider === 'dropbox'
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
-                    }`}
-                >
-                  <Cloud size={20} className="text-blue-600" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Dropbox
-                  </span>
-                </button>
-              </div>
-
-              {/* Cloud File URL Input */}
-              {cloudProvider && (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {cloudProvider === 'google-drive' && 'Google Drive File URL'}
-                    {cloudProvider === 'onedrive' && 'OneDrive File URL'}
-                    {cloudProvider === 'dropbox' && 'Dropbox File URL'}
-                  </label>
-                  <input
-                    type="url"
-                    value={cloudFileUrl}
-                    onChange={(e) => dispatch(setCloudFileUrl(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                    placeholder={`Enter your ${cloudProvider} file URL...`}
-                  />
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Make sure the file is publicly accessible or shared with appropriate permissions
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* Generate Button */}
           <div className="flex gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
