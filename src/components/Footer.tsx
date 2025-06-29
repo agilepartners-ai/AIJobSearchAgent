@@ -22,7 +22,7 @@ const Footer: React.FC = () => {
       
       <button 
         onClick={scrollToTop} 
-        className="fixed bottom-6 right-6 p-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg transition-all hover:-translate-y-1"
+        className="fixed bottom-6 right-6 z-[9999] p-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg transition-all hover:-translate-y-1"
         aria-label="Scroll to top"
       >
         <ArrowUp size={20} />
