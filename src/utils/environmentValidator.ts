@@ -65,38 +65,9 @@ export class EnvironmentValidator {
     const missingVars = [...missingSupabaseVars, ...missingJSearchVars];
 
     if (missingVars.length > 0) {
-      console.error('❌ Missing required environment variables:');
-      missingVars.forEach(varName => {
-        console.error(`  - ${varName}`);
-      });
-      console.error('\nPlease check your .env file and ensure all required variables are set.');
       return false;
     }
 
-    // Log success with current configuration
-    console.log('✅ Environment validation passed!');
-    console.log('\n📋 Current configuration:');
-    
-    if (config.supabase.url && config.supabase.anonKey) {
-      console.log('  🗄️ Supabase: Configured');
-      console.log(`    - URL: ${config.supabase.url}`);
-      console.log(`    - Anon Key: ${config.supabase.anonKey.substring(0, 20)}...`);
-    }
-    
-    if (config.jsearch.apiKey && config.jsearch.apiHost) {
-      console.log('  🔍 JSearch API: Configured');
-      console.log(`    - Host: ${config.jsearch.apiHost}`);
-      console.log(`    - API Key: ${config.jsearch.apiKey.substring(0, 10)}...`);
-    }
-    
-    if (config.tavus.apiKey) {
-      console.log('  🎥 Tavus AI: Configured');
-      console.log(`    - API Key: ${config.tavus.apiKey.substring(0, 10)}...`);
-    } else {
-      console.log('  🎥 Tavus AI: Not configured (optional)');
-    }
-
-    console.log('\n🚀 Ready to start the application!');
     return true;
   }
 

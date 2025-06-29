@@ -41,7 +41,6 @@ export class SupabaseJobApplicationService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching user applications:', error);
       throw new Error('Failed to load job applications');
     }
   }
@@ -61,7 +60,6 @@ export class SupabaseJobApplicationService {
       }
       return data;
     } catch (error) {
-      console.error('Error fetching application:', error);
       throw new Error('Failed to load job application');
     }
   }
@@ -97,7 +95,6 @@ export class SupabaseJobApplicationService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error adding application:', error);
       throw new Error('Failed to add job application');
     }
   }
@@ -105,22 +102,16 @@ export class SupabaseJobApplicationService {
   // Update an existing job application
   static async updateApplication(applicationId: string, updates: Partial<CreateJobApplicationData>): Promise<JobApplication> {
     try {
-      console.log('Updating application:', { applicationId, updates });
-      
       // Get current user to verify auth
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
         throw new Error('Authentication required. Please log in again.');
       }
-      
-      console.log('Current user:', user.id);
 
       const updateData: JobApplicationUpdate = {
         ...updates,
         updated_at: new Date().toISOString(),
       };
-
-      console.log('Update data:', updateData);
 
       const { data, error } = await supabase
         .from(TABLES.JOB_APPLICATIONS)
@@ -130,7 +121,6 @@ export class SupabaseJobApplicationService {
         .single();
 
       if (error) {
-        console.error('Supabase update error:', error);
         throw new Error(`Database error: ${error.message} (Code: ${error.code})`);
       }
       
@@ -138,10 +128,8 @@ export class SupabaseJobApplicationService {
         throw new Error('No data returned after update. Application may not exist or you may not have permission to update it.');
       }
       
-      console.log('Successfully updated application:', data);
       return data;
     } catch (error) {
-      console.error('Error updating application:', error);
       if (error instanceof Error) {
         throw error;
       }
@@ -159,7 +147,6 @@ export class SupabaseJobApplicationService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting application:', error);
       throw new Error('Failed to delete job application');
     }
   }
@@ -199,7 +186,6 @@ export class SupabaseJobApplicationService {
         applied: data.applied_count || 0,
       };
     } catch (error) {
-      console.error('Error fetching application stats:', error);
       // Fallback to manual calculation
       return await this.calculateStatsManually(userId);
     }
@@ -247,7 +233,6 @@ export class SupabaseJobApplicationService {
 
       return stats;
     } catch (error) {
-      console.error('Error calculating stats manually:', error);
       return {
         total: 0,
         pending: 0,
@@ -288,7 +273,6 @@ export class SupabaseJobApplicationService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error searching applications:', error);
       throw new Error('Failed to search job applications');
     }
   }
@@ -306,7 +290,6 @@ export class SupabaseJobApplicationService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching applications by status:', error);
       throw new Error('Failed to load job applications');
     }
   }
@@ -324,7 +307,6 @@ export class SupabaseJobApplicationService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error bulk updating applications:', error);
       throw new Error('Failed to update job applications');
     }
   }
@@ -345,7 +327,6 @@ export class SupabaseJobApplicationService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching recent applications:', error);
       throw new Error('Failed to load recent job applications');
     }
   }

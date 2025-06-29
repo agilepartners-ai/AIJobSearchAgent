@@ -70,21 +70,6 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobDescription]);
 
-  // Debug logging for profile data
-  useEffect(() => {
-    console.log('Full user profile data:', detailedUserProfile);
-    console.log('Current user ID:', user?.id);
-    
-    if (user) {
-      // Log the Supabase query that would be executed
-      console.log('Supabase query that would be executed:');
-      console.log(`SELECT * FROM profiles WHERE id = '${user.id}' LIMIT 1`);
-    }
-    
-    // Log user object for debugging
-    console.log('Auth user object:', user);
-  }, [detailedUserProfile, user]);
-
   // File select handler: reads file as base64 and stores meta/content in Redux
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -243,7 +228,6 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           }
         );
       } catch (jsonError) {
-        console.warn('JSON enhancement failed, trying file mode:', jsonError);
         // Fallback to file mode
         setExtractionProgress('Retrying analysis with file upload...');
         enhancementResult = await AIEnhancementService.enhanceWithFile(
@@ -270,11 +254,6 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       const timestamp = Date.now();
       const enhancedResumeUrl = `https://example.com/ai-enhanced-resume-${documentId}.pdf`;
       const enhancedCoverLetterUrl = `https://example.com/ai-enhanced-cover-letter-${documentId}.pdf`;
-
-      // Debug: Log the profile data we're about to include
-      console.log('🔍 Profile data being included in optimization results:');
-      console.log('detailedUserProfile:', detailedUserProfile);
-      console.log('user:', user);
 
       // Combine real AI analysis with our UI structure
       const optimizationResults = {
@@ -365,28 +344,15 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         jobDescription: jobDescription,
         applicationData: applicationData,
 
-        // 🔧 CRITICAL FIX: Add detailed user profile and user for cover letter generation
+        // Add detailed user profile and user for cover letter generation
         detailedUserProfile: detailedUserProfile,
         user: user
       };
-
-      // Debug: Log what we're setting as optimization results
-      console.log('✅ Setting optimization results with profile data:');
-      console.log('- detailedUserProfile included:', !!optimizationResults.detailedUserProfile);
-      console.log('- user included:', !!optimizationResults.user);
-      if (optimizationResults.detailedUserProfile) {
-        console.log('- Profile name:', optimizationResults.detailedUserProfile.fullName);
-        console.log('- Profile phone:', optimizationResults.detailedUserProfile.contactNumber);
-        console.log('- Profile address:', optimizationResults.detailedUserProfile.streetAddress);
-        console.log('- Profile LinkedIn:', optimizationResults.detailedUserProfile.linkedin_url);
-      }
 
       dispatch(setOptimizationResults(optimizationResults));
       dispatch(setShowResults(true));
 
     } catch (err: any) {
-      console.error('AI Enhancement Error:', err);
-
       // Provide user-friendly error messages with improved HTTP 500 handling
       let userMessage = err.message;
 

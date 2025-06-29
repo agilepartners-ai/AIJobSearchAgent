@@ -9,11 +9,6 @@ export const createConversation = async (
   // Get settings from Jotai store
   const settings = getDefaultStore().get(settingsAtom);
   
-  // Add debug logs
-  console.log('Creating conversation with settings:', settings);
-  console.log('Greeting value:', settings.greeting);
-  console.log('Context value:', settings.context);
-  
   // Build the context string
   let contextString = "";
   if (settings.name) {
@@ -28,8 +23,6 @@ export const createConversation = async (
       : "Hey there! I'm your technical co-pilot! Let's get get started building with Tavus.",
     conversational_context: contextString
   };
-  
-  console.log('Sending payload to API:', payload);
   
   const response = await fetch("https://tavusapi.com/v2/conversations", {
     method: "POST",

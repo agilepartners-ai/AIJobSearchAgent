@@ -18,7 +18,6 @@ export class SupabaseJobPreferencesService {
 
       return data;
     } catch (error) {
-      console.error('Error fetching job preferences:', error);
       throw error;
     }
   }
@@ -39,7 +38,6 @@ export class SupabaseJobPreferencesService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error saving job preferences:', error);
       throw error;
     }
   }
@@ -60,7 +58,6 @@ export class SupabaseJobPreferencesService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating job preferences:', error);
       throw error;
     }
   }
@@ -75,7 +72,6 @@ export class SupabaseJobPreferencesService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error deleting job preferences:', error);
       throw error;
     }
   }

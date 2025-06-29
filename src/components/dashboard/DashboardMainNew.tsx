@@ -96,21 +96,6 @@ const Dashboard: React.FC = () => {
   const { showSuccess, showError } = useToastContext();
   const navigate = useNavigate();
 
-  // Debug logging for user and profile data
-  useEffect(() => {
-    console.log('Full user profile data:', userProfile);
-    console.log('Current user UID:', user?.uid);
-    
-    if (user) {
-      // Log the Supabase query that would be executed
-      console.log('Supabase query that would be executed:');
-      console.log(`SELECT * FROM profiles WHERE id = '${user.uid}' LIMIT 1`);
-    }
-    
-    // Log user object for debugging
-    console.log('Auth user object:', user);
-  }, [userProfile, user]);
-
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/login');
@@ -129,20 +114,14 @@ const Dashboard: React.FC = () => {
       setLoading(true);
       setError('');
 
-      console.log('Loading applications for user UID:', user.uid);
-
       const [applicationsData, statsData] = await Promise.all([
         SupabaseJobApplicationService.getUserApplications(user.uid),
         SupabaseJobApplicationService.getApplicationStats(user.uid)
       ]);
       
-      console.log('Applications loaded:', applicationsData);
-      console.log('Stats loaded:', statsData);
-      
       setApplications(applicationsData);
       setStats(statsData);
     } catch (err: any) {
-      console.error('Error loading applications:', err);
       setError(err.message || 'Failed to load applications');
     } finally {
       setLoading(false);
@@ -204,7 +183,6 @@ const Dashboard: React.FC = () => {
         setSearchError('No jobs found for your search criteria');
       }
     } catch (error: any) {
-      console.error('Job search error:', error);
       setSearchError(error.message || 'Failed to search for jobs');
       setSearchResults([]);
     } finally {
@@ -227,7 +205,6 @@ const Dashboard: React.FC = () => {
   
   const handleSaveJobFromSearch = async (job: any) => {
     if (!user) {
-      console.error('User not authenticated');
       showError('Authentication Required', 'Please log in to save jobs.');
       return;
     }
@@ -264,14 +241,12 @@ const Dashboard: React.FC = () => {
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to save job';
       setError(errorMessage);
-      console.error('Error saving job from search:', err);
       showError('Failed to Save Job', errorMessage);
     }
   };
   
   const handleSaveMultipleJobsFromSearch = async (jobs: any[]) => {
     if (!user) {
-      console.error('User not authenticated');
       showError('Authentication Required', 'Please log in to save jobs.');
       return;
     }
@@ -302,7 +277,6 @@ const Dashboard: React.FC = () => {
           savedCount++;
         } catch (error) {
           errorCount++;
-          console.error(`Failed to save job: ${job.job_title}`, error);
         }
       }
       
@@ -323,7 +297,6 @@ const Dashboard: React.FC = () => {
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to save jobs';
       setError(errorMessage);
-      console.error('Error saving multiple jobs from search:', err);
       showError('Failed to Save Jobs', errorMessage);
     }
   };
@@ -367,7 +340,6 @@ const Dashboard: React.FC = () => {
       // editingApplication will be reset by modal close logic
     } catch (err: any) {
       setError(err.message || 'Failed to save application');
-      console.error('Error saving application:', err);
       showError('Save Failed', err.message || 'Failed to save application');
     }
   };
@@ -397,7 +369,6 @@ const Dashboard: React.FC = () => {
       showSuccess('Application Deleted', 'The application has been successfully removed.');
     } catch (err: any) {
       setError(err.message || 'Failed to delete application');
-      console.error('Error deleting application:', err);
       showError('Failed to Delete', err.message || 'Failed to delete application');
       setConfirmationModal(prev => ({ ...prev, isOpen: false }));
     }
@@ -446,7 +417,6 @@ const Dashboard: React.FC = () => {
       // Reload applications to reflect the changes
       await loadApplications();
     } catch (err: any) {
-      console.error('Error saving AI-enhanced documents:', err);
       showError('Failed to save AI-enhanced documents. Please try again.');
     }
   };
@@ -465,7 +435,6 @@ const Dashboard: React.FC = () => {
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to update application status';
       setError(errorMessage);
-      console.error('Error updating application status:', err);
     }
   };
 
