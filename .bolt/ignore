@@ -1,0 +1,17 @@
+dist/*
+README.md
+src/components/applications/*
+src/components/auth/*
+src/components/forms/*
+src/components/dashboard/*
+src/components/pages/*
+src/hooks/*
+src/lib/*
+src/services/*
+src/test/*
+src/types/*
+src/utils/*
+public/*
+package-lock.json
+src/components/3D_VISUALIZATION_README.md
+src/components/Interactive3DVisualization.tsx
