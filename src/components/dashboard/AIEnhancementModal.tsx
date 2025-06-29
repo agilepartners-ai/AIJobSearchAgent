@@ -474,28 +474,6 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
             </div>
           )}
 
-          {/* Profile Data Debug Info */}
-          {detailedUserProfile && (
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <CheckCircle className="text-green-600 dark:text-green-400 mt-0.5" size={16} />
-                <div>
-                  <h4 className="text-sm font-medium text-green-800 dark:text-green-200">
-                    ✅ Profile Data Loaded for Cover Letter
-                  </h4>
-                  <div className="text-sm mt-1 text-green-700 dark:text-green-300">
-                    <p><strong>Name:</strong> {detailedUserProfile.fullName || '❌ Not set'}</p>
-                    <p><strong>Phone:</strong> {detailedUserProfile.contactNumber || '❌ Not set'}</p>
-                    <p><strong>Name:</strong> {detailedUserProfile.full_name || '❌ Not set'}</p>
-                    <p><strong>Phone:</strong> {detailedUserProfile.phone || '❌ Not set'}</p>
-                    <p><strong>Email:</strong> {user?.email || '❌ Not set'}</p>
-                    <p><strong>Address:</strong> {detailedUserProfile.location || '❌ Not set'}</p>
-                    <p><strong>LinkedIn:</strong> {detailedUserProfile.linkedin_url || '❌ Not set'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* API Configuration Status */}
           <div className={`border rounded-lg p-4 ${config.hasApiKey
