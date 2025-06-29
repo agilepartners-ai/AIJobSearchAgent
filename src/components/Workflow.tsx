@@ -10,15 +10,15 @@ interface WorkflowStepProps {
 
 const WorkflowStep: React.FC<WorkflowStepProps> = ({ imageSrc, title, description, index }) => {
   return (
-    <div className="relative bg-gradient-to-b from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-2xl p-6 sm:p-8 shadow-lg border-2 border-transparent hover:border-blue-500/30 transition-all hover:-translate-y-1 hover:shadow-blue-500/10 hover:shadow-xl " >
+    <div className="relative bg-gradient-to-b from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-lg border-2 border-transparent hover:border-blue-500/30 transition-all hover:-translate-y-1 hover:shadow-blue-500/10 hover:shadow-xl">
       <div className="flex flex-col items-center text-center">
         <img 
           src={imageSrc} 
           alt={title} 
-          className="w-30 h-30 sm:w-36 sm:h-36 object-contain mb-4"
+          className="w-24 h-24 sm:w-36 sm:h-36 object-contain mb-4"
         />
-        <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">{title}</h3>
-        <p className="text-gray-300 text-sm sm:text-base">{description}</p>
+        <h3 className="text-lg sm:text-xl font-bold text-white mb-2">{title}</h3>
+        <p className="text-sm sm:text-base text-gray-300">{description}</p>
         <div className="absolute -left-4 sm:-left-8 top-1/2 transform -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/30 border-2 border-gray-800">
           {index}
         </div>
@@ -77,27 +77,26 @@ const Workflow: React.FC = () => {
           </p>
           
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-full border border-yellow-400/30">
-            <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-            <Zap className="text-yellow-400" size={20} />
-            <span className="text-yellow-300 font-semibold">
-               15 minutes = Days of traditional job searching
-            </span>
+            <Zap className="text-yellow-400 animate-pulse" size={20} />
+            <span className="text-yellow-300 font-semibold">15 minutes = Days of traditional job searching</span>
           </div>
         </div>
 
         {/* Workflow Section */}
         <div className="relative max-w-6xl mx-auto">
           {/* Workflow steps */}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-8 md:gap-6 lg:gap-8 mb-20">
-            {workflowSteps.map((step, index) => (
-              <WorkflowStep
-                key={index}
-                imageSrc={step.imageSrc}
-                title={step.title}
-                description={step.description}
-                index={index + 1}
-              />
-            ))}
+          <div className="px-2 sm:px-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 md:gap-6 lg:gap-8 mb-20">
+              {workflowSteps.map((step, index) => (
+                <WorkflowStep
+                  key={index}
+                  imageSrc={step.imageSrc}
+                  title={step.title}
+                  description={step.description}
+                  index={index + 1}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
