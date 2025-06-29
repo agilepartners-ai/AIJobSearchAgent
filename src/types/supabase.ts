@@ -189,6 +189,7 @@ export interface Database {
           additional_notes: string | null;
           created_at: string;
           updated_at: string;
+          willing_to_relocate?: boolean;
         };
         Insert: {
           id?: string;
@@ -209,6 +210,7 @@ export interface Database {
           additional_notes?: string | null;
           created_at?: string;
           updated_at?: string;
+          willing_to_relocate?: boolean;
         };
         Update: {
           id?: string;
@@ -229,6 +231,7 @@ export interface Database {
           additional_notes?: string | null;
           created_at?: string;
           updated_at?: string;
+          willing_to_relocate?: boolean;
         };
       };
       application_activities: {
