@@ -70,6 +70,21 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobDescription]);
 
+  // Debug logging for profile data
+  useEffect(() => {
+    console.log('Full user profile data:', detailedUserProfile);
+    console.log('Current user ID:', user?.id);
+    
+    if (user) {
+      // Log the Supabase query that would be executed
+      console.log('Supabase query that would be executed:');
+      console.log(`SELECT * FROM profiles WHERE id = '${user.id}' LIMIT 1`);
+    }
+    
+    // Log user object for debugging
+    console.log('Auth user object:', user);
+  }, [detailedUserProfile, user]);
+
   // File select handler: reads file as base64 and stores meta/content in Redux
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -362,12 +377,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       if (optimizationResults.detailedUserProfile) {
         console.log('- Profile name:', optimizationResults.detailedUserProfile.fullName);
         console.log('- Profile phone:', optimizationResults.detailedUserProfile.contactNumber);
-        console.log('- Profile address components:', {
-          street: optimizationResults.detailedUserProfile.streetAddress,
-          city: optimizationResults.detailedUserProfile.city,
-          state: optimizationResults.detailedUserProfile.state,
-          zip: optimizationResults.detailedUserProfile.zipCode
-        });
+        console.log('- Profile address:', optimizationResults.detailedUserProfile.streetAddress);
+        console.log('- Profile LinkedIn:', optimizationResults.detailedUserProfile.linkedin_url);
       }
 
       dispatch(setOptimizationResults(optimizationResults));
