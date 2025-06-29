@@ -280,10 +280,6 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
     }
   };
 
-  const handleContinueToApplication = () => {
-    setShowTemplateForm(true);
-  };
-
   const handleTemplateFormClose = () => {
     setShowTemplateForm(false);
   };
@@ -681,18 +677,12 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
               🚀 Next Steps
             </h4>
             <p className="text-gray-600 dark:text-gray-300 mb-6">
-              Your AI-optimized documents are ready! Continue to create a professional PDF resume or return to your application.
+              Your AI-optimized documents are ready! Continue to your application.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <button
-                onClick={handleContinueToApplication}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-all hover:shadow-lg"
-              >
-                Continue to Application
-              </button>
-              <button
                 onClick={onClose}
-                className="px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
               >
                 Return to Dashboard
               </button>
