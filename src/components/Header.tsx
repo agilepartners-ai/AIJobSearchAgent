@@ -24,7 +24,7 @@ const Header: React.FC = () => {
 
   return (
     <header 
-      className={`fixed w-full z-50 transition-all duration-300 ${
+      className={`fixed w-full z-[60] z-50 transition-all duration-300 ${
         scrolled 
           ? 'bg-gray-900/95 backdrop-blur-sm shadow-lg py-4' 
           : 'bg-transparent py-6'
@@ -59,7 +59,7 @@ const Header: React.FC = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            {['Services', 'About', 'Contact'].map((item) => (
+            {['Workflow', 'About', 'Contact'].map((item) => (
               <a 
                 key={item} 
                 href={`#${item.toLowerCase().replace(' ', '-')}`}
@@ -96,13 +96,13 @@ const Header: React.FC = () => {
       </div>
 
       {/* Mobile Menu */}
-      <div 
-        className={`md:hidden transition-all duration-300 ease-in-out ${
-          isOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0 invisible'
-        } bg-gray-900/95 backdrop-blur-sm border-t border-gray-700 overflow-hidden`}
+      <div
+        className={`md:hidden bg-gray-900/95 backdrop-blur-sm border-t border-gray-700 transition-all duration-300 ease-in-out ${
+          isOpen ? 'block opacity-100' : 'hidden opacity-0'
+        }`}
       >
-        <div className="container mx-auto px-4 py-4 space-y-4">
-          {['Services', 'About', 'Contact'].map((item) => (
+        <div className="container mx-auto px-4 py-4 space-y-4 min-h-[50vh]">
+          {['Workflow', 'About', 'Contact'].map((item) => (
             <a 
               key={item} 
               href={`#${item.toLowerCase().replace(' ', '-')}`}
@@ -114,7 +114,7 @@ const Header: React.FC = () => {
           ))}
           <Link 
             to="/login" 
-            className="block w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium text-center transition-all"
+            className="block w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium text-center transition-all"
             onClick={() => setIsOpen(false)}
           >
             Sign In
