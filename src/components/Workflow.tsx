@@ -10,7 +10,7 @@ interface WorkflowStepProps {
 
 const WorkflowStep: React.FC<WorkflowStepProps> = ({ imageSrc, title, description, index }) => {
   return (
-    <div className="relative bg-purple-600/20 backdrop-blur-sm rounded-2xl p-6 sm:p-8 shadow-lg border-2 border-transparent hover:border-blue-500/30 transition-all hover:-translate-y-1 hover:shadow-blue-500/10 hover:shadow-xl " >
+    <div className="relative bg-gradient-to-b from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-2xl p-6 sm:p-8 shadow-lg border-2 border-transparent hover:border-blue-500/30 transition-all hover:-translate-y-1 hover:shadow-blue-500/10 hover:shadow-xl " >
       <div className="flex flex-col items-center text-center">
         <img 
           src={imageSrc} 
@@ -19,7 +19,7 @@ const WorkflowStep: React.FC<WorkflowStepProps> = ({ imageSrc, title, descriptio
         />
         <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">{title}</h3>
         <p className="text-gray-300 text-sm sm:text-base">{description}</p>
-        <div className="absolute -left-4 sm:-left-8 top-1/2 transform -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/30 border-2 border-gray-800">
+        <div className="absolute -left-4 sm:-left-8 top-1/2 transform -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/30 border-2 border-gray-800">
           {index}
         </div>
       </div>
