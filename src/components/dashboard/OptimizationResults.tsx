@@ -86,7 +86,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
       if (user) {
         try {
           console.log('🔄 Loading fresh profile data for cover letter...');
-          const freshProfile = await ProfileService.getUserProfile(user.id);
+          const freshProfile = await ProfileService.getUserProfile(user.uid);
           console.log('📋 Fresh profile loaded:', freshProfile);
           
           // Map the Supabase Profile fields to UserProfileData structure
