@@ -484,8 +484,11 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                     ✅ Profile Data Loaded for Cover Letter
                   </h4>
                   <div className="text-sm mt-1 text-green-700 dark:text-green-300">
-                    <p><strong>Name:</strong> {detailedUserProfile.fullName || '❌ Not set'}</p>
+                    <p><strong>Name:</strong> {detailedUserProfile.fullName || '❌ Not set' </p>
+                                      <p><strong>Name:</strong> {detailedUserProfile.full_name || '❌ Not set'}</p>
+
                     <p><strong>Phone:</strong> {detailedUserProfile.contactNumber || '❌ Not set'}</p>
+                                        <p><strong>Phone:</strong> {detailedUserProfile.phone || '❌ Not set'}</p>
                     <p><strong>Email:</strong> {user?.email || '❌ Not set'}</p>
                     <p><strong>Address:</strong> {detailedUserProfile.location || '❌ Not set'}</p>
                     <p><strong>LinkedIn:</strong> {detailedUserProfile.linkedin_url || '❌ Not set'}</p>
