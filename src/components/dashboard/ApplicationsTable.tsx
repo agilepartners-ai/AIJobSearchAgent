@@ -382,31 +382,38 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
         <div className="overflow-x-auto">
           {filteredApplications.length > 0 ? (
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-900">
+              <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
                     Company
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
                     Position
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
                     Applied Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
                     Last Updated
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredApplications.map((application) => (
-                  <tr key={application.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                {filteredApplications.map((application, index) => (
+                  <tr 
+                    key={application.id} 
+                    className={`hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                      index % 2 === 0 
+                        ? 'bg-white dark:bg-gray-800' 
+                        : 'bg-gray-50 dark:bg-gray-750'
+                    }`}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                       {application.company_name}
                     </td>
