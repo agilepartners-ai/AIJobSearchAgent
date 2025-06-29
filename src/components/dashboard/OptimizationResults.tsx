@@ -136,7 +136,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
               convictionDetails: '',
               interviewAvailability: freshProfile.availability || '',
             };
-            
+             console.log('❌ DEBUG DEBUG  mappedPRofile=', mappedProfile);
             setCurrentUserProfile(mappedProfile);
           }
         } catch (error) {
@@ -234,11 +234,12 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
       if (currentUserProfile && user) {
         console.log('✅ Using fresh profile data for cover letter generation');
 
+        console.log('DEBUG DEBUG --', currentUserProfile);
         personalInfo = {
-          name: currentUserProfile.full_name || 'Unknown',
+          name: currentUserProfile.fullName || 'Unknown',
           email: user.email || 'unknown@email.com',
-          phone: currentUserProfile.phone || '',
-          address: currentUserProfile.location || '',
+          phone: currentUserProfile.contactNumber || '',
+          address: currentUserProfile.streetAddress || '',
           linkedin: currentUserProfile.linkedin_url || ''
         };
 
