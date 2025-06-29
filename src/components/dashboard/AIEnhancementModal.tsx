@@ -396,7 +396,65 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Loader Overlay */}
+        {loading && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm transition-all rounded-lg animate-fade-in">
+            <div className="flex flex-col items-center gap-6">
+              {/* Animated Brain Icon with Pulse */}
+              <div className="relative flex items-center justify-center">
+                <span className="absolute inline-flex h-16 w-16 rounded-full bg-blue-400 opacity-40 animate-ping"></span>
+                <span className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg animate-bounce-slow">
+                  <Brain className="text-white animate-spin-slow" size={36} />
+                </span>
+              </div>
+              {/* Progress Bar */}
+              <div className="w-64 h-3 bg-blue-100 dark:bg-blue-900 rounded-full overflow-hidden shadow-inner">
+                <div className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-progress-bar"></div>
+              </div>
+              <span className="text-lg font-semibold text-blue-700 dark:text-blue-300 animate-fade-in-text">
+                {extractionProgress || "Generating your AI-enhanced resume & cover letter..."}
+              </span>
+            </div>
+            <style>{`
+              @keyframes bounce-slow {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-12px); }
+              }
+              .animate-bounce-slow {
+                animation: bounce-slow 2s infinite;
+              }
+              @keyframes spin-slow {
+                100% { transform: rotate(360deg); }
+              }
+              .animate-spin-slow {
+                animation: spin-slow 3s linear infinite;
+              }
+              @keyframes progress-bar {
+                0% { width: 0%; }
+                80% { width: 90%; }
+                100% { width: 100%; }
+              }
+              .animate-progress-bar {
+                animation: progress-bar 2.5s cubic-bezier(0.4,0,0.2,1) infinite;
+              }
+              @keyframes fade-in {
+                from { opacity: 0; }
+                to { opacity: 1; }
+              }
+              .animate-fade-in {
+                animation: fade-in 0.7s ease-in;
+              }
+              @keyframes fade-in-text {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+              }
+              .animate-fade-in-text {
+                animation: fade-in-text 1.2s ease-in;
+              }
+            `}</style>
+          </div>
+        )}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
@@ -432,14 +490,6 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
               </div>
             </div>
           )}
-
-          {extractionProgress && (
-            <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-3 rounded-lg text-sm flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-              {extractionProgress}
-            </div>
-          )}
-
 
           {/* Job Description - First Field */}
           <div>
