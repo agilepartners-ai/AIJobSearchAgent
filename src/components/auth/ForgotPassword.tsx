@@ -25,7 +25,7 @@ const ForgotPassword: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600/40 via-purple-600/40 to-blue-800/40 dark:from-blue-900/60 dark:via-purple-900/60 dark:to-blue-950/60 p-4 transition-colors duration-300">
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4 transition-colors duration-300">
       <div className="absolute inset-0 w-full h-full overflow-hidden">
         {[...Array(20)].map((_, i) => (
           <div 
