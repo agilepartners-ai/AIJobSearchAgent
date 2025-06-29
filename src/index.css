@@ -104,10 +104,16 @@
 
 @keyframes float {
   0%, 100% {
-    transform: translateY(0) scale(1);
+    transform: translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-10px) rotate(90deg);
   }
   50% {
-    transform: translateY(-30px) scale(1.05);
+    transform: translateY(-20px) rotate(180deg);
+  }
+  75% {
+    transform: translateY(-10px) rotate(270deg);
   }
 }
 
@@ -130,6 +136,53 @@
     transform: translateY(0);
   }
 }
+
+/* Workflow-specific animations */
+@keyframes workflow-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(34, 197, 254, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(34, 197, 254, 0.6), 0 0 60px rgba(59, 130, 246, 0.4);
+  }
+}
+
+@keyframes workflow-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+@keyframes workflow-slide {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Workflow step specific styles */
+.workflow-step {
+  animation: workflow-slide 0.6s ease-out;
+}
+
+.workflow-step.active {
+  animation: workflow-glow 2s ease-in-out infinite;
+}
+
+.workflow-step:nth-child(1) { animation-delay: 0.1s; }
+.workflow-step:nth-child(2) { animation-delay: 0.2s; }
+.workflow-step:nth-child(3) { animation-delay: 0.3s; }
+.workflow-step:nth-child(4) { animation-delay: 0.4s; }
+.workflow-step:nth-child(5) { animation-delay: 0.5s; }
 
 @keyframes pulse-glow {
   0%, 100% {
