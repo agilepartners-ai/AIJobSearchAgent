@@ -512,13 +512,13 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                     <input
                       type="file"
                       className="hidden"
-                      accept=".pdf,.doc,.docx,.txt"
+                      accept=".pdf,.txt"
                       onChange={handleFileSelect}
                       key={selectedFileMeta ? selectedFileMeta.name + selectedFileMeta.lastModified : 'empty'}
                     />
                   </label>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                    Select PDF, Word document, or text file (max 10MB)
+                    Only PDF or Text files (max 10MB)
                   </p>
                   {selectedFileMeta && (
                     <div className="mt-3 p-2 bg-green-50 dark:bg-green-900/30 rounded-lg flex items-center gap-2">
