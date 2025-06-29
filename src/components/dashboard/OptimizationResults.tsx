@@ -235,10 +235,10 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
         console.log('✅ Using fresh profile data for cover letter generation');
 
         personalInfo = {
-          name: currentUserProfile.fullName || 'Unknown',
+          name: currentUserProfile.full_name || 'Unknown',
           email: user.email || 'unknown@email.com',
-          phone: currentUserProfile.contactNumber || '',
-          address: currentUserProfile.streetAddress || '',
+          phone: currentUserProfile.phone || '',
+          address: currentUserProfile.location || '',
           linkedin: currentUserProfile.linkedin_url || ''
         };
 
