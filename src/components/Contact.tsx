@@ -47,7 +47,7 @@ const Contact: React.FC = () => {
                   <p className="text-gray-600 dark:text-gray-300">
                     1125 PARK PL APT 206<br />
                     San Mateo, CA 94403-1578,
-                    Uinted States
+                    United States
                   </p>
                 </div>
               </div>
