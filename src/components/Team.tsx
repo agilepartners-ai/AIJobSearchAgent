@@ -203,7 +203,7 @@ const Team: React.FC = () => {
         <div className="relative max-w-7xl mx-auto">
           <button
             onClick={prevSlide}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-16 z-10 w-14 h-14 bg-white dark:bg-gray-800 rounded-full shadow-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:shadow-xl transition-all group border border-gray-200 dark:border-gray-700"
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 sm:-translate-x-8 md:-translate-x-12 lg:-translate-x-16 z-10 w-14 h-14 bg-white dark:bg-gray-800 rounded-full shadow-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:shadow-xl transition-all group border border-gray-200 dark:border-gray-700"
             aria-label="Previous slide"
           >
             <ChevronLeft size={28} className="group-hover:scale-110 transition-transform" />
@@ -211,7 +211,7 @@ const Team: React.FC = () => {
           
           <button
             onClick={nextSlide}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-16 z-10 w-14 h-14 bg-white dark:bg-gray-800 rounded-full shadow-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:shadow-xl transition-all group border border-gray-200 dark:border-gray-700"
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 sm:-translate-x-8 md:-translate-x-12 lg:-translate-x-16 z-10 w-14 h-14 bg-white dark:bg-gray-800 rounded-full shadow-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:shadow-xl transition-all group border border-gray-200 dark:border-gray-700"
             aria-label="Next slide"
           >
             <ChevronRight size={28} className="group-hover:scale-110 transition-transform" />
