@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, Search, LogOut, User, Settings, ChevronDown, Menu, X } from 'lucide-react';
+import { Plus, Search, LogOut, User, Settings, ChevronDown, Menu, X, Crown } from 'lucide-react';
 import SupabaseAuthService from '../../services/supabaseAuthService';
 import { useNavigate } from 'react-router-dom';
+import UpgradeModal from './UpgradeModal';
 
 interface DashboardHeaderProps {
   userProfile: any;
@@ -21,6 +22,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   const navigate = useNavigate();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -29,6 +31,34 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     } catch (error) {
       console.error('Error signing out:', error);
     }
+  };
+
+  const handleUpgrade = () => {
+    setIsUpgradeModalOpen(true);
+  };
+
+  const handleUpgradeConfirm = async () => {
+    try {
+      // Temporarily disable beforeunload handlers during upgrade
+      const originalBeforeUnload = window.onbeforeunload;
+      window.onbeforeunload = null;
+      
+      const currentUser = await SupabaseAuthService.getCurrentUser();
+      if (currentUser && currentUser.uid) {
+        const paymentUrl = `https://pay.rev.cat/sandbox/evfhfhevsehbykku/${currentUser.uid}`;
+        // Open in same tab for better user experience
+        window.location.href = paymentUrl;
+      } else {
+        // Restore beforeunload handler if navigation failed
+        window.onbeforeunload = originalBeforeUnload;
+        alert('Please log in to upgrade your subscription.');
+        navigate('/login');
+      }
+    } catch (error) {
+      console.error('Error getting user for upgrade:', error);
+      alert('There was an error processing your request. Please try again.');
+    }
+    setIsUpgradeModalOpen(false);
   };
 
   const toggleProfileDropdown = () => {
@@ -46,7 +76,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   };
 
   return (
-    <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
+    <>
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
         <div className="flex justify-between items-center h-14 sm:h-16">
           {/* Logo and Title */}
@@ -87,6 +118,15 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               <Plus size={18} />
               <span className="hidden xl:inline">Manual Job Entry</span>
               <span className="xl:hidden">Add Job</span>
+            </button>
+            
+            <button
+              onClick={handleUpgrade}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-3 py-2 xl:px-4 xl:py-2 rounded-lg flex items-center gap-2 transition-all text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 relative overflow-hidden group"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 opacity-0 group-hover:opacity-20 transition-opacity"></div>
+              <Crown size={18} className="relative z-10" />
+              <span className="relative z-10 font-semibold">Upgrade Pro</span>
             </button>
             
             {/* Desktop Profile Dropdown */}
@@ -174,6 +214,18 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 Manual Job Entry
               </button>
 
+              <button
+                onClick={() => {
+                  handleUpgrade();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-all text-sm font-semibold shadow-lg hover:shadow-xl relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                <Crown size={18} className="relative z-10" />
+                <span className="relative z-10">Upgrade to Pro</span>
+              </button>
+
               <div className="pt-2 border-t border-gray-200 dark:border-gray-600 space-y-1">
                 <div className="flex items-center px-2 py-2">
                   <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 mr-3">
@@ -213,6 +265,14 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         )}
       </div>
     </header>
+
+    <UpgradeModal
+      isOpen={isUpgradeModalOpen}
+      onClose={() => setIsUpgradeModalOpen(false)}
+      onConfirm={handleUpgradeConfirm}
+      userProfile={userProfile}
+    />
+    </>
   );
 };
 
