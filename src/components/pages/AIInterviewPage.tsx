@@ -106,10 +106,11 @@ const TavusWidget: React.FC<{ videoUrl: string }> = ({ videoUrl }) => {
 // Use local video file from public directory
 const TAVUS_VIDEO_URL = "/e3db768fa0.mp4";
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Video, User, LogOut, LayoutDashboard, Loader, ExternalLink, ArrowLeft } from 'lucide-react';
+import { Video, User, LogOut, LayoutDashboard, Loader, ExternalLink, ArrowLeft, Crown } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import SupabaseAuthService from '../../services/supabaseAuthService';
 import { createConversation as createInterviewConversation } from '../../services/interviewService';
+import UpgradeModal from '../dashboard/UpgradeModal';
 
 const AIInterviewPage: React.FC = () => {
   const navigate = useNavigate();
@@ -118,6 +119,7 @@ const AIInterviewPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [conversationData, setConversationData] = useState<any>(null);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   // Extract job context from navigation state
   const jobTitle = location.state?.jobTitle || '';
@@ -138,6 +140,34 @@ const AIInterviewPage: React.FC = () => {
     } catch (error) {
       console.error('Error signing out:', error);
     }
+  };
+
+  const handleUpgrade = () => {
+    setIsUpgradeModalOpen(true);
+  };
+
+  const handleUpgradeConfirm = async () => {
+    try {
+      // Temporarily disable beforeunload handlers during upgrade
+      const originalBeforeUnload = window.onbeforeunload;
+      window.onbeforeunload = null;
+      
+      const currentUser = await SupabaseAuthService.getCurrentUser();
+      if (currentUser && currentUser.uid) {
+        const paymentUrl = `https://pay.rev.cat/sandbox/evfhfhevsehbykku/${currentUser.uid}`;
+        // Open in same tab for better user experience
+        window.location.href = paymentUrl;
+      } else {
+        // Restore beforeunload handler if navigation failed
+        window.onbeforeunload = originalBeforeUnload;
+        alert('Please log in to upgrade your subscription.');
+        navigate('/login');
+      }
+    } catch (error) {
+      console.error('Error getting user for upgrade:', error);
+      alert('There was an error processing your request. Please try again.');
+    }
+    setIsUpgradeModalOpen(false);
   };
   const createConversation = async () => {
     setLoading(true);
@@ -216,6 +246,14 @@ const AIInterviewPage: React.FC = () => {
               >
                 <LayoutDashboard size={14} />
                 <span>Dashboard</span>
+              </button>
+              <button
+                onClick={handleUpgrade}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-all text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                <Crown size={16} className="relative z-10" />
+                <span className="relative z-10 font-semibold">Upgrade Pro</span>
               </button>
               <button 
                 onClick={handleSignOut}
@@ -370,6 +408,13 @@ const AIInterviewPage: React.FC = () => {
         </div>
       </main>
     </div>
+
+    <UpgradeModal
+      isOpen={isUpgradeModalOpen}
+      onClose={() => setIsUpgradeModalOpen(false)}
+      onConfirm={handleUpgradeConfirm}
+      userProfile={userProfile}
+    />
     </>
   );
 };
