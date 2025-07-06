@@ -1,5 +1,7 @@
 # My Job Search Agent 🤖
 
+This is not part of Hackathorn. It is for production release
+
 An AI-powered job search application built with React, TypeScript, and Vite that helps users find, apply to, and manage job applications efficiently.
 
 ## 🚀 Features
