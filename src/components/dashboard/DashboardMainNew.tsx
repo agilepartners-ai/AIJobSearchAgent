@@ -422,7 +422,7 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <DashboardHeader
-        userProfile={userProfile as UserProfileData}
+        userProfile={userProfile}
         onAddApplication={handleAddApplication}
         onFindMoreJobs={handleJobSearch}
         onJobPreferences={handleJobPreferences}
@@ -499,7 +499,7 @@ const Dashboard: React.FC = () => {
       {showModal && (
         <ApplicationModal
           application={editingApplication}
-          detailedUserProfile={userProfile as UserProfileData}
+          detailedUserProfile={userProfile}
           onSave={handleSaveApplication}
           onClose={() => {
             setShowModal(false);
@@ -516,7 +516,7 @@ const Dashboard: React.FC = () => {
             company_name: selectedApplicationForAI.company_name,
             location: selectedApplicationForAI.location || undefined,
           }}
-          detailedUserProfile={userProfile as UserProfileData}
+          detailedUserProfile={userProfile}
           onSave={handleAISave}
           onClose={() => {
             setShowAIModal(false);
