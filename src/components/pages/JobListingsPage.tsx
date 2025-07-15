@@ -1,5 +1,7 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { 
   ArrowRight, 
   MapPin, 
@@ -27,7 +29,7 @@ interface JobSearchForm {
   date_posted: string;
 }
 
-const JobListingsPage: React.FC = () => {  const navigate = useNavigate();
+const JobListingsPage: React.FC = () => {  const router = useRouter();
   const { user, userProfile, loading: authLoading } = useAuth();
   const { showWarning } = useToastContext();
   const [loading, setLoading] = useState(true);
@@ -39,10 +41,10 @@ const JobListingsPage: React.FC = () => {  const navigate = useNavigate();
   // Redirect to login if not authenticated (but wait for auth to load)
   React.useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/login');
+      router.push('/login');
       return;
     }
-  }, [user, navigate]);
+  }, [user, router]);
 
   useEffect(() => {
     // Get search criteria from localStorage
@@ -55,7 +57,7 @@ const JobListingsPage: React.FC = () => {  const navigate = useNavigate();
       // If no criteria found, set loading to false to show the "no search" message
       setLoading(false);
     }
-  }, [navigate]);
+  }, [router]);
 
   const searchJobs = async (criteria: JobSearchForm) => {
     setLoading(true);
@@ -152,20 +154,20 @@ const JobListingsPage: React.FC = () => {  const navigate = useNavigate();
     localStorage.setItem('selectedJobs', JSON.stringify(selectedJobsData));
     
     // Navigate to dashboard
-    navigate('/dashboard');
+    router.push('/dashboard');
   };
 
   const handleSignOut = async () => {
     try {
       await SupabaseAuthService.signOut();
-      navigate('/');
+      router.push('/');
     } catch (error) {
       console.error('Error signing out:', error);
     }
   };
 
   const handleBack = () => {
-    navigate('/job-search');
+    router.push('/job-search');
   };
   const formatSalary = (job: JobResult) => {
     if (job.job_min_salary && job.job_max_salary) {

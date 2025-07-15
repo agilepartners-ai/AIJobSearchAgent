@@ -15,23 +15,23 @@ export const JobApplicationSchema = z.object({
     'declined'
   ]),
   application_date: z.string().datetime(),
-  last_updated: z.string().datetime(),
-  location: z.string().optional(),
-  job_posting_url: z.string().url().optional(),
-  job_description: z.string().optional(),
-  notes: z.string().optional(),
-  salary_range: z.string().optional(),
-  employment_type: z.string().optional(),
+  last_updated: z.string().datetime().nullable(),
+  location: z.string().nullable(),
+  job_posting_url: z.string().url().nullable(),
+  job_description: z.string().nullable(),
+  notes: z.string().nullable(),
+  salary_range: z.string().nullable(),
+  employment_type: z.string().nullable(),
   remote_option: z.boolean().default(false),
-  contact_person: z.string().optional(),
-  contact_email: z.string().email().optional(),
-  interview_date: z.string().datetime().optional(),
-  response_date: z.string().datetime().optional(),
-  follow_up_date: z.string().datetime().optional(),
+  contact_person: z.string().nullable(),
+  contact_email: z.string().email().nullable(),
+  interview_date: z.string().datetime().nullable(),
+  response_date: z.string().datetime().nullable(),
+  follow_up_date: z.string().datetime().nullable(),
   priority: z.number().min(1).max(5).default(1),
-  source: z.string().optional(),
+  source: z.string().nullable(),
   created_at: z.string().datetime(),
-  updated_at: z.string().datetime()
+  updated_at: z.string().datetime().nullable()
 });
 
 export type JobApplication = z.infer<typeof JobApplicationSchema>;

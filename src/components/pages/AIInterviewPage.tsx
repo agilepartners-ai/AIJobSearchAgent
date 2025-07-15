@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useRef, useEffect } from 'react';
 // Tavus Video Widget Component
 const TavusWidget: React.FC<{ videoUrl: string }> = ({ videoUrl }) => {
@@ -105,7 +107,8 @@ const TavusWidget: React.FC<{ videoUrl: string }> = ({ videoUrl }) => {
 };
 // Use local video file from public directory
 const TAVUS_VIDEO_URL = "/e3db768fa0.mp4";
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { createSupabaseClient } from '../../lib/supabase/client';
 import { Video, User, LogOut, LayoutDashboard, Loader, ExternalLink, ArrowLeft, Crown } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import SupabaseAuthService from '../../services/supabaseAuthService';
@@ -113,30 +116,30 @@ import { createConversation as createInterviewConversation } from '../../service
 import UpgradeModal from '../dashboard/UpgradeModal';
 
 const AIInterviewPage: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, userProfile, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [conversationData, setConversationData] = useState<any>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
-  // Extract job context from navigation state
-  const jobTitle = location.state?.jobTitle || '';
-  const companyName = location.state?.companyName || '';
-  const jobDescription = location.state?.jobDescription || '';
+  // Extract job context from URL search params
+  const jobTitle = searchParams.get('jobTitle') || '';
+  const companyName = searchParams.get('companyName') || '';
+  const jobDescription = searchParams.get('jobDescription') || '';
 
   // Redirect to login if not authenticated
-  React.useEffect(() => {
+  useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/login');
+      router.push('/login');
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, router]);
 
   const handleSignOut = async () => {
     try {
       await SupabaseAuthService.signOut();
-      navigate('/');
+      router.push('/');
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -148,24 +151,34 @@ const AIInterviewPage: React.FC = () => {
 
   const handleUpgradeConfirm = async () => {
     try {
-      // Temporarily disable beforeunload handlers during upgrade
-      const originalBeforeUnload = window.onbeforeunload;
-      window.onbeforeunload = null;
-      
-      const currentUser = await SupabaseAuthService.getCurrentUser();
-      if (currentUser && currentUser.uid) {
-        const paymentUrl = `https://pay.rev.cat/sandbox/evfhfhevsehbykku/${currentUser.uid}`;
-        // Open in same tab for better user experience
-        window.location.href = paymentUrl;
+      const supabase = createSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const response = await fetch('/api/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: user.id, email: user.email }),
+        });
+
+        const { checkoutUrl, error } = await response.json();
+
+        if (error) throw new Error(error);
+        
+        if (checkoutUrl) {
+          window.location.href = checkoutUrl;
+        } else {
+          alert('Could not create checkout session.');
+        }
       } else {
-        // Restore beforeunload handler if navigation failed
-        window.onbeforeunload = originalBeforeUnload;
         alert('Please log in to upgrade your subscription.');
-        navigate('/login');
+        router.push('/login');
       }
-    } catch (error) {
-      console.error('Error getting user for upgrade:', error);
-      alert('There was an error processing your request. Please try again.');
+    } catch (error: any) {
+      console.error('Error during upgrade confirmation:', error);
+      alert(error.message || 'An error occurred during the upgrade process.');
     }
     setIsUpgradeModalOpen(false);
   };
@@ -220,7 +233,7 @@ const AIInterviewPage: React.FC = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <button 
-                onClick={() => navigate('/dashboard')}
+                onClick={() => router.push('/dashboard')}
                 className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
                 title="Back to dashboard"
               >
@@ -240,7 +253,7 @@ const AIInterviewPage: React.FC = () => {
                 <span>Welcome, {userProfile?.email || user?.email}!</span>
               </div>
               <button 
-                onClick={() => navigate('/dashboard')}
+                onClick={() => router.push('/dashboard')}
                 className="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
                 title="Go to Dashboard"
               >

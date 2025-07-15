@@ -6,7 +6,7 @@ export interface Database {
         Row: {
           id: string;
           email: string;
-          full_name: string | null;
+          fullName: string | null;
           phone: string | null;
           location: string | null;
           resume_url: string | null;
@@ -35,7 +35,7 @@ export interface Database {
         Insert: {
           id: string;
           email: string;
-          full_name?: string | null;
+          fullName?: string | null;
           phone?: string | null;
           location?: string | null;
           resume_url?: string | null;
@@ -64,7 +64,7 @@ export interface Database {
         Update: {
           id?: string;
           email?: string;
-          full_name?: string | null;
+          fullName?: string | null;
           phone?: string | null;
           location?: string | null;
           resume_url?: string | null;
@@ -110,6 +110,7 @@ export interface Database {
           contact_email: string | null;
           interview_date: string | null;
           response_date: string | null;
+          last_updated: string | null;
           follow_up_date: string | null;
           priority: number;
           source: string | null;

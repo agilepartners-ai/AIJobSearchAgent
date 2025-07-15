@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import DashboardHeader from './DashboardHeader';
 import StatsCards from './StatsCards';
 import ApplicationsTable from './ApplicationsTable';
@@ -16,7 +16,7 @@ import { JobSearchService } from '../../services/jobSearchService';
 import { useAuth } from '../../hooks/useAuth';
 import { useToastContext } from '../ui/ToastProvider';
 import '../../styles/dashboard-responsive.css';
-
+import { UserProfileData } from '@/services/profileService';
 
 const Dashboard: React.FC = () => {
   const [applications, setApplications] = useState<JobApplication[]>([]);
@@ -69,11 +69,11 @@ const Dashboard: React.FC = () => {
       localStorage.removeItem('dashboard-application-modal');
     }
   }, [showModal, editingApplication]);
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedJobDescription, setSelectedJobDescription] = useState<{title: string, company: string, description: string} | null>(null);
-  
+
   const [confirmationModal, setConfirmationModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -85,6 +85,7 @@ const Dashboard: React.FC = () => {
     message: '',
     onConfirm: () => {}
   });
+
   const [stats, setStats] = useState({
     total: 0,
     interviews: 0,
@@ -94,18 +95,18 @@ const Dashboard: React.FC = () => {
 
   const { user, userProfile, loading: authLoading } = useAuth();
   const { showSuccess, showError } = useToastContext();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/login');
+      router.push('/login');
       return;
     }
 
     if (user) {
       loadApplications();
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, router]);
 
   const loadApplications = async () => {
     if (!user) return;
@@ -118,7 +119,7 @@ const Dashboard: React.FC = () => {
         SupabaseJobApplicationService.getUserApplications(user.uid),
         SupabaseJobApplicationService.getApplicationStats(user.uid)
       ]);
-      
+
       setApplications(applicationsData);
       setStats(statsData);
     } catch (err: any) {
@@ -127,7 +128,7 @@ const Dashboard: React.FC = () => {
       setLoading(false);
     }
   };
-  
+
   const handleAddApplication = () => {
     setEditingApplication(null);
     setShowModal(true);
@@ -140,7 +141,7 @@ const Dashboard: React.FC = () => {
   const handleJobPreferences = () => {
     setShowJobPreferencesModal(true);
   };
-  
+
   const handleUpdateProfile = () => {
     setShowProfileModal(true);
   };
@@ -148,7 +149,7 @@ const Dashboard: React.FC = () => {
   const handleSearchFormChange = (form: any) => {
     setSearchForm(form);
   };
-  
+
   const handleSearch = async () => {
     if (!user) {
       setSearchError('Please log in to search for jobs');
@@ -157,25 +158,22 @@ const Dashboard: React.FC = () => {
 
     setSearchLoading(true);
     setSearchError('');
-    
+
     try {
-      // Call the actual job search API
       const searchParams = {
         jobProfile: searchForm.query,
         experience: (searchForm.experience === 'Fresher' ? 'Fresher' : 'Experienced') as 'Fresher' | 'Experienced',
         location: searchForm.location,
-        numPages: 1 // Start with 1 page
+        numPages: 1
       };
 
       const searchResponse = await JobSearchService.searchJobs(searchParams);
-      
+
       if (searchResponse.success && searchResponse.jobs.length > 0) {
-        // Set search results for the modal
         setSearchResults(searchResponse.jobs);
-        
-        // Show success message
+
         showSuccess(
-          'Search Completed!', 
+          'Search Completed!',
           `Found ${searchResponse.jobs.length} jobs. You can now save individual jobs or save all jobs from the search results.`
         );
       } else {
@@ -202,7 +200,7 @@ const Dashboard: React.FC = () => {
     setSearchResults([]);
     setSearchError('');
   };
-  
+
   const handleSaveJobFromSearch = async (job: any) => {
     if (!user) {
       showError('Authentication Required', 'Please log in to save jobs.');
@@ -211,8 +209,7 @@ const Dashboard: React.FC = () => {
 
     try {
       setError('');
-      
-      // Use the SAME proven method that works for manual job additions
+
       const applicationData = {
         company_name: job.employer_name || 'Unknown Company',
         position: job.job_title || 'Unknown Position',
@@ -224,16 +221,11 @@ const Dashboard: React.FC = () => {
                `Location: ${job.job_city && job.job_state ? `${job.job_city}, ${job.job_state}` : job.job_country || 'Not specified'}${job.job_is_remote ? ' (Remote)' : ''}\n` +
                `Employment Type: ${job.job_employment_type || 'Not specified'}`,
       };
-      
+
       const newApplication = await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
-      // Update local state instead of reloading all data
       setApplications(prev => [newApplication, ...prev]);
-      setStats(prev => ({ 
-        ...prev, 
-        total: prev.total + 1 
-      }));
-      
-      // Show success feedback
+      setStats(prev => ({ ...prev, total: prev.total + 1 }));
+
       showSuccess(
         'Job Saved!',
         `"${job.job_title}" at "${job.employer_name}" has been saved to your applications!`
@@ -244,7 +236,7 @@ const Dashboard: React.FC = () => {
       showError('Failed to Save Job', errorMessage);
     }
   };
-  
+
   const handleSaveMultipleJobsFromSearch = async (jobs: any[]) => {
     if (!user) {
       showError('Authentication Required', 'Please log in to save jobs.');
@@ -253,14 +245,13 @@ const Dashboard: React.FC = () => {
 
     try {
       setError('');
-      
+
       let savedCount = 0;
       let errorCount = 0;
       let savedApplications: any[] = [];
-      
+
       for (const job of jobs) {
         try {
-          // Use the SAME proven method that works for manual job additions
           const applicationData = {
             company_name: job.employer_name || 'Unknown Company',
             position: job.job_title || 'Unknown Position',
@@ -271,7 +262,7 @@ const Dashboard: React.FC = () => {
             notes: `Saved from job search:\n` +
                    `Location: ${job.job_city && job.job_state ? `${job.job_city}, ${job.job_state}` : job.job_country || 'Not specified'}${job.job_is_remote ? ' (Remote)' : ''}`,
           };
-          
+
           const newApplication = await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
           savedApplications.push(newApplication);
           savedCount++;
@@ -279,17 +270,12 @@ const Dashboard: React.FC = () => {
           errorCount++;
         }
       }
-      
-      // Update local state instead of reloading all data
+
       if (savedApplications.length > 0) {
         setApplications(prev => [...savedApplications, ...prev]);
-        setStats(prev => ({ 
-          ...prev, 
-          total: prev.total + savedApplications.length 
-        }));
+        setStats(prev => ({ ...prev, total: prev.total + savedApplications.length }));
       }
-      
-      // Show detailed success feedback
+
       showSuccess(
         'Job Saving Completed!',
         `Saved: ${savedCount} jobs${errorCount > 0 ? `, Errors: ${errorCount}` : ''}`
@@ -311,33 +297,25 @@ const Dashboard: React.FC = () => {
 
     try {
       setError('');
-      
+
       if (editingApplication) {
-        // Update existing application
         const updatedApplication = await SupabaseJobApplicationService.updateApplication(editingApplication.id, applicationData);
-        
-        // Update local state instead of reloading all data
-        setApplications(prev => prev.map(app => 
+
+        setApplications(prev => prev.map(app =>
           app.id === editingApplication.id ? { ...app, ...updatedApplication } : app
         ));
-        
+
         showSuccess('Application Updated', 'The application has been successfully updated.');
       } else {
-        // Add new application
         const newApplication = await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
-        
-        // Update local state instead of reloading all data
+
         setApplications(prev => [newApplication, ...prev]);
-        setStats(prev => ({ 
-          ...prev, 
-          total: prev.total + 1 
-        }));
-        
+        setStats(prev => ({ ...prev, total: prev.total + 1 }));
+
         showSuccess('Application Added', 'The application has been successfully added.');
       }
-      
+
       setShowModal(false);
-      // editingApplication will be reset by modal close logic
     } catch (err: any) {
       setError(err.message || 'Failed to save application');
       showError('Save Failed', err.message || 'Failed to save application');
@@ -357,14 +335,10 @@ const Dashboard: React.FC = () => {
     try {
       setError('');
       await SupabaseJobApplicationService.deleteApplication(applicationId);
-      
-      // Update local state instead of reloading all data
+
       setApplications(prev => prev.filter(app => app.id !== applicationId));
-      setStats(prev => ({ 
-        ...prev, 
-        total: Math.max(0, prev.total - 1) 
-      }));
-      
+      setStats(prev => ({ ...prev, total: Math.max(0, prev.total - 1) }));
+
       setConfirmationModal(prev => ({ ...prev, isOpen: false }));
       showSuccess('Application Deleted', 'The application has been successfully removed.');
     } catch (err: any) {
@@ -373,20 +347,18 @@ const Dashboard: React.FC = () => {
       setConfirmationModal(prev => ({ ...prev, isOpen: false }));
     }
   };
-  
+
   const handleViewJobDescription = (job: { title: string; company: string; description: string }) => {
     setSelectedJobDescription(job);
   };
 
   const handleStartInterview = (application: JobApplication) => {
-    // Navigate to AI Interview page with job details
-    navigate('/ai-interview', { 
-      state: { 
-        jobTitle: application.position,
-        companyName: application.company_name,
-        jobDescription: application.job_description
-      }
-    });
+    const query = new URLSearchParams({
+      jobTitle: application.position,
+      companyName: application.company_name,
+      jobDescription: application.job_description || '',
+    }).toString();
+    router.push(`/ai-interview?${query}`);
   };
 
   const handleLoadAIEnhanced = (application: JobApplication) => {
@@ -402,7 +374,7 @@ const Dashboard: React.FC = () => {
     if (!selectedApplicationForAI || !user) return;
 
     try {
-      const updatedNotes = selectedApplicationForAI.notes 
+      const updatedNotes = selectedApplicationForAI.notes
         ? `${selectedApplicationForAI.notes}\n\nAI-enhanced documents generated on ${new Date().toLocaleDateString()} based on job posting analysis.`
         : `AI-enhanced documents generated on ${new Date().toLocaleDateString()} based on job posting analysis.`;
 
@@ -413,8 +385,7 @@ const Dashboard: React.FC = () => {
       showSuccess('AI-enhanced resume and cover letter saved successfully!');
       setShowAIModal(false);
       setSelectedApplicationForAI(null);
-      
-      // Reload applications to reflect the changes
+
       await loadApplications();
     } catch (err: any) {
       showError('Failed to save AI-enhanced documents. Please try again.');
@@ -426,12 +397,10 @@ const Dashboard: React.FC = () => {
 
     try {
       setError('');
-      
+
       await SupabaseJobApplicationService.updateApplication(applicationId, { status: newStatus as any });
-      
-      // Reload applications to reflect the change
+
       await loadApplications();
-      
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to update application status';
       setError(errorMessage);
@@ -447,19 +416,19 @@ const Dashboard: React.FC = () => {
   }
 
   if (!user) {
-    return null; // Will redirect to login
+    return null;
   }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <DashboardHeader
-        userProfile={userProfile}
+        userProfile={userProfile as UserProfileData}
         onAddApplication={handleAddApplication}
         onFindMoreJobs={handleJobSearch}
         onJobPreferences={handleJobPreferences}
         onUpdateProfile={handleUpdateProfile}
       />
-      
+
       <main className="container max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {error && (
           <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 sm:p-4 rounded-lg mb-4 sm:mb-6 border border-red-200 dark:border-red-800">
@@ -478,7 +447,7 @@ const Dashboard: React.FC = () => {
 
         <div className="space-y-6 sm:space-y-8">
           <StatsCards stats={stats} />
-          
+
           <div className="w-full">
             <ApplicationsTable
               applications={applications}
@@ -496,8 +465,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </main>
-      
-      {/* Modals */}
+
       <JobSearchModal
         isOpen={showJobSearchModal}
         searchForm={searchForm}
@@ -513,27 +481,25 @@ const Dashboard: React.FC = () => {
       />
 
       {showProfileModal && (
-        <ProfileModal
-          onClose={() => setShowProfileModal(false)}
-        />
+        <ProfileModal onClose={() => setShowProfileModal(false)} />
       )}
 
       {showJobPreferencesModal && (
-        <JobPreferencesModal
-          onClose={() => setShowJobPreferencesModal(false)}
-        />
+        <JobPreferencesModal onClose={() => setShowJobPreferencesModal(false)} />
       )}
 
-      <JobDescriptionModal
-        isOpen={!!selectedJobDescription}
-        jobDescription={selectedJobDescription}
-        onClose={() => setSelectedJobDescription(null)}
-      />
+      {selectedJobDescription && (
+        <JobDescriptionModal
+          isOpen={!!selectedJobDescription}
+          jobDescription={selectedJobDescription}
+          onClose={() => setSelectedJobDescription(null)}
+        />
+      )}
 
       {showModal && (
         <ApplicationModal
           application={editingApplication}
-          detailedUserProfile={userProfile}
+          detailedUserProfile={userProfile as UserProfileData}
           onSave={handleSaveApplication}
           onClose={() => {
             setShowModal(false);
@@ -548,9 +514,9 @@ const Dashboard: React.FC = () => {
           applicationData={{
             position: selectedApplicationForAI.position,
             company_name: selectedApplicationForAI.company_name,
-            location: selectedApplicationForAI.location || undefined
+            location: selectedApplicationForAI.location || undefined,
           }}
-          detailedUserProfile={userProfile}
+          detailedUserProfile={userProfile as UserProfileData}
           onSave={handleAISave}
           onClose={() => {
             setShowAIModal(false);
@@ -566,7 +532,7 @@ const Dashboard: React.FC = () => {
         confirmLabel="Delete"
         confirmVariant="danger"
         onConfirm={confirmationModal.onConfirm}
-        onCancel={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+        onCancel={() => setConfirmationModal((prev) => ({ ...prev, isOpen: false }))}
       />
     </div>
   );

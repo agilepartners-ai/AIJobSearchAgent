@@ -29,12 +29,13 @@ export interface CreateProfileData {
 
 export interface UserProfileData {
   // Personal Information
-  fullName: string;
-  streetAddress?: string;
-  city?: string;
-  county?: string;
-  state?: string;
-  zipCode?: string;
+  fullName: string | null;
+  streetAddress?: string | null;
+  city?: string | null;
+  county?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
+  contactNumber?: string | null;
   contactNumber?: string;
   hasPhoneAccess?: boolean;
   gender?: string;

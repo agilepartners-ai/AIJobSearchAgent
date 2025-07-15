@@ -4,8 +4,13 @@ import SupabaseAuthService from '../../services/supabaseAuthService';
 import { useNavigate } from 'react-router-dom';
 import UpgradeModal from './UpgradeModal';
 
+interface UserProfileData {
+  full_name?: string;
+  email?: string;
+}
+
 interface DashboardHeaderProps {
-  userProfile: any;
+  userProfile: UserProfileData | null;
   onAddApplication: () => void;
   onJobPreferences: () => void;
   onUpdateProfile: () => void;
