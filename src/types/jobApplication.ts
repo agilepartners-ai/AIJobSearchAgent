@@ -20,6 +20,8 @@ export const JobApplicationSchema = z.object({
   job_posting_url: z.string().url().nullable(),
   job_description: z.string().nullable(),
   notes: z.string().nullable(),
+  resume_url: z.string().url().nullable(),
+  cover_letter_url: z.string().url().nullable(),
   salary_range: z.string().nullable(),
   employment_type: z.string().nullable(),
   remote_option: z.boolean().default(false),
