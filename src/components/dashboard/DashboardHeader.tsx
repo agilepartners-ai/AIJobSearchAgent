@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Search, LogOut, User, Settings, ChevronDown, Menu, X, Crown } from 'lucide-react';
 import SupabaseAuthService from '../../services/supabaseAuthService';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import UpgradeModal from './UpgradeModal';
 
 interface UserProfileData {
@@ -24,7 +24,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   onUpdateProfile,
   onFindMoreJobs,
 }) => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -32,7 +32,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   const handleSignOut = async () => {
     try {
       await SupabaseAuthService.signOut();
-      navigate('/login');
+      router.push('/login');
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -56,8 +56,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       } else {
         // Restore beforeunload handler if navigation failed
         window.onbeforeunload = originalBeforeUnload;
-        alert('Please log in to upgrade your subscription.');
-        navigate('/login');
+                alert('Please log in to upgrade your subscription.');
+        router.push('/login');
       }
     } catch (error) {
       console.error('Error getting user for upgrade:', error);
@@ -89,7 +89,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <div className="flex items-center flex-shrink-0">
             <div className="flex items-center space-x-2 sm:space-x-3">
               <button
-                onClick={() => navigate('/')}
+                onClick={() => router.push('/')}
                 className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center hover:from-blue-700 hover:to-purple-700 transition-all cursor-pointer"
               >
                 <span className="text-white font-bold text-xs sm:text-sm">JS</span>

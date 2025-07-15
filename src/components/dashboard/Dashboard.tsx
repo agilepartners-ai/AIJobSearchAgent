@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Edit3, Eye, Download, Calendar, Building, FileText, User, LogOut, Trash2, Link, Upload, Send, Settings, Target } from 'lucide-react';
 import { format } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import ApplicationModal from './ApplicationModal';
 import ProfileModal from './ProfileModal';
 import JobPreferencesModal from './JobPreferencesModal';
 import { JobApplication, ApplicationStatus } from '../../types/jobApplication';
-import { JobApplicationService } from '../../services/jobApplicationService';
+import { SupabaseJobApplicationService } from '../../services/supabaseJobApplicationService';
 import { useAuth } from '../../hooks/useAuth';
 import { useToastContext } from '../ui/ToastProvider';
-import { AuthService } from '../../services/authService';
+import { SupabaseAuthService } from '../../services/supabaseAuthService';
 
 const Dashboard: React.FC = () => {
   const [applications, setApplications] = useState<JobApplication[]>([]);
@@ -29,18 +29,18 @@ const Dashboard: React.FC = () => {
   });
 
   const { user, userProfile, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/login');
+      router.push('/login');
       return;
     }
 
     if (user) {
       loadApplications();
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, router]);
 
   const loadApplications = async () => {
     if (!user) return;
@@ -50,8 +50,8 @@ const Dashboard: React.FC = () => {
       setError('');
       
       const [applicationsData, statsData] = await Promise.all([
-        JobApplicationService.getUserApplications(user.uid),
-        JobApplicationService.getApplicationStats(user.uid)
+        SupabaseJobApplicationService.getUserApplications(user.uid),
+        SupabaseJobApplicationService.getApplicationStats(user.uid)
       ]);
       
       setApplications(applicationsData);
@@ -66,8 +66,8 @@ const Dashboard: React.FC = () => {
 
   const handleSignOut = async () => {
     try {
-      await AuthService.signOut();
-      navigate('/login');
+      await SupabaseAuthService.signOut();
+      router.push('/login');
     } catch (err: any) {
       setError(err.message);
     }
@@ -112,10 +112,10 @@ const Dashboard: React.FC = () => {
       
       if (editingApplication) {
         // Update existing application
-        await JobApplicationService.updateApplication(editingApplication.id, applicationData);
+        await SupabaseJobApplicationService.updateApplication(editingApplication.id, applicationData);
       } else {
         // Add new application
-        await JobApplicationService.addApplication(user.uid, applicationData);
+        await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
       }
       
       setShowModal(false);
@@ -133,7 +133,7 @@ const Dashboard: React.FC = () => {
 
     try {
       setError('');
-      await JobApplicationService.deleteApplication(applicationId);
+            await SupabaseJobApplicationService.deleteApplication(applicationId);
       await loadApplications(); // Reload data
     } catch (err: any) {
       setError(err.message || 'Failed to delete application');

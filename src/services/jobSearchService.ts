@@ -38,8 +38,8 @@ export interface JobSearchResponse {
 }
 
 export class JobSearchService {
-  private static readonly JSEARCH_API_KEY = process.env.NEXT_JSEARCH_API_KEY;
-  private static readonly JSEARCH_API_HOST = process.env.NEXT_JSEARCH_API_HOST || 'jsearch.p.rapidapi.com';
+    private static readonly JSEARCH_API_KEY = process.env.NEXT_PUBLIC_JSEARCH_API_KEY;
+  private static readonly JSEARCH_API_HOST = process.env.NEXT_PUBLIC_JSEARCH_API_HOST || 'jsearch.p.rapidapi.com';
   private static readonly JSEARCH_BASE_URL = 'https://jsearch.p.rapidapi.com/search';
   static async searchJobs(params: JobSearchParams): Promise<JobSearchResponse> {
     try {
