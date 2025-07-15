@@ -1,5 +1,7 @@
-import { supabase } from '../lib/supabase';
-import { AuthError, User } from '@supabase/supabase-js';
+import { createSupabaseClient } from '../lib/supabase/client';
+import { AuthError, User, AuthChangeEvent, Session } from '@supabase/supabase-js';
+
+const supabase = createSupabaseClient();
 
 export interface AuthUser {
   uid: string;
@@ -154,7 +156,7 @@ export class SupabaseAuthService {
 
   // Listen to auth state changes
   static onAuthStateChange(callback: (user: AuthUser | null) => void) {
-    return supabase.auth.onAuthStateChange((_, session) => {
+    return supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       const user = session?.user ? this.convertUser(session.user) : null;
       callback(user);
     });

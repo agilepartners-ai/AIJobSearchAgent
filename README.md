@@ -61,14 +61,14 @@ npm install
 Create a `.env` file in the root directory and add your Firebase configuration:
 
 ```env
-VITE_FIREBASE_API_KEY=your_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
-VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
-VITE_JSEARCH_API_KEY=Your jsearch api
-VITE_JSEARCH_API_HOST=your host api
+NEXT_FIREBASE_API_KEY=your_api_key
+NEXT_FIREBASE_AUTH_DOMAIN=your_auth_domain
+NEXT_FIREBASE_PROJECT_ID=your_project_id
+NEXT_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+NEXT_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_FIREBASE_APP_ID=your_app_id
+NEXT_JSEARCH_API_KEY=Your jsearch api
+NEXT_JSEARCH_API_HOST=your host api
 ```
 
 ### 4. Run Development Server
@@ -367,14 +367,14 @@ The project is configured for automatic deployment to Netlify:
    - Publish directory: `dist`
    - Node version: 18
 3. **Environment Variables**: Add your Firebase config to Netlify environment variables:
-   - `VITE_FIREBASE_API_KEY`
-   - `VITE_FIREBASE_AUTH_DOMAIN`
-   - `VITE_FIREBASE_PROJECT_ID`
-   - `VITE_FIREBASE_STORAGE_BUCKET`
-   - `VITE_FIREBASE_MESSAGING_SENDER_ID`
-   - `VITE_FIREBASE_APP_ID`
-   - `VITE_JSEARCH_API_KEY`
-   - `VITE_JSEARCH_API_HOST`
+   - `NEXT_FIREBASE_API_KEY`
+   - `NEXT_FIREBASE_AUTH_DOMAIN`
+   - `NEXT_FIREBASE_PROJECT_ID`
+   - `NEXT_FIREBASE_STORAGE_BUCKET`
+   - `NEXT_FIREBASE_MESSAGING_SENDER_ID`
+   - `NEXT_FIREBASE_APP_ID`
+   - `NEXT_JSEARCH_API_KEY`
+   - `NEXT_JSEARCH_API_HOST`
 
 ### Manual Deployment
 

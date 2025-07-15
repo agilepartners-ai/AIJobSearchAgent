@@ -1,6 +1,8 @@
+"use client";
+
 import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useToastContext } from '../ui/ToastProvider';
 
 const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
@@ -63,7 +65,7 @@ const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
       
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-block">
+          <Link href="/" className="inline-block">
             <img src="/AGENT_Logo.png" alt="AIJobSearchAgent" className="h-20 w-auto mx-auto mb-6" />
           </Link>
           <h2 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Verify Your Phone</h2>
@@ -113,7 +115,7 @@ const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
           </button>
           
           <div className="mt-6 text-center">
-            <Link to="/login" className="text-blue-200 dark:text-blue-300 hover:text-white dark:hover:text-white transition-colors">
+            <Link href="/login" className="text-blue-200 dark:text-blue-300 hover:text-white dark:hover:text-white transition-colors">
               Back to sign in
             </Link>
           </div>
