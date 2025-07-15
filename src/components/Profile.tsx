@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, User, Mail, Phone, MapPin, Briefcase } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 const Profile: React.FC = () => {
   const { user, userProfile, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -26,27 +26,27 @@ const Profile: React.FC = () => {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/login');
+      router.push('/login');
       return;
     }
 
     // Populate form with existing profile data
-    if (userProfile) {
+        if (userProfile) {
       setFormData({
-        full_name: userProfile.full_name || '',
+        full_name: userProfile.fullName || '',
         email: userProfile.email || user?.email || '',
         phone: userProfile.phone || '',
         location: userProfile.location || '',
-        title: userProfile.title || '',
+        title: '', // This property does not exist on userProfile
         bio: userProfile.bio || '',
-        skills: userProfile.skills || '',
-        experience_years: userProfile.experience_years?.toString() || '',
+        skills: Array.isArray(userProfile.skills) ? userProfile.skills.join(', ') : '',
+        experience_years: '', // This property does not exist on userProfile
         resume_url: userProfile.resume_url || '',
         linkedin_url: userProfile.linkedin_url || '',
         portfolio_url: userProfile.portfolio_url || ''
       });
     }
-  }, [user, userProfile, authLoading, navigate]);
+    }, [user, userProfile, authLoading, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -77,7 +77,7 @@ const Profile: React.FC = () => {
   };
 
   const handleBack = () => {
-    navigate('/dashboard');
+    router.push('/dashboard');
   };
 
   if (authLoading) {

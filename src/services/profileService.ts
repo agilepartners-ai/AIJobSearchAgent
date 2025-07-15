@@ -1,4 +1,4 @@
-import { supabase, TABLES } from '../lib/supabase';
+
 import { Profile } from '../types/supabase';
 
 export interface CreateProfileData {
@@ -114,153 +114,98 @@ export interface UserProfileData {
 
 export class SupabaseProfileService {
   // Get user profile
-  static async getUserProfile(userId: string): Promise<Profile | null> {
+  static async getUserProfile(): Promise<Profile | null> {
     try {
-      const { data, error } = await supabase
-        .from(TABLES.PROFILES)
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const response = await fetch('/api/profile');
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          return null; // Not found
+      if (!response.ok) {
+        if (response.status === 401) {
+          console.log('User not authenticated');
+          return null;
         }
-        throw error;
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to load user profile');
       }
-      
-      return data;
+
+      return await response.json();
     } catch (error) {
-      throw new Error('Failed to load user profile');
+      console.error('Error fetching user profile:', error);
+      // Return null or re-throw, depending on desired error handling
+      return null;
     }
   }
 
   // Get or create user profile
-  static async getOrCreateProfile(userId: string, email?: string, displayName?: string): Promise<Profile> {
-    try {
-      // First try to get existing profile
-      const existingProfile = await this.getUserProfile(userId);
-      if (existingProfile) {
-        return existingProfile;
-      }
-      
-      // If profile doesn't exist, create it
-      const defaultData: CreateProfileData = {
-        full_name: displayName || null,
-        phone: null,
-        location: null,
-        resume_url: null,
-        linkedin_url: null,
-        github_url: null,
-        portfolio_url: null,
-        current_job_title: null,
-        years_of_experience: 0,
-        skills: null,
-        bio: null,
-        avatar_url: null,
-        expected_salary: null,
-        current_ctc: null,
-        work_authorization: null,
-        notice_period: null,
-        availability: null,
-        willingness_to_relocate: false,
-        twitter_url: null,
-        dribbble_url: null,
-        medium_url: null,
-        reference_contacts: null,
-        job_preferences: null
-      };
-
-      return await this.saveUserProfile(userId, defaultData);
-    } catch (error) {
-      throw new Error('Failed to get or create user profile');
-    }
+  static async getOrCreateProfile(): Promise<Profile | null> {
+    // The server-side route now handles creation, so we just call getUserProfile
+    return this.getUserProfile();
   }
 
   // Create or update user profile
-  static async saveUserProfile(userId: string, profileData: CreateProfileData): Promise<Profile> {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.PROFILES)
-        .upsert({ 
-          id: userId, 
-          ...profileData,
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-      
-      return data;
-    } catch (error) {
-      throw new Error('Failed to save user profile');
-    }
+  static async saveUserProfile(profileData: CreateProfileData): Promise<Profile> {
+    return this.updateProfile(profileData);
   }
 
   // Update user profile
-  static async updateProfile(userId: string, updates: Partial<CreateProfileData>): Promise<Profile> {
+  static async updateProfile(updates: Partial<CreateProfileData>): Promise<Profile> {
     try {
-      const { data, error } = await supabase
-        .from(TABLES.PROFILES)
-        .update({ 
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId)
-        .select()
-        .single();
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      });
 
-      if (error) {
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update user profile');
       }
-      
-      return data;
+
+      return await response.json();
     } catch (error) {
+      console.error('Error updating user profile:', error);
       throw new Error('Failed to update user profile');
     }
   }
 
   // Upload and update resume
-  static async uploadResume(userId: string, file: File): Promise<string> {
+  static async uploadResume(file: File): Promise<string> {
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}-resume-${Math.random()}.${fileExt}`;
-      const filePath = `resumes/${fileName}`;
+      const formData = new FormData();
+      formData.append('file', file);
 
-      // Upload file to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(filePath, file);
+      const response = await fetch('/api/profile/resume', {
+        method: 'POST',
+        body: formData,
+      });
 
-      if (uploadError) throw uploadError;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload resume');
+      }
 
-      // Get public URL
-      const { data } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath);
-
-      // Update profile with new resume URL
-      await this.updateProfile(userId, { resume_url: data.publicUrl });
-
-      return data.publicUrl;
+      const { resume_url } = await response.json();
+      return resume_url;
     } catch (error) {
+      console.error('Error uploading resume:', error);
       throw new Error('Failed to upload resume');
     }
   }
 
   // Delete user profile
-  static async deleteProfile(userId: string): Promise<void> {
+  static async deleteProfile(): Promise<void> {
     try {
-      const { error } = await supabase
-        .from(TABLES.PROFILES)
-        .delete()
-        .eq('id', userId);
+      const response = await fetch('/api/profile', {
+        method: 'DELETE',
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete user profile');
+      }
     } catch (error) {
+      console.error('Error deleting user profile:', error);
       throw new Error('Failed to delete user profile');
     }
   }

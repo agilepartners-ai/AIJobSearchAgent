@@ -86,6 +86,8 @@ export class SupabaseJobApplicationService {
         source: applicationData.source || null,
       };
 
+      console.log('Inserting data into Supabase:', insertData);
+
       const { data, error } = await supabase
         .from(TABLES.JOB_APPLICATIONS)
         .insert(insertData)
@@ -95,6 +97,7 @@ export class SupabaseJobApplicationService {
       if (error) throw error;
       return data;
     } catch (error) {
+      console.error('Supabase error adding job application:', error);
       throw new Error('Failed to add job application');
     }
   }

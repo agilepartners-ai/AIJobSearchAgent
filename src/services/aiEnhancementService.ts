@@ -65,10 +65,10 @@ export interface AIEnhancementResponse {
 }
 
 export class AIEnhancementService {
-    private static readonly API_BASE_URL = process.env.NEXT_RESUME_API_BASE_URL || 'https://resumebuilder-arfb.onrender.com';
-    private static readonly API_KEY = process.env.NEXT_OPENAI_API_KEY;
-    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_RESUME_API_MODEL_TYPE || 'OpenAI';
-    private static readonly DEFAULT_MODEL = process.env.NEXT_RESUME_API_MODEL || 'gpt-4o';
+    private static readonly API_BASE_URL = '/api/ai/enhance';
+    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'OpenAI';
+    private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_JSEARCH_API_HOST || 'gpt-4o';
+    private static readonly API_KEY = process.env.NEXT_PUBLIC_JSEARCH_API_KEY;
 
     // Enhance resume with file upload
     static async enhanceWithFile(
@@ -77,11 +77,6 @@ export class AIEnhancementService {
         options: AIEnhancementOptions = {}
     ): Promise<AIEnhancementResponse> {
         try {
-            // Validate API key
-            if (!this.API_KEY) {
-                throw new Error('OpenAI API key is not configured. Please set NEXT_OPENAI_API_KEY in your environment variables.');
-            }
-
             // Create form data
             const formData = new FormData();
 
@@ -90,21 +85,18 @@ export class AIEnhancementService {
 
             // Add required fields
             formData.append('job_description', jobDescription);
-            formData.append('api_key', this.API_KEY);
 
             // Add optional parameters
             formData.append('model_type', options.modelType || this.DEFAULT_MODEL_TYPE);
             formData.append('model', options.model || this.DEFAULT_MODEL);
             formData.append('file_id', options.fileId || `enhance_${Date.now()}`);
 
-            console.log('Making AI enhancement request with file to:', `${this.API_BASE_URL}/api/ai-enhance`);
+            console.log('Making AI enhancement request with file to:', this.API_BASE_URL);
 
-            const response = await fetch(`${this.API_BASE_URL}/api/ai-enhance`, {
+            const response = await fetch(this.API_BASE_URL, {
                 method: 'POST',
                 body: formData,
-                headers: {
-                    'ngrok-skip-browser-warning': 'true'
-                },
+
                 // 2 minutes timeout for AI processing
                 signal: AbortSignal.timeout(120000)
             });
@@ -145,27 +137,20 @@ export class AIEnhancementService {
         options: AIEnhancementOptions = {}
     ): Promise<AIEnhancementResponse> {
         try {
-            // Validate API key
-            if (!this.API_KEY) {
-                throw new Error('OpenAI API key is not configured. Please set NEXT_OPENAI_API_KEY in your environment variables.');
-            }
-
-            const requestData: AIEnhancementRequest = {
+            const requestData = {
                 resume_json: resumeJson,
                 job_description: jobDescription,
-                api_key: this.API_KEY,
                 model_type: options.modelType || this.DEFAULT_MODEL_TYPE,
                 model: options.model || this.DEFAULT_MODEL,
                 file_id: options.fileId || `enhance_${Date.now()}`
             };
 
-            console.log('Making AI enhancement request with JSON to:', `${this.API_BASE_URL}/api/ai-enhance`);
+            console.log('Making AI enhancement request with JSON to:', this.API_BASE_URL);
 
-            const response = await fetch(`${this.API_BASE_URL}/api/ai-enhance`, {
+            const response = await fetch(this.API_BASE_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'ngrok-skip-browser-warning': 'true'
                 },
                 body: JSON.stringify(requestData),
                 // 2 minutes timeout for AI processing
