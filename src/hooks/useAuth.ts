@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import SupabaseAuthService, { AuthUser } from '../services/supabaseAuthService';
-import { SupabaseProfileService } from '../services/profileService';
-import { Profile } from '../types/supabase';
+import FirebaseAuthService, { AuthUser } from '../services/firebaseAuthService';
+import { FirebaseProfileService, Profile } from '../services/firebaseProfileService';
 
 export const useAuth = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -12,25 +11,25 @@ export const useAuth = () => {
     // Get initial user
     const initializeAuth = async () => {
       try {
-        const currentUser = await SupabaseAuthService.getCurrentUser();
+        const currentUser = await FirebaseAuthService.getCurrentUser();
         setUser(currentUser);
         
         if (currentUser) {
           try {
-            const profile = await SupabaseProfileService.getOrCreateProfile(
+            const profile = await FirebaseProfileService.getOrCreateProfile(
               currentUser.uid, 
               currentUser.email || '', 
               currentUser.displayName || ''
             );
             setUserProfile(profile);
           } catch (error) {
-            // Handle error silently
+            console.error("Failed to get or create user profile:", error);
           }
         } else {
           setUserProfile(null);
         }
       } catch (error) {
-        // Handle error silently
+        console.error("Failed to initialize auth:", error);
       } finally {
         setLoading(false);
       }
@@ -39,19 +38,19 @@ export const useAuth = () => {
     initializeAuth();
 
     // Listen for auth state changes
-    const { data: { subscription } } = SupabaseAuthService.onAuthStateChange(async (user) => {
+    const unsubscribe = FirebaseAuthService.onAuthStateChange(async (user) => {
       setUser(user);
       
       if (user) {
         try {
-          const profile = await SupabaseProfileService.getOrCreateProfile(
+          const profile = await FirebaseProfileService.getOrCreateProfile(
             user.uid, 
             user.email || '', 
             user.displayName || ''
           );
           setUserProfile(profile);
         } catch (error) {
-          // Handle error silently
+          console.error("Failed to update user profile on auth change:", error);
         }
       } else {
         setUserProfile(null);
@@ -61,7 +60,7 @@ export const useAuth = () => {
     });
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 

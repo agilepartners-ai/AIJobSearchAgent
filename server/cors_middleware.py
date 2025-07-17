@@ -18,7 +18,7 @@ def setup_cors(app: Flask):
         # Allow requests from specific origins in production
         # In development, you might want to use '*' instead
         allowed_origins = [
-            'http://localhost:5173',  # Vite dev server
+            'http://localhost:3000',  # Next.js dev server
             'http://localhost:3000',  # Alternative dev server
             'https://your-production-domain.com',  # Replace with your production domain
         ]

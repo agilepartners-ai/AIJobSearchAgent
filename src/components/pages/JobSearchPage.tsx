@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, MapPin, Calendar, Clock, ArrowRight, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import SupabaseAuthService from '../../services/supabaseAuthService';
+import { getAuth, signOut } from 'firebase/auth';
 
 interface JobSearchForm {
   query: string;
@@ -57,7 +57,8 @@ const JobSearchPage: React.FC = () => {  const router = useRouter();
 
   const handleSignOut = async () => {
     try {
-      await SupabaseAuthService.signOut();
+      const auth = getAuth();
+      await signOut(auth);
       router.push('/');
     } catch (error) {
       console.error('Error signing out:', error);
