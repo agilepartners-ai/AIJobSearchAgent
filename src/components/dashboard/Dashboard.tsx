@@ -5,11 +5,21 @@ import { useRouter } from 'next/navigation';
 import ApplicationModal from './ApplicationModal';
 import ProfileModal from './ProfileModal';
 import JobPreferencesModal from './JobPreferencesModal';
-import { JobApplication, ApplicationStatus } from '../../types/jobApplication';
-import { SupabaseJobApplicationService } from '../../services/supabaseJobApplicationService';
+import { JobApplication } from '../../services/firebaseJobApplicationService';
+import { FirebaseJobApplicationService } from '../../services/firebaseJobApplicationService';
 import { useAuth } from '../../hooks/useAuth';
 import { useToastContext } from '../ui/ToastProvider';
-import { SupabaseAuthService } from '../../services/supabaseAuthService';
+import FirebaseAuthService from '../../services/firebaseAuthService';
+
+const ApplicationStatus = {
+  NOT_APPLIED: 'not_applied',
+  APPLIED: 'applied',
+  INTERVIEWING: 'interviewing',
+  OFFERED: 'offered',
+  REJECTED: 'rejected',
+  ACCEPTED: 'accepted',
+  DECLINED: 'declined'
+} as const;
 
 const Dashboard: React.FC = () => {
   const [applications, setApplications] = useState<JobApplication[]>([]);
@@ -50,8 +60,8 @@ const Dashboard: React.FC = () => {
       setError('');
       
       const [applicationsData, statsData] = await Promise.all([
-        SupabaseJobApplicationService.getUserApplications(user.uid),
-        SupabaseJobApplicationService.getApplicationStats(user.uid)
+        FirebaseJobApplicationService.getUserApplications(user.uid),
+        FirebaseJobApplicationService.getApplicationStats(user.uid)
       ]);
       
       setApplications(applicationsData);
@@ -66,7 +76,7 @@ const Dashboard: React.FC = () => {
 
   const handleSignOut = async () => {
     try {
-      await SupabaseAuthService.signOut();
+      await FirebaseAuthService.signOut();
       router.push('/login');
     } catch (err: any) {
       setError(err.message);
@@ -77,7 +87,7 @@ const Dashboard: React.FC = () => {
     const matchesSearch = 
       app.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       app.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+      (app.notes && app.notes.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
     
@@ -112,10 +122,10 @@ const Dashboard: React.FC = () => {
       
       if (editingApplication) {
         // Update existing application
-        await SupabaseJobApplicationService.updateApplication(editingApplication.id, applicationData);
+        await FirebaseJobApplicationService.updateApplication(user.uid, editingApplication.id, applicationData);
       } else {
         // Add new application
-        await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
+        await FirebaseJobApplicationService.addApplication(user.uid, applicationData);
       }
       
       setShowModal(false);
@@ -127,13 +137,14 @@ const Dashboard: React.FC = () => {
   };
 
   const handleDeleteApplication = async (applicationId: string) => {
+    if (!user) return;
     if (!confirm('Are you sure you want to delete this application?')) {
       return;
     }
 
     try {
       setError('');
-            await SupabaseJobApplicationService.deleteApplication(applicationId);
+            await FirebaseJobApplicationService.deleteApplication(user.uid, applicationId);
       await loadApplications(); // Reload data
     } catch (err: any) {
       setError(err.message || 'Failed to delete application');
@@ -411,15 +422,17 @@ const Dashboard: React.FC = () => {
                     </tr>
                   ) : (
                     filteredApplications.map((application, index) => (
-                      <tr key={application.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <tr key={application.id} className="hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                           #{index + 1}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {format(new Date(application.application_date), 'MMM d, yyyy')}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          {application.company_name}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                          <a href={application.job_posting_url || ''} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                            {application.company_name}
+                          </a>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                           <div className="max-w-xs truncate">{application.position}</div>

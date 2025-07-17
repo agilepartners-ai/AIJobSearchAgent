@@ -22,7 +22,7 @@ const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
       // For demo purposes, accept any 6-digit code
       if (code.length !== 6) {
         throw new Error('Please enter a 6-digit verification code');
-      }      // Phone verification not yet implemented with Supabase
+      }      // Phone verification not yet implemented
       // For now, just simulate verification success
       console.log('Phone verification simulated for code:', code);
 

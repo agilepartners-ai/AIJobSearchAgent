@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import SupabaseAuthService from '../../services/supabaseAuthService';
+import FirebaseAuthService from '../../services/firebaseAuthService';
 import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 
 const RegisterForm: React.FC = () => {
@@ -59,7 +59,7 @@ const RegisterForm: React.FC = () => {
     setLoading(true);
 
     try {
-      await SupabaseAuthService.signUp({ 
+      await FirebaseAuthService.signUp({ 
         email, 
         password, 
         phone: formattedPhone 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Search, LogOut, User, Settings, ChevronDown, Menu, X, Crown } from 'lucide-react';
-import SupabaseAuthService from '../../services/supabaseAuthService';
+import { getAuth, signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import UpgradeModal from './UpgradeModal';
 
@@ -31,7 +31,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
   const handleSignOut = async () => {
     try {
-      await SupabaseAuthService.signOut();
+      const auth = getAuth();
+      await signOut(auth);
       router.push('/login');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -48,7 +49,9 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       const originalBeforeUnload = window.onbeforeunload;
       window.onbeforeunload = null;
       
-      const currentUser = await SupabaseAuthService.getCurrentUser();
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+
       if (currentUser && currentUser.uid) {
         const paymentUrl = `https://pay.rev.cat/sandbox/evfhfhevsehbykku/${currentUser.uid}`;
         // Open in same tab for better user experience

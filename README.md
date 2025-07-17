@@ -2,7 +2,7 @@
 
 This is not part of Hackathorn. It is for production release
 
-An AI-powered job search application built with React, TypeScript, and Vite that helps users find, apply to, and manage job applications efficiently.
+An AI-powered job search application built with Next.js, React, and TypeScript that helps users find, apply to, and manage job applications efficiently.
 
 ## 🚀 Features
 
@@ -17,7 +17,7 @@ An AI-powered job search application built with React, TypeScript, and Vite that
 ## 🛠️ Tech Stack
 
 - **Frontend**: React 18 + TypeScript
-- **Build Tool**: Vite
+- **Framework**: Next.js
 - **Styling**: Tailwind CSS
 - **Authentication**: Firebase
 - **Routing**: React Router DOM
@@ -123,7 +123,7 @@ MyJobSearchAgent/
 │   ├── utils/            # Utility functions
 │   └── test/             # Test files
 ├── package.json          # Dependencies and scripts
-├── vite.config.ts        # Vite configuration
+├── next.config.js        # Next.js configuration
 ├── tailwind.config.js    # Tailwind CSS configuration
 ├── tsconfig.json         # TypeScript configuration
 └── netlify.toml          # Netlify deployment configuration
@@ -416,7 +416,7 @@ npm run build -- --analyze
 - **Image Optimization**: WebP format with fallbacks
 - **Bundle Analysis**: Use `npm run build -- --analyze`
 - **Caching**: Service worker for offline capabilities
-- **Minification**: Automatic with Vite build
+- **Minification**: Automatic with Next.js build
 
 ## 🔒 Security
 

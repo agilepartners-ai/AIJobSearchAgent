@@ -1,14 +1,16 @@
 "use client";
 
 import React, { useState } from 'react';
-import SupabaseAuthService from '../../services/supabaseAuthService';
+import FirebaseAuthService from '../../services/firebaseAuthService';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 const LoginForm: React.FC = () => {  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,8 +18,8 @@ const LoginForm: React.FC = () => {
     setLoading(true);
 
     try {
-      await SupabaseAuthService.signIn({ email, password });
-      // Route guard will handle redirect to /job-search
+      await FirebaseAuthService.signIn({ email, password });
+      router.push('/dashboard');
     } catch (err: any) {
       setError(err.message);
     } finally {
