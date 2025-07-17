@@ -148,12 +148,7 @@ const Dashboard: React.FC = () => {
     }
   }, [user, authLoading, router]);
 
-  // Update stats based on applications only (job listings added when user searches)
-  useEffect(() => {
-    if (user) {
-      FirebaseJobApplicationService.getApplicationStats(user.uid).then(setStats);
-    }
-  }, [applications, combinedListings, user]);
+
 
   const handleAddApplication = () => {
     dispatch(setEditingApplication(null));

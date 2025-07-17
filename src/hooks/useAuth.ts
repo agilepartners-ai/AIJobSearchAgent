@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import FirebaseAuthService, { AuthUser } from '../services/firebaseAuthService';
 import { FirebaseProfileService, Profile } from '../services/firebaseProfileService';
 
@@ -64,10 +64,10 @@ export const useAuth = () => {
     };
   }, []);
 
-  return {
+  return useMemo(() => ({
     user,
     userProfile,
     loading,
     isAuthenticated: !!user
-  };
+  }), [user, userProfile, loading]);
 };

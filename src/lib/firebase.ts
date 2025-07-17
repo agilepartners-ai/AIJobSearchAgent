@@ -14,6 +14,13 @@ const firebaseConfig = {
   databaseURL: `https://myjobsearchagent.firebaseio.com`
 };
 
+// Debugging: Log the loaded Firebase config to the server console
+console.log('--- Firebase Config Loaded on Server ---');
+console.log('API Key Loaded:', !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
+console.log('Auth Domain:', process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN);
+console.log('Project ID:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+console.log('------------------------------------');
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
