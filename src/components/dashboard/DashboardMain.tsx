@@ -75,24 +75,23 @@ const Dashboard: React.FC = () => {
   const router = useRouter();
 
   const loadApplications = async () => {
-    if (!user) return;
-
+    if (!user) {
+      console.log('[loadApplications] Aborted: No user.');
+      return;
+    }
+    console.log('[loadApplications] Starting to fetch applications and stats...');
     try {
-      setLoading(true);
-      setError('');
-
       const [applicationsData, statsData] = await Promise.all([
         FirebaseJobApplicationService.getUserApplications(user.uid),
         FirebaseJobApplicationService.getApplicationStats(user.uid)
       ]);
       
+      console.log('[loadApplications] Successfully fetched data.');
       setApplications(applicationsData);
       setStats(statsData);
     } catch (err: any) {
+      console.error('[loadApplications] Error:', err);
       setError(err.message || 'Failed to load applications');
-      console.error('Error loading applications:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -137,15 +136,35 @@ const Dashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    console.log('[Dashboard Effect] Running effect...');
+    console.log(`[Dashboard Effect] Auth Loading: ${authLoading}, User Present: ${!!user}`);
+
+    if (authLoading) {
+      console.log('[Dashboard Effect] Waiting for authentication to complete...');
+      setLoading(true);
+      return;
+    }
+
+    if (!user) {
+      console.log('[Dashboard Effect] No user found, redirecting to login.');
       router.push('/login');
       return;
     }
 
-    if (user) {
-      loadApplications();
-      loadSelectedJobsFromWorkflow();
-    }
+    console.log('[Dashboard Effect] User is authenticated. Starting data load...');
+    setLoading(true);
+    Promise.all([
+      loadApplications(),
+      loadSelectedJobsFromWorkflow(),
+    ]).then(() => {
+      console.log('[Dashboard Effect] All data loading promises resolved.');
+    }).catch((err) => {
+      console.error('[Dashboard Effect] Error during data loading:', err);
+    }).finally(() => {
+      console.log('[Dashboard Effect] Finalizing data load, setting loading to false.');
+      setLoading(false);
+    });
+
   }, [user, authLoading, router]);
 
 
