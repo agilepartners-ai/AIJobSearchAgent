@@ -10,7 +10,11 @@ import {
   User,
   AuthError,
 } from 'firebase/auth';
-import { ref, set, get } from 'firebase/database';
+import {
+  doc,
+  setDoc,
+  updateDoc,
+} from 'firebase/firestore';
 
 // Re-defining interfaces here, ideally these would be in a shared types file.
 export interface AuthUser {
@@ -55,8 +59,8 @@ export class FirebaseAuthService {
         displayName: data.fullName,
       });
 
-      // Store additional user data in Realtime Database
-      await set(ref(db, 'users/' + user.uid), {
+      // 🔄 Store additional user data in Firestore
+      await setDoc(doc(db, 'users', user.uid), {
         fullName: data.fullName || '',
         phone: data.phone || '',
         email: user.email,
@@ -93,11 +97,7 @@ export class FirebaseAuthService {
     return new Promise((resolve) => {
       const unsubscribe = onAuthStateChanged(auth, (user) => {
         unsubscribe();
-        if (user) {
-          resolve(this.convertUser(user));
-        } else {
-          resolve(null);
-        }
+        resolve(user ? this.convertUser(user) : null);
       });
     });
   }
@@ -126,18 +126,14 @@ export class FirebaseAuthService {
         await firebaseUpdateProfile(auth.currentUser, { displayName: updates.displayName });
       }
 
-      // Update additional data in Realtime Database
-      if (updates.phone) {
-        await set(ref(db, `users/${auth.currentUser.uid}/phone`), updates.phone);
-      }
-      if (updates.displayName) {
-        await set(ref(db, `users/${auth.currentUser.uid}/fullName`), updates.displayName);
-      }
+      // 🔄 Update Firestore user document
+      const userDocRef = doc(db, 'users', auth.currentUser.uid);
+      await updateDoc(userDocRef, {
+        ...(updates.phone && { phone: updates.phone }),
+        ...(updates.displayName && { fullName: updates.displayName }),
+      });
 
-      // Refetch user to get merged data
-      const user = auth.currentUser;
-      return this.convertUser(user);
-
+      return this.convertUser(auth.currentUser);
     } catch (error) {
       throw new Error('Failed to update profile');
     }
@@ -151,3 +147,4 @@ export class FirebaseAuthService {
 }
 
 export default FirebaseAuthService;
+

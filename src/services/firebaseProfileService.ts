@@ -1,5 +1,11 @@
 import { db } from '../lib/firebase';
-import { ref, set, get, child } from 'firebase/database';
+import {
+  doc,
+  getDoc,
+  setDoc,
+  DocumentReference,
+  DocumentData
+} from 'firebase/firestore';
 
 export interface Profile {
   id: string;
@@ -9,12 +15,17 @@ export interface Profile {
 }
 
 export class FirebaseProfileService {
-  static async getOrCreateProfile(uid: string, email: string, fullName: string): Promise<Profile> {
-    const profileRef = ref(db, `users/${uid}`);
-    const snapshot = await get(profileRef);
+  static async getOrCreateProfile(
+    uid: string,
+    email: string,
+    fullName: string
+  ): Promise<Profile> {
+    const profileDocRef: DocumentReference<DocumentData> = doc(db, 'users', uid);
+    const docSnap = await getDoc(profileDocRef);
 
-    if (snapshot.exists()) {
-      return snapshot.val() as Profile;
+    if (docSnap.exists()) {
+      const data = docSnap.data() as Profile;
+      return { ...data, id: uid };
     } else {
       const newProfile: Profile = {
         id: uid,
@@ -22,8 +33,10 @@ export class FirebaseProfileService {
         full_name: fullName,
         created_at: new Date().toISOString(),
       };
-      await set(profileRef, newProfile);
+      await setDoc(profileDocRef, newProfile);
       return newProfile;
     }
   }
 }
+
+
