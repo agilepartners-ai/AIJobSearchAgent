@@ -11,7 +11,7 @@ Cross-Origin Resource Sharing (CORS) is a security feature implemented by browse
 Our application implements a comprehensive CORS solution with multiple layers:
 
 1. **Client-side handling** - Improved error detection and user feedback
-2. **Development proxy** - Local proxy in Vite for development
+2. **Development proxy** - Local proxy in Next.js for development
 3. **Production proxy** - Supabase Edge Function for production
 4. **Server-side configuration** - Python backend CORS settings
 
@@ -21,7 +21,7 @@ Our application implements a comprehensive CORS solution with multiple layers:
 The application includes improved error detection for CORS issues with user-friendly error handling and helpful information for troubleshooting.
 
 ### Development Setup
-For development, we use Vite's built-in proxy configuration to handle CORS issues locally.
+For development, we use Next.js's built-in proxy configuration to handle CORS issues locally.
 
 ### Production Deployment
 In production, we use Supabase Edge Functions to handle API requests while maintaining proper CORS configuration.
@@ -69,19 +69,20 @@ The `ApiErrorHandler` component now includes a special section for CORS errors w
 
 ### 3. Development Proxy
 
-In development, we use Vite's built-in proxy to avoid CORS issues:
+In development, we use Next.js's built-in proxy to avoid CORS issues:
 
 ```javascript
-// vite.config.ts
-server: {
-  proxy: {
-    '/api/proxy/resume-optimization': {
-      target: 'https://resumebuilder-arfb.onrender.com',
-      changeOrigin: true,
-      rewrite: (path) => '/optimizer/api/optimize-resume/',
-    }
-  }
-}
+// next.config.js
+module.exports = {
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://127.0.0.1:5000/:path*',
+      },
+    ]
+  },
+};
 ```
 
 ### 4. Production Proxy

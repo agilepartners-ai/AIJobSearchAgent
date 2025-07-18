@@ -40,7 +40,7 @@ const generateUUID = (): string => {
 
 const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   jobDescription,
-  applicationData,
+  applicationData = { position: '', company_name: '' },
   detailedUserProfile,
   onSave,
   onClose
@@ -137,7 +137,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
     // Check API configuration
     if (!config.hasApiKey) {
-      dispatch(setError('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.'));
+      dispatch(setError('OpenAI API key is not configured. Please set NEXT_OPENAI_API_KEY in your environment variables.'));
       return;
     }
 

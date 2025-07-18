@@ -51,10 +51,10 @@ export interface GenerateCoverLetterRequest {
 }
 
 export class PDFGenerationService {
-    private static readonly API_BASE_URL = import.meta.env.VITE_RESUME_API_BASE_URL || 'https://resumebuilder-arfb.onrender.com';
-    private static readonly API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
-    private static readonly DEFAULT_MODEL_TYPE = import.meta.env.VITE_RESUME_API_MODEL_TYPE || 'OpenAI';
-    private static readonly DEFAULT_MODEL = import.meta.env.VITE_RESUME_API_MODEL || 'gpt-4o';
+    private static readonly API_BASE_URL = process.env.NEXT_RESUME_API_BASE_URL || 'https://resumebuilder-arfb.onrender.com';
+    private static readonly API_KEY = process.env.NEXT_OPENAI_API_KEY;
+    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_RESUME_API_MODEL_TYPE || 'OpenAI';
+    private static readonly DEFAULT_MODEL = process.env.NEXT_RESUME_API_MODEL || 'gpt-4o';
 
     // Available LaTeX templates - Updated to match your backend
     static readonly AVAILABLE_TEMPLATES = [
@@ -83,7 +83,7 @@ export class PDFGenerationService {
                     'POST',
                     { fileId, hasJobDescription: !!jobDescription, options },
                     null,
-                    'OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.'
+                    'OpenAI API key is not configured. Please set NEXT_OPENAI_API_KEY in your environment variables.'
                 );
             }
 
@@ -283,7 +283,7 @@ export class PDFGenerationService {
                     'POST',
                     { fileId, position, companyName, personalInfo, options },
                     null,
-                    'OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.'
+                    'OpenAI API key is not configured. Please set NEXT_OPENAI_API_KEY in your environment variables.'
                 );
             }
 

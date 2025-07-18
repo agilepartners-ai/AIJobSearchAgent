@@ -1,6 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { JobApplication } from '../../types/supabase';
+import { JobApplication } from '../../services/firebaseJobApplicationService';
 
 interface SavedJobsSectionProps {
   applications: JobApplication[];

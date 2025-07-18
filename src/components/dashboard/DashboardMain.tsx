@@ -12,20 +12,34 @@ import {
   setSearchError,
   setSelectedJobDescription
 } from '../../store/dashboardSlice';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import DashboardHeader from './DashboardHeader';
 import StatsCards from './StatsCards';
-import ApplicationsCarousel from './ApplicationsCarousel';
+import ApplicationsTable from './ApplicationsTable';
 import JobDescriptionModal from './JobDescriptionModal';
 import ApplicationModal from './ApplicationModal';
 import JobPreferencesModal from './JobPreferencesModal';
 import JobSearchModal from './JobSearchModal';
 import ProfileModal from './ProfileModal';
-import { JobApplication } from '../../types/jobApplication';
-import SupabaseJobApplicationService, { CreateJobApplicationData } from '../../services/supabaseJobApplicationService';
+import { JobApplication, ApplicationStats, FirebaseJobApplicationService } from '../../services/firebaseJobApplicationService';
 import { JobSearchService } from '../../services/jobSearchService';
 import { useAuth } from '../../hooks/useAuth';
 import { useToastContext } from '../ui/ToastProvider';
+
+// Local type definitions to match service expectations
+type CreateJobApplicationData = Omit<JobApplication, 'id' | 'created_at' | 'user_id' | 'last_updated' | 'updated_at'>;
+
+const ApplicationStatus = {
+  NOT_APPLIED: 'not_applied',
+  APPLIED: 'applied',
+  INTERVIEWING: 'interviewing',
+  OFFERED: 'offered',
+  REJECTED: 'rejected',
+  ACCEPTED: 'accepted',
+  DECLINED: 'declined',
+} as const;
+
+type ApplicationStatusValue = typeof ApplicationStatus[keyof typeof ApplicationStatus];
 
 const Dashboard: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -47,26 +61,39 @@ const Dashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<ApplicationStats>({
     total: 0,
     interviews: 0,
     offers: 0,
-    pending: 0
+    pending: 0,
+    applied: 0,
+    rejected: 0,
   });
 
   const { user, userProfile, loading: authLoading } = useAuth();
   const { showSuccess, showError } = useToastContext();
-  const navigate = useNavigate();  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/login');
+  const router = useRouter();
+
+  const loadApplications = async () => {
+    if (!user) {
+      console.log('[loadApplications] Aborted: No user.');
       return;
     }
-
-    if (user) {
-      loadApplications();
-      loadSelectedJobsFromWorkflow();
+    console.log('[loadApplications] Starting to fetch applications and stats...');
+    try {
+      const [applicationsData, statsData] = await Promise.all([
+        FirebaseJobApplicationService.getUserApplications(user.uid),
+        FirebaseJobApplicationService.getApplicationStats(user.uid)
+      ]);
+      
+      console.log('[loadApplications] Successfully fetched data.');
+      setApplications(applicationsData);
+      setStats(statsData);
+    } catch (err: any) {
+      console.error('[loadApplications] Error:', err);
+      setError(err.message || 'Failed to load applications');
     }
-  }, [user, authLoading, navigate]);
+  };
 
   const loadSelectedJobsFromWorkflow = () => {
     try {
@@ -83,10 +110,22 @@ const Dashboard: React.FC = () => {
           job_posting_url: job.job_apply_link || '',
           job_description: job.job_description || '',
           notes: '',
-          resume_url: '',
-          cover_letter_url: '',
+          resume_url: null,
+          cover_letter_url: null,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          last_updated: new Date().toISOString(),
+          location: null,
+          salary_range: null,
+          employment_type: null,
+          remote_option: false,
+          contact_person: null,
+          contact_email: null,
+          interview_date: null,
+          response_date: null,
+          follow_up_date: null,
+          priority: 1,
+          source: 'workflow',
         }));
         setCombinedListings(prev => [...prev, ...jobApplications]);
         localStorage.removeItem('selectedJobs');
@@ -95,48 +134,50 @@ const Dashboard: React.FC = () => {
       console.error('Error loading selected jobs from workflow:', error);
     }
   };
-    }
-  };
-  // Update stats based on applications only (job listings added when user searches)
+
   useEffect(() => {
-    const combined = [...applications, ...combinedListings];
-    const totalJobs = combined.length;
-    const appliedJobs = combined.filter(app => app.status === 'applied').length;
-    const interviewJobs = combined.filter(app => app.status === 'interview').length;
-    const offerJobs = combined.filter(app => app.status === 'offer').length;
-    
-    setStats({
-      total: totalJobs,
-      interviews: interviewJobs,
-      offers: offerJobs,
-      pending: appliedJobs
-    });
-  }, [applications, combinedListings]);
-  const loadApplications = async () => {
-    if (!user) return;
+    console.log('[Dashboard Effect] Running effect...');
+    console.log(`[Dashboard Effect] Auth Loading: ${authLoading}, User Present: ${!!user}`);
 
-    try {
+    if (authLoading) {
+      console.log('[Dashboard Effect] Waiting for authentication to complete...');
       setLoading(true);
-      setError('');
+      return;
+    }
 
-      const [applicationsData, statsData] = await Promise.all([
-        SupabaseJobApplicationService.getUserApplications(user.uid),
-        SupabaseJobApplicationService.getApplicationStats(user.uid)
-      ]);
-      
-      setApplications(applicationsData);
-      setStats(statsData);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load applications');      console.error('Error loading applications:', err);
-    } finally {
+    if (!user) {
+      console.log('[Dashboard Effect] No user found, redirecting to login.');
+      router.push('/login');
+      return;
+    }
+
+    console.log('[Dashboard Effect] User is authenticated. Starting data load...');
+    setLoading(true);
+    Promise.all([
+      loadApplications(),
+      loadSelectedJobsFromWorkflow(),
+    ]).then(() => {
+      console.log('[Dashboard Effect] All data loading promises resolved.');
+    }).catch((err) => {
+      console.error('[Dashboard Effect] Error during data loading:', err);
+    }).finally(() => {
+      console.log('[Dashboard Effect] Finalizing data load, setting loading to false.');
       setLoading(false);
+    });
+
+  }, [user, authLoading, router]);
+
+
+
   const handleAddApplication = () => {
     dispatch(setEditingApplication(null));
     dispatch(setShowModal(true));
   };
+
   const handleJobPreferences = () => {
     dispatch(setShowJobPreferencesModal(true));
   };
+
   const handleUpdateProfile = () => {
     dispatch(setShowProfileModal(true));
   };
@@ -144,6 +185,7 @@ const Dashboard: React.FC = () => {
   const handleJobSearchFormChange = (form: any) => {
     dispatch(setSearchForm(form));
   };
+
   const handleJobSearchSubmit = async () => {
     if (!user || !searchForm.query) return;
 
@@ -173,7 +215,7 @@ const Dashboard: React.FC = () => {
       dispatch(setSearchLoading(false));
     }
   };
-  };
+
   const handleSaveJobFromSearch = async (job: any) => {
     if (!user) {
       console.error('User not authenticated');
@@ -185,15 +227,26 @@ const Dashboard: React.FC = () => {
         company_name: job.employer_name || 'Unknown Company',
         position: job.job_title || 'Unknown Position',
         status: 'not_applied',
+        application_date: new Date().toISOString(),
         job_posting_url: job.job_apply_link || '',
         job_description: job.job_description || '',
         notes: `Added from job search: ${job.job_country || 'Unknown location'}`,
         location: job.job_city || job.job_country || '',
         employment_type: job.job_employment_type || '',
-        source: 'job_search'
+        source: 'job_search',
+        remote_option: job.job_is_remote || false,
+        priority: 1,
+        salary_range: null,
+        resume_url: null,
+        cover_letter_url: null,
+        contact_person: null,
+        contact_email: null,
+        interview_date: null,
+        response_date: null,
+        follow_up_date: null,
       };
 
-      await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
+      await FirebaseJobApplicationService.addApplication(user.uid, applicationData);
       
       // Show success message
       showSuccess(
@@ -201,104 +254,76 @@ const Dashboard: React.FC = () => {
         `"${job.job_title}" at "${job.employer_name}" has been saved to your applications!`
       );
       
-      // Also update the local state for immediate UI feedback
-      const now = new Date().toISOString();
-      const newApplication = {
-        id: `temp-${Date.now()}`,
-        user_id: user?.uid || '',
-        company_name: job.employer_name || 'Unknown Company',
-        position: job.job_title || 'Unknown Position',
-        status: 'not_applied' as const,
-        application_date: now,
-        last_updated: now,
-        job_posting_url: job.job_apply_link || '',
-        job_description: job.job_description || '',
-        notes: `Added from job search: ${job.job_country || 'Unknown location'}`,
-        created_at: now,
-        updated_at: now
-      };
-
-      setCombinedListings(prev => {
-        const existingIds = new Set(prev.map(app => app.company_name + app.position));
-        if (!existingIds.has(newApplication.company_name + newApplication.position)) {
-          return [...prev, newApplication];
-        }
-        return prev;
-      });
+      await loadApplications();
 
     } catch (err: any) {
+      showError('Error Saving Job', err.message || 'An unexpected error occurred.');
       console.error('Error saving job from search:', err);
-      showError('Failed to Save Job', err.message || 'Failed to save job. Please try again.');
     }
   };
 
   const handleSaveMultipleJobsFromSearch = async (jobs: any[]) => {
     if (!user) {
-      console.error('User not authenticated');
+      showError('Authentication Error', 'You must be logged in to save jobs.');
       return;
     }
 
-    try {
-      // Save each job individually
-      const savedJobs = await Promise.all(
-        jobs.map(async (job: any) => {
+    showSuccess('Saving Jobs...', `Attempting to save ${jobs.length} jobs. Please wait.`);
+
+    const savedJobs = await Promise.all(
+      jobs.map(async (job) => {
+        try {
           const applicationData: CreateJobApplicationData = {
             company_name: job.employer_name || 'Unknown Company',
             position: job.job_title || 'Unknown Position',
             status: 'not_applied',
+            application_date: new Date().toISOString(),
             job_posting_url: job.job_apply_link || '',
             job_description: job.job_description || '',
             notes: `Added from job search: ${job.job_country || 'Unknown location'}`,
             location: job.job_city || job.job_country || '',
             employment_type: job.job_employment_type || '',
-            source: 'job_search'
+            source: 'job_search',
+            remote_option: job.job_is_remote || false,
+            priority: 1,
+            salary_range: null,
+            resume_url: null,
+            cover_letter_url: null,
+            contact_person: null,
+            contact_email: null,
+            interview_date: null,
+            response_date: null,
+            follow_up_date: null,
           };
-          return await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
-        })
-      );
-      
-      // Also update the local state for immediate UI feedback
-      const now = new Date().toISOString();
-      const newApplications = jobs.map(job => ({
-        id: `temp-${Date.now()}-${Math.random()}`,
-        user_id: user?.uid || '',
-        company_name: job.employer_name || 'Unknown Company',
-        position: job.job_title || 'Unknown Position',
-        status: 'not_applied' as const,
-        application_date: now,
-        last_updated: now,
-        job_posting_url: job.job_apply_link || '',
-        job_description: job.job_description || '',
-        notes: `Added from job search: ${job.job_country || 'Unknown location'}`,
-        created_at: now,
-        updated_at: now
-      }));
+          return await FirebaseJobApplicationService.addApplication(user.uid, applicationData);
+        } catch (err) {
+          console.error(`Failed to save job: ${job.job_title}`, err);
+          return null; // Return null for failed saves
+        }
+      })
+    );
 
-      setCombinedListings(prev => {
-        const existingIds = new Set(prev.map(app => app.company_name + app.position));
-        const uniqueNewApplications = newApplications.filter(app => 
-          !existingIds.has(app.company_name + app.position)
-        );
-        return [...prev, ...uniqueNewApplications];
-      });
+    const successfulSaves = savedJobs.filter(result => result !== null);
 
-      alert(`${jobs.length} jobs saved to your applications!`);
-    } catch (err: any) {
-      console.error('Error saving multiple jobs from search:', err);
-      alert('Failed to save jobs. Please try again.');
+    if (successfulSaves.length > 0) {
+      showSuccess('Jobs Saved!', `${successfulSaves.length} of ${jobs.length} jobs were successfully saved.`);
+      await loadApplications(); // Refresh the applications list
+    } else {
+      showError('Save Failed', 'Could not save any of the selected jobs.');
     }
   };
+
   const handleClearJobSearch = () => {
-    setSearchForm({
+    dispatch(setSearchForm({
       query: '',
       location: '',
       experience: '',
       employment_type: '',
-      remote_jobs_only: false,
       date_posted: '',
-    });
-    setSearchResults([]);
-    setSearchError('');
+      remote_jobs_only: false
+    }));
+    dispatch(setSearchResults([]));
+    dispatch(setSearchError(''));
   };
 
   const handleEditApplication = (application: JobApplication) => {
@@ -313,93 +338,79 @@ const Dashboard: React.FC = () => {
       setError('');
 
       if (editingApplication) {
-        await SupabaseJobApplicationService.updateApplication(editingApplication.id, applicationData);
+        await FirebaseJobApplicationService.updateApplication(user.uid, editingApplication.id, applicationData);
         showSuccess('Application Updated', 'The application has been successfully updated.');
       } else {
-        await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
-        showSuccess('Application Added', 'The application has been successfully added.');
+        await FirebaseJobApplicationService.addApplication(user.uid, applicationData);
+        showSuccess('Application Added', 'The new application has been successfully added.');
       }
-
-      dispatch(setShowModal(false));
       await loadApplications();
+      dispatch(setShowModal(false));
     } catch (err: any) {
       setError(err.message || 'Failed to save application');
-      console.error('Error saving application:', err);
-      showError('Save Failed', err.message || 'Failed to save application');
+      showError('Save Failed', err.message || 'Could not save the application.');
     }
   };
 
   const handleDeleteApplication = async (applicationId: string) => {
-    if (!confirm('Are you sure you want to delete this application?')) {
-      return;
-    }
+    if (!user) return;
 
     try {
       setError('');
-      await SupabaseJobApplicationService.deleteApplication(applicationId);
+      await FirebaseJobApplicationService.deleteApplication(user.uid, applicationId);
       await loadApplications();
       showSuccess('Application Deleted', 'The application has been successfully removed.');
     } catch (err: any) {
       setError(err.message || 'Failed to delete application');
-      console.error('Error deleting application:', err);
-      showError('Delete Failed', err.message || 'Failed to delete application');
+      showError('Delete Failed', err.message || 'Could not delete the application.');
     }
-  };  const handleUpdateApplicationStatus = async (applicationId: string, newStatus: string) => {
+  };
+
+  const handleUpdateApplicationStatus = async (applicationId: string, newStatus: string) => {
+    if (!user) return;
     try {
       setError('');
+      const applicationToUpdate = applications.find(app => app.id === applicationId);
       
-      // Check if this is a job listing (starts with 'job-listing-' or 'workflow-')
-      if (applicationId.startsWith('job-listing-') || applicationId.startsWith('workflow-')) {
-        // Find the job listing in combinedListings
-        const jobListing = combinedListings.find(job => job.id === applicationId);
-        if (jobListing && user && newStatus === 'APPLIED') {
-          // Convert job listing to actual application
-          const applicationData = {
-            company_name: jobListing.company_name,
-            position: jobListing.position,
-            status: 'APPLIED',
-            application_date: new Date().toISOString(),
-            job_description: jobListing.job_description,
-            notes: jobListing.notes || '',
-            job_posting_url: jobListing.job_posting_url || '',
-            resume_url: '',
-            cover_letter_url: ''
-          };
-          
-          await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
-          
-          // Remove from job listings and refresh data
-          setCombinedListings(prev => prev.filter(job => job.id !== applicationId));
-          await loadApplications();
-          return;
-        }
+      if (applicationToUpdate && applicationToUpdate.status === 'not_applied' && newStatus === 'applied') {
+        const applicationData: CreateJobApplicationData = {
+          ...applicationToUpdate,
+          status: 'applied',
+        };
+        await FirebaseJobApplicationService.addApplication(user.uid, applicationData);
+        // Remove from combinedListings if it exists there
+        setCombinedListings(prev => prev.filter(job => job.id !== applicationId));
+        showSuccess('Application Status Updated', `Status changed to ${newStatus}.`);
+        await loadApplications();
+        return;
       }
       
       // Handle regular application status updates
-      await SupabaseJobApplicationService.updateApplication(applicationId, { status: newStatus });
+      await FirebaseJobApplicationService.updateApplication(user.uid, applicationId, { status: newStatus as any });
       await loadApplications();
     } catch (err: any) {
       setError(err.message || 'Failed to update application status');
-      console.error('Error updating application status:', err);
+      showError('Update Failed', err.message || 'Could not update application status.');
     }
-  };  const handleFindMoreJobs = () => {
-    navigate('/job-search');
+  };
+
+  const handleFindMoreJobs = () => {
+    dispatch(setShowJobSearchModal(true));
   };
 
   const handleViewJobDescription = (job: { title: string; company: string; description: string }) => {
     dispatch(setSelectedJobDescription(job));
   };
 
-  if (authLoading || loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-xl text-gray-600 dark:text-gray-400">Loading Dashboard...</p>
+        </div>
       </div>
     );
-  }
-
-  if (!user) {
-    return null; // Will redirect to login
   }
 
   return (
@@ -411,7 +422,15 @@ const Dashboard: React.FC = () => {
         onUpdateProfile={handleUpdateProfile}
         onFindMoreJobs={handleFindMoreJobs}
       />
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {loading && (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-lg text-gray-600 dark:text-gray-400">Loading applications...</p>
+          </div>
+        )}
+
         {error && (
           <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-lg mb-6">
             {error}
@@ -449,8 +468,8 @@ const Dashboard: React.FC = () => {
         <StatsCards stats={stats} />
 
         <div className="space-y-8">
-          <ApplicationsCarousel
-            applications={[...applications, ...combinedListings]}
+          <ApplicationsTable
+            applications={[...applications, ...combinedListings].map(app => ({ ...app, updated_at: app.updated_at ?? '' }))}
             searchTerm={searchTerm}
             statusFilter={statusFilter}
             onSearchTermChange={setSearchTerm}

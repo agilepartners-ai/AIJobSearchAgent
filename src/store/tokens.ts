@@ -2,7 +2,7 @@ import { atom } from "jotai";
 
 // Get API key from environment variable
 const getApiKeyFromEnv = (): string | null => {
-  const apiKey = import.meta.env.VITE_TAVUS_API_KEY;
+  const apiKey = process.env.NEXT_TAVUS_API_KEY;
   return apiKey || null;
 };
 

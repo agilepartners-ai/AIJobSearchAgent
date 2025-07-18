@@ -16,16 +16,12 @@ export class PDFExtractionService {
    */
   static async extractTextFromFile(file: File): Promise<ExtractionResult> {
     try {
-      console.log('Extracting text from file:', file.name);
-      
       // Convert file to ArrayBuffer
       const arrayBuffer = await file.arrayBuffer();
       
       // Load PDF document
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
-      
-      console.log(`PDF loaded with ${pdf.numPages} pages`);
       
       // Extract text from each page
       const textContent = await this.extractTextFromPdf(pdf);
@@ -47,13 +43,9 @@ export class PDFExtractionService {
    */
   static async extractTextFromUrl(url: string): Promise<ExtractionResult> {
     try {
-      console.log('Extracting text from URL:', url);
-      
       // Load PDF document from URL
       const loadingTask = pdfjsLib.getDocument(url);
       const pdf = await loadingTask.promise;
-      
-      console.log(`PDF loaded with ${pdf.numPages} pages`);
       
       // Extract text from each page
       const textContent = await this.extractTextFromPdf(pdf);

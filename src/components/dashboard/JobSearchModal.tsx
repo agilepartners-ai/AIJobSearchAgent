@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, X, Plus, ExternalLink, Settings, Target, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../../hooks/useAuth';
-import SupabaseJobPreferencesService from '../../services/supabaseJobPreferencesService';
-import { JobPreferences } from '../../types/supabase';
+import { JobPreferencesService, JobPreferences } from '../../services/jobPreferencesService';
 
 interface JobSearchForm {
   query: string;
@@ -89,7 +88,7 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
     if (!user) return;
 
     try {
-      const preferences = await SupabaseJobPreferencesService.getUserJobPreferences(user.uid);
+      const preferences = await JobPreferencesService.getJobPreferences(user.uid);
       setJobPreferences(preferences);
     } catch (err: any) {
       console.error('Error loading job preferences:', err);

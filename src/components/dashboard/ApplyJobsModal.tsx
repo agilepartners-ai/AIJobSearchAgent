@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Bot, Send, Settings } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import JobPreferencesService from '../../services/supabaseJobPreferencesService';
-import { JobPreferences } from '../../types/supabase';
+import { FirebaseJobPreferencesService, JobPreferences } from '../../services/firebaseJobPreferencesService';
 import { useToastContext } from '../ui/ToastProvider';
 
 interface ApplyJobsForm {
@@ -64,24 +63,21 @@ const ApplyJobsModal: React.FC<ApplyJobsModalProps> = ({
     if (!user) return;
 
     try {
-      const preferences = await JobPreferencesService.getUserJobPreferences(user.uid);
+      const preferences = await FirebaseJobPreferencesService.getUserJobPreferences(user.uid);
       if (preferences) {
         setJobPreferences(preferences);
-        // Use correct property names from your JobPreferences type
-        const jobTitles = preferences.preferred_job_titles || [];
-        const locations = preferences.preferred_locations || [];
-        const industries = preferences.preferred_industries || [];
-        const primaryJobTitle = jobTitles.find((title: string) => title.trim() !== '') || '';
-        const primaryLocation = locations.find((loc: string) => loc.trim() !== '') || '';
-        const primaryIndustry = industries.find((ind: string) => ind.trim() !== '') || '';
+        const jobTitles = preferences.job_titles || [];
+        const locations = preferences.locations || [];
+        const primaryJobTitle = jobTitles.find(title => title.trim() !== '') || '';
+        const primaryLocation = locations.find(loc => loc.trim() !== '') || '';
+
         setApplyForm(prev => ({
           ...prev,
           targetRole: primaryJobTitle,
           preferredLocation: primaryLocation,
-          industries: primaryIndustry,
-          salaryExpectation: preferences.preferred_salary_min ?
-            `$${preferences.preferred_salary_min}${preferences.preferred_salary_max ? ` - $${preferences.preferred_salary_max}` : ''}` : '',
-          remotePreference: preferences.willing_to_relocate === false
+          salaryExpectation: preferences.salary_expectation ? `${preferences.salary_expectation}` : '',
+          employmentType: preferences.employment_types?.[0] || '',
+          remotePreference: preferences.remote_only || false,
         }));
       }
     } catch (err: any) {
@@ -91,20 +87,18 @@ const ApplyJobsModal: React.FC<ApplyJobsModalProps> = ({
 
   const applyPreferencesToForm = () => {
     if (!jobPreferences) return;
-    const jobTitles = jobPreferences.preferred_job_titles || [];
-    const locations = jobPreferences.preferred_locations || [];
-    const industries = jobPreferences.preferred_industries || [];
-    const primaryJobTitle = jobTitles.find((title: string) => title.trim() !== '') || '';
-    const primaryLocation = locations.find((loc: string) => loc.trim() !== '') || '';
-    const primaryIndustry = industries.find((ind: string) => ind.trim() !== '') || '';
+    const jobTitles = jobPreferences.job_titles || [];
+    const locations = jobPreferences.locations || [];
+    const primaryJobTitle = jobTitles.find(title => title.trim() !== '') || '';
+    const primaryLocation = locations.find(loc => loc.trim() !== '') || '';
+
     setApplyForm(prev => ({
       ...prev,
       targetRole: primaryJobTitle,
       preferredLocation: primaryLocation,
-      industries: primaryIndustry,
-      salaryExpectation: jobPreferences.preferred_salary_min ?
-        `$${jobPreferences.preferred_salary_min}${jobPreferences.preferred_salary_max ? ` - $${jobPreferences.preferred_salary_max}` : ''}` : prev.salaryExpectation,
-      remotePreference: jobPreferences.willing_to_relocate === false
+      salaryExpectation: jobPreferences.salary_expectation ? `${jobPreferences.salary_expectation}` : prev.salaryExpectation,
+      employmentType: jobPreferences.employment_types?.[0] || prev.employmentType,
+      remotePreference: jobPreferences.remote_only || false,
     }));
   };
 
@@ -202,28 +196,27 @@ const ApplyJobsModal: React.FC<ApplyJobsModalProps> = ({
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                {(jobPreferences.preferred_job_titles || []).filter((title: string) => title.trim()).length > 0 && (
+                {jobPreferences.job_titles && jobPreferences.job_titles.length > 0 && (
                   <div>
                     <span className="font-medium text-purple-700 dark:text-purple-300">Job Titles:</span>
                     <div className="text-purple-600 dark:text-purple-400">
-                      {(jobPreferences.preferred_job_titles || []).filter((title: string) => title.trim()).slice(0, 2).join(', ')}
+                      {jobPreferences.job_titles.slice(0, 2).join(', ')}
                     </div>
                   </div>
                 )}
-                {(jobPreferences.preferred_locations || []).filter((loc: string) => loc.trim()).length > 0 && (
+                {jobPreferences.locations && jobPreferences.locations.length > 0 && (
                   <div>
                     <span className="font-medium text-purple-700 dark:text-purple-300">Locations:</span>
                     <div className="text-purple-600 dark:text-purple-400">
-                      {(jobPreferences.preferred_locations || []).filter((loc: string) => loc.trim()).slice(0, 2).join(', ')}
+                      {jobPreferences.locations.slice(0, 2).join(', ')}
                     </div>
                   </div>
                 )}
-                {typeof jobPreferences.preferred_salary_min === 'number' && (
+                {jobPreferences.salary_expectation && (
                   <div>
                     <span className="font-medium text-purple-700 dark:text-purple-300">Salary:</span>
                     <div className="text-purple-600 dark:text-purple-400">
-                      ${jobPreferences.preferred_salary_min}
-                      {jobPreferences.preferred_salary_max && ` - $${jobPreferences.preferred_salary_max}`}
+                      ${jobPreferences.salary_expectation.toLocaleString()}
                     </div>
                   </div>
                 )}
