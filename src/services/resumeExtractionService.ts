@@ -42,10 +42,6 @@ export class ResumeExtractionService {
             formData.append('model', options.model || this.DEFAULT_MODEL);
             formData.append('file_id', options.fileId || `req_${Date.now()}`);
 
-            console.log('Making request to:', `${this.API_BASE_URL}/api/extract-resume-json`);
-            console.log('Using model:', options.model || this.DEFAULT_MODEL);
-            console.log('Using model type:', options.modelType || this.DEFAULT_MODEL_TYPE);
-
             // Make the request
             const response = await fetch(`${this.API_BASE_URL}/api/extract-resume-json`, {
                 method: 'POST',
@@ -64,12 +60,6 @@ export class ResumeExtractionService {
             }
 
             const data = await response.json();
-
-            console.log('Resume extraction successful:', {
-                success: data.success,
-                textLength: data.extracted_text_length,
-                hasResumeJson: !!data.resume_json
-            });
 
             return data;
         } catch (error: any) {
