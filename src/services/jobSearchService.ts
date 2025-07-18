@@ -70,8 +70,6 @@ export class JobSearchService {
         date_posted: 'all'
       });
 
-      console.log('Making job search request with query:', query);
-      
       const response = await fetch(`${this.JSEARCH_BASE_URL}?${searchParams.toString()}`, {
         method: 'GET',
         headers: {
@@ -80,8 +78,6 @@ export class JobSearchService {
         }
       });
 
-      console.log('Job search API response status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Job search API error response:', errorText);
@@ -89,7 +85,6 @@ export class JobSearchService {
       }
 
       const data = await response.json();
-      console.log('Job search API response data:', data);
       
       if (!data.data || !Array.isArray(data.data)) {
         console.warn('No jobs data found in response:', data);
