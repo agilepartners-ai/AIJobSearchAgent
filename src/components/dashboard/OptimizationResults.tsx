@@ -1,8 +1,6 @@
 import React from 'react';
-import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain, Settings } from 'lucide-react';
-import ResumeTemplateForm from './ResumeTemplateForm';
-import { PDFGenerationService } from '../../services/pdfGenerationService';
-import { UserProfileData, ProfileService } from '../../services/profileService';
+import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain, Eye } from 'lucide-react';
+import { UserProfileData } from '../../services/profileService';
 import { User } from '@supabase/supabase-js';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -66,84 +64,288 @@ interface OptimizationResultsProps {
     // User profile data for cover letter generation
     detailedUserProfile?: UserProfileData | null;
     user?: User | null;
+    extractedText?: string;
+    optimizedResumeText?: string;
   };
   onClose: () => void;
 }
 
 const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onClose }) => {
-  const [showTemplateForm, setShowTemplateForm] = React.useState(false);
-  const [downloadingResume, setDownloadingResume] = React.useState(false);
-  const [downloadingCoverLetter, setDownloadingCoverLetter] = React.useState(false);
-  const [downloadError, setDownloadError] = React.useState('');
-  const [selectedTemplate, setSelectedTemplate] = React.useState('Simple');
-  const [currentUserProfile, setCurrentUserProfile] = React.useState<UserProfileData | null>(null);
+  const [showResumePreview, setShowResumePreview] = React.useState(false);
+  const [showCoverLetterPreview, setShowCoverLetterPreview] = React.useState(false);
+  const [generatedResumeContent, setGeneratedResumeContent] = React.useState('');
+  const [generatedCoverLetterContent, setGeneratedCoverLetterContent] = React.useState('');
 
   const { user } = useAuth();
 
-  // Load fresh profile data when component mounts
+  // Generate optimized resume content locally
   React.useEffect(() => {
-    const loadFreshProfile = async () => {
-      if (user) {
-        try {
-          const freshProfile = await ProfileService.getUserProfile(user.uid);
-          
-          // Map the Supabase Profile fields to UserProfileData structure
-          if (freshProfile) {
-            const mappedProfile: UserProfileData = {
-              fullName: freshProfile.full_name || '',
-              email: freshProfile.email || '',
-              contactNumber: freshProfile.phone || '',
-              streetAddress: freshProfile.location || '', // Use location as street address
-              city: '',  // Not directly available in Profile
-              county: '', // Not directly available in Profile
-              state: '',  // Not directly available in Profile
-              zipCode: '', // Not directly available in Profile
-              hasPhoneAccess: !!freshProfile.phone,
-              gender: '',
-              dateOfBirth: '',
-              includeAge: false,
-              ethnicity: '',
-              race: '',
-              hasDisabilities: false,
-              disabilityDescription: '',
-              veteranStatus: '',
-              travelPercentage: '',
-              openToTravel: false,
-              willingToRelocate: freshProfile.willingness_to_relocate || false,
-              canWorkEveningsWeekends: false,
-              otherLanguages: '',
-              nationality: '',
-              additionalNationalities: '',
-              hasOtherCitizenship: false,
-              visaType: freshProfile.work_authorization || '',
-              expectedSalaryFrom: freshProfile.expected_salary || '',
-              expectedSalaryTo: '',
-              salaryNotes: '',
-              linkedin_url: freshProfile.linkedin_url || '',
-              authorizedToWork: true,
-              requiresSponsorship: false,
-              sponsorshipType: '',
-              references: [],
-              education: [],
-              certifications: [],
-              governmentEmployment: false,
-              governmentDetails: '',
-              hasAgreements: false,
-              agreementDetails: '',
-              hasConvictions: false,
-              convictionDetails: '',
-              interviewAvailability: freshProfile.availability || '',
-            };
-            setCurrentUserProfile(mappedProfile);
-          }
-        } catch (error) {
-          // Handle error silently
-        }
-      }
+    if (results.aiEnhancements && results.parsedResume) {
+      generateOptimizedResumeContent();
+      generateOptimizedCoverLetterContent();
+    }
+  }, [results]);
+
+  const generateOptimizedResumeContent = () => {
+    const personalInfo = results.parsedResume?.personal || {};
+    const experiences = results.experienceOptimization || [];
+    const skills = results.skillsOptimization || {};
+    const enhancements = results.aiEnhancements;
+
+    // Use real user data instead of mock data
+    const realPersonalInfo = {
+      name: results.detailedUserProfile?.fullName || personalInfo.name || 'Your Name',
+      email: user?.email || personalInfo.email || 'your.email@example.com',
+      phone: results.detailedUserProfile?.contactNumber || personalInfo.phone || 'Your Phone',
+      location: results.detailedUserProfile?.streetAddress || personalInfo.location || ''
     };
 
-    loadFreshProfile();
-  }, [user]);
+    let resumeContent = '';
+
+    // Header with real user data
+    resumeContent += `${realPersonalInfo.name}\n`;
+    resumeContent += `${realPersonalInfo.email} | ${realPersonalInfo.phone}\n`;
+    if (realPersonalInfo.location) {
+      resumeContent += `${realPersonalInfo.location}\n`;
+    }
+    resumeContent += '\n';
+
+    // Professional Summary
+    if (enhancements?.enhancedSummary) {
+      resumeContent += 'PROFESSIONAL SUMMARY\n';
+      resumeContent += '===================\n';
+      resumeContent += `${enhancements.enhancedSummary}\n\n`;
+    }
+
+    // Core Competencies/Skills
+    if (skills.technicalSkills?.length > 0 || skills.softSkills?.length > 0) {
+      resumeContent += 'CORE COMPETENCIES\n';
+      resumeContent += '=================\n';
+
+      if (skills.technicalSkills?.length > 0) {
+        resumeContent += `Technical Skills: ${skills.technicalSkills.join(', ')}\n`;
+      }
+      if (skills.softSkills?.length > 0) {
+        resumeContent += `Professional Skills: ${skills.softSkills.join(', ')}\n`;
+      }
+      resumeContent += '\n';
+    }
+
+    // Professional Experience
+    const includedExperiences = experiences.filter(exp => exp.included);
+    if (includedExperiences.length > 0) {
+      resumeContent += 'PROFESSIONAL EXPERIENCE\n';
+      resumeContent += '=======================\n';
+
+      includedExperiences.forEach(exp => {
+        resumeContent += `${exp.position} | ${exp.company}\n`;
+        resumeContent += `Relevance Score: ${exp.relevanceScore}%\n`;
+        if (exp.reasoning) {
+          resumeContent += `${exp.reasoning}\n`;
+        }
+        resumeContent += '\n';
+      });
+    }
+
+    // AI-Enhanced Experience Bullets
+    if (enhancements?.enhancedExperienceBullets && enhancements.enhancedExperienceBullets.length > 0) {
+      resumeContent += 'KEY ACHIEVEMENTS\n';
+      resumeContent += '================\n';
+      enhancements.enhancedExperienceBullets.forEach(bullet => {
+        resumeContent += `• ${bullet}\n`;
+      });
+      resumeContent += '\n';
+    }
+
+    // Section Recommendations
+    if (enhancements?.sectionRecommendations) {
+      const recommendations = enhancements.sectionRecommendations;
+      if (recommendations.skills || recommendations.experience || recommendations.education) {
+        resumeContent += 'AI OPTIMIZATION RECOMMENDATIONS\n';
+        resumeContent += '================================\n';
+
+        if (recommendations.skills) {
+          resumeContent += `Skills Section: ${recommendations.skills}\n`;
+        }
+        if (recommendations.experience) {
+          resumeContent += `Experience Section: ${recommendations.experience}\n`;
+        }
+        if (recommendations.education) {
+          resumeContent += `Education Section: ${recommendations.education}\n`;
+        }
+        resumeContent += '\n';
+      }
+    }
+
+    // Keyword Analysis Summary
+    if (results.keywordAnalysis) {
+      resumeContent += 'KEYWORD OPTIMIZATION SUMMARY\n';
+      resumeContent += '============================\n';
+      resumeContent += `Keyword Coverage: ${results.keywordAnalysis.coverageScore}%\n`;
+      if (results.keywordAnalysis.coveredKeywords.length > 0) {
+        resumeContent += `Covered Keywords: ${results.keywordAnalysis.coveredKeywords.join(', ')}\n`;
+      }
+      if (results.keywordAnalysis.missingKeywords.length > 0) {
+        resumeContent += `Missing Keywords to Add: ${results.keywordAnalysis.missingKeywords.join(', ')}\n`;
+      }
+    }
+
+    setGeneratedResumeContent(resumeContent);
+  };
+
+  const generateOptimizedCoverLetterContent = () => {
+    const personalInfo = results.parsedResume?.personal || {};
+    const jobData = results.applicationData;
+    const coverLetterOutline = results.aiEnhancements?.coverLetterOutline;
+
+    // Use real user data instead of mock data
+    const realPersonalInfo = {
+      name: results.detailedUserProfile?.fullName || personalInfo.name || 'Your Name',
+      email: user?.email || personalInfo.email || 'your.email@example.com',
+      phone: results.detailedUserProfile?.contactNumber || personalInfo.phone || 'Your Phone',
+      location: results.detailedUserProfile?.streetAddress || personalInfo.location || ''
+    };
+
+    let coverLetterContent = '';
+
+    // Header with real user data
+    coverLetterContent += `${realPersonalInfo.name}\n`;
+    coverLetterContent += `${realPersonalInfo.email}\n`;
+    coverLetterContent += `${realPersonalInfo.phone}\n`;
+    if (realPersonalInfo.location) {
+      coverLetterContent += `${realPersonalInfo.location}\n`;
+    }
+    coverLetterContent += '\n';
+
+    // Date
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    coverLetterContent += `${currentDate}\n\n`;
+
+    // Employer Information
+    coverLetterContent += `Hiring Manager\n`;
+    coverLetterContent += `${jobData?.company_name || 'Company Name'}\n`;
+    if (jobData?.location) {
+      coverLetterContent += `${jobData.location}\n`;
+    }
+    coverLetterContent += '\n';
+
+    // Subject Line
+    coverLetterContent += `Re: Application for ${jobData?.position || 'Position'}\n\n`;
+
+    // Salutation
+    coverLetterContent += 'Dear Hiring Manager,\n\n';
+
+    // Opening Paragraph
+    if (coverLetterOutline?.opening) {
+      coverLetterContent += `${coverLetterOutline.opening}\n\n`;
+    } else {
+      coverLetterContent += `I am writing to express my strong interest in the ${jobData?.position || 'position'} role at ${jobData?.company_name || 'your company'}. With my background and skills, I am confident I would be a valuable addition to your team.\n\n`;
+    }
+
+    // Body Paragraph
+    if (coverLetterOutline?.body) {
+      coverLetterContent += `${coverLetterOutline.body}\n\n`;
+    } else {
+      // Use AI analysis data
+      if (results.strengths?.length > 0) {
+        coverLetterContent += 'My key strengths that align with this role include:\n';
+        results.strengths.forEach(strength => {
+          coverLetterContent += `• ${strength}\n`;
+        });
+        coverLetterContent += '\n';
+      }
+
+      // Include match score context
+      coverLetterContent += `Based on my analysis, my background shows a ${results.matchScore}% match with your requirements. `;
+
+      if (results.keywordAnalysis?.coveredKeywords.length > 0) {
+        coverLetterContent += `I have experience with key technologies and skills you're seeking, including ${results.keywordAnalysis.coveredKeywords.slice(0, 5).join(', ')}.`;
+      }
+      coverLetterContent += '\n\n';
+    }
+
+    // Additional Value Proposition
+    if (results.aiEnhancements?.enhancedExperienceBullets && results.aiEnhancements.enhancedExperienceBullets.length > 0) {
+      coverLetterContent += 'Some of my notable achievements include:\n';
+      results.aiEnhancements.enhancedExperienceBullets.slice(0, 3).forEach(bullet => {
+        coverLetterContent += `• ${bullet}\n`;
+      });
+      coverLetterContent += '\n';
+    }
+
+    // Closing Paragraph
+    if (coverLetterOutline?.closing) {
+      coverLetterContent += `${coverLetterOutline.closing}\n\n`;
+    } else {
+      coverLetterContent += `I am excited about the opportunity to contribute to ${jobData?.company_name || 'your organization'} and would welcome the chance to discuss how my skills and experience can benefit your team. Thank you for considering my application.\n\n`;
+    }
+
+    // Sign-off with real name
+    coverLetterContent += 'Sincerely,\n';
+    coverLetterContent += `${realPersonalInfo.name}`;
+
+    setGeneratedCoverLetterContent(coverLetterContent);
+  };
+
+  const downloadAsDocx = (content: string, filename: string) => {
+    // Simple DOCX-like format (actually RTF which can be opened by Word)
+    const rtfContent = `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Times New Roman;}} \\f0\\fs24 ${content.replace(/\n/g, '\\par ')}}`;
+
+    const blob = new Blob([rtfContent], { type: 'application/rtf' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}.rtf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadAsPdf = (content: string, filename: string) => {
+    // Create a simple PDF using HTML to PDF conversion
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>${filename}</title>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; }
+              h1 { color: #333; border-bottom: 2px solid #333; }
+              h2 { color: #666; border-bottom: 1px solid #666; }
+              pre { white-space: pre-wrap; font-family: Arial, sans-serif; }
+            </style>
+          </head>
+          <body>
+            <pre>${content}</pre>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 250);
+    }
+  };
+
+  const downloadAsText = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const getScoreBadge = (score: number) => {
     if (score >= 85) {
@@ -178,156 +380,6 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
   };
 
   const scoreBadge = getScoreBadge(results.matchScore);
-
-  const handleDownloadOptimizedResume = async () => {
-    if (!results.extractionMetadata?.documentId || !results.jobDescription) {
-      setDownloadError('Missing required data for PDF generation. Please try the AI enhancement process again.');
-      return;
-    }
-
-    setDownloadingResume(true);
-    setDownloadError('');
-
-    try {
-      const pdfBlob = await PDFGenerationService.optimizeResume(
-        results.extractionMetadata.documentId,
-        results.jobDescription,
-        {
-          template: selectedTemplate,
-          improveResume: true,
-          sectionOrdering: ['education', 'work', 'skills', 'projects']
-        }
-      );
-
-      // Generate filename with timestamp
-      const timestamp = new Date().toISOString().slice(0, 10);
-      const companyName = results.applicationData?.company_name || 'Company';
-      const position = results.applicationData?.position || 'Position';
-      const filename = `Optimized_Resume_${companyName}_${position}_${timestamp}.pdf`;
-
-      PDFGenerationService.downloadBlob(pdfBlob, filename);
-
-    } catch (error: any) {
-      setDownloadError(error.message || 'Failed to download optimized resume');
-    } finally {
-      setDownloadingResume(false);
-    }
-  };
-
-  const handleDownloadCoverLetter = async () => {
-    if (!results.extractionMetadata?.documentId || !results.jobDescription || !results.applicationData) {
-      setDownloadError('Missing required data for cover letter generation. Please try the AI enhancement process again.');
-      return;
-    }
-
-    setDownloadingCoverLetter(true);
-    setDownloadError('');
-
-    try {
-      // Use fresh profile data directly from database
-      let personalInfo;
-
-      if (currentUserProfile && user) {
-        personalInfo = {
-          name: currentUserProfile.fullName || 'Unknown',
-          email: user.email || 'unknown@email.com',
-          phone: currentUserProfile.contactNumber || '',
-          address: currentUserProfile.streetAddress || '',
-          linkedin: currentUserProfile.linkedin_url || ''
-        };
-      } else {
-        // Fallback to parsed resume data
-        personalInfo = PDFGenerationService.extractPersonalInfo(results.parsedResume);
-
-        // Use user email if available
-        if (user?.email) {
-          personalInfo.email = user.email;
-        }
-      }
-
-      const pdfBlob = await PDFGenerationService.generateCoverLetter(
-        results.extractionMetadata.documentId,
-        results.jobDescription,
-        results.applicationData.position,
-        results.applicationData.company_name,
-        results.applicationData.location || '',
-        personalInfo
-      );
-
-      // Generate filename with timestamp
-      const timestamp = new Date().toISOString().slice(0, 10);
-      const companyName = results.applicationData.company_name;
-      const position = results.applicationData.position;
-      const filename = `Cover_Letter_${companyName}_${position}_${timestamp}.pdf`;
-
-      PDFGenerationService.downloadBlob(pdfBlob, filename);
-
-    } catch (error: any) {
-      setDownloadError(error.message || 'Failed to download cover letter');
-    } finally {
-      setDownloadingCoverLetter(false);
-    }
-  };
-
-  const handleTemplateFormClose = () => {
-    setShowTemplateForm(false);
-  };
-
-  const handleTemplateFormGenerate = (formData: any) => {
-    setShowTemplateForm(true);
-    // Here you would make the API call to generate the PDF
-    setShowTemplateForm(false);
-    onClose();
-  };
-
-  if (showTemplateForm) {
-    return (
-      <ResumeTemplateForm
-        parsedResume={results.parsedResume || {
-          personal: {
-            name: "John Doe",
-            email: "john.doe@email.com",
-            phone: "+1 (555) 123-4567",
-            location: "San Francisco, CA",
-            linkedin: "https://linkedin.com/in/johndoe",
-            website: "https://johndoe.dev"
-          },
-          education: [
-            {
-              school: "University of California, Berkeley",
-              degree: "Bachelor of Science",
-              field: "Computer Science",
-              gpa: "3.8",
-              start_date: "2018-08",
-              end_date: "2022-05",
-              location: "Berkeley, CA"
-            }
-          ],
-          experience: [
-            {
-              company: "Tech Solutions Inc",
-              position: "Senior Software Developer",
-              start_date: "2022-06",
-              end_date: "Present",
-              location: "San Francisco, CA",
-              highlights: [
-                "Led development of microservices architecture serving 1M+ users",
-                "Improved application performance by 40% through optimization",
-                "Mentored 3 junior developers and conducted code reviews"
-              ]
-            }
-          ],
-          skills: ["JavaScript", "React", "Node.js", "Python", "AWS", "MongoDB"],
-          projects: [],
-          certifications: [],
-          awards: [],
-          languages: []
-        }}
-        onClose={handleTemplateFormClose}
-        onGenerate={handleTemplateFormGenerate}
-      />
-    );
-  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -372,90 +424,202 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
             </p>
           </div>
 
-          {/* Download Section */}
+          {/* Generated Documents Section */}
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-700">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <Award className="text-blue-600 dark:text-blue-400" size={24} />
-              AI-Enhanced Documents Ready
+              AI-Generated Documents
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Your optimized resume and cover letter have been generated and are ready for download.
+              Your optimized resume and cover letter have been generated locally using AI analysis.
             </p>
 
-            {downloadError && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                <p className="text-sm text-red-700 dark:text-red-300">
-                  <strong>Error:</strong> {downloadError}
-                </p>
-              </div>
-            )}
+            <div className="space-y-6">
+              {/* Optimized Resume */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <FileText className="text-blue-600 dark:text-blue-400" size={20} />
+                    Optimized Resume
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowResumePreview(!showResumePreview)}
+                      className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-1"
+                    >
+                      <Eye size={16} />
+                      {showResumePreview ? 'Hide' : 'Preview'}
+                    </button>
+                    <div className="relative group">
+                      <button className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors flex items-center gap-1">
+                        <Download size={16} />
+                        Download
+                      </button>
+                      <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                        <div className="p-2 space-y-1 min-w-[120px]">
+                          <button
+                            onClick={() => downloadAsText(generatedResumeContent, 'Optimized_Resume')}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+                          >
+                            Download as TXT
+                          </button>
+                          <button
+                            onClick={() => downloadAsDocx(generatedResumeContent, 'Optimized_Resume')}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+                          >
+                            Download as DOC
+                          </button>
+                          <button
+                            onClick={() => downloadAsPdf(generatedResumeContent, 'Optimized_Resume')}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+                          >
+                            Print as PDF
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                <Settings size={16} className="inline mr-2" />
-                Resume Template
-              </label>
-              <select
-                value={selectedTemplate}
-                onChange={(e) => setSelectedTemplate(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              >
-                {PDFGenerationService.AVAILABLE_TEMPLATES.map(template => (
-                  <option key={template} value={template}>{template}</option>
-                ))}
-              </select>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Choose a LaTeX template for your optimized resume
-              </p>
-            </div>
-
-            <div className="flex gap-4 flex-wrap">
-              <button
-                onClick={handleDownloadOptimizedResume}
-                disabled={downloadingResume || !results.extractionMetadata?.documentId}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all hover:shadow-lg disabled:cursor-not-allowed"
-              >
-                {downloadingResume ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    Generating PDF...
-                  </>
-                ) : (
-                  <>
-                    <Download size={20} />
-                    Download Optimized Resume
-                  </>
+                {showResumePreview && (
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600 max-h-96 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-mono leading-relaxed">
+                      {generatedResumeContent}
+                    </pre>
+                  </div>
                 )}
-              </button>
-              <button
-                onClick={handleDownloadCoverLetter}
-                disabled={downloadingCoverLetter || !results.extractionMetadata?.documentId || !results.applicationData}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all hover:shadow-lg disabled:cursor-not-allowed"
-              >
-                {downloadingCoverLetter ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    Generating PDF...
-                  </>
-                ) : (
-                  <>
-                    <FileText size={20} />
-                    Download Cover Letter
-                  </>
-                )}
-              </button>
-            </div>
 
-            {(!results.extractionMetadata?.documentId || !results.applicationData) && (
-              <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                  <strong>Note:</strong> PDF generation requires complete job application data.
-                  {!results.extractionMetadata?.documentId && " Document ID is missing."}
-                  {!results.applicationData && " Job application details are missing."}
-                </p>
+                <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                  📄 Generated based on {results.matchScore}% job match analysis with AI optimizations
+                </div>
               </div>
-            )}
+
+              {/* Optimized Cover Letter */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <FileText className="text-purple-600 dark:text-purple-400" size={20} />
+                    Optimized Cover Letter
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowCoverLetterPreview(!showCoverLetterPreview)}
+                      className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-1"
+                    >
+                      <Eye size={16} />
+                      {showCoverLetterPreview ? 'Hide' : 'Preview'}
+                    </button>
+                    <div className="relative group">
+                      <button className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm transition-colors flex items-center gap-1">
+                        <Download size={16} />
+                        Download
+                      </button>
+                      <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                        <div className="p-2 space-y-1 min-w-[120px]">
+                          <button
+                            onClick={() => downloadAsText(generatedCoverLetterContent, 'Optimized_Cover_Letter')}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+                          >
+                            Download as TXT
+                          </button>
+                          <button
+                            onClick={() => downloadAsDocx(generatedCoverLetterContent, 'Optimized_Cover_Letter')}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+                          >
+                            Download as DOC
+                          </button>
+                          <button
+                            onClick={() => downloadAsPdf(generatedCoverLetterContent, 'Optimized_Cover_Letter')}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+                          >
+                            Print as PDF
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {showCoverLetterPreview && (
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600 max-h-96 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-mono leading-relaxed">
+                      {generatedCoverLetterContent}
+                    </pre>
+                  </div>
+                )}
+
+                <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                  💌 Personalized for {results.applicationData?.position} at {results.applicationData?.company_name}
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* Extracted Text Display */}
+          {results.extractedText && (
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <FileText className="text-gray-600 dark:text-gray-400" size={20} />
+                Extracted Resume Text
+              </h3>
+              <div className="bg-white dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600 max-h-80 overflow-y-auto">
+                <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-mono leading-relaxed">
+                  {results.extractedText}
+                </pre>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
+                <span>📝 Characters: {results.extractedText.length}</span>
+                <span>📊 Words: ~{results.extractedText.split(/\s+/).length}</span>
+                <span>🔧 Model: {results.extractionMetadata?.modelUsed || 'gpt-4o'}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Keyword Analysis */}
+          {results.keywordAnalysis && (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-700">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                🔍 Keyword Analysis
+              </h3>
+              <div className="mb-6">
+                <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {results.keywordAnalysis.coverageScore}% Keyword Coverage
+                </span>
+              </div>
+
+              {results.keywordAnalysis.coveredKeywords.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="font-medium text-green-700 dark:text-green-400 mb-3">✅ Covered Keywords</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {results.keywordAnalysis.coveredKeywords.map((keyword, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full text-sm font-medium"
+                      >
+                        {keyword}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {results.keywordAnalysis.missingKeywords.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-red-700 dark:text-red-400 mb-3">❌ Missing Keywords</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {results.keywordAnalysis.missingKeywords.map((keyword, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 rounded-full text-sm font-medium"
+                      >
+                        {keyword}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Experience Optimization */}
           {results.experienceOptimization && results.experienceOptimization.length > 0 && (
@@ -468,8 +632,8 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
                   <div
                     key={index}
                     className={`p-4 rounded-lg border-l-4 ${exp.included
-                        ? 'bg-green-50 dark:bg-green-900/20 border-green-500'
-                        : 'bg-red-50 dark:bg-red-900/20 border-red-500'
+                      ? 'bg-green-50 dark:bg-green-900/20 border-green-500'
+                      : 'bg-red-50 dark:bg-red-900/20 border-red-500'
                       }`}
                   >
                     <div className="flex justify-between items-start mb-2">
@@ -477,8 +641,8 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
                         {exp.included ? '✅' : '❌'} {exp.company} - {exp.position}
                       </span>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${exp.relevanceScore >= 70
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                         }`}>
                         {exp.relevanceScore}% relevance
                       </span>
@@ -547,52 +711,6 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
                   </div>
                 )}
               </div>
-            </div>
-          )}
-
-          {/* Keyword Analysis */}
-          {results.keywordAnalysis && (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-700">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                🔍 Keyword Analysis
-              </h3>
-              <div className="mb-6">
-                <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {results.keywordAnalysis.coverageScore}% Keyword Coverage
-                </span>
-              </div>
-
-              {results.keywordAnalysis.coveredKeywords.length > 0 && (
-                <div className="mb-6">
-                  <h4 className="font-medium text-green-700 dark:text-green-400 mb-3">✅ Covered Keywords</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {results.keywordAnalysis.coveredKeywords.map((keyword, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full text-sm font-medium"
-                      >
-                        {keyword}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {results.keywordAnalysis.missingKeywords.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-red-700 dark:text-red-400 mb-3">❌ Missing Keywords</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {results.keywordAnalysis.missingKeywords.map((keyword, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 rounded-full text-sm font-medium"
-                      >
-                        {keyword}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
