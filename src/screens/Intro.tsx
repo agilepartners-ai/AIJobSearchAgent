@@ -1,11 +1,9 @@
-import { AnimatedWrapper } from "@/components/DialogWrapper";
 import React from "react";
 import { useAtom } from "jotai";
 import { screenAtom } from "@/store/screens";
 import { Play, Lock } from "lucide-react";
-import AudioButton from "@/components/AudioButton";
+import { Button } from "@/components/ui/button";
 import { apiTokenAtom } from "@/store/tokens";
-import gloriaVideo from "@/assets/video/gloria.mp4";
 
 export const Intro: React.FC = () => {
   const [, setScreenState] = useAtom(screenAtom);
@@ -16,16 +14,8 @@ export const Intro: React.FC = () => {
   };
 
   return (
-    <AnimatedWrapper>
+    <div>
       <div className="flex size-full flex-col items-center justify-center">
-        <video
-          src={gloriaVideo}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 h-full w-full object-cover"
-        />
         <div className="absolute inset-0 bg-primary-overlay backdrop-blur-sm" />
         <div className="relative z-10 flex flex-col items-center gap-2 py-4 px-4 rounded-xl border border-[rgba(255,255,255,0.2)]" 
           style={{ 
@@ -42,12 +32,12 @@ export const Intro: React.FC = () => {
           {!token && (
             <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-center">
               <p className="text-sm text-red-200">
-                API key not configured. Please set NEXT_TAVUS_API_KEY in your environment variables.
+                API key not configured. Please set VITE_TAVUS_API_KEY in your environment variables.
               </p>
             </div>
           )}
 
-          <AudioButton 
+          <Button 
             onClick={handleClick}
             className="relative z-20 flex items-center justify-center gap-2 rounded-3xl border border-[rgba(255,255,255,0.3)] px-4 py-2 text-sm text-white transition-all duration-200 hover:text-primary mt-4 disabled:opacity-50"
             disabled={!token}
@@ -67,9 +57,9 @@ export const Intro: React.FC = () => {
           >
             {token ? <Play className="size-4" /> : <Lock className="size-4" />}
             {token ? "Start Demo" : "API Key Required"}
-          </AudioButton>
+          </Button>
         </div>
       </div>
-    </AnimatedWrapper>
+    </div>
   );
 };
