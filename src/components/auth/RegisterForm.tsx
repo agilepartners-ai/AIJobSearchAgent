@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import SupabaseAuthService from '../../services/supabaseAuthService';
+import FirebaseAuthService from '../../services/firebaseAuthService';
 import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 
 const RegisterForm: React.FC = () => {
@@ -56,12 +56,12 @@ const RegisterForm: React.FC = () => {
     setLoading(true);
 
     try {
-      await SupabaseAuthService.signUp({ 
-        email, 
-        password, 
-        phone: formattedPhone 
+      await FirebaseAuthService.signUp({
+        email,
+        password,
+        phone: formattedPhone,
       });
-      
+
       if (formattedPhone) {
         navigate('/verify-phone');
       } else {

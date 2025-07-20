@@ -108,7 +108,7 @@ const TAVUS_VIDEO_URL = "/e3db768fa0.mp4";
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Video, User, LogOut, LayoutDashboard, Loader, ExternalLink, ArrowLeft, Crown } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import SupabaseAuthService from '../../services/supabaseAuthService';
+import FirebaseAuthService from '../../services/firebaseAuthService';
 import { createConversation as createInterviewConversation } from '../../services/interviewService';
 import UpgradeModal from '../dashboard/UpgradeModal';
 
@@ -135,7 +135,7 @@ const AIInterviewPage: React.FC = () => {
 
   const handleSignOut = async () => {
     try {
-      await SupabaseAuthService.signOut();
+      await FirebaseAuthService.signOut();
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -152,7 +152,7 @@ const AIInterviewPage: React.FC = () => {
       const originalBeforeUnload = window.onbeforeunload;
       window.onbeforeunload = null;
       
-      const currentUser = await SupabaseAuthService.getCurrentUser();
+      const currentUser = await FirebaseAuthService.getCurrentUser();
       if (currentUser && currentUser.uid) {
         const paymentUrl = `https://pay.rev.cat/sandbox/evfhfhevsehbykku/${currentUser.uid}`;
         // Open in same tab for better user experience

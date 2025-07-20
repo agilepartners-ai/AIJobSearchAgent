@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import ProfileForm, { ProfileData } from '../forms/ProfileFormNew';
-import { SupabaseProfileService } from '../../services/profileService';
-import { supabase } from '../../lib/supabase';
+import { ProfileService } from '../../services/profileService';
+import { auth } from '../../lib/firebase';
 
 interface ProfileModalProps {
   onClose: () => void;
@@ -43,9 +43,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       if (!user) return;
       
       try {
-        const profile = await SupabaseProfileService.getOrCreateProfile(
-          user.uid, 
-          user.email || '', 
+        const profile = await ProfileService.getOrCreateProfile(
+          user.uid,
+          user.email || '',
           user.displayName || 'New User'
         );
         
@@ -119,63 +119,52 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
     setIsLoading(true);
     
     try {
-      // First, let's verify the Supabase connection and authentication
-      const { data: authUser, error: authError } = await supabase.auth.getUser();
-      
-      if (authError) {
-        throw new Error(`Authentication failed: ${authError.message}`);
-      }
-      
-      if (!authUser.user) {
+      // First, let's verify the Firebase connection and authentication
+      const authUser = auth.currentUser;
+
+      if (!authUser) {
         throw new Error('No authenticated user found');
       }
-      
-      const currentProfile = await SupabaseProfileService.getOrCreateProfile(
-        user.uid, 
-        authUser.user.email || '', 
+
+      const currentProfile = await ProfileService.getOrCreateProfile(
+        user.uid,
+        authUser.email || '',
         profileData.fullName?.trim() || 'New User'
       );
       
       // Prepare update data with all profile fields for database
-      const updateData = {
-        full_name: profileData.fullName?.trim(),
-        phone: profileData.phone?.trim() || null,
-        location: profileData.location?.trim() || null,
-        current_job_title: profileData.currentJobTitle?.trim() || null,
-        years_of_experience: profileData.experience === 'Fresher' ? 0 : 2,
+      const updateData: Partial<import('../../services/profileService').UserProfileData> = {
+        fullName: profileData.fullName?.trim(),
+        phone: profileData.phone?.trim() || undefined,
+        location: profileData.location?.trim() || undefined,
+        currentJobTitle: profileData.currentJobTitle?.trim() || undefined,
+        experience: profileData.experience,
         skills: Array.isArray(profileData.skills) ? profileData.skills.filter(s => s?.trim()) : [],
-        linkedin_url: profileData.socialLinks?.linkedin?.trim() || null,
-        github_url: profileData.socialLinks?.github?.trim() || null,
-        portfolio_url: profileData.socialLinks?.portfolio?.trim() || null,
-        bio: profileData.currentJobTitle || null,
-        expected_salary: profileData.expectedSalary?.trim() || null,
-        current_ctc: profileData.currentCTC?.trim() || null,
-        work_authorization: profileData.workAuthorization?.trim() || null,
-        notice_period: profileData.noticePeriod?.trim() || null,
-        availability: profileData.availability?.trim() || null,
-        willingness_to_relocate: profileData.willingnessToRelocate || false,
-        twitter_url: profileData.socialLinks?.twitter?.trim() || null,
-        dribbble_url: profileData.socialLinks?.dribbble?.trim() || null,
-        medium_url: profileData.socialLinks?.medium?.trim() || null,
-        reference_contacts: profileData.references?.trim() || null,
-        job_preferences: {
-          jobProfile: profileData.jobProfile || '',
-          employmentType: profileData.employmentType || '',
-          remoteJobsOnly: profileData.remoteJobsOnly || false,
-          datePosted: profileData.datePosted || '',
-          experience: profileData.experience || 'Fresher',
-          workExperience: profileData.workExperience || [],
-          education: profileData.education || []
-        }
+        linkedin: profileData.socialLinks?.linkedin?.trim() || undefined,
+        github: profileData.socialLinks?.github?.trim() || undefined,
+        portfolio: profileData.socialLinks?.portfolio?.trim() || undefined,
+        expectedSalary: profileData.expectedSalary?.trim() || undefined,
+        currentCTC: profileData.currentCTC?.trim() || undefined,
+        workAuthorization: profileData.workAuthorization?.trim() || undefined,
+        noticePeriod: profileData.noticePeriod?.trim() || undefined,
+        availability: profileData.availability?.trim() || undefined,
+        willingnessToRelocate: profileData.willingnessToRelocate || false,
+        references: profileData.references?.trim() || undefined,
+        jobProfile: profileData.jobProfile || '',
+        employmentType: profileData.employmentType || '',
+        remoteJobsOnly: profileData.remoteJobsOnly || false,
+        datePosted: profileData.datePosted || '',
+        workExperience: profileData.workExperience || [],
+        education: profileData.education || []
       };
 
       // Attempt profile update
-      const updateResult = await SupabaseProfileService.updateProfile(user.uid, updateData);
-      
+      await ProfileService.updateUserProfile(user.uid, updateData);
+
       // Verify the update actually happened
-      const verifyResult = await SupabaseProfileService.getUserProfile(user.uid);
+      const verifyResult = await ProfileService.getUserProfile(user.uid);
       
-      if (!verifyResult || verifyResult.full_name !== updateData.full_name) {
+      if (!verifyResult || verifyResult.fullName !== updateData.fullName) {
         throw new Error('Profile update verification failed - changes may not have been saved');
       }
       
@@ -211,29 +200,28 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
           errorMessage += error.message;
         }
       } else if (typeof error === 'object' && error !== null) {
-        // Handle Supabase errors
-        const supabaseError = error as any;
-        if (supabaseError.code) {
-          switch (supabaseError.code) {
-            case 'PGRST116':
-              errorMessage = 'Database error: Profile not found. Please try logging out and back in.';
+        // Handle Firebase errors
+        const firebaseError = error as any;
+        if (firebaseError.code) {
+          switch (firebaseError.code) {
+            case 'auth/network-request-failed':
+              errorMessage = 'Network error: Please check your internet connection and try again.';
               break;
-            case '23505':
-              errorMessage = 'Database error: Duplicate entry detected. Please check your input values.';
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+              errorMessage = 'Authentication error: Please log out and log back in, then try again.';
               break;
-            case '42501':
+
+            case 'permission-denied':
               errorMessage = 'Permission error: You do not have permission to update this profile.';
               break;
-            case '08006':
-              errorMessage = 'Database connection error: Please check your internet connection and try again.';
-              break;
             default:
-              errorMessage = `Database error: ${supabaseError.message || 'Unknown database error'}`;
+              errorMessage = `Firebase error: ${firebaseError.message || 'Unknown Firebase error'}`;
           }
-        } else if (supabaseError.message) {
-          errorMessage += supabaseError.message;
+        } else if (firebaseError.message) {
+          errorMessage += firebaseError.message;
         } else {
-          errorMessage = 'Unknown database error occurred. Please try again.';
+          errorMessage = 'Unknown error occurred. Please try again.';
         }
       } else {
         errorMessage = 'Unknown error occurred. Please try again or contact support.';
@@ -258,36 +246,36 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
 
     // Parse job_preferences from database if available
     let jobPrefs = {};
-    if (profileToUse.job_preferences) {
+    if ((profileToUse as any).job_preferences) {
       try {
-        jobPrefs = typeof profileToUse.job_preferences === 'string' ? 
-          JSON.parse(profileToUse.job_preferences) : profileToUse.job_preferences;
+        jobPrefs = typeof (profileToUse as any).job_preferences === 'string' ?
+          JSON.parse((profileToUse as any).job_preferences) : (profileToUse as any).job_preferences;
       } catch (error) {
         // Handle parse error silently
       }
     }
 
     return {
-      fullName: profileToUse.full_name || '',
+      fullName: profileToUse.fullName || '',
       email: profileToUse.email || '',
       phone: profileToUse.phone || '',
       location: profileToUse.location || '',
-      currentJobTitle: profileToUse.current_job_title || '',
+      currentJobTitle: profileToUse.currentJobTitle || '',
       skills: profileToUse.skills || [],
-      expectedSalary: profileToUse.expected_salary || '',
-      currentCTC: profileToUse.current_ctc || '',
-      workAuthorization: profileToUse.work_authorization || '',
-      noticePeriod: profileToUse.notice_period || '',
+      expectedSalary: profileToUse.expectedSalary || '',
+      currentCTC: profileToUse.currentCTC || '',
+      workAuthorization: profileToUse.workAuthorization || '',
+      noticePeriod: profileToUse.noticePeriod || '',
       availability: profileToUse.availability || '',
-      willingnessToRelocate: profileToUse.willingness_to_relocate || false,
-      references: profileToUse.reference_contacts || '',
+      willingnessToRelocate: profileToUse.willingnessToRelocate || false,
+      references: profileToUse.references || '',
       socialLinks: {
-        linkedin: profileToUse.linkedin_url || '',
-        github: profileToUse.github_url || '',
-        portfolio: profileToUse.portfolio_url || '',
-        twitter: profileToUse.twitter_url || '',
-        dribbble: profileToUse.dribbble_url || '',
-        medium: profileToUse.medium_url || ''
+        linkedin: profileToUse.linkedin || '',
+        github: profileToUse.github || '',
+        portfolio: profileToUse.portfolio || '',
+        twitter: (profileToUse as any).twitter_url || '',
+        dribbble: (profileToUse as any).dribbble_url || '',
+        medium: (profileToUse as any).medium_url || ''
       },
       // From job_preferences JSON field
       jobProfile: (jobPrefs as any)?.jobProfile || '',

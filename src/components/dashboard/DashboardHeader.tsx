@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Search, LogOut, User, Settings, ChevronDown, Menu, X, Crown } from 'lucide-react';
-import SupabaseAuthService from '../../services/supabaseAuthService';
+import FirebaseAuthService from '../../services/firebaseAuthService';
 import { useNavigate } from 'react-router-dom';
 import UpgradeModal from './UpgradeModal';
 
@@ -26,7 +26,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
   const handleSignOut = async () => {
     try {
-      await SupabaseAuthService.signOut();
+      await FirebaseAuthService.signOut();
       navigate('/login');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -43,7 +43,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       const originalBeforeUnload = window.onbeforeunload;
       window.onbeforeunload = null;
       
-      const currentUser = await SupabaseAuthService.getCurrentUser();
+      const currentUser = await FirebaseAuthService.getCurrentUser();
       if (currentUser && currentUser.uid) {
         const paymentUrl = `https://pay.rev.cat/sandbox/evfhfhevsehbykku/${currentUser.uid}`;
         // Open in same tab for better user experience
@@ -139,7 +139,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                   <User size={16} />
                 </div>
                 <span className="text-sm text-gray-700 dark:text-gray-300 max-w-32 truncate">
-                  {userProfile?.full_name || userProfile?.email || 'User'}
+                  {userProfile?.fullName || userProfile?.email || 'User'}
                 </span>
                 <ChevronDown size={16} className="text-gray-500 flex-shrink-0" />
               </button>
@@ -232,7 +232,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                     <User size={16} />
                   </div>
                   <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
-                    {userProfile?.full_name || userProfile?.email || 'User'}
+                    {userProfile?.fullName || userProfile?.email || 'User'}
                   </span>
                 </div>
                 

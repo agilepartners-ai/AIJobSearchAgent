@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, X, Plus, ExternalLink, Settings, Target, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../../hooks/useAuth';
-import SupabaseJobPreferencesService from '../../services/supabaseJobPreferencesService';
-import { JobPreferences } from '../../types/supabase';
+import { FirebaseJobPreferencesService, JobPreferences } from '../../services/firebaseJobPreferencesService';
 
 interface JobSearchForm {
   query: string;
@@ -89,7 +88,7 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
     if (!user) return;
 
     try {
-      const preferences = await SupabaseJobPreferencesService.getUserJobPreferences(user.uid);
+      const preferences = await FirebaseJobPreferencesService.getUserJobPreferences(user.uid);
       setJobPreferences(preferences);
     } catch (err: any) {
       console.error('Error loading job preferences:', err);
@@ -99,8 +98,8 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
   const applyPreferencesToSearch = () => {
     if (!jobPreferences) return;
 
-    const jobTitles = jobPreferences.preferred_job_titles || [];
-    const locations = jobPreferences.preferred_locations || [];
+    const jobTitles = jobPreferences.job_titles || [];
+    const locations = jobPreferences.locations || [];
     
     const primaryJobTitle = jobTitles.find((title: string) => title.trim() !== '') || '';
     const primaryLocation = locations.find((loc: string) => loc.trim() !== '') || '';
@@ -116,11 +115,11 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
     if (!jobPreferences) return;
 
     if (field === 'query') {
-      const jobTitles = jobPreferences.preferred_job_titles || [];
+      const jobTitles = jobPreferences.job_titles || [];
       const primaryJobTitle = jobTitles.find((title: string) => title.trim() !== '') || '';
       onFormChange({ ...searchForm, query: primaryJobTitle });
     } else if (field === 'location') {
-      const locations = jobPreferences.preferred_locations || [];
+      const locations = jobPreferences.locations || [];
       const primaryLocation = locations.find((loc: string) => loc.trim() !== '') || '';
       onFormChange({ ...searchForm, location: primaryLocation });
     }
@@ -191,11 +190,11 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
                 </button>
               </div>
               <div className="mt-2 space-y-2 text-sm">
-                {jobPreferences.preferred_job_titles && jobPreferences.preferred_job_titles.filter((title: string) => title.trim()).length > 0 && (
+                {jobPreferences.job_titles && jobPreferences.job_titles.filter((title: string) => title.trim()).length > 0 && (
                   <div>
                     <span className="font-medium text-blue-700 dark:text-blue-300">Job Titles:</span>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {jobPreferences.preferred_job_titles.filter((title: string) => title.trim()).slice(0, 3).map((title: string, index: number) => (
+                      {jobPreferences.job_titles.filter((title: string) => title.trim()).slice(0, 3).map((title: string, index: number) => (
                         <span key={index} className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 rounded text-xs">
                           {title}
                         </span>
@@ -204,11 +203,11 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
                   </div>
                 )}
                 
-                {jobPreferences.preferred_locations && jobPreferences.preferred_locations.filter((loc: string) => loc.trim()).length > 0 && (
+                {jobPreferences.locations && jobPreferences.locations.filter((loc: string) => loc.trim()).length > 0 && (
                   <div>
                     <span className="font-medium text-blue-700 dark:text-blue-300">Preferred Locations:</span>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {jobPreferences.preferred_locations.filter((loc: string) => loc.trim()).slice(0, 3).map((location: string, index: number) => (
+                      {jobPreferences.locations.filter((loc: string) => loc.trim()).slice(0, 3).map((location: string, index: number) => (
                         <span key={index} className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 rounded text-xs">
                           {location}
                         </span>

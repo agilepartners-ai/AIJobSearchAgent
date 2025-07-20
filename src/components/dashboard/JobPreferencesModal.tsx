@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Briefcase, MapPin, DollarSign, Globe, Clock, Building, ChevronDown, ChevronUp, Plus, Trash2, Save, RotateCcw } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import SupabaseJobPreferencesService from '../../services/supabaseJobPreferencesService';
-import { JobPreferences } from '../../types/supabase';
+import { FirebaseJobPreferencesService, JobPreferences } from '../../services/firebaseJobPreferencesService';
 import { useToastContext } from '../ui/ToastProvider';
 
 interface JobPreferencesModalProps {
@@ -14,7 +13,7 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
   const { showSuccess, showError, showInfo } = useToastContext();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [preferences, setPreferences] = useState<JobPreferences | null>(null);
+  const [preferences, setPreferences] = useState<Partial<JobPreferences> | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['jobTitles', 'salary', 'location', 'workPreferences']));
   
   // Form state
@@ -44,33 +43,33 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
       
       try {
         setLoading(true);
-        const userPreferences = await SupabaseJobPreferencesService.getUserJobPreferences(user.uid);
+        const userPreferences = await FirebaseJobPreferencesService.getUserJobPreferences(user.uid);
         
         if (userPreferences) {
           setPreferences(userPreferences);
           
           // Map database values to form state
           setFormData({
-            jobTitles: userPreferences.preferred_job_titles?.length ? 
-              userPreferences.preferred_job_titles : [''],
-            industries: userPreferences.preferred_industries?.length ? 
-              userPreferences.preferred_industries : [''],
+            jobTitles: userPreferences.job_titles?.length ?
+              userPreferences.job_titles : [''],
+            industries: (userPreferences as any).preferred_industries?.length ?
+              (userPreferences as any).preferred_industries : [''],
             companies: [], // Not in current schema
-            excludedCompanies: userPreferences.excluded_companies?.length ? 
-              userPreferences.excluded_companies : [''],
-            locations: userPreferences.preferred_locations?.length ? 
-              userPreferences.preferred_locations : [''],
+            excludedCompanies: (userPreferences as any).excluded_companies?.length ?
+              (userPreferences as any).excluded_companies : [''],
+            locations: userPreferences.locations?.length ?
+              userPreferences.locations : [''],
             excludedLocations: [], // Not in current schema
-            salaryMin: userPreferences.preferred_salary_min?.toString() || '',
-            salaryMax: userPreferences.preferred_salary_max?.toString() || '',
-            employmentTypes: userPreferences.preferred_employment_types || [],
-            remotePreference: userPreferences.remote_preference || 'flexible',
+            salaryMin: userPreferences.salary_expectation?.toString() || '',
+            salaryMax: '',
+            employmentTypes: userPreferences.employment_types || [],
+            remotePreference: userPreferences.remote_only ? 'remote_only' : 'flexible',
             travelPercentage: '25', // Not in current schema
-            yearsExperienceMin: userPreferences.minimum_experience_years?.toString() || '0',
-            yearsExperienceMax: userPreferences.maximum_experience_years?.toString() || '',
+            yearsExperienceMin: '0',
+            yearsExperienceMax: '',
             noticePeriod: 'immediate', // Not in current schema
             currentlyEmployed: true, // Not in current schema
-            additionalNotes: userPreferences.additional_notes || '',
+            additionalNotes: (userPreferences as any).additional_notes || '',
           });
         }
       } catch (error) {
@@ -164,26 +163,26 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
     if (preferences) {
       // Reset to loaded preferences
       setFormData({
-        jobTitles: preferences.preferred_job_titles?.length ? 
-          preferences.preferred_job_titles : [''],
-        industries: preferences.preferred_industries?.length ? 
-          preferences.preferred_industries : [''],
+        jobTitles: preferences.job_titles?.length ?
+          preferences.job_titles : [''],
+        industries: (preferences as any).preferred_industries?.length ?
+          (preferences as any).preferred_industries : [''],
         companies: [], // Not in current schema
-        excludedCompanies: preferences.excluded_companies?.length ? 
-          preferences.excluded_companies : [''],
-        locations: preferences.preferred_locations?.length ? 
-          preferences.preferred_locations : [''],
+        excludedCompanies: (preferences as any).excluded_companies?.length ?
+          (preferences as any).excluded_companies : [''],
+        locations: preferences.locations?.length ?
+          preferences.locations : [''],
         excludedLocations: [], // Not in current schema
-        salaryMin: preferences.preferred_salary_min?.toString() || '',
-        salaryMax: preferences.preferred_salary_max?.toString() || '',
-        employmentTypes: preferences.preferred_employment_types || [],
-        remotePreference: preferences.remote_preference || 'flexible',
+        salaryMin: preferences.salary_expectation?.toString() || '',
+        salaryMax: '',
+        employmentTypes: preferences.employment_types || [],
+        remotePreference: preferences.remote_only ? 'remote_only' : 'flexible',
         travelPercentage: '25', // Not in current schema
-        yearsExperienceMin: preferences.minimum_experience_years?.toString() || '0',
-        yearsExperienceMax: preferences.maximum_experience_years?.toString() || '',
+        yearsExperienceMin: '0',
+        yearsExperienceMax: '',
         noticePeriod: 'immediate', // Not in current schema
         currentlyEmployed: true, // Not in current schema
-        additionalNotes: preferences.additional_notes || '',
+        additionalNotes: (preferences as any).additional_notes || '',
       });
     } else {
       // Reset to default values
@@ -246,27 +245,21 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
         return;
       }
       
-      // Prepare data for Supabase
-      const preferencesData = {
-        preferred_job_titles: filteredJobTitles.length ? filteredJobTitles : null,
-        preferred_industries: filteredIndustries.length ? filteredIndustries : null,
-        excluded_companies: filteredExcludedCompanies.length ? filteredExcludedCompanies : null,
-        preferred_locations: filteredLocations.length ? filteredLocations : null,
-        preferred_salary_min: salaryMin,
-        preferred_salary_max: salaryMax,
-        preferred_employment_types: formData.employmentTypes.length ? formData.employmentTypes : null,
-        remote_preference: formData.remotePreference,
-        minimum_experience_years: yearsExperienceMin,
-        maximum_experience_years: yearsExperienceMax,
-        additional_notes: formData.additionalNotes.trim() || null,
-        willing_to_relocate: formData.remotePreference !== 'remote_only'
+      // Prepare data for Firebase
+      const preferencesData: Omit<JobPreferences, 'id' | 'updated_at'> = {
+        job_titles: filteredJobTitles.length ? filteredJobTitles : undefined,
+        locations: filteredLocations.length ? filteredLocations : undefined,
+        salary_expectation: salaryMin || undefined,
+        employment_types: formData.employmentTypes.length ? formData.employmentTypes : undefined,
+        remote_only: formData.remotePreference === 'remote_only',
+        skills: [],
       };
-      
-      // Save to Supabase
-      await SupabaseJobPreferencesService.saveJobPreferences(user.uid, preferencesData);
-      
+
+      // Save to Firebase
+      await FirebaseJobPreferencesService.saveJobPreferences(user.uid, preferencesData);
+
       // Update local state
-      setPreferences(await SupabaseJobPreferencesService.getUserJobPreferences(user.uid));
+      setPreferences(await FirebaseJobPreferencesService.getUserJobPreferences(user.uid));
       
       showSuccess('Preferences Saved', 'Your job preferences have been successfully saved.');
     } catch (error) {
@@ -871,84 +864,47 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
             
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
               <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                {preferences.preferred_job_titles?.length > 0 && (
+                {preferences?.job_titles && preferences.job_titles.length > 0 && (
                   <div className="col-span-2">
                     <dt className="font-medium text-gray-700 dark:text-gray-300">Job Titles</dt>
                     <dd className="mt-1 text-gray-600 dark:text-gray-400">
-                      {preferences.preferred_job_titles.join(', ')}
+                      {preferences.job_titles.join(', ')}
                     </dd>
                   </div>
                 )}
-                
-                {preferences.preferred_industries?.length > 0 && (
-                  <div className="col-span-2">
-                    <dt className="font-medium text-gray-700 dark:text-gray-300">Industries</dt>
-                    <dd className="mt-1 text-gray-600 dark:text-gray-400">
-                      {preferences.preferred_industries.join(', ')}
-                    </dd>
-                  </div>
-                )}
-                
-                {preferences.preferred_locations?.length > 0 && (
+
+                {preferences?.locations && preferences.locations.length > 0 && (
                   <div className="col-span-2">
                     <dt className="font-medium text-gray-700 dark:text-gray-300">Locations</dt>
                     <dd className="mt-1 text-gray-600 dark:text-gray-400">
-                      {preferences.preferred_locations.join(', ')}
+                      {preferences.locations.join(', ')}
                     </dd>
                   </div>
                 )}
-                
-                {(preferences.preferred_salary_min || preferences.preferred_salary_max) && (
+
+                {preferences?.salary_expectation && (
                   <div>
-                    <dt className="font-medium text-gray-700 dark:text-gray-300">Salary Range</dt>
+                    <dt className="font-medium text-gray-700 dark:text-gray-300">Salary Expectation</dt>
                     <dd className="mt-1 text-gray-600 dark:text-gray-400">
-                      {preferences.preferred_salary_min && `$${preferences.preferred_salary_min.toLocaleString()}`}
-                      {preferences.preferred_salary_min && preferences.preferred_salary_max && ' - '}
-                      {preferences.preferred_salary_max && `$${preferences.preferred_salary_max.toLocaleString()}`}
+                      {`$${preferences.salary_expectation.toLocaleString()}`}
                     </dd>
                   </div>
                 )}
-                
-                {preferences.remote_preference && (
+
+                {preferences?.remote_only && (
                   <div>
                     <dt className="font-medium text-gray-700 dark:text-gray-300">Remote Preference</dt>
                     <dd className="mt-1 text-gray-600 dark:text-gray-400">
-                      {preferences.remote_preference === 'remote_only' ? 'Remote Only' :
-                       preferences.remote_preference === 'hybrid' ? 'Hybrid' :
-                       preferences.remote_preference === 'on_site' ? 'On-site' : 'Flexible'}
+                      Remote Only
                     </dd>
                   </div>
                 )}
-                
-                {preferences.preferred_employment_types?.length > 0 && (
+
+                {preferences?.employment_types && preferences.employment_types.length > 0 && (
                   <div>
                     <dt className="font-medium text-gray-700 dark:text-gray-300">Employment Types</dt>
                     <dd className="mt-1 text-gray-600 dark:text-gray-400">
-                      {preferences.preferred_employment_types.map(type => 
-                        type === 'FULLTIME' ? 'Full-time' : 
-                        type === 'PARTTIME' ? 'Part-time' : 
-                        type === 'CONTRACTOR' ? 'Contract' : 'Internship'
-                      ).join(', ')}
-                    </dd>
-                  </div>
-                )}
-                
-                {(preferences.minimum_experience_years !== undefined || preferences.maximum_experience_years) && (
-                  <div>
-                    <dt className="font-medium text-gray-700 dark:text-gray-300">Experience</dt>
-                    <dd className="mt-1 text-gray-600 dark:text-gray-400">
-                      {preferences.minimum_experience_years !== undefined && `${preferences.minimum_experience_years} years`}
-                      {preferences.minimum_experience_years !== undefined && preferences.maximum_experience_years && ' - '}
-                      {preferences.maximum_experience_years && `${preferences.maximum_experience_years} years`}
-                    </dd>
-                  </div>
-                )}
-                
-                {preferences.additional_notes && (
-                  <div className="col-span-2">
-                    <dt className="font-medium text-gray-700 dark:text-gray-300">Additional Notes</dt>
-                    <dd className="mt-1 text-gray-600 dark:text-gray-400">
-                      {preferences.additional_notes}
+                      {preferences.employment_types.join(', ')}
                     </dd>
                   </div>
                 )}

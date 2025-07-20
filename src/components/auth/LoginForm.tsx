@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import SupabaseAuthService from '../../services/supabaseAuthService';
+import FirebaseAuthService from '../../services/firebaseAuthService';
 import { Link } from 'react-router-dom';
 
 const LoginForm: React.FC = () => {  
@@ -14,7 +14,7 @@ const LoginForm: React.FC = () => {
     setLoading(true);
 
     try {
-      await SupabaseAuthService.signIn({ email, password });
+      await FirebaseAuthService.signIn({ email, password });
       // Route guard will handle redirect to /job-search
     } catch (err: any) {
       setError(err.message);

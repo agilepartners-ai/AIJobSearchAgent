@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import SupabaseAuthService from '../../services/supabaseAuthService';
+import FirebaseAuthService from '../../services/firebaseAuthService';
 import { Link } from 'react-router-dom';
 
 const ForgotPassword: React.FC = () => {
@@ -15,7 +15,7 @@ const ForgotPassword: React.FC = () => {
     setLoading(true);
 
     try {
-      await SupabaseAuthService.sendPasswordResetEmail(email);
+      await FirebaseAuthService.sendPasswordResetEmail(email);
       setSuccess(true);
     } catch (err: any) {
       setError(err.message);

@@ -10,8 +10,8 @@ import ProfileModal from './ProfileModal';
 import JobPreferencesModal from './JobPreferencesModal';
 import JobSearchModal from './JobSearchModal';
 import ConfirmationModal from '../ui/ConfirmationModal';
-import { JobApplication } from '../../types/supabase';
-import SupabaseJobApplicationService from '../../services/supabaseJobApplicationService';
+import { JobApplication } from '../../types/jobApplication';
+import { FirebaseJobApplicationService } from '../../services/firebaseJobApplicationService';
 import { JobSearchService } from '../../services/jobSearchService';
 import { useAuth } from '../../hooks/useAuth';
 import { useToastContext } from '../ui/ToastProvider';
@@ -115,8 +115,8 @@ const Dashboard: React.FC = () => {
       setError('');
 
       const [applicationsData, statsData] = await Promise.all([
-        SupabaseJobApplicationService.getUserApplications(user.uid),
-        SupabaseJobApplicationService.getApplicationStats(user.uid)
+        FirebaseJobApplicationService.getUserApplications(user.uid),
+        FirebaseJobApplicationService.getApplicationStats(user.uid)
       ]);
 
       setApplications(applicationsData);
@@ -218,14 +218,17 @@ const Dashboard: React.FC = () => {
         position: job.job_title || 'Unknown Position',
         status: 'not_applied' as const,
         application_date: new Date().toISOString(),
+        last_updated: new Date().toISOString(),
         job_posting_url: job.job_apply_link || '',
         job_description: job.job_description || '',
         notes: `Saved from job search:\n` +
           `Location: ${job.job_city && job.job_state ? `${job.job_city}, ${job.job_state}` : job.job_country || 'Not specified'}${job.job_is_remote ? ' (Remote)' : ''}\n` +
           `Employment Type: ${job.job_employment_type || 'Not specified'}`,
+        remote_option: job.job_is_remote || false,
+        priority: 1,
       };
 
-      const newApplication = await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
+      const newApplication = await FirebaseJobApplicationService.addApplication(user.uid, applicationData);
       // Update local state instead of reloading all data
       setApplications(prev => [newApplication, ...prev]);
       setStats(prev => ({
@@ -266,13 +269,16 @@ const Dashboard: React.FC = () => {
             position: job.job_title || 'Unknown Position',
             status: 'not_applied' as const,
             application_date: new Date().toISOString(),
+            last_updated: new Date().toISOString(),
             job_posting_url: job.job_apply_link || '',
             job_description: job.job_description || '',
             notes: `Saved from job search:\n` +
               `Location: ${job.job_city && job.job_state ? `${job.job_city}, ${job.job_state}` : job.job_country || 'Not specified'}${job.job_is_remote ? ' (Remote)' : ''}`,
+            remote_option: job.job_is_remote || false,
+            priority: 1,
           };
 
-          const newApplication = await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
+          const newApplication = await FirebaseJobApplicationService.addApplication(user.uid, applicationData);
           savedApplications.push(newApplication);
           savedCount++;
         } catch (error) {
@@ -314,7 +320,7 @@ const Dashboard: React.FC = () => {
 
       if (editingApplication) {
         // Update existing application
-        const updatedApplication = await SupabaseJobApplicationService.updateApplication(editingApplication.id, applicationData);
+        const updatedApplication = await FirebaseJobApplicationService.updateApplication(user.uid, editingApplication.id, applicationData);
 
         // Update local state instead of reloading all data
         setApplications(prev => prev.map(app =>
@@ -324,7 +330,7 @@ const Dashboard: React.FC = () => {
         showSuccess('Application Updated', 'The application has been successfully updated.');
       } else {
         // Add new application
-        const newApplication = await SupabaseJobApplicationService.addApplication(user.uid, applicationData);
+        const newApplication = await FirebaseJobApplicationService.addApplication(user.uid, applicationData);
 
         // Update local state instead of reloading all data
         setApplications(prev => [newApplication, ...prev]);
@@ -354,9 +360,10 @@ const Dashboard: React.FC = () => {
   };
 
   const confirmDeleteApplication = async (applicationId: string) => {
+    if (!user) return;
     try {
       setError('');
-      await SupabaseJobApplicationService.deleteApplication(applicationId);
+      await FirebaseJobApplicationService.deleteApplication(user.uid, applicationId);
 
       // Update local state instead of reloading all data
       setApplications(prev => prev.filter(app => app.id !== applicationId));
@@ -406,7 +413,7 @@ const Dashboard: React.FC = () => {
         ? `${selectedApplicationForAI.notes}\n\nAI-enhanced documents generated on ${new Date().toLocaleDateString()} using OpenAI GPT-4 based on job posting analysis.`
         : `AI-enhanced documents generated on ${new Date().toLocaleDateString()} using OpenAI GPT-4 based on job posting analysis.`;
 
-      await SupabaseJobApplicationService.updateApplication(selectedApplicationForAI.id, {
+      await FirebaseJobApplicationService.updateApplication(user.uid, selectedApplicationForAI.id, {
         notes: updatedNotes
       });
 
@@ -427,7 +434,7 @@ const Dashboard: React.FC = () => {
     try {
       setError('');
 
-      await SupabaseJobApplicationService.updateApplication(applicationId, { status: newStatus as any });
+      await FirebaseJobApplicationService.updateApplication(user.uid, applicationId, { status: newStatus as any });
 
       // Reload applications to reflect the change
       await loadApplications();
@@ -556,48 +563,10 @@ const Dashboard: React.FC = () => {
             priority: editingApplication.priority || 1, // Add the required priority property
           } : null}
           detailedUserProfile={userProfile ? {
-            fullName: userProfile.full_name || '',
-            contactNumber: userProfile.phone || '',
-            streetAddress: userProfile.location || '',
-            city: '',
-            county: '',
-            state: '',
-            zipCode: '',
-            hasPhoneAccess: !!userProfile.phone,
-            gender: '',
-            dateOfBirth: '',
-            includeAge: false,
-            ethnicity: '',
-            race: '',
-            hasDisabilities: false,
-            disabilityDescription: '',
-            veteranStatus: '',
-            travelPercentage: '',
-            openToTravel: false,
-            willingToRelocate: userProfile.willingness_to_relocate || false,
-            canWorkEveningsWeekends: false,
-            otherLanguages: '',
-            nationality: '',
-            additionalNationalities: '',
-            hasOtherCitizenship: false,
-            visaType: userProfile.work_authorization || '',
-            expectedSalaryFrom: userProfile.expected_salary || '',
-            expectedSalaryTo: '',
-            salaryNotes: '',
-            linkedin_url: userProfile.linkedin_url || '',
-            authorizedToWork: true,
-            requiresSponsorship: false,
-            sponsorshipType: '',
-            references: [],
-            education: [],
-            certifications: [],
-            governmentEmployment: false,
-            governmentDetails: '',
-            hasAgreements: false,
-            agreementDetails: '',
-            hasConvictions: false,
-            convictionDetails: '',
-            interviewAvailability: userProfile.availability || '',
+            ...userProfile,
+            fullName: userProfile.fullName || '',
+            phone: userProfile.phone || '',
+            location: userProfile.location || '',
           } : null}
           onSave={handleSaveApplication}
           onClose={() => {
@@ -616,48 +585,10 @@ const Dashboard: React.FC = () => {
             location: selectedApplicationForAI.location || undefined
           }}
           detailedUserProfile={userProfile ? {
-            fullName: userProfile.full_name || '',
-            contactNumber: userProfile.phone || '',
-            streetAddress: userProfile.location || '',
-            city: '',
-            county: '',
-            state: '',
-            zipCode: '',
-            hasPhoneAccess: !!userProfile.phone,
-            gender: '',
-            dateOfBirth: '',
-            includeAge: false,
-            ethnicity: '',
-            race: '',
-            hasDisabilities: false,
-            disabilityDescription: '',
-            veteranStatus: '',
-            travelPercentage: '',
-            openToTravel: false,
-            willingToRelocate: userProfile.willingness_to_relocate || false,
-            canWorkEveningsWeekends: false,
-            otherLanguages: '',
-            nationality: '',
-            additionalNationalities: '',
-            hasOtherCitizenship: false,
-            visaType: userProfile.work_authorization || '',
-            expectedSalaryFrom: userProfile.expected_salary || '',
-            expectedSalaryTo: '',
-            salaryNotes: '',
-            linkedin_url: userProfile.linkedin_url || '',
-            authorizedToWork: true,
-            requiresSponsorship: false,
-            sponsorshipType: '',
-            references: [],
-            education: [],
-            certifications: [],
-            governmentEmployment: false,
-            governmentDetails: '',
-            hasAgreements: false,
-            agreementDetails: '',
-            hasConvictions: false,
-            convictionDetails: '',
-            interviewAvailability: userProfile.availability || '',
+            ...userProfile,
+            fullName: userProfile.fullName || '',
+            phone: userProfile.phone || '',
+            location: userProfile.location || '',
           } : null}
           onSave={handleAISave}
           onClose={() => {

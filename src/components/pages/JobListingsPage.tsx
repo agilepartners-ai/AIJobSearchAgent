@@ -14,7 +14,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import SupabaseAuthService from '../../services/supabaseAuthService';
+import FirebaseAuthService from '../../services/firebaseAuthService';
 import { JobSearchService, JobResult, JobSearchParams } from '../../services/jobSearchService';
 import { useToastContext } from '../ui/ToastProvider';
 
@@ -157,7 +157,7 @@ const JobListingsPage: React.FC = () => {  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
-      await SupabaseAuthService.signOut();
+      await FirebaseAuthService.signOut();
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);

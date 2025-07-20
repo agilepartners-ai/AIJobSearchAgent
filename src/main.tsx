@@ -12,12 +12,13 @@ import './index.css';
 
 // Validate environment configuration
 import { EnvironmentValidator } from './utils/environmentValidator';
-import { supabase } from './lib/supabase';
+import { auth, db } from './lib/firebase';
 
-// Expose supabase to window for debugging in development
+// Expose Firebase to window for debugging in development
 if (import.meta.env.DEV) {
-  (window as any).supabase = supabase;
-  console.log('🔧 Supabase client exposed to window.supabase for debugging');
+  (window as any).auth = auth;
+  (window as any).db = db;
+  console.log('🔧 Firebase auth and db exposed to window for debugging');
 }
 
 // Validate and log environment status
