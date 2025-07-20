@@ -13,10 +13,10 @@ export interface ResumeExtractionResponse {
 }
 
 export class ResumeExtractionService {
-    private static readonly API_BASE_URL = process.env.NEXT_RESUME_API_BASE_URL || 'https://resumebuilder-arfb.onrender.com';
-    private static readonly API_KEY = process.env.NEXT_OPENAI_API_KEY;
-    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_RESUME_API_MODEL_TYPE || 'OpenAI';
-    private static readonly DEFAULT_MODEL = process.env.NEXT_RESUME_API_MODEL || 'gpt-4o';
+    private static readonly API_BASE_URL = process.env.NEXT_PUBLIC_RESUME_API_BASE_URL || 'https://resumebuilder-arfb.onrender.com';
+    private static readonly API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'OpenAI';
+    private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'gpt-4o';
 
     static async extractResumeJson(
         file: File,
@@ -25,7 +25,7 @@ export class ResumeExtractionService {
         try {
             // Validate API key
             if (!this.API_KEY) {
-                throw new Error('OpenAI API key is not configured. Please set NEXT_OPENAI_API_KEY in your environment variables.');
+                throw new Error('OpenAI API key is not configured. Please set NEXT_PUBLIC_OPENAI_API_KEY in your environment variables.');
             }
 
             // Create form data

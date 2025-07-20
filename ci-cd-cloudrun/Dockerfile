@@ -15,7 +15,7 @@ RUN npm install
 COPY . .
 
 # Run the build script
-# The `NEXT_PUBLIC_` prefix is important for environment variables to be exposed to the browser
+# The `VITE_` prefix is important for environment variables to be exposed to the browser
 RUN npm run build
 
 # Stage 2: Serve the application with Nginx
