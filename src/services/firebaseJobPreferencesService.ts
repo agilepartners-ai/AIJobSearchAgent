@@ -1,6 +1,5 @@
 import { FirebaseDBService } from './firebaseDBService';
 
-
 export interface JobPreferences {
   id: string;
   job_titles?: string[];

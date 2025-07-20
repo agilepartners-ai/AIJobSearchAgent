@@ -7,7 +7,6 @@ import {
   DocumentData
 } from 'firebase/firestore';
 
-
 export interface Profile {
   id: string;
   email: string;
