@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, User, Mail, Phone, MapPin, Briefcase } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { Profile as UserProfile } from '../services/firebaseProfileService';
 
 const Profile: React.FC = () => {
   const { user, userProfile, loading: authLoading } = useAuth();
@@ -33,7 +34,7 @@ const Profile: React.FC = () => {
     // Populate form with existing profile data
         if (userProfile) {
       setFormData({
-        full_name: userProfile.fullName || '',
+        full_name: userProfile.full_name || '',
         email: userProfile.email || user?.email || '',
         phone: userProfile.phone || '',
         location: userProfile.location || '',
