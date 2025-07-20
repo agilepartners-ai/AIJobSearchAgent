@@ -1,4 +1,3 @@
-import AudioButton from "@/components/AudioButton";
 import {
   AnimatedTextBlockWrapper,
   DialogWrapper,
@@ -19,9 +18,9 @@ export const ConversationError: React.FC<{ onClick: () => void }> = ({
           titleClassName="sm:max-w-full"
           description="We're having trouble connecting. Please try again in a few moments."
         >
-          <AudioButton onClick={onClick} className="mt-6 sm:mt-8">
+          <button onClick={onClick} className="mt-6 sm:mt-8">
             <RefreshCcw className="size-5" /> Try Again
-          </AudioButton>
+          </button>
         </StaticTextBlockWrapper>
       </AnimatedTextBlockWrapper>
     </DialogWrapper>

@@ -386,10 +386,24 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   };
 
   if (showResults && optimizationResults) {
+    const coverLetterHtml = `
+      <p>${optimizationResults.aiEnhancements.coverLetterOutline.opening}</p>
+      <p>${optimizationResults.aiEnhancements.coverLetterOutline.body}</p>
+      <p>${optimizationResults.aiEnhancements.coverLetterOutline.closing}</p>
+    `;
+
     return (
       <OptimizationResults
-        results={optimizationResults}
-        onClose={handleResultsClose}
+        results={{
+          resume_html: optimizationResults.aiEnhancements.enhancedSummary,
+          cover_letter_html: coverLetterHtml,
+        }}
+        jobDetails={{
+          title: applicationData.position,
+          company: applicationData.company_name,
+          description: jobDescription,
+        }}
+        onBack={handleResultsClose}
       />
     );
   }
