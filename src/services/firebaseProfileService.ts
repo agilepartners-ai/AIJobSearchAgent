@@ -11,6 +11,13 @@ export interface Profile {
   id: string;
   email: string;
   full_name: string;
+  phone?: string;
+  location?: string;
+  bio?: string;
+  skills?: string[];
+  resume_url?: string;
+  linkedin_url?: string;
+  portfolio_url?: string;
   created_at?: string;
 }
 
@@ -38,5 +45,3 @@ export class FirebaseProfileService {
     }
   }
 }
-
-
