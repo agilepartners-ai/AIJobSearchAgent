@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo } from "react";
-import buttonBell from "@/assets/sounds/beep.mp3";
-import { Button } from "@/components/ui/button";
-import { ButtonProps } from "@/components/ui/button";
+import buttonBell from "../assets/sounds/beep.mp3";
+import { Button } from "./ui/button";
+import { ButtonProps } from "./ui/button";
 
 interface AudioButtonProps extends ButtonProps {
   children?: React.ReactNode;
