@@ -24,14 +24,18 @@ export class FirebaseDBService {
     return newDocRef.id;
   }
 
-  // Read a single document from a collection
+  // Read a single document from Firestore
   static async read<T>(documentPath: string): Promise<T | null> {
     if (!documentPath || typeof documentPath !== 'string') {
       throw new Error(`[Firestore] Invalid document path: "${documentPath}"`);
     }
 
-    const pathSegments = documentPath.split('/') as [string, ...string[]];
-    const docRef = doc(db, ...pathSegments);
+    const pathSegments = documentPath.split('/');
+    if (pathSegments.length % 2 !== 0) {
+      throw new Error(`[Firestore] Document path must have an even number of segments: "${documentPath}"`);
+    }
+
+    const docRef = doc(db, documentPath); // ✅ FIXED
     const snapshot = await getDoc(docRef);
     return snapshot.exists() ? (snapshot.data() as T) : null;
   }
@@ -42,9 +46,28 @@ export class FirebaseDBService {
       throw new Error(`[Firestore] Invalid document path: "${documentPath}"`);
     }
 
-    const pathSegments = documentPath.split('/') as [string, ...string[]];
-    const docRef = doc(db, ...pathSegments);
+    const pathSegments = documentPath.split('/');
+    if (pathSegments.length % 2 !== 0) {
+      throw new Error(`[Firestore] Document path must have an even number of segments: "${documentPath}"`);
+    }
+
+    const docRef = doc(db, documentPath); // ✅ FIXED
     await updateDoc(docRef, data);
+  }
+
+  // Set (overwrite) a document entirely
+  static async set<T extends WithFieldValue<DocumentData>>(documentPath: string, data: T): Promise<void> {
+    if (!documentPath || typeof documentPath !== 'string') {
+      throw new Error(`[Firestore] Invalid document path: "${documentPath}"`);
+    }
+
+    const pathSegments = documentPath.split('/');
+    if (pathSegments.length % 2 !== 0) {
+      throw new Error(`[Firestore] Document path must have an even number of segments: "${documentPath}"`);
+    }
+
+    const docRef = doc(db, documentPath); // ✅ FIXED
+    await setDoc(docRef, data);
   }
 
   // Delete a document
@@ -53,8 +76,12 @@ export class FirebaseDBService {
       throw new Error(`[Firestore] Invalid document path: "${documentPath}"`);
     }
 
-    const pathSegments = documentPath.split('/') as [string, ...string[]];
-    const docRef = doc(db, ...pathSegments);
+    const pathSegments = documentPath.split('/');
+    if (pathSegments.length % 2 !== 0) {
+      throw new Error(`[Firestore] Document path must have an even number of segments: "${documentPath}"`);
+    }
+
+    const docRef = doc(db, documentPath); // ✅ FIXED
     await deleteDoc(docRef);
   }
 
@@ -72,6 +99,9 @@ export class FirebaseDBService {
     }));
   }
 }
+
+
+
 
 
 

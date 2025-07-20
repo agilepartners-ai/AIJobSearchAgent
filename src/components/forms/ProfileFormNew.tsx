@@ -82,7 +82,8 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   const formContainerRef = useRef<HTMLDivElement>(null);
   
   // Track if form has been initialized with data
-  const [formInitialized, setFormInitialized] = useState(false);
+  const formInitialized = useRef(false);
+
   
   // Store form data for each section to prevent loss when navigating
   const [sectionData, setSectionData] = useState<Record<number, Partial<ProfileData>>>({});
@@ -135,6 +136,53 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   const [skillInput, setSkillInput] = useState('');
   const [currentSection, setCurrentSection] = useState(0);
 
+  const getSectionDataFromForm = (formData: ProfileData, section: number) => {
+    switch (section) {
+      case 0:
+        return {
+          fullName: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          location: formData.location,
+        };
+      case 1:
+        return {
+          currentJobTitle: formData.currentJobTitle,
+          jobProfile: formData.jobProfile,
+          experience: formData.experience,
+          workExperience: formData.workExperience,
+        };
+      case 2:
+        return {
+          education: formData.education,
+          skills: formData.skills,
+          expectedSalary: formData.expectedSalary,
+          currentCTC: formData.currentCTC,
+        };
+      case 3:
+        return {
+          employmentType: formData.employmentType,
+          remoteJobsOnly: formData.remoteJobsOnly,
+          datePosted: formData.datePosted,
+        };
+      case 4:
+        return {
+          willingnessToRelocate: formData.willingnessToRelocate,
+          workAuthorization: formData.workAuthorization,
+          noticePeriod: formData.noticePeriod,
+          availability: formData.availability,
+        };
+      case 5:
+        return {
+          references: formData.references,
+          socialLinks: formData.socialLinks,
+        };
+      default:
+        return {};
+    }
+  };
+
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -144,67 +192,68 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
 
   // Initialize form data with initialData when it changes
   useEffect(() => {
-    if (initialData && Object.keys(initialData).length > 0 && !formInitialized) {
+    console.log('useEffect triggered')
+    const isValid = initialData && initialData.fullName && !formInitialized.current;
+
+    if (isValid) {
       console.log('📋 Initializing form with data:', initialData);
-      
-      // Create a new form data object with initialData values or defaults
+
       const newFormData: ProfileData = {
         // Basic Information
         fullName: initialData.fullName || '',
         email: initialData.email || '',
         phone: initialData.phone || '',
         location: initialData.location || '',
-        
+
         // Job Information
         currentJobTitle: initialData.currentJobTitle || '',
         jobProfile: initialData.jobProfile || '',
         experience: initialData.experience || 'Fresher',
-        workExperience: initialData.workExperience && initialData.workExperience.length > 0 
+        workExperience: initialData.workExperience && initialData.workExperience.length > 0
           ? JSON.parse(JSON.stringify(initialData.workExperience))
           : [{ jobTitle: '', company: '', duration: '' }],
-        
+
         // Education
-        education: initialData.education && initialData.education.length > 0 
+        education: initialData.education && initialData.education.length > 0
           ? JSON.parse(JSON.stringify(initialData.education))
           : [{ degree: '', institution: '', graduationYear: '' }],
-        
+
         // Skills and Preferences
         skills: Array.isArray(initialData.skills) ? [...initialData.skills] : [],
         expectedSalary: initialData.expectedSalary || '',
         currentCTC: initialData.currentCTC || '',
-        
+
         // Job Search Preferences
         employmentType: initialData.employmentType || '',
         remoteJobsOnly: initialData.remoteJobsOnly || false,
         datePosted: initialData.datePosted || '',
-        
+
         // Work Authorization
         willingnessToRelocate: initialData.willingnessToRelocate || false,
         workAuthorization: initialData.workAuthorization || '',
         noticePeriod: initialData.noticePeriod || '',
         availability: initialData.availability || '',
-        
+
         // References and Social Links
         references: initialData.references || '',
         socialLinks: initialData.socialLinks || {}
       };
-      
+
       setFormData(newFormData);
-      
-      // Initialize section data with the form data
       setSectionData({
-        0: { ...newFormData },
-        1: { ...newFormData },
-        2: { ...newFormData },
-        3: { ...newFormData },
-        4: { ...newFormData },
-        5: { ...newFormData }
+        0: getSectionDataFromForm(newFormData, 0),
+        1: getSectionDataFromForm(newFormData, 1),
+        2: getSectionDataFromForm(newFormData, 2),
+        3: getSectionDataFromForm(newFormData, 3),
+        4: getSectionDataFromForm(newFormData, 4),
+        5: getSectionDataFromForm(newFormData, 5)
       });
-      
-      setFormInitialized(true);
+
+      formInitialized.current = true;
       console.log('✅ Form initialized with data');
     }
   }, [initialData, formInitialized]);
+
 
   // Load job search criteria from localStorage if available
   useEffect(() => {
@@ -508,34 +557,35 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   const nextSection = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (currentSection < sections.length - 1) {
-      // Save current section data
+      // Save only relevant fields for the current section
       const updatedSectionData = {
         ...sectionData,
-        [currentSection]: { ...formData }
+        [currentSection]: getSectionDataFromForm(formData, currentSection)
       };
       setSectionData(updatedSectionData);
-      
+
       // Move to next section
       const nextSectionIndex = currentSection + 1;
       setCurrentSection(nextSectionIndex);
-      
-      // Merge the current form data with any existing data for the next section
+
+      // Merge previous data for next section
       const nextSectionData = updatedSectionData[nextSectionIndex] || {};
       setFormData(prev => ({
         ...prev,
         ...nextSectionData
       }));
-      
-      // Scroll to top
+
       if (formContainerRef.current) {
         formContainerRef.current.scrollTop = 0;
       }
-      
+
       console.log(`✅ Moving to section ${nextSectionIndex}: ${sections[nextSectionIndex]}`);
     }
   };
+
+
 
   const prevSection = (e: React.MouseEvent) => {
     e.preventDefault();

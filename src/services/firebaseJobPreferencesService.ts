@@ -13,8 +13,9 @@ export interface JobPreferences {
 
 export class FirebaseJobPreferencesService {
   private static basePath(userId: string) {
-    return `users/${userId}/jobPreferences`;
-  }
+  return `jobPreferences/${userId}`;
+}
+
 
   static async getUserJobPreferences(userId: string): Promise<JobPreferences | null> {
     return FirebaseDBService.read<JobPreferences>(this.basePath(userId));
@@ -25,10 +26,11 @@ export class FirebaseJobPreferencesService {
       ...preferences,
       updated_at: new Date().toISOString(),
     };
-    return FirebaseDBService.update(this.basePath(userId), fullPreferences);
+    return FirebaseDBService.set(this.basePath(userId), fullPreferences);
   }
 
   static async deleteJobPreferences(userId: string): Promise<void> {
     return FirebaseDBService.delete(this.basePath(userId));
   }
 }
+
