@@ -2,58 +2,22 @@
  * Utility functions for handling API errors
  */
 
-export interface ApiErrorInfo {
-  endpoint: string;
-  method: string;
-  requestData?: any;
-  responseData?: any;
-  message: string;
-  timestamp: string;
-}
-
-export class ApiError extends Error {
-  public readonly endpoint: string;
-  public readonly method: string;
-  public readonly requestData?: any;
-  public readonly responseData?: any;
-  public readonly timestamp: string;
-
-  constructor(
-    endpoint: string,
-    method: string,
-    requestData: any,
-    responseData: any,
-    message: string
-  ) {
-    super(message);
-    this.name = 'ApiError';
-    this.endpoint = endpoint;
-    this.method = method;
-    this.requestData = requestData;
-    this.responseData = responseData;
-    this.timestamp = new Date().toISOString();
-  }
-
-  toJSON(): ApiErrorInfo {
-    return {
-      endpoint: this.endpoint,
-      method: this.method,
-      requestData: this.requestData,
-      responseData: this.responseData,
-      message: this.message,
-      timestamp: this.timestamp
-    };
-  }
-}
-
+/**
+ * Creates an enhanced Error object with API request details
+ */
 export function createApiError(
   endpoint: string,
   method: string,
-  requestData: any,
-  responseData: any,
-  message: string
-): ApiError {
-  return new ApiError(endpoint, method, requestData, responseData, message);
+  params: Record<string, any>,
+  responseData?: any,
+  message?: string
+): Error {
+  const error = new Error(message || `API request to ${endpoint} failed`) as any;
+  error.endpoint = endpoint;
+  error.method = method;
+  error.params = params;
+  error.responseData = responseData;
+  return error;
 }
 
 /**
@@ -66,7 +30,7 @@ export async function handleApiError(
 ): Promise<never> {
   let errorMessage = `API request failed with status ${response.status}`;
   let responseData = null;
-
+  
   // Check for CORS errors
   if (response.status === 0 || response.type === 'opaqueredirect') {
     throw createApiError(
@@ -77,7 +41,7 @@ export async function handleApiError(
       'CORS error: The request was blocked due to cross-origin restrictions. Please check server CORS configuration.'
     );
   }
-
+  
   try {
     // Try to parse response as JSON
     responseData = await response.json();
@@ -95,7 +59,7 @@ export async function handleApiError(
       // If text extraction fails, use default message
     }
   }
-
+  
   throw createApiError(
     endpoint,
     'POST',
@@ -115,11 +79,11 @@ export async function fetchWithErrorHandling<T>(
 ): Promise<T> {
   try {
     const response = await fetch(endpoint, options);
-
+    
     if (!response.ok) {
       await handleApiError(response, endpoint, params);
     }
-
+    
     return await response.json();
   } catch (error) {
     // Handle network errors (including CORS)
@@ -132,12 +96,12 @@ export async function fetchWithErrorHandling<T>(
         'Network error: This could be due to CORS restrictions. Please check server configuration.'
       );
     }
-
+    
     if ((error as any).endpoint) {
       // Already an enhanced API error
       throw error;
     }
-
+    
     // Convert regular error to API error
     throw createApiError(
       endpoint,

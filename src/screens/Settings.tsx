@@ -300,7 +300,7 @@ export const Settings: React.FC = () => {
                   </div>
                   {!token && (
                     <p className="text-xs text-gray-400 mt-2 font-mono">
-                      Set VITE_TAVUS_API_KEY in your .env file
+                      Set NEXT_TAVUS_API_KEY in your .env file
                     </p>
                   )}
                 </div>
