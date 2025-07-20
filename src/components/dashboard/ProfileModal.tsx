@@ -51,6 +51,22 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         email: profileData.email,
         phone: profileData.phone,
         location: profileData.location,
+        currentJobTitle: profileData.currentJobTitle,
+        jobProfile: profileData.jobProfile,
+        experience: profileData.experience,
+        workExperience: profileData.workExperience,
+        education: profileData.education,
+        skills: profileData.skills,
+        expectedSalary: profileData.expectedSalary,
+        currentCTC: profileData.currentCTC,
+        employmentType: profileData.employmentType,
+        remoteJobsOnly: profileData.remoteJobsOnly,
+        datePosted: profileData.datePosted,
+        willingnessToRelocate: profileData.willingnessToRelocate,
+        workAuthorization: profileData.workAuthorization,
+        noticePeriod: profileData.noticePeriod,
+        availability: profileData.availability,
+        references: profileData.references,
         portfolio: profileData.socialLinks?.portfolio,
         github: profileData.socialLinks?.github,
         linkedin: profileData.socialLinks?.linkedin,
@@ -68,13 +84,14 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
     }
   };
 
+
   const getInitialProfileData = (): Partial<ProfileData> => {
     const profileToUse = localUserProfile || userProfile;
     if (!profileToUse) return {};
 
     const isUserProfileData = (profile: any): profile is UserProfileData => {
       return 'fullName' in profile;
-    }
+    };
 
     if (isUserProfileData(profileToUse)) {
       return {
@@ -82,6 +99,22 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         email: profileToUse.email || '',
         phone: profileToUse.phone || '',
         location: profileToUse.location || '',
+        currentJobTitle: profileToUse.currentJobTitle || '',
+        jobProfile: profileToUse.jobProfile || '',
+        experience: profileToUse.experience || 'Fresher',
+        workExperience: profileToUse.workExperience || [{ jobTitle: '', company: '', duration: '' }],
+        education: profileToUse.education || [{ degree: '', institution: '', graduationYear: '' }],
+        skills: profileToUse.skills || [],
+        expectedSalary: profileToUse.expectedSalary || '',
+        currentCTC: profileToUse.currentCTC || '',
+        employmentType: profileToUse.employmentType || '',
+        remoteJobsOnly: profileToUse.remoteJobsOnly || false,
+        datePosted: profileToUse.datePosted || '',
+        willingnessToRelocate: profileToUse.willingnessToRelocate || false,
+        workAuthorization: profileToUse.workAuthorization || '',
+        noticePeriod: profileToUse.noticePeriod || '',
+        availability: profileToUse.availability || '',
+        references: profileToUse.references || '',
         socialLinks: {
           linkedin: profileToUse.linkedin || '',
           github: profileToUse.github || '',
@@ -90,11 +123,28 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       };
     }
 
+    // Fallback for legacy or differently structured profile
     return {
       fullName: (profileToUse as any).full_name || '',
       email: (profileToUse as any).email || '',
       phone: (profileToUse as any).phone || '',
       location: (profileToUse as any).location || '',
+      currentJobTitle: (profileToUse as any).current_job_title || '',
+      jobProfile: (profileToUse as any).job_profile || '',
+      experience: (profileToUse as any).experience || 'Fresher',
+      workExperience: (profileToUse as any).work_experience || [{ jobTitle: '', company: '', duration: '' }],
+      education: (profileToUse as any).education || [{ degree: '', institution: '', graduationYear: '' }],
+      skills: (profileToUse as any).skills || [],
+      expectedSalary: (profileToUse as any).expected_salary || '',
+      currentCTC: (profileToUse as any).current_ctc || '',
+      employmentType: (profileToUse as any).employment_type || '',
+      remoteJobsOnly: (profileToUse as any).remote_jobs_only || false,
+      datePosted: (profileToUse as any).date_posted || '',
+      willingnessToRelocate: (profileToUse as any).willingness_to_relocate || false,
+      workAuthorization: (profileToUse as any).work_authorization || '',
+      noticePeriod: (profileToUse as any).notice_period || '',
+      availability: (profileToUse as any).availability || '',
+      references: (profileToUse as any).references || '',
       socialLinks: {
         linkedin: (profileToUse as any).linkedin_url || '',
         github: (profileToUse as any).github_url || '',
@@ -102,6 +152,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       },
     };
   };
+
 
   return (
     <div 

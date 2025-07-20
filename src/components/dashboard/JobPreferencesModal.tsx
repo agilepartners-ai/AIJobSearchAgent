@@ -161,7 +161,7 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
       const preferencesToSave: Omit<JobPreferences, 'id' | 'updated_at'> = {
         job_titles: formData.jobTitles.filter(t => t.trim() !== ''),
         locations: formData.locations.filter(l => l.trim() !== ''),
-        salary_expectation: formData.salaryMin ? parseInt(formData.salaryMin) : undefined,
+        salary_expectation: formData.salaryMin ? parseInt(formData.salaryMin) : null,
         employment_types: formData.employmentTypes,
         remote_only: formData.remotePreference === 'remote_only',
         skills: preferences?.skills || [],
