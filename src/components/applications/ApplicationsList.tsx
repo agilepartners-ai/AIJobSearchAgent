@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { JobApplication, ApplicationStatus } from '../../types/jobApplication';
+import { JobApplication, ApplicationStatus } from '@/types/jobApplication';
 import { Search, Filter, ArrowUpDown } from 'lucide-react';
 
 interface SortConfig {
@@ -15,7 +15,7 @@ const mockApplications: JobApplication[] = [
     user_id: '1',
     company_name: 'TechCorp Inc.',
     position: 'Senior Software Engineer',
-    status: 'interview',
+    status: ApplicationStatus.Interview,
     application_date: '2024-01-15T10:00:00Z',
     last_updated: '2024-01-20T14:30:00Z',
     notes: 'Great company culture, looking forward to the technical interview',
@@ -29,7 +29,7 @@ const mockApplications: JobApplication[] = [
     user_id: '1',
     company_name: 'StartupXYZ',
     position: 'Frontend Developer',
-    status: 'applied',
+    status: ApplicationStatus.Applied,
     application_date: '2024-01-18T09:15:00Z',
     last_updated: '2024-01-18T09:15:00Z',
     notes: 'Exciting startup with innovative products',
@@ -43,7 +43,7 @@ const mockApplications: JobApplication[] = [
     user_id: '1',
     company_name: 'Global Solutions Ltd.',
     position: 'Full Stack Developer',
-    status: 'rejected',
+    status: ApplicationStatus.Rejected,
     application_date: '2024-01-10T16:45:00Z',
     last_updated: '2024-01-22T11:20:00Z',
     notes: 'Received rejection email, but good interview experience',
