@@ -77,10 +77,28 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   initialData = {} 
 }) => {
   const [formData, setFormData] = useState<ProfileData>({
+    fullName: initialData.fullName || '',
+    email: initialData.email || '',
+    phone: initialData.phone || '',
+    location: initialData.location || '',
+    currentJobTitle: initialData.currentJobTitle || '',
     jobProfile: initialData.jobProfile || '',
     experience: initialData.experience || 'Fresher',
-    location: initialData.location || '',
-    profilePicture: initialData.profilePicture || ''
+    workExperience: initialData.workExperience || [],
+    education: initialData.education || [],
+    skills: initialData.skills || [],
+    expectedSalary: initialData.expectedSalary || '',
+    currentCTC: initialData.currentCTC || '',
+    employmentType: initialData.employmentType || '',
+    remoteJobsOnly: initialData.remoteJobsOnly || false,
+    datePosted: initialData.datePosted || '',
+    willingnessToRelocate: initialData.willingnessToRelocate || false,
+    workAuthorization: initialData.workAuthorization || '',
+    noticePeriod: initialData.noticePeriod || '',
+    availability: initialData.availability || '',
+    references: initialData.references || '',
+    socialLinks: initialData.socialLinks || {},
+    profilePicture: initialData.profilePicture || '',
   });
 
   const [errors, setErrors] = useState<Partial<ProfileData>>({});

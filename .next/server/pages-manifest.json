@@ -1,8 +1,15 @@
 {
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
+  "/ai-interview": "pages/ai-interview.html",
+  "/job-listings": "pages/job-listings.html",
+  "/forgot-password": "pages/forgot-password.html",
+  "/": "pages/index.html",
+  "/job-search": "pages/job-search.html",
+  "/login": "pages/login.html",
+  "/register": "pages/register.html",
+  "/dashboard": "pages/dashboard.html",
+  "/verify-phone": "pages/verify-phone.html",
   "/_document": "pages/_document.js",
-  "/": "pages/index.js",
-  "/dashboard": "pages/dashboard.js",
-  "/login": "pages/login.js"
+  "/404": "pages/404.html"
 }
