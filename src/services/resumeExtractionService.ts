@@ -13,10 +13,10 @@ export interface ResumeExtractionResponse {
 }
 
 export class ResumeExtractionService {
-    private static readonly API_BASE_URL = process.env.NEXT_RESUME_API_BASE_URL || 'https://resumebuilder-arfb.onrender.com';
-    private static readonly API_KEY = process.env.NEXT_OPENAI_API_KEY;
-    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_RESUME_API_MODEL_TYPE || 'OpenAI';
-    private static readonly DEFAULT_MODEL = process.env.NEXT_RESUME_API_MODEL || 'gpt-4o';
+    private static readonly API_BASE_URL = import.meta.env.VITE_RESUME_API_BASE_URL || 'https://resumebuilder-arfb.onrender.com';
+    private static readonly API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+    private static readonly DEFAULT_MODEL_TYPE = import.meta.env.VITE_RESUME_API_MODEL_TYPE || 'OpenAI';
+    private static readonly DEFAULT_MODEL = import.meta.env.VITE_RESUME_API_MODEL || 'gpt-4o';
 
     static async extractResumeJson(
         file: File,
@@ -25,7 +25,7 @@ export class ResumeExtractionService {
         try {
             // Validate API key
             if (!this.API_KEY) {
-                throw new Error('OpenAI API key is not configured. Please set NEXT_OPENAI_API_KEY in your environment variables.');
+                throw new Error('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.');
             }
 
             // Create form data
@@ -41,6 +41,10 @@ export class ResumeExtractionService {
             formData.append('model_type', options.modelType || this.DEFAULT_MODEL_TYPE);
             formData.append('model', options.model || this.DEFAULT_MODEL);
             formData.append('file_id', options.fileId || `req_${Date.now()}`);
+
+            console.log('Making request to:', `${this.API_BASE_URL}/api/extract-resume-json`);
+            console.log('Using model:', options.model || this.DEFAULT_MODEL);
+            console.log('Using model type:', options.modelType || this.DEFAULT_MODEL_TYPE);
 
             // Make the request
             const response = await fetch(`${this.API_BASE_URL}/api/extract-resume-json`, {
@@ -60,6 +64,12 @@ export class ResumeExtractionService {
             }
 
             const data = await response.json();
+
+            console.log('Resume extraction successful:', {
+                success: data.success,
+                textLength: data.extracted_text_length,
+                hasResumeJson: !!data.resume_json
+            });
 
             return data;
         } catch (error: any) {

@@ -1,7 +1,5 @@
-"use client";
-
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 import { 
   ArrowRight, 
   MapPin, 
@@ -16,7 +14,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { getAuth, signOut } from 'firebase/auth';
+import SupabaseAuthService from '../../services/supabaseAuthService';
 import { JobSearchService, JobResult, JobSearchParams } from '../../services/jobSearchService';
 import { useToastContext } from '../ui/ToastProvider';
 
@@ -29,7 +27,7 @@ interface JobSearchForm {
   date_posted: string;
 }
 
-const JobListingsPage: React.FC = () => {  const router = useRouter();
+const JobListingsPage: React.FC = () => {  const navigate = useNavigate();
   const { user, userProfile, loading: authLoading } = useAuth();
   const { showWarning } = useToastContext();
   const [loading, setLoading] = useState(true);
@@ -41,10 +39,10 @@ const JobListingsPage: React.FC = () => {  const router = useRouter();
   // Redirect to login if not authenticated (but wait for auth to load)
   React.useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/login');
+      navigate('/login');
       return;
     }
-  }, [user, router]);
+  }, [user, navigate]);
 
   useEffect(() => {
     // Get search criteria from localStorage
@@ -57,7 +55,7 @@ const JobListingsPage: React.FC = () => {  const router = useRouter();
       // If no criteria found, set loading to false to show the "no search" message
       setLoading(false);
     }
-  }, [router]);
+  }, [navigate]);
 
   const searchJobs = async (criteria: JobSearchForm) => {
     setLoading(true);
@@ -154,21 +152,20 @@ const JobListingsPage: React.FC = () => {  const router = useRouter();
     localStorage.setItem('selectedJobs', JSON.stringify(selectedJobsData));
     
     // Navigate to dashboard
-    router.push('/dashboard');
+    navigate('/dashboard');
   };
 
   const handleSignOut = async () => {
     try {
-      const auth = getAuth();
-      await signOut(auth);
-      router.push('/');
+      await SupabaseAuthService.signOut();
+      navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
     }
   };
 
   const handleBack = () => {
-    router.push('/job-search');
+    navigate('/job-search');
   };
   const formatSalary = (job: JobResult) => {
     if (job.job_min_salary && job.job_max_salary) {

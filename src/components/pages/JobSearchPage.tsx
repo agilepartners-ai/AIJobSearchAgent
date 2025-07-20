@@ -1,10 +1,8 @@
-"use client";
-
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, MapPin, Calendar, Clock, ArrowRight, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { getAuth, signOut } from 'firebase/auth';
+import SupabaseAuthService from '../../services/supabaseAuthService';
 
 interface JobSearchForm {
   query: string;
@@ -15,7 +13,7 @@ interface JobSearchForm {
   date_posted: string;
 }
 
-const JobSearchPage: React.FC = () => {  const router = useRouter();
+const JobSearchPage: React.FC = () => {  const navigate = useNavigate();
   const { user, userProfile, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<JobSearchForm>({
@@ -28,11 +26,11 @@ const JobSearchPage: React.FC = () => {  const router = useRouter();
   });
 
   // Redirect to login if not authenticated (but wait for auth to load)
-  useEffect(() => {
+  React.useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/login');
+      navigate('/login');
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, navigate]);
 
   const handleInputChange = (field: keyof JobSearchForm, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -47,7 +45,7 @@ const JobSearchPage: React.FC = () => {  const router = useRouter();
       localStorage.setItem('jobSearchCriteria', JSON.stringify(formData));
       
       // Navigate to job listings page
-      router.push('/job-listings');
+      navigate('/job-listings');
     } catch (error) {
       console.error('Error processing search:', error);
     } finally {
@@ -57,9 +55,8 @@ const JobSearchPage: React.FC = () => {  const router = useRouter();
 
   const handleSignOut = async () => {
     try {
-      const auth = getAuth();
-      await signOut(auth);
-      router.push('/');
+      await SupabaseAuthService.signOut();
+      navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
     }
