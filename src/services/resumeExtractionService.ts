@@ -13,43 +13,68 @@ export interface ResumeExtractionResponse {
 }
 
 export class ResumeExtractionService {
-    private static readonly API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
-    private static readonly DEFAULT_MODEL_TYPE = 'OpenAI';
-    private static readonly DEFAULT_MODEL = 'gpt-4o';
+    private static readonly API_BASE_URL = process.env.NEXT_RESUME_API_BASE_URL || 'https://resumebuilder-arfb.onrender.com';
+    private static readonly API_KEY = process.env.NEXT_OPENAI_API_KEY;
+    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_RESUME_API_MODEL_TYPE || 'OpenAI';
+    private static readonly DEFAULT_MODEL = process.env.NEXT_RESUME_API_MODEL || 'gpt-4o';
 
     static async extractResumeJson(
         file: File,
         options: ResumeExtractionOptions = {}
     ): Promise<ResumeExtractionResponse> {
         try {
-            // This is now just a mock response since we use direct OpenAI integration
-            // In practice, the text extraction happens in the modal and we use OpenAI directly
-            console.log('Mock resume extraction for:', file.name);
+            // Validate API key
+            if (!this.API_KEY) {
+                throw new Error('OpenAI API key is not configured. Please set NEXT_OPENAI_API_KEY in your environment variables.');
+            }
 
-            return {
-                success: true,
-                resume_json: {
-                    personal: {
-                        name: 'Extracted from resume',
-                        email: '',
-                        phone: '',
-                        location: ''
-                    },
-                    experience: [],
-                    skills: [],
-                    education: []
+            // Create form data
+            const formData = new FormData();
+
+            // Add the resume file
+            formData.append('file', file);
+
+            // Add required API key
+            formData.append('api_key', this.API_KEY);
+
+            // Add optional parameters with environment defaults
+            formData.append('model_type', options.modelType || this.DEFAULT_MODEL_TYPE);
+            formData.append('model', options.model || this.DEFAULT_MODEL);
+            formData.append('file_id', options.fileId || `req_${Date.now()}`);
+
+            // Make the request
+            const response = await fetch(`${this.API_BASE_URL}/api/extract-resume-json`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    // Add ngrok headers if needed
+                    'ngrok-skip-browser-warning': 'true'
                 },
-                extracted_text_length: 1000,
-                message: 'Resume data extracted successfully'
-            };
+                // 60 second timeout for AI processing
+                signal: AbortSignal.timeout(600000) // 10 minutes
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            return data;
         } catch (error: any) {
-            console.error('Error in mock resume extraction:', error);
-            return {
-                success: false,
-                resume_json: null,
-                extracted_text_length: 0,
-                error: error.message || 'Failed to extract resume data'
-            };
+            console.error('Error extracting resume JSON:', error);
+
+            // Provide more specific error messages
+            if (error.name === 'AbortError') {
+                throw new Error('Request timed out. The AI processing is taking longer than expected. Please try again.');
+            }
+
+            if (error.message.includes('Failed to fetch')) {
+                throw new Error('Unable to connect to the resume extraction service. Please check your internet connection and try again.');
+            }
+
+            throw new Error(error.message || 'Failed to extract resume data');
         }
     }
 
@@ -58,13 +83,15 @@ export class ResumeExtractionService {
         const maxSize = 10 * 1024 * 1024; // 10MB
         const allowedTypes = [
             'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'text/plain'
         ];
 
         if (!allowedTypes.includes(file.type)) {
             return {
                 isValid: false,
-                error: 'Only PDF and text files are supported'
+                error: 'Only PDF, Word documents, and text files are supported'
             };
         }
 
@@ -88,6 +115,7 @@ export class ResumeExtractionService {
     // Get current configuration for debugging
     static getConfiguration() {
         return {
+            apiBaseUrl: this.API_BASE_URL,
             hasApiKey: !!this.API_KEY,
             defaultModelType: this.DEFAULT_MODEL_TYPE,
             defaultModel: this.DEFAULT_MODEL
@@ -97,18 +125,67 @@ export class ResumeExtractionService {
     // Parse the extracted resume JSON into a structured format
     static parseResumeData(resumeJson: any): any {
         try {
-            if (!resumeJson) return null;
+            // Handle different possible response formats
+            let parsedData = resumeJson;
 
+            if (typeof resumeJson === 'string') {
+                parsedData = JSON.parse(resumeJson);
+            }
+
+            // Normalize the data structure
             return {
                 personal: {
-                    name: resumeJson.personal?.name || '',
-                    email: resumeJson.personal?.email || '',
-                    phone: resumeJson.personal?.phone || '',
-                    location: resumeJson.personal?.location || ''
+                    name: parsedData.name || parsedData.full_name || '',
+                    email: parsedData.email || '',
+                    phone: parsedData.phone || parsedData.phone_number || '',
+                    location: parsedData.location || parsedData.address || '',
+                    linkedin: parsedData.linkedin || parsedData.linkedin_url || '',
+                    website: parsedData.website || parsedData.portfolio || ''
                 },
-                education: Array.isArray(resumeJson.education) ? resumeJson.education : [],
-                experience: Array.isArray(resumeJson.experience) ? resumeJson.experience : [],
-                skills: Array.isArray(resumeJson.skills) ? resumeJson.skills : []
+                education: Array.isArray(parsedData.education) ? parsedData.education.map((edu: any) => ({
+                    school: edu.school || edu.institution || edu.university || '',
+                    degree: edu.degree || edu.degree_type || '',
+                    field: edu.field || edu.major || edu.field_of_study || '',
+                    gpa: edu.gpa || '',
+                    start_date: edu.start_date || edu.from || '',
+                    end_date: edu.end_date || edu.to || '',
+                    location: edu.location || ''
+                })) : [],
+                experience: Array.isArray(parsedData.experience) ? parsedData.experience.map((exp: any) => ({
+                    company: exp.company || exp.employer || '',
+                    position: exp.position || exp.title || exp.job_title || '',
+                    start_date: exp.start_date || exp.from || '',
+                    end_date: exp.end_date || exp.to || '',
+                    location: exp.location || '',
+                    highlights: Array.isArray(exp.highlights) ? exp.highlights :
+                        Array.isArray(exp.responsibilities) ? exp.responsibilities :
+                            typeof exp.description === 'string' ? [exp.description] : []
+                })) : [],
+                skills: Array.isArray(parsedData.skills) ? parsedData.skills :
+                    typeof parsedData.skills === 'string' ? parsedData.skills.split(',').map((s: string) => s.trim()) : [],
+                projects: Array.isArray(parsedData.projects) ? parsedData.projects.map((proj: any) => ({
+                    title: proj.title || proj.name || '',
+                    url: proj.url || proj.link || '',
+                    description: proj.description || '',
+                    technologies: Array.isArray(proj.technologies) ? proj.technologies.join(', ') :
+                        typeof proj.technologies === 'string' ? proj.technologies : ''
+                })) : [],
+                certifications: Array.isArray(parsedData.certifications) ? parsedData.certifications.map((cert: any) => ({
+                    name: cert.name || cert.title || '',
+                    issuing_organization: cert.issuing_organization || cert.issuer || '',
+                    issue_date: cert.issue_date || cert.date || '',
+                    expiration_date: cert.expiration_date || cert.expires || ''
+                })) : [],
+                awards: Array.isArray(parsedData.awards) ? parsedData.awards.map((award: any) => ({
+                    title: award.title || award.name || '',
+                    issuer: award.issuer || award.organization || '',
+                    date_received: award.date_received || award.date || '',
+                    description: award.description || ''
+                })) : [],
+                languages: Array.isArray(parsedData.languages) ? parsedData.languages.map((lang: any) => ({
+                    name: typeof lang === 'string' ? lang : lang.name || lang.language || '',
+                    proficiency: typeof lang === 'object' ? lang.proficiency || lang.level || '' : ''
+                })) : []
             };
         } catch (error) {
             console.error('Error parsing resume data:', error);
