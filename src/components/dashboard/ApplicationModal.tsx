@@ -3,21 +3,9 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setFormData, updateFormField, resetForm } from '../../store/applicationModalSlice';
 import { openModal as openAIModal, closeModal as closeAIModal, resetState as resetAIState } from '../../store/aiEnhancementModalSlice';
 import { X, Calendar, Building, FileText, User, Link, Sparkles, MapPin } from 'lucide-react';
-import { JobApplication } from '../../services/firebaseJobApplicationService';
+import { JobApplication, ApplicationStatus, ApplicationStatusValue } from '../../types/jobApplication';
 import { UserProfileData } from '../../services/profileService';
 import AIEnhancementModal from './AIEnhancementModal';
-
-const ApplicationStatus = {
-  NOT_APPLIED: 'not_applied',
-  APPLIED: 'applied',
-  INTERVIEWING: 'interviewing',
-  OFFERED: 'offered',
-  REJECTED: 'rejected',
-  ACCEPTED: 'accepted',
-  DECLINED: 'declined',
-} as const;
-
-type ApplicationStatusValue = typeof ApplicationStatus[keyof typeof ApplicationStatus];
 
 interface ApplicationModalProps {
   application: JobApplication | null;
@@ -26,12 +14,14 @@ interface ApplicationModalProps {
   onClose: () => void;
 }
 
+
 const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detailedUserProfile, onSave, onClose }) => {
   const dispatch = useAppDispatch();
   const formData = useAppSelector((state) => state.applicationModal.formData);
   const [error, setError] = useState('');
   const [showAIModal, setShowAIModal] = useState(false);
 
+  // Initialize form data when application changes
   useEffect(() => {
     if (application) {
       dispatch(setFormData({
@@ -69,6 +59,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
       setError('Please add a job description first to use AI enhancement');
       return;
     }
+    // Reset AI modal state and open it
     dispatch(resetAIState());
     dispatch(openAIModal({ jobDescription: formData.job_description }));
     setShowAIModal(true);
@@ -89,6 +80,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
   return (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        {/* The form will only initialize/reset when the modal is first opened, not on every prop change */}
         <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -216,21 +208,28 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
                 onChange={(e) => dispatch(updateFormField({ field: 'job_description', value: e.target.value }))}
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Paste the job description here..."
+                placeholder="Paste or type the job description here..."
               />
             </div>
 
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-              <button 
-                type="button"
-                onClick={handleLoadAIEnhanced}
-                disabled={!formData.job_description.trim()}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
-              >
-                <Sparkles size={18} />
-                AI Enhance Resume & Cover Letter
-              </button>
-              <p className="text-xs text-center text-blue-600 dark:text-blue-400 mt-2">
+            {/* AI Enhancement Section */}
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center">
+                  <Sparkles className="text-blue-600 dark:text-blue-400 mr-2" size={20} />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">AI Enhancement</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLoadAIEnhanced}
+                  disabled={!formData.job_description}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-all disabled:cursor-not-allowed"
+                >
+                  <Sparkles size={16} />
+                  Load AI Enhanced Resume & Letter
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Generate AI-optimized resume and cover letter tailored to this specific job posting.
                 {!formData.job_description && " Please add a job description first."}
               </p>

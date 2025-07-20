@@ -1,3 +1,5 @@
+import { OpenAIResumeOptimizer, ResumeOptimizationRequest } from './openaiService';
+
 export interface AIEnhancementOptions {
     modelType?: string;
     model?: string;
@@ -65,131 +67,146 @@ export interface AIEnhancementResponse {
 }
 
 export class AIEnhancementService {
-    private static readonly API_BASE_URL = '/api/ai/enhance';
-    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'OpenAI';
-    private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_JSEARCH_API_HOST || 'gpt-4o';
-    private static readonly API_KEY = process.env.NEXT_PUBLIC_JSEARCH_API_KEY;
+    private static readonly API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+    private static readonly DEFAULT_MODEL_TYPE = 'OpenAI';
+    private static readonly DEFAULT_MODEL = 'gpt-4o';
 
-    // Enhance resume with file upload
+    // Convert extracted resume text to enhancement response using OpenAI
+    static async enhanceWithText(
+        resumeText: string,
+        jobDescription: string,
+        options: AIEnhancementOptions = {}
+    ): Promise<AIEnhancementResponse> {
+        try {
+            // Validate API key
+            if (!this.API_KEY) {
+                throw new Error('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.');
+            }
+
+            console.log('Starting AI enhancement with OpenAI...');
+
+            // Call OpenAI service directly
+            const aiResults = await OpenAIResumeOptimizer.optimizeResume({
+                resumeText: resumeText,
+                jobDescription: jobDescription
+            });
+
+            // Transform OpenAI results to AIEnhancementResponse format
+            const enhancementResponse: AIEnhancementResponse = {
+                success: true,
+                analysis: {
+                    match_score: aiResults.matchScore,
+                    strengths: aiResults.strengths,
+                    gaps: aiResults.gaps,
+                    suggestions: aiResults.suggestions,
+                    keyword_analysis: {
+                        missing_keywords: aiResults.keywordAnalysis.missingKeywords,
+                        present_keywords: aiResults.keywordAnalysis.coveredKeywords,
+                        keyword_density_score: aiResults.keywordAnalysis.coverageScore
+                    },
+                    section_recommendations: aiResults.aiEnhancements.sectionRecommendations
+                },
+                enhancements: {
+                    enhanced_summary: aiResults.aiEnhancements.enhancedSummary,
+                    enhanced_skills: aiResults.skillsOptimization.technicalSkills.concat(aiResults.skillsOptimization.softSkills),
+                    enhanced_experience_bullets: aiResults.aiEnhancements.enhancedExperienceBullets,
+                    cover_letter_outline: aiResults.aiEnhancements.coverLetterOutline
+                },
+                metadata: {
+                    model_used: this.DEFAULT_MODEL,
+                    model_type: this.DEFAULT_MODEL_TYPE,
+                    timestamp: new Date().toISOString(),
+                    resume_sections_analyzed: ['personal', 'experience', 'skills', 'education']
+                },
+                file_id: options.fileId || `enhance_${Date.now()}`
+            };
+
+            console.log('AI enhancement successful with OpenAI');
+            return enhancementResponse;
+
+        } catch (error: any) {
+            console.error('Error in AI enhancement with OpenAI:', error);
+
+            if (error.message.includes('API key')) {
+                throw new Error('OpenAI API key is not properly configured. Please check your environment variables.');
+            }
+
+            throw new Error(error.message || 'Failed to enhance resume with AI');
+        }
+    }
+
+    // Legacy method - now uses direct OpenAI
     static async enhanceWithFile(
         file: File,
         jobDescription: string,
         options: AIEnhancementOptions = {}
     ): Promise<AIEnhancementResponse> {
-        try {
-            // Create form data
-            const formData = new FormData();
-
-            // Add the resume file
-            formData.append('file', file);
-
-            // Add required fields
-            formData.append('job_description', jobDescription);
-
-            // Add optional parameters
-            formData.append('model_type', options.modelType || this.DEFAULT_MODEL_TYPE);
-            formData.append('model', options.model || this.DEFAULT_MODEL);
-            formData.append('file_id', options.fileId || `enhance_${Date.now()}`);
-
-            console.log('Making AI enhancement request with file to:', this.API_BASE_URL);
-
-            const response = await fetch(this.API_BASE_URL, {
-                method: 'POST',
-                body: formData,
-
-                // 2 minutes timeout for AI processing
-                signal: AbortSignal.timeout(120000)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            console.log('AI enhancement successful:', {
-                success: data.success,
-                matchScore: data.analysis?.match_score,
-                hasEnhancements: !!data.enhancements
-            });
-
-            return data;
-        } catch (error: any) {
-            console.error('Error in AI enhancement with file:', error);
-
-            if (error.name === 'AbortError') {
-                throw new Error('AI enhancement timed out. The analysis is taking longer than expected. Please try again.');
-            }
-
-            if (error.message.includes('Failed to fetch')) {
-                throw new Error('Unable to connect to the AI enhancement service. Please check your internet connection and try again.');
-            }
-
-            throw new Error(error.message || 'Failed to enhance resume with AI');
-        }
+        // Extract text from file first
+        const text = await this.extractTextFromFile(file);
+        return this.enhanceWithText(text, jobDescription, options);
     }
 
-    // Enhance resume with JSON data
+    // Legacy method - now uses direct OpenAI  
     static async enhanceWithJson(
         resumeJson: any,
         jobDescription: string,
         options: AIEnhancementOptions = {}
     ): Promise<AIEnhancementResponse> {
-        try {
-            const requestData = {
-                resume_json: resumeJson,
-                job_description: jobDescription,
-                model_type: options.modelType || this.DEFAULT_MODEL_TYPE,
-                model: options.model || this.DEFAULT_MODEL,
-                file_id: options.fileId || `enhance_${Date.now()}`
-            };
+        // Convert JSON to text format
+        const resumeText = this.convertJsonToText(resumeJson);
+        return this.enhanceWithText(resumeText, jobDescription, options);
+    }
 
-            console.log('Making AI enhancement request with JSON to:', this.API_BASE_URL);
+    // Helper method to extract text from file
+    private static async extractTextFromFile(file: File): Promise<string> {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsText(file);
+        });
+    }
 
-            const response = await fetch(this.API_BASE_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestData),
-                // 2 minutes timeout for AI processing
-                signal: AbortSignal.timeout(120000)
-            });
+    // Helper method to convert JSON to text
+    private static convertJsonToText(resumeJson: any): string {
+        if (!resumeJson) return '';
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-            }
+        let text = '';
 
-            const data = await response.json();
-
-            console.log('AI enhancement successful:', {
-                success: data.success,
-                matchScore: data.analysis?.match_score,
-                hasEnhancements: !!data.enhancements
-            });
-
-            return data;
-        } catch (error: any) {
-            console.error('Error in AI enhancement with JSON:', error);
-
-            if (error.name === 'AbortError') {
-                throw new Error('AI enhancement timed out. The analysis is taking longer than expected. Please try again.');
-            }
-
-            if (error.message.includes('Failed to fetch')) {
-                throw new Error('Unable to connect to the AI enhancement service. Please check your internet connection and try again.');
-            }
-
-            throw new Error(error.message || 'Failed to enhance resume with AI');
+        // Add personal information
+        if (resumeJson.personal) {
+            text += `${resumeJson.personal.name || ''}\n`;
+            text += `${resumeJson.personal.email || ''}\n`;
+            text += `${resumeJson.personal.phone || ''}\n`;
+            text += `${resumeJson.personal.location || ''}\n\n`;
         }
+
+        // Add experience
+        if (resumeJson.experience && Array.isArray(resumeJson.experience)) {
+            text += 'EXPERIENCE:\n';
+            resumeJson.experience.forEach((exp: any) => {
+                text += `${exp.position || ''} at ${exp.company || ''}\n`;
+                text += `${exp.description || ''}\n\n`;
+            });
+        }
+
+        // Add skills
+        if (resumeJson.skills) {
+            text += 'SKILLS:\n';
+            if (Array.isArray(resumeJson.skills.technical)) {
+                text += `Technical: ${resumeJson.skills.technical.join(', ')}\n`;
+            }
+            if (Array.isArray(resumeJson.skills.soft)) {
+                text += `Soft Skills: ${resumeJson.skills.soft.join(', ')}\n`;
+            }
+        }
+
+        return text;
     }
 
     // Get current configuration for debugging
     static getConfiguration() {
         return {
-            apiBaseUrl: this.API_BASE_URL,
             hasApiKey: !!this.API_KEY,
             defaultModelType: this.DEFAULT_MODEL_TYPE,
             defaultModel: this.DEFAULT_MODEL

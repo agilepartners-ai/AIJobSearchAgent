@@ -1,9 +1,6 @@
-"use client";
-
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import FirebaseAuthService from '../../services/firebaseAuthService';
+import { useNavigate, Link } from 'react-router-dom';
+import SupabaseAuthService from '../../services/supabaseAuthService';
 import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 
 const RegisterForm: React.FC = () => {
@@ -13,7 +10,7 @@ const RegisterForm: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const validatePhone = (phoneNumber: string) => {
     if (!phoneNumber) return true; // Phone is optional
@@ -59,14 +56,14 @@ const RegisterForm: React.FC = () => {
     setLoading(true);
 
     try {
-      await FirebaseAuthService.signUp({ 
+      await SupabaseAuthService.signUp({ 
         email, 
         password, 
         phone: formattedPhone 
       });
       
       if (formattedPhone) {
-        router.push('/verify-phone');
+        navigate('/verify-phone');
       } else {
         // Route guard will handle redirect to /dashboard
       }
@@ -99,7 +96,7 @@ const RegisterForm: React.FC = () => {
       
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-block">
+          <Link to="/" className="inline-block">
             <img src="/AGENT_Logo.png" alt="AIJobSearchAgent" className="h-20 w-auto mx-auto mb-6" />
           </Link>
           <h2 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Create an Account</h2>
@@ -187,7 +184,7 @@ const RegisterForm: React.FC = () => {
           </button>
           
           <div className="mt-6 text-center">
-            <Link href="/login" className="text-blue-200 dark:text-blue-300 hover:text-white dark:hover:text-white transition-colors">
+            <Link to="/login" className="text-blue-200 dark:text-blue-300 hover:text-white dark:hover:text-white transition-colors">
               Already have an account? <span className="font-medium">Sign in</span>
             </Link>
           </div>

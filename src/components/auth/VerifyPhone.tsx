@@ -1,8 +1,6 @@
-"use client";
-
 import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { useToastContext } from '../ui/ToastProvider';
 
 const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
@@ -22,7 +20,7 @@ const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
       // For demo purposes, accept any 6-digit code
       if (code.length !== 6) {
         throw new Error('Please enter a 6-digit verification code');
-      }      // Phone verification not yet implemented
+      }      // Phone verification not yet implemented with Supabase
       // For now, just simulate verification success
       console.log('Phone verification simulated for code:', code);
 
@@ -65,7 +63,7 @@ const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
       
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-block">
+          <Link to="/" className="inline-block">
             <img src="/AGENT_Logo.png" alt="AIJobSearchAgent" className="h-20 w-auto mx-auto mb-6" />
           </Link>
           <h2 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Verify Your Phone</h2>
@@ -115,7 +113,7 @@ const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
           </button>
           
           <div className="mt-6 text-center">
-            <Link href="/login" className="text-blue-200 dark:text-blue-300 hover:text-white dark:hover:text-white transition-colors">
+            <Link to="/login" className="text-blue-200 dark:text-blue-300 hover:text-white dark:hover:text-white transition-colors">
               Back to sign in
             </Link>
           </div>

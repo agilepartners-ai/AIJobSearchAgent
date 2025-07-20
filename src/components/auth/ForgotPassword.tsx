@@ -1,8 +1,6 @@
-"use client";
-
 import React, { useState } from 'react';
-import FirebaseAuthService from '../../services/firebaseAuthService';
-import Link from 'next/link';
+import SupabaseAuthService from '../../services/supabaseAuthService';
+import { Link } from 'react-router-dom';
 
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -17,7 +15,7 @@ const ForgotPassword: React.FC = () => {
     setLoading(true);
 
     try {
-      await FirebaseAuthService.sendPasswordResetEmail(email);
+      await SupabaseAuthService.sendPasswordResetEmail(email);
       setSuccess(true);
     } catch (err: any) {
       setError(err.message);
@@ -48,7 +46,7 @@ const ForgotPassword: React.FC = () => {
       
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-block">
+          <Link to="/" className="inline-block">
             <img src="/AGENT_Logo.png" alt="AIJobSearchAgent" className="h-20 w-auto mx-auto mb-6" />
           </Link>
           <h2 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Reset Your Password</h2>
@@ -91,7 +89,7 @@ const ForgotPassword: React.FC = () => {
           </button>
           
           <div className="mt-6 text-center">
-            <Link href="/login" className="text-blue-200 dark:text-blue-300 hover:text-white dark:hover:text-white transition-colors">
+            <Link to="/login" className="text-blue-200 dark:text-blue-300 hover:text-white dark:hover:text-white transition-colors">
               Back to sign in
             </Link>
           </div>
