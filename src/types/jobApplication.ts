@@ -7,6 +7,7 @@ export interface JobApplication {
   application_date: string;
   last_updated: string;
   notes?: string;
+  job_description?: string;
   resume_url?: string;
   cover_letter_url?: string;
   created_at: string;
@@ -14,6 +15,7 @@ export interface JobApplication {
 }
 
 export enum ApplicationStatus {
+  Saved = 'saved',
   Applied = 'applied',
   Interview = 'interview',
   Accepted = 'accepted',
