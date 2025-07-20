@@ -4,7 +4,7 @@ export interface JobPreferences {
   id: string;
   job_titles?: string[];
   locations?: string[];
-  salary_expectation?: number;
+  salary_expectation?: number | null;
   employment_types?: string[];
   remote_only?: boolean;
   skills?: string[];
