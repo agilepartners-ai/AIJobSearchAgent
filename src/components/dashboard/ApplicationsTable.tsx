@@ -3,7 +3,7 @@ import {
   Search, Filter, Edit3, Eye, Trash2, ExternalLink, ChevronLeft, ChevronRight, Briefcase, Calendar, Clock, Video, Sparkles, LayoutGrid, LayoutList 
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { JobApplication } from '../../types/supabase';
+import { JobApplication } from '../../services/firebaseJobApplicationService';
 
 interface ApplicationsTableProps {
   applications: JobApplication[];
@@ -79,8 +79,8 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   };
 
   const filteredApplications = applications.filter(app => {
-    const matchesSearch = app.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         app.company_name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (app.position || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (app.company_name || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -95,7 +95,8 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
     }
   };
 
-  const formatSafeDate = (dateString: string) => {
+  const formatSafeDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {

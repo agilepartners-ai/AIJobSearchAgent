@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Search, MapPin, Calendar, Clock, ArrowRight, User, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import SupabaseAuthService from '../../services/supabaseAuthService';
+import { getAuth, signOut } from 'firebase/auth';
 
 interface JobSearchForm {
   query: string;
@@ -13,7 +15,7 @@ interface JobSearchForm {
   date_posted: string;
 }
 
-const JobSearchPage: React.FC = () => {  const navigate = useNavigate();
+const JobSearchPage: React.FC = () => {  const router = useRouter();
   const { user, userProfile, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<JobSearchForm>({
@@ -26,11 +28,11 @@ const JobSearchPage: React.FC = () => {  const navigate = useNavigate();
   });
 
   // Redirect to login if not authenticated (but wait for auth to load)
-  React.useEffect(() => {
+  useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/login');
+      router.push('/login');
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, router]);
 
   const handleInputChange = (field: keyof JobSearchForm, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -45,7 +47,7 @@ const JobSearchPage: React.FC = () => {  const navigate = useNavigate();
       localStorage.setItem('jobSearchCriteria', JSON.stringify(formData));
       
       // Navigate to job listings page
-      navigate('/job-listings');
+      router.push('/job-listings');
     } catch (error) {
       console.error('Error processing search:', error);
     } finally {
@@ -55,8 +57,9 @@ const JobSearchPage: React.FC = () => {  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
-      await SupabaseAuthService.signOut();
-      navigate('/');
+      const auth = getAuth();
+      await signOut(auth);
+      router.push('/');
     } catch (error) {
       console.error('Error signing out:', error);
     }

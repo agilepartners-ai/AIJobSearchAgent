@@ -1,12 +1,16 @@
+"use client";
+
 import React, { useState } from 'react';
-import SupabaseAuthService from '../../services/supabaseAuthService';
-import { Link } from 'react-router-dom';
+import FirebaseAuthService from '../../services/firebaseAuthService';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 const LoginForm: React.FC = () => {  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -14,8 +18,8 @@ const LoginForm: React.FC = () => {
     setLoading(true);
 
     try {
-      await SupabaseAuthService.signIn({ email, password });
-      // Route guard will handle redirect to /job-search
+      await FirebaseAuthService.signIn({ email, password });
+      router.push('/dashboard');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -45,7 +49,7 @@ const LoginForm: React.FC = () => {
       
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-block">
+          <Link href="/" className="inline-block">
             <img src="/AGENT_Logo.png" alt="AIJobSearchAgent" className="h-20 w-auto mx-auto mb-6" />
           </Link>
           <h2 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Welcome Back</h2>
@@ -117,7 +121,7 @@ const LoginForm: React.FC = () => {
           </button>
           
           <div className="mt-6 text-center">
-            <Link to="/register" className="text-blue-200 dark:text-blue-300 hover:text-white dark:hover:text-white transition-colors">
+            <Link href="/register" className="text-blue-200 dark:text-blue-300 hover:text-white dark:hover:text-white transition-colors">
               Don't have an account? <span className="font-medium">Sign up</span>
             </Link>
           </div>

@@ -1,6 +1,8 @@
+"use client";
+
 import React, { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 const Header: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,7 +36,7 @@ const Header: React.FC = () => {
         <div className="flex items-center justify-between">
           {/* Left side - Main Logo and Powered By Logo */}
           <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4 lg:space-x-5">
-            <Link to="/" className="flex items-center space-x-2">
+            <Link href="/" className="flex items-center space-x-2">
               <img 
                 src="/AGENT_Logo.png" 
                 alt="AIJobSearchAgent" 
@@ -73,7 +75,7 @@ const Header: React.FC = () => {
               </a>
             ))}
             <Link 
-              to="/login" 
+              href="/login" 
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2.5 rounded-lg font-medium hover:shadow-lg transition-all hover:-translate-y-0.5"
             >
               Sign In
@@ -113,7 +115,7 @@ const Header: React.FC = () => {
             </a>
           ))}
           <Link 
-            to="/login" 
+            href="/login" 
             className="block w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium text-center transition-all"
             onClick={() => setIsOpen(false)}
           >
