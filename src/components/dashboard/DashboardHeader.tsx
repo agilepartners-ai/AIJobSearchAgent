@@ -1,16 +1,11 @@
 import React, { useState } from 'react';
 import { Plus, Search, LogOut, User, Settings, ChevronDown, Menu, X, Crown } from 'lucide-react';
-import { getAuth, signOut } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
+import SupabaseAuthService from '../../services/supabaseAuthService';
+import { useNavigate } from 'react-router-dom';
 import UpgradeModal from './UpgradeModal';
 
-interface UserProfileData {
-  full_name?: string;
-  email?: string;
-}
-
 interface DashboardHeaderProps {
-  userProfile: UserProfileData | null;
+  userProfile: any;
   onAddApplication: () => void;
   onJobPreferences: () => void;
   onUpdateProfile: () => void;
@@ -24,16 +19,15 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   onUpdateProfile,
   onFindMoreJobs,
 }) => {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   const handleSignOut = async () => {
     try {
-      const auth = getAuth();
-      await signOut(auth);
-      router.push('/login');
+      await SupabaseAuthService.signOut();
+      navigate('/login');
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -49,9 +43,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       const originalBeforeUnload = window.onbeforeunload;
       window.onbeforeunload = null;
       
-      const auth = getAuth();
-      const currentUser = auth.currentUser;
-
+      const currentUser = await SupabaseAuthService.getCurrentUser();
       if (currentUser && currentUser.uid) {
         const paymentUrl = `https://pay.rev.cat/sandbox/evfhfhevsehbykku/${currentUser.uid}`;
         // Open in same tab for better user experience
@@ -59,8 +51,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       } else {
         // Restore beforeunload handler if navigation failed
         window.onbeforeunload = originalBeforeUnload;
-                alert('Please log in to upgrade your subscription.');
-        router.push('/login');
+        alert('Please log in to upgrade your subscription.');
+        navigate('/login');
       }
     } catch (error) {
       console.error('Error getting user for upgrade:', error);
@@ -92,7 +84,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <div className="flex items-center flex-shrink-0">
             <div className="flex items-center space-x-2 sm:space-x-3">
               <button
-                onClick={() => router.push('/')}
+                onClick={() => navigate('/')}
                 className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center hover:from-blue-700 hover:to-purple-700 transition-all cursor-pointer"
               >
                 <span className="text-white font-bold text-xs sm:text-sm">JS</span>

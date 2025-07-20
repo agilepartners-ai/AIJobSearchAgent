@@ -44,6 +44,7 @@ export class JobIdMappingService {
       
       console.log(`JobIdMappingService: Added mapping ${localId} -> ${firebaseId}`);
     } catch (error) {
+      console.error('JobIdMappingService: Error adding mapping:', error);
     }
   }
 
@@ -56,6 +57,7 @@ export class JobIdMappingService {
       const mapping = mappings.find(m => m.localId === localId);
       return mapping ? mapping.firebaseId : null;
     } catch (error) {
+      console.error('JobIdMappingService: Error getting Firebase ID:', error);
       return null;
     }
   }
@@ -69,6 +71,7 @@ export class JobIdMappingService {
       const mapping = mappings.find(m => m.firebaseId === firebaseId);
       return mapping ? mapping.localId : null;
     } catch (error) {
+      console.error('JobIdMappingService: Error getting local ID:', error);
       return null;
     }
   }
@@ -78,9 +81,13 @@ export class JobIdMappingService {
    */
   static getAllMappings(): JobIdMapping[] {
     try {
-      const mappingsJson = localStorage.getItem(this.MAPPING_KEY);
-      return mappingsJson ? JSON.parse(mappingsJson) : [];
+      const mappingsData = localStorage.getItem(this.MAPPING_KEY);
+      if (!mappingsData) {
+        return [];
+      }
+      return JSON.parse(mappingsData);
     } catch (error) {
+      console.error('JobIdMappingService: Error reading mappings:', error);
       return [];
     }
   }
@@ -90,10 +97,10 @@ export class JobIdMappingService {
    */
   static getUserMappings(userId: string): JobIdMapping[] {
     try {
-      const allMappings = this.getAllMappings();
-      // This is a placeholder. In a real implementation, you'd filter by userId.
-      return allMappings;
+      const mappings = this.getAllMappings();
+      return mappings.filter(m => m.userId === userId);
     } catch (error) {
+      console.error('JobIdMappingService: Error getting user mappings:', error);
       return [];
     }
   }
@@ -113,7 +120,10 @@ export class JobIdMappingService {
       const mappings = this.getAllMappings();
       const filteredMappings = mappings.filter(m => m.localId !== localId);
       localStorage.setItem(this.MAPPING_KEY, JSON.stringify(filteredMappings));
+      
+      console.log(`JobIdMappingService: Removed mapping for ${localId}`);
     } catch (error) {
+      console.error('JobIdMappingService: Error removing mapping:', error);
     }
   }
 
@@ -132,7 +142,10 @@ export class JobIdMappingService {
       });
       
       localStorage.setItem(this.MAPPING_KEY, JSON.stringify(recentMappings));
+      
+      console.log(`JobIdMappingService: Cleared ${mappings.length - recentMappings.length} old mappings`);
     } catch (error) {
+      console.error('JobIdMappingService: Error clearing old mappings:', error);
     }
   }
 
@@ -142,7 +155,9 @@ export class JobIdMappingService {
   static clearAllMappings(): void {
     try {
       localStorage.removeItem(this.MAPPING_KEY);
+      console.log('JobIdMappingService: Cleared all mappings');
     } catch (error) {
+      console.error('JobIdMappingService: Error clearing mappings:', error);
     }
   }
 
@@ -151,8 +166,10 @@ export class JobIdMappingService {
    */
   static exportMappings(): string {
     try {
-      return localStorage.getItem(this.MAPPING_KEY) || '[]';
+      const mappings = this.getAllMappings();
+      return JSON.stringify(mappings, null, 2);
     } catch (error) {
+      console.error('JobIdMappingService: Error exporting mappings:', error);
       return '[]';
     }
   }

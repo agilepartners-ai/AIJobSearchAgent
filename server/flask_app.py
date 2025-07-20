@@ -18,7 +18,7 @@ CORS(app, resources={
     # Apply CORS to all routes under /optimizer/api/
     r"/optimizer/api/*": {
         "origins": [
-            "http://localhost:3000",  # Next.js dev server
+            "http://localhost:5173",  # Vite dev server
             "http://localhost:3000",  # Alternative dev server
             "https://your-production-domain.com",  # Replace with your production domain
         ],
