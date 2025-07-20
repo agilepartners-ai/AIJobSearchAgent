@@ -1,4 +1,4 @@
-import { OpenAIResumeOptimizer, ResumeOptimizationRequest } from './openaiService';
+import { OpenAIResumeOptimizer } from './openaiService';
 
 export interface AIEnhancementOptions {
     modelType?: string;

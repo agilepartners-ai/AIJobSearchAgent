@@ -96,8 +96,8 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
     const realPersonalInfo = {
       name: results.detailedUserProfile?.fullName || personalInfo.name || 'Your Name',
       email: user?.email || personalInfo.email || 'your.email@example.com',
-      phone: results.detailedUserProfile?.contactNumber || personalInfo.phone || 'Your Phone',
-      location: results.detailedUserProfile?.streetAddress || personalInfo.location || ''
+      phone: results.detailedUserProfile?.phone || personalInfo.phone || 'Your Phone',
+      location: results.detailedUserProfile?.location || personalInfo.location || ''
     };
 
     let resumeContent = '';
@@ -202,8 +202,8 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, onCl
     const realPersonalInfo = {
       name: results.detailedUserProfile?.fullName || personalInfo.name || 'Your Name',
       email: user?.email || personalInfo.email || 'your.email@example.com',
-      phone: results.detailedUserProfile?.contactNumber || personalInfo.phone || 'Your Phone',
-      location: results.detailedUserProfile?.streetAddress || personalInfo.location || ''
+      phone: results.detailedUserProfile?.phone || personalInfo.phone || 'Your Phone',
+      location: results.detailedUserProfile?.location || personalInfo.location || ''
     };
 
     let coverLetterContent = '';

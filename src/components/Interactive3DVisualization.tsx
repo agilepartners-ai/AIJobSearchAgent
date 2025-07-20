@@ -9,7 +9,8 @@ const Interactive3DVisualization: React.FC<Interactive3DVisualizationProps> = ({
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const animationIdRef = useRef<number | null>(null);  const mouseRef = useRef(new THREE.Vector2());
+  const animationIdRef = useRef<number | null>(null);
+  const mouseRef = useRef(new THREE.Vector2());
   const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster());
   const satellitesRef = useRef<THREE.Group[]>([]);
   const mainPlanesRef = useRef<THREE.Group | null>(null);  // Enhanced materials for better visual appeal - reduced opacity for background use

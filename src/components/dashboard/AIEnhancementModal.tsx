@@ -1,24 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Upload, FileText, Download, Eye, Wand2, Sparkles, Bot, RefreshCw, AlertCircle, CheckCircle, Target, TrendingUp, Award, Brain, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
+import { X, Upload, FileText, Wand2, Sparkles, RefreshCw, AlertCircle, Target, Brain, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
 import { useToastContext } from '../ui/ToastProvider';
 import OptimizationResults from './OptimizationResults';
-import { extractTextFromPDF, validatePDFFile, PDFExtractionResult, setupPDFWorkerAlternative, testPDFJSAvailability, extractTextFallback, createManualTextInput } from '../../utils/pdfUtils';
+import { extractTextFromPDF, validatePDFFile, PDFExtractionResult, extractTextFallback } from '../../utils/pdfUtils';
 import { OpenAIResumeOptimizer } from '../../services/openaiService';
 import { validateConfig } from '../../utils/config';
-import { ResumeExtractionService } from '../../services/resumeExtractionService';
-import { AIEnhancementService } from '../../services/aiEnhancementService';
 import { UserProfileData } from '../../services/profileService';
 import { useAuth } from '../../hooks/useAuth';
 
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
-  setSelectedFile,
-  setCloudProvider,
-  setCloudFileUrl,
-  setError,
-  setShowResults,
   setOptimizationResults,
-  resetState,
 } from '../../store/aiEnhancementModalSlice';
 
 interface AIEnhancementModalProps {
@@ -33,39 +25,18 @@ interface AIEnhancementModalProps {
   onClose: () => void;
 }
 
-// Generate a random UUID v4
-const generateUUID = (): string => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    const r = Math.random() * 16 | 0;
-    const v = c == 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-};
-
 const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   jobDescription,
   applicationData,
   detailedUserProfile,
-  onSave,
   onClose
 }) => {
   const { showSuccess, showError } = useToastContext();
   const dispatch = useAppDispatch();
   const {
-    selectedFileMeta,
-    selectedFileContent,
-    cloudProvider,
-    cloudFileUrl,
-    error,
-    showResults,
-    optimizationResults,
     jobDescription: persistedJobDescription,
   } = useAppSelector((state) => state.aiEnhancementModal);
-  const [loading, setLoading] = React.useState(false);
-  const [extractionProgress, setExtractionProgress] = React.useState<string>('');
-  const [documentId] = React.useState<string>(generateUUID());
   const { user } = useAuth();
-  const config = ResumeExtractionService.getConfiguration();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Keep jobDescription in sync with Redux (for persistence)
@@ -77,292 +48,6 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   }, [jobDescription]);
 
   // File select handler: reads file as base64 and stores meta/content in Redux
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const validation = ResumeExtractionService.validateResumeFile(file);
-      if (!validation.isValid) {
-        dispatch(setError(validation.error || 'Invalid file'));
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        // Always use base64 string after comma (DataURL format)
-        const base64 = reader.result as string;
-        dispatch(setSelectedFile({
-          meta: {
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            lastModified: file.lastModified,
-          },
-          content: base64,
-        }));
-        dispatch(setError(''));
-        dispatch(setCloudFileUrl(''));
-      };
-      reader.onerror = () => {
-        dispatch(setError('Failed to read file. Please try again.'));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleCloudProviderChange = (provider: string) => {
-    dispatch(setCloudProvider(provider));
-    // Clear local file if cloud provider is selected
-    dispatch(setSelectedFile({ meta: { name: '', type: '', size: 0, lastModified: 0 }, content: '' }));
-    dispatch(setCloudFileUrl(''));
-  };
-
-  const downloadFileFromUrl = async (url: string): Promise<File> => {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to download file: ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      const filename = url.split('/').pop() || 'resume.pdf';
-      return new File([blob], filename, { type: blob.type });
-    } catch (error) {
-      throw new Error('Failed to download file from URL. Please check the URL and permissions.');
-    }
-  };
-
-  const handleGenerateAI = async () => {
-    if (!selectedFileMeta && !cloudFileUrl) {
-      dispatch(setError('Please select a resume file or provide a cloud file URL'));
-      return;
-    }
-
-    if (!jobDescription.trim()) {
-      dispatch(setError('Job description is required for AI enhancement'));
-      return;
-    }
-
-    // Check API configuration
-    if (!config.hasApiKey) {
-      dispatch(setError('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.'));
-      return;
-    }
-
-    // Validate enhancement request
-    const validation = AIEnhancementService.validateEnhancementRequest(jobDescription);
-    if (!validation.isValid) {
-      dispatch(setError(validation.error || 'Invalid request'));
-      return;
-    }
-
-    setLoading(true);
-    dispatch(setError(''));
-    setExtractionProgress('');
-
-    try {
-      let fileToProcess: File | null = null;
-      if (selectedFileMeta && selectedFileContent) {
-        // Convert base64 to File (with null check)
-        const arr = selectedFileContent.split(',');
-        const mimeMatch = arr[0].match(/:(.*?);/);
-        const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
-        const bstr = arr[1] ? atob(arr[1]) : '';
-        let n = bstr.length, u8arr = new Uint8Array(n);
-        while (n--) u8arr[n] = bstr.charCodeAt(n);
-        fileToProcess = new File([u8arr], selectedFileMeta.name, { type: mime });
-      }
-
-      if (!fileToProcess) {
-        throw new Error('No file to process');
-      }
-
-      // Step 1: Extract resume data - using simple text extraction for now
-      setExtractionProgress('Extracting resume data...');
-
-      let resumeText = '';
-      if (fileToProcess.type === 'text/plain') {
-        resumeText = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target?.result as string);
-          reader.onerror = () => reject(new Error('Failed to read file'));
-          reader.readAsText(fileToProcess!);
-        });
-      } else {
-        // For PDF files, show a helpful error for now
-        throw new Error('PDF text extraction requires additional setup. Please convert your PDF to text format or copy-paste the content manually.');
-      }
-
-      if (!resumeText || resumeText.length < 50) {
-        throw new Error('Unable to extract sufficient text from the file. Please ensure the file contains readable text.');
-      }
-
-      setExtractionProgress('Processing extracted data...');
-
-      // Create mock parsed resume data
-      const parsedResumeData = {
-        personal: {
-          name: 'Extracted from resume',
-          email: '',
-          phone: '',
-          location: ''
-        },
-        experience: [],
-        skills: [],
-        education: []
-      };
-
-      // Step 2: Enhance resume using AI analysis
-      setExtractionProgress('Analyzing resume against job description...');
-
-      const enhancementResult = await AIEnhancementService.enhanceWithText(
-        resumeText,
-        jobDescription,
-        {
-          modelType: config.defaultModelType,
-          model: config.defaultModel,
-          fileId: documentId
-        }
-      );
-
-      if (!enhancementResult.success) {
-        throw new Error(enhancementResult.error || 'Failed to analyze resume. Please try again.');
-      }
-
-      // Normalize the response to ensure all fields exist
-      const normalizedResult = AIEnhancementService.normalizeEnhancementResponse(enhancementResult);
-
-      setExtractionProgress('Generating optimization recommendations...');
-
-      // Generate mock URLs for the enhanced documents
-      const timestamp = Date.now();
-      const enhancedResumeUrl = `https://example.com/ai-enhanced-resume-${documentId}.pdf`;
-      const enhancedCoverLetterUrl = `https://example.com/ai-enhanced-cover-letter-${documentId}.pdf`;
-
-      // Combine real AI analysis with our UI structure
-      const optimizationResults = {
-        matchScore: normalizedResult.analysis.match_score,
-        summary: normalizedResult.analysis.match_score >= 80
-          ? `Excellent match! Your resume shows strong alignment with this position (${normalizedResult.analysis.match_score}% match). The AI has identified key strengths and provided targeted recommendations for optimization.`
-          : normalizedResult.analysis.match_score >= 70
-            ? `Good match! Your resume aligns well with this position (${normalizedResult.analysis.match_score}% match). The AI has identified areas for improvement to strengthen your application.`
-            : `Moderate match (${normalizedResult.analysis.match_score}% match). The AI has identified significant opportunities to better align your resume with this position.`,
-
-        // Use real AI analysis data
-        strengths: normalizedResult.analysis.strengths.length > 0
-          ? normalizedResult.analysis.strengths
-          : [
-            `Strong background with relevant experience`,
-            `Good skill alignment with job requirements`,
-            `Professional presentation and structure`
-          ],
-
-        gaps: normalizedResult.analysis.gaps.length > 0
-          ? normalizedResult.analysis.gaps
-          : [
-            "Some industry-specific keywords could be emphasized more prominently",
-            "Consider adding more quantified achievements with specific metrics"
-          ],
-
-        suggestions: normalizedResult.analysis.suggestions.length > 0
-          ? normalizedResult.analysis.suggestions
-          : [
-            "Incorporate more action verbs and industry-specific terminology",
-            "Add specific metrics and percentages to quantify your achievements",
-            "Consider reorganizing sections to highlight most relevant experience first"
-          ],
-
-        optimizedResumeUrl: enhancedResumeUrl,
-        optimizedCoverLetterUrl: enhancedCoverLetterUrl,
-
-        // Use real keyword analysis
-        keywordAnalysis: {
-          coverageScore: normalizedResult.analysis.keyword_analysis.keyword_density_score,
-          coveredKeywords: normalizedResult.analysis.keyword_analysis.present_keywords,
-          missingKeywords: normalizedResult.analysis.keyword_analysis.missing_keywords
-        },
-
-        // Enhanced experience optimization using real data
-        experienceOptimization: [
-          {
-            company: 'Previous Company',
-            position: 'Previous Role',
-            relevanceScore: Math.max(70, normalizedResult.analysis.match_score),
-            included: true,
-            reasoning: 'Highly relevant to target position based on AI analysis'
-          }
-        ],
-
-        // Enhanced skills optimization
-        skillsOptimization: {
-          technicalSkills: normalizedResult.enhancements.enhanced_skills.length > 0
-            ? normalizedResult.enhancements.enhanced_skills
-            : ['JavaScript', 'Python', 'React', 'Node.js'],
-          softSkills: ["Leadership", "Problem Solving", "Communication", "Team Collaboration"],
-          missingSkills: normalizedResult.analysis.keyword_analysis.missing_keywords.slice(0, 5)
-        },
-
-        // Include parsed resume data
-        parsedResume: parsedResumeData,
-
-        // Enhanced metadata
-        extractionMetadata: {
-          documentId: documentId,
-          extractedTextLength: resumeText.length,
-          processingTime: Date.now() - timestamp,
-          modelUsed: normalizedResult.metadata.model_used,
-          apiBaseUrl: 'Direct OpenAI Integration',
-          sectionsAnalyzed: normalizedResult.metadata.resume_sections_analyzed
-        },
-
-        // Include AI enhancements
-        aiEnhancements: {
-          enhancedSummary: normalizedResult.enhancements.enhanced_summary,
-          enhancedExperienceBullets: normalizedResult.enhancements.enhanced_experience_bullets,
-          coverLetterOutline: normalizedResult.enhancements.cover_letter_outline,
-          sectionRecommendations: normalizedResult.analysis.section_recommendations
-        },
-
-        // Include raw AI response for debugging
-        rawAIResponse: normalizedResult,
-
-        // Add job context for PDF generation
-        jobDescription: jobDescription,
-        applicationData: applicationData,
-
-        // Add detailed user profile and user for cover letter generation
-        detailedUserProfile: detailedUserProfile,
-        user: user
-      };
-
-      dispatch(setOptimizationResults(optimizationResults));
-      dispatch(setShowResults(true));
-
-    } catch (err: any) {
-      // Provide user-friendly error messages
-      let userMessage = err.message;
-
-      if (err.message.includes('PDF text extraction')) {
-        userMessage = 'PDF text extraction requires additional setup. Please convert your PDF to a text file (.txt) or copy-paste the resume content manually.';
-      } else if (err.message.includes('API key')) {
-        userMessage = 'OpenAI API key configuration error. Please contact support for assistance.';
-      } else if (err.message.includes('Failed to fetch') || err.message.includes('network')) {
-        userMessage = 'Direct OpenAI integration is working. Please check your API key configuration.';
-      }
-
-      dispatch(setError(userMessage));
-    } finally {
-      setLoading(false);
-      setExtractionProgress('');
-    }
-  };
-
-  const handleResultsClose = () => {
-    dispatch(setShowResults(false));
-    // Save the URLs to the parent component
-    if (optimizationResults) {
-      onSave(optimizationResults.optimizedResumeUrl, optimizationResults.optimizedCoverLetterUrl);
-    }
-    onClose();
-  };
 
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -503,8 +188,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         applicantData: {
           name: detailedUserProfile?.fullName || 'Your Name',
           email: user?.email || 'unknown@email.com', // Use real email from auth
-          phone: detailedUserProfile?.contactNumber || '',
-          location: detailedUserProfile?.streetAddress || ''
+          phone: detailedUserProfile?.phone || '',
+          location: detailedUserProfile?.location || ''
         }
       });
 
@@ -526,8 +211,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           personal: {
             name: detailedUserProfile?.fullName || 'Your Name',
             email: user?.email || 'unknown@email.com', // Use real email from auth
-            phone: detailedUserProfile?.contactNumber || '',
-            location: detailedUserProfile?.streetAddress || ''
+          phone: detailedUserProfile?.phone || '',
+          location: detailedUserProfile?.location || ''
           }
         },
         extractionMetadata: {
@@ -866,6 +551,3 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 };
 
 export default AIEnhancementModal;
-
-
-

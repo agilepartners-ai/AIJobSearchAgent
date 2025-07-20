@@ -1,7 +1,3 @@
-import {
-  DialogWrapper,
-  AnimatedTextBlockWrapper,
-} from "@/components/DialogWrapper";
 import { cn } from "@/utils";
 import { useAtom } from "jotai";
 import { getDefaultStore } from "jotai";
@@ -167,8 +163,8 @@ export const Settings: React.FC = () => {
   };
 
   return (
-    <DialogWrapper>
-      <AnimatedTextBlockWrapper>
+    <div>
+      <div>
         <div className="relative w-full max-w-2xl">
           <div className="sticky top-0 pt-8 pb-6 z-10">
             <Button
@@ -317,7 +313,7 @@ export const Settings: React.FC = () => {
             </button>
           </div>
         </div>
-      </AnimatedTextBlockWrapper>
-    </DialogWrapper>
+      </div>
+    </div>
   );
 };

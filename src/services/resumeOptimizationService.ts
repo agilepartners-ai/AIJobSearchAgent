@@ -1,10 +1,4 @@
-import { OpenAIResumeOptimizer, ResumeOptimizationRequest } from './openaiService';
-
-interface OptimizationRequest {
-  firebase_uid: string;
-  resume_text: string;
-  job_description: string;
-}
+import { OpenAIResumeOptimizer } from './openaiService';
 
 interface OptimizationResponse {
   success: boolean;

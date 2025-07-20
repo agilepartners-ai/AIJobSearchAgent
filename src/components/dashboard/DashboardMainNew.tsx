@@ -405,7 +405,7 @@ const Dashboard: React.FC = () => {
     setShowAIModal(true);
   };
 
-  const handleAISave = async (resumeUrl: string, coverLetterUrl: string) => {
+  const handleAISave = async () => {
     if (!selectedApplicationForAI || !user) return;
 
     try {

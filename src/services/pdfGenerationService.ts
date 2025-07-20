@@ -1,4 +1,3 @@
-import { createApiError, handleApiError } from '../utils/apiErrorUtils';
 
 export interface OptimizeResumeOptions {
     template?: string;

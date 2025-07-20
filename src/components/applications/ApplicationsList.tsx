@@ -15,14 +15,14 @@ const mockApplications: JobApplication[] = [
     user_id: '1',
     company_name: 'TechCorp Inc.',
     position: 'Senior Software Engineer',
-    status: 'interview',
+    status: 'interviewing',
     application_date: '2024-01-15T10:00:00Z',
     last_updated: '2024-01-20T14:30:00Z',
     notes: 'Great company culture, looking forward to the technical interview',
-    resume_url: 'https://example.com/resume.pdf',
-    cover_letter_url: 'https://example.com/cover-letter.pdf',
     created_at: '2024-01-15T10:00:00Z',
-    updated_at: '2024-01-20T14:30:00Z'
+    updated_at: '2024-01-20T14:30:00Z',
+    remote_option: false,
+    priority: 1
   },
   {
     id: '2',
@@ -33,10 +33,10 @@ const mockApplications: JobApplication[] = [
     application_date: '2024-01-18T09:15:00Z',
     last_updated: '2024-01-18T09:15:00Z',
     notes: 'Exciting startup with innovative products',
-    resume_url: 'https://example.com/resume.pdf',
-    cover_letter_url: 'https://example.com/cover-letter.pdf',
     created_at: '2024-01-18T09:15:00Z',
-    updated_at: '2024-01-18T09:15:00Z'
+    updated_at: '2024-01-18T09:15:00Z',
+    remote_option: true,
+    priority: 2
   },
   {
     id: '3',
@@ -47,10 +47,10 @@ const mockApplications: JobApplication[] = [
     application_date: '2024-01-10T16:45:00Z',
     last_updated: '2024-01-22T11:20:00Z',
     notes: 'Received rejection email, but good interview experience',
-    resume_url: 'https://example.com/resume.pdf',
-    cover_letter_url: 'https://example.com/cover-letter.pdf',
     created_at: '2024-01-10T16:45:00Z',
-    updated_at: '2024-01-22T11:20:00Z'
+    updated_at: '2024-01-22T11:20:00Z',
+    remote_option: false,
+    priority: 3
   }
 ];
 
@@ -209,7 +209,7 @@ const ApplicationsList: React.FC = () => {
                   </div>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Documents
+                  Actions
                 </th>
               </tr>
             </thead>
@@ -239,7 +239,7 @@ const ApplicationsList: React.FC = () => {
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                         ${application.status === 'accepted' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
                           application.status === 'rejected' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                          application.status === 'interview' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                          application.status === 'interviewing' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
                           'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'}`}>
                         {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
                       </span>
@@ -252,26 +252,8 @@ const ApplicationsList: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       <div className="flex gap-2">
-                        {application.resume_url && (
-                          <a
-                            href={application.resume_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 dark:text-blue-400 hover:underline"
-                          >
-                            Resume
-                          </a>
-                        )}
-                        {application.cover_letter_url && (
-                          <a
-                            href={application.cover_letter_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 dark:text-blue-400 hover:underline"
-                          >
-                            Cover Letter
-                          </a>
-                        )}
+                        <button className="text-blue-600 dark:text-blue-400 hover:underline">Edit</button>
+                        <button className="text-red-600 dark:text-red-400 hover:underline">Delete</button>
                       </div>
                     </td>
                   </tr>

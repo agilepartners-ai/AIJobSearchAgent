@@ -4,7 +4,7 @@ import { screenAtom } from "@/store/screens";
 import { conversationAtom } from "@/store/conversation";
 import { useAtom, useAtomValue } from "jotai";
 import { quantum } from 'ldrs';
-import { getConversationIdFromUrl, isDirectConversationAccess } from "@/utils/urlUtils";
+import { getConversationIdFromUrl } from "@/utils/urlUtils";
 import { apiTokenAtom } from "@/store/tokens";
 
 const screens = {

@@ -18,8 +18,7 @@ export class ResumeExtractionService {
     private static readonly DEFAULT_MODEL = 'gpt-4o';
 
     static async extractResumeJson(
-        file: File,
-        options: ResumeExtractionOptions = {}
+        file: File
     ): Promise<ResumeExtractionResponse> {
         try {
             // This is now just a mock response since we use direct OpenAI integration

@@ -3,7 +3,7 @@ import {
   Search, Filter, Edit3, Eye, Trash2, ExternalLink, ChevronLeft, ChevronRight, Briefcase, Calendar, Clock, Video, Sparkles, LayoutGrid, LayoutList 
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { JobApplication } from '../../types/supabase';
+import { JobApplication } from '../../types/jobApplication';
 
 interface ApplicationsTableProps {
   applications: JobApplication[];

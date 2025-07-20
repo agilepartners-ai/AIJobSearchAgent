@@ -3,7 +3,7 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setFormData, updateFormField, resetForm } from '../../store/applicationModalSlice';
 import { openModal as openAIModal, closeModal as closeAIModal, resetState as resetAIState } from '../../store/aiEnhancementModalSlice';
 import { X, Calendar, Building, FileText, User, Link, Sparkles, MapPin } from 'lucide-react';
-import { JobApplication, ApplicationStatus, ApplicationStatusValue } from '../../types/jobApplication';
+import { JobApplication, ApplicationStatus } from '../../types/jobApplication';
 import { UserProfileData } from '../../services/profileService';
 import AIEnhancementModal from './AIEnhancementModal';
 
@@ -33,8 +33,8 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
         job_posting_url: application.job_posting_url || '',
         job_description: application.job_description || '',
         notes: application.notes || '',
-        resume_url: application.resume_url || '',
-        cover_letter_url: application.cover_letter_url || ''
+        resume_url: '',
+        cover_letter_url: ''
       }));
     } else {
       dispatch(resetForm());

@@ -1,21 +1,14 @@
 import { createConversation } from "@/api";
-import {
-  DialogWrapper,
-  AnimatedTextBlockWrapper,
-  StaticTextBlockWrapper,
-} from "@/components/DialogWrapper";
 import { screenAtom } from "@/store/screens";
 import { conversationAtom } from "@/store/conversation";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { AlertTriangle, Mic, Video } from "lucide-react";
 import { useDaily, useDailyEvent, useDevices } from "@daily-co/daily-react";
 import { ConversationError } from "./ConversationError";
-import zoomSound from "@/assets/sounds/zoom.mp3";
 import { Button } from "@/components/ui/button";
 import { apiTokenAtom } from "@/store/tokens";
 import { quantum } from 'ldrs';
-import gloriaVideo from "@/assets/video/gloria.mp4";
 
 // Register the quantum loader
 quantum.register();
@@ -57,12 +50,7 @@ export const Instructions: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [error, setError] = useState(false);
-  const audio = useMemo(() => {
-    const audioObj = new Audio(zoomSound);
-    audioObj.volume = 0.7;
-    return audioObj;
-  }, []);
-  const [isPlayingSound, setIsPlayingSound] = useState(false);
+  const [isPlayingSound] = useState(false);
 
   useDailyEvent(
     "camera-error",
@@ -74,14 +62,8 @@ export const Instructions: React.FC = () => {
   const handleClick = async () => {
     try {
       setIsLoading(true);
-      setIsPlayingSound(true);
-      
-      audio.currentTime = 0;
-      await audio.play();
-      
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      setIsPlayingSound(false);
       setIsLoadingConversation(true);
       
       let micDeviceId = currentMic?.device?.deviceId;
@@ -123,17 +105,9 @@ export const Instructions: React.FC = () => {
 
   if (isPlayingSound || isLoadingConversation) {
     return (
-      <DialogWrapper>
-        <video
-          src={gloriaVideo}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="fixed inset-0 h-full w-full object-cover"
-        />
+      <div>
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
-        <AnimatedTextBlockWrapper>
+        <div>
           <div className="flex flex-col items-center justify-center gap-4">
             <l-quantum
               size="45"
@@ -141,8 +115,8 @@ export const Instructions: React.FC = () => {
               color="white"
             ></l-quantum>
           </div>
-        </AnimatedTextBlockWrapper>
-      </DialogWrapper>
+        </div>
+      </div>
     );
   }
 
@@ -151,17 +125,9 @@ export const Instructions: React.FC = () => {
   }
 
   return (
-    <DialogWrapper>
-      <video
-        src={gloriaVideo}
-        autoPlay
-        muted
-        loop
-        playsInline
-        className="fixed inset-0 h-full w-full object-cover"
-      />
+    <div>
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
-      <AnimatedTextBlockWrapper>
+      <div>
         <h1 
           className="mb-4 pt-1 text-center text-3xl sm:text-4xl lg:text-5xl font-semibold"
           style={{
@@ -219,22 +185,18 @@ export const Instructions: React.FC = () => {
           <a href="#" className="text-primary hover:underline">Terms of Use</a> and acknowledge the{' '}
           <a href="#" className="text-primary hover:underline">Privacy Policy</a>.
         </span>
-      </AnimatedTextBlockWrapper>
-    </DialogWrapper>
+      </div>
+    </div>
   );
 };
 
 export const PositiveFeedback: React.FC = () => {
   return (
-    <DialogWrapper>
-      <AnimatedTextBlockWrapper>
-        <StaticTextBlockWrapper
-          imgSrc="/images/positive.png"
-          title="Great Conversation!"
-          titleClassName="sm:max-w-full bg-[linear-gradient(91deg,_#43BF8F_16.63%,_#FFF_86.96%)]"
-          description="Thanks for the engaging discussion. Feel free to come back anytime for another chat!"
-        />
-      </AnimatedTextBlockWrapper>
-    </DialogWrapper>
+    <div>
+      <div>
+        <div>
+        </div>
+      </div>
+    </div>
   );
 };

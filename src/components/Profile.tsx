@@ -11,17 +11,16 @@ const Profile: React.FC = () => {
   const [success, setSuccess] = useState('');
 
   const [formData, setFormData] = useState({
-    full_name: '',
+    fullName: '',
     email: '',
     phone: '',
     location: '',
-    title: '',
-    bio: '',
-    skills: '',
-    experience_years: '',
+    currentJobTitle: '',
+    skills: [] as string[],
+    experience: '',
     resume_url: '',
-    linkedin_url: '',
-    portfolio_url: ''
+    linkedin: '',
+    portfolio: ''
   });
 
   useEffect(() => {
@@ -33,17 +32,16 @@ const Profile: React.FC = () => {
     // Populate form with existing profile data
     if (userProfile) {
       setFormData({
-        full_name: userProfile.full_name || '',
+        fullName: userProfile.fullName || '',
         email: userProfile.email || user?.email || '',
         phone: userProfile.phone || '',
         location: userProfile.location || '',
-        title: userProfile.title || '',
-        bio: userProfile.bio || '',
-        skills: userProfile.skills || '',
-        experience_years: userProfile.experience_years?.toString() || '',
+        currentJobTitle: userProfile.currentJobTitle || '',
+        skills: userProfile.skills || [],
+        experience: userProfile.experience || '',
         resume_url: userProfile.resume_url || '',
-        linkedin_url: userProfile.linkedin_url || '',
-        portfolio_url: userProfile.portfolio_url || ''
+        linkedin: userProfile.linkedin || '',
+        portfolio: userProfile.portfolio || ''
       });
     }
   }, [user, userProfile, authLoading, navigate]);
@@ -148,8 +146,8 @@ const Profile: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  name="full_name"
-                  value={formData.full_name}
+                  name="fullName"
+                  value={formData.fullName}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   required
@@ -207,8 +205,8 @@ const Profile: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  name="title"
-                  value={formData.title}
+                  name="currentJobTitle"
+                  value={formData.currentJobTitle}
                   onChange={handleInputChange}
                   placeholder="e.g. Software Engineer"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
@@ -220,8 +218,8 @@ const Profile: React.FC = () => {
                   Years of Experience
                 </label>
                 <select
-                  name="experience_years"
-                  value={formData.experience_years}
+                  name="experience"
+                  value={formData.experience}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 >
@@ -235,21 +233,6 @@ const Profile: React.FC = () => {
               </div>
             </div>
 
-            {/* Bio */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Professional Bio
-              </label>
-              <textarea
-                name="bio"
-                value={formData.bio}
-                onChange={handleInputChange}
-                rows={4}
-                placeholder="Tell us about yourself, your experience, and career goals..."
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              />
-            </div>
-
             {/* Skills */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -258,7 +241,7 @@ const Profile: React.FC = () => {
               <input
                 type="text"
                 name="skills"
-                value={formData.skills}
+                value={Array.isArray(formData.skills) ? formData.skills.join(', ') : ''}
                 onChange={handleInputChange}
                 placeholder="e.g. React, Python, Project Management, Data Analysis"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
@@ -290,8 +273,8 @@ const Profile: React.FC = () => {
                 </label>
                 <input
                   type="url"
-                  name="linkedin_url"
-                  value={formData.linkedin_url}
+                  name="linkedin"
+                  value={formData.linkedin}
                   onChange={handleInputChange}
                   placeholder="https://linkedin.com/in/..."
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
@@ -304,8 +287,8 @@ const Profile: React.FC = () => {
                 </label>
                 <input
                   type="url"
-                  name="portfolio_url"
-                  value={formData.portfolio_url}
+                  name="portfolio"
+                  value={formData.portfolio}
                   onChange={handleInputChange}
                   placeholder="https://..."
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"

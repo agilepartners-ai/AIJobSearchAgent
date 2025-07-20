@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, User, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import ProfileForm, { ProfileData } from '../forms/ProfileFormNew';
 import { ProfileService } from '../../services/profileService';
@@ -11,7 +11,7 @@ interface ProfileModalProps {
 
 const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   const { user, userProfile } = useAuth();
-  const [isEditing, setIsEditing] = useState(true); // Start in editing mode immediately
+  const [, setIsEditing] = useState(true); // Start in editing mode immediately
   const [isLoading, setIsLoading] = useState(true); // Start with loading state
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -125,13 +125,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       if (!authUser) {
         throw new Error('No authenticated user found');
       }
-
-      const currentProfile = await ProfileService.getOrCreateProfile(
-        user.uid,
-        authUser.email || '',
-        profileData.fullName?.trim() || 'New User'
-      );
-      
       // Prepare update data with all profile fields for database
       const updateData: Partial<import('../../services/profileService').UserProfileData> = {
         fullName: profileData.fullName?.trim(),

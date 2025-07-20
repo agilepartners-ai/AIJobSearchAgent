@@ -21,21 +21,6 @@ const JsonViewer: React.FC<JsonViewerProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const formatValue = (value: any): JSX.Element | string => {
-    if (value === null) return <span className="text-gray-500">null</span>;
-    if (value === undefined) return <span className="text-gray-500">undefined</span>;
-    
-    switch (typeof value) {
-      case 'boolean':
-        return <span className="text-purple-600 dark:text-purple-400">{value.toString()}</span>;
-      case 'number':
-        return <span className="text-blue-600 dark:text-blue-400">{value}</span>;
-      case 'string':
-        return <span className="text-green-600 dark:text-green-400">"{value}"</span>;
-      default:
-        return JSON.stringify(value);
-    }
-  };
 
   return (
     <div className="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">

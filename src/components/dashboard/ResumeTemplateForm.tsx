@@ -7,7 +7,7 @@ import {
   setSelectedTemplate,
   resetResumeTemplateForm
 } from '../../store/resumeTemplateFormSlice';
-import { X, Plus, Minus, User, GraduationCap, Briefcase, Wrench, Rocket, Award, Trophy, Globe, Palette, FileText, Edit, Download } from 'lucide-react';
+import { X, Plus, Minus, User, GraduationCap, Briefcase, Wrench, Rocket, Palette, FileText, Download } from 'lucide-react';
 
 interface ParsedResume {
   personal: {
@@ -301,29 +301,6 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
       rows={rows}
       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white resize-vertical transition-colors"
     />
-  );
-
-  const Select = ({ 
-    value, 
-    onChange, 
-    options, 
-    placeholder 
-  }: { 
-    value: string; 
-    onChange: (value: string) => void; 
-    options: Array<{ value: string; label: string }>; 
-    placeholder?: string;
-  }) => (
-    <select
-      value={value || ''}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
-    >
-      {placeholder && <option value="">{placeholder}</option>}
-      {options.map(option => (
-        <option key={option.value} value={option.value}>{option.label}</option>
-      ))}
-    </select>
   );
 
   return (

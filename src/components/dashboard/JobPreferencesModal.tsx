@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Briefcase, MapPin, DollarSign, Globe, Clock, Building, ChevronDown, ChevronUp, Plus, Trash2, Save, RotateCcw } from 'lucide-react';
+import { X, Briefcase, MapPin, DollarSign, Building, ChevronDown, ChevronUp, Plus, Trash2, Save, RotateCcw } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { FirebaseJobPreferencesService, JobPreferences } from '../../services/firebaseJobPreferencesService';
 import { useToastContext } from '../ui/ToastProvider';
@@ -221,9 +221,7 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
       
       // Filter out empty values from arrays
       const filteredJobTitles = formData.jobTitles.filter(title => title.trim() !== '');
-      const filteredIndustries = formData.industries.filter(industry => industry.trim() !== '');
       const filteredLocations = formData.locations.filter(location => location.trim() !== '');
-      const filteredExcludedCompanies = formData.excludedCompanies.filter(company => company.trim() !== '');
       
       // Convert string numbers to actual numbers
       const salaryMin = formData.salaryMin ? parseInt(formData.salaryMin, 10) : null;

@@ -1,4 +1,3 @@
-import { DialogWrapper } from "@/components/DialogWrapper";
 import {
   DailyAudio,
   useDaily,
@@ -8,7 +7,6 @@ import {
   useAudioTrack,
 } from "@daily-co/daily-react";
 import React, { useCallback, useEffect, useState } from "react";
-import Video from "@/components/Video";
 import { conversationAtom } from "@/store/conversation";
 import { useAtom, useAtomValue } from "jotai";
 import { screenAtom } from "@/store/screens";
@@ -27,13 +25,11 @@ import {
   setSessionStartTime,
   updateSessionEndTime,
 } from "@/utils";
-import { Timer } from "@/components/Timer";
 import { TIME_LIMIT } from "@/config";
 import { niceScoreAtom } from "@/store/game";
 import { naughtyScoreAtom } from "@/store/game";
 import { apiTokenAtom } from "@/store/tokens";
 import { quantum } from 'ldrs';
-import { cn } from "@/lib/utils";
 import { removeConversationIdFromUrl, isDirectConversationAccess } from "@/utils/urlUtils";
 
 quantum.register();
@@ -174,16 +170,16 @@ export const Conversation: React.FC = () => {
   }, [daily, token, isDirectAccess]);
 
   return (
-    <DialogWrapper>
       <div className="absolute inset-0 size-full">
         {remoteParticipantIds?.length > 0 ? (
           <>
-            {!isDirectAccess && <Timer />}
-            <Video
-              id={remoteParticipantIds[0]}
-              className="size-full"
-              tileClassName="!object-cover"
-            />
+            <div className="flex h-full items-center justify-center">
+              <l-quantum
+                size="45"
+                speed="1.75"
+                color="white"
+              ></l-quantum>
+            </div>
           </>
         ) : (
           <div className="flex h-full items-center justify-center">
@@ -193,15 +189,6 @@ export const Conversation: React.FC = () => {
               color="white"
             ></l-quantum>
           </div>
-        )}
-        {localSessionId && (
-          <Video
-            id={localSessionId}
-            tileClassName="!object-cover"
-            className={cn(
-              "absolute bottom-20 right-4 aspect-video h-40 w-24 overflow-hidden rounded-lg border-2 border-[#22C5FE] shadow-[0_0_20px_rgba(34,197,254,0.3)] sm:bottom-12 lg:h-auto lg:w-52"
-            )}
-          />
         )}
         <div className="absolute bottom-8 right-1/2 z-10 flex translate-x-1/2 justify-center gap-4">
           <Button
@@ -239,6 +226,5 @@ export const Conversation: React.FC = () => {
         </div>
         <DailyAudio />
       </div>
-    </DialogWrapper>
   );
 };

@@ -1,11 +1,9 @@
-import { AnimatedWrapper } from "@/components/DialogWrapper";
 import React from "react";
 import { useAtom } from "jotai";
 import { screenAtom } from "@/store/screens";
 import { Play, Lock } from "lucide-react";
 import AudioButton from "@/components/AudioButton";
 import { apiTokenAtom } from "@/store/tokens";
-import gloriaVideo from "@/assets/video/gloria.mp4";
 
 export const Intro: React.FC = () => {
   const [, setScreenState] = useAtom(screenAtom);
@@ -16,16 +14,8 @@ export const Intro: React.FC = () => {
   };
 
   return (
-    <AnimatedWrapper>
+    <div>
       <div className="flex size-full flex-col items-center justify-center">
-        <video
-          src={gloriaVideo}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 h-full w-full object-cover"
-        />
         <div className="absolute inset-0 bg-primary-overlay backdrop-blur-sm" />
         <div className="relative z-10 flex flex-col items-center gap-2 py-4 px-4 rounded-xl border border-[rgba(255,255,255,0.2)]" 
           style={{ 
@@ -70,6 +60,6 @@ export const Intro: React.FC = () => {
           </AudioButton>
         </div>
       </div>
-    </AnimatedWrapper>
+    </div>
   );
 };

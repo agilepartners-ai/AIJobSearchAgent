@@ -1,6 +1,6 @@
 import { FirebaseDBService } from './firebaseDBService';
 import { JobApplication } from '../types/jobApplication';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export class FirebaseJobApplicationService {

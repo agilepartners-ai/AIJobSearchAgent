@@ -89,7 +89,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   const [sectionData, setSectionData] = useState<Record<number, Partial<ProfileData>>>({});
   
   // Track if form is being submitted to prevent auto-closing
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [, setIsSubmitting] = useState(false);
   
   const [formData, setFormData] = useState<ProfileData>({
     // Basic Information

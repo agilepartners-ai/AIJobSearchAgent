@@ -39,7 +39,7 @@ const aiEnhancementModalSlice = createSlice({
       state.isOpen = true;
       state.jobDescription = action.payload.jobDescription;
     },
-    closeModal(state) {
+    closeModal() {
       return { ...initialState };
     },
     setSelectedFile(state, action: PayloadAction<{ meta: FileMeta; content: string }>) {

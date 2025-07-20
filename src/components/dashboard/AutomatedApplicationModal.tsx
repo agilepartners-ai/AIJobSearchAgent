@@ -66,7 +66,7 @@ const AutomatedApplicationModal: React.FC<AutomatedApplicationModalProps> = ({ o
     const applications = selectedJobsList.map((job: any) => ({
       company_name: job.company,
       position: job.title,
-      status: ApplicationStatus.SAVED,
+      status: ApplicationStatus.NOT_APPLIED,
       application_date: new Date().toISOString(),
       job_description: job.description,
       job_url: job.job_url,

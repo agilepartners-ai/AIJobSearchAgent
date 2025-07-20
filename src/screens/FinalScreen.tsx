@@ -1,4 +1,3 @@
-import { DialogWrapper, AnimatedTextBlockWrapper } from "@/components/DialogWrapper";
 import React from "react";
 import { useAtom } from "jotai";
 import { screenAtom } from "@/store/screens";
@@ -12,8 +11,8 @@ export const FinalScreen: React.FC = () => {
   };
 
   return (
-    <DialogWrapper>
-      <AnimatedTextBlockWrapper>
+    <div>
+      <div>
         <div className="flex flex-col items-center justify-center gap-6 py-12">
           <h1 className="text-3xl font-bold text-white mb-4 text-center">Thank you for your conversation!</h1>
           <Button
@@ -34,7 +33,7 @@ export const FinalScreen: React.FC = () => {
             Return to Main Screen
           </Button>
         </div>
-      </AnimatedTextBlockWrapper>
-    </DialogWrapper>
+      </div>
+    </div>
   );
 };
