@@ -1,4 +1,4 @@
-import { fetchWithErrorHandling, createApiError } from '../utils/apiErrorUtils';
+import { OpenAIResumeOptimizer, ResumeOptimizationRequest } from './openaiService';
 
 interface OptimizationRequest {
   firebase_uid: string;
@@ -29,10 +29,6 @@ interface OptimizationResponse {
 }
 
 export class ResumeOptimizationService {
-  private static readonly API_URL = 'https://resumebuilder-arfb.onrender.com/optimizer/api/optimize-resume/';
-  private static readonly API_TIMEOUT = 30000; // 30 seconds
-  private static readonly PROXY_URL = '/api/proxy/resume-optimization'; // Local proxy endpoint
-
   /**
    * Validate optimization request data
    * @param userId User ID
@@ -66,7 +62,7 @@ export class ResumeOptimizationService {
   }
 
   /**
-   * Optimize resume based on job description
+   * Optimize resume using OpenAI instead of external API
    * @param userId User ID
    * @param resumeText Resume text
    * @param jobDescription Job description
@@ -78,65 +74,47 @@ export class ResumeOptimizationService {
     jobDescription: string
   ): Promise<OptimizationResponse> {
     try {
-      console.log('Starting resume optimization...');
-      
-      // Prepare request data
-      const requestData: OptimizationRequest = {
-        firebase_uid: userId,
-        resume_text: resumeText,
-        job_description: jobDescription.replace(/[\n\s]+/g, ' ')
+      console.log('Starting resume optimization with OpenAI...');
+
+      // Call OpenAI service directly
+      const aiResults = await OpenAIResumeOptimizer.optimizeResume({
+        resumeText: resumeText,
+        jobDescription: jobDescription
+      });
+
+      // Transform OpenAI results to expected format
+      const response: OptimizationResponse = {
+        success: true,
+        message: 'Resume optimization completed successfully',
+        data: {
+          django_user_id: 1,
+          firebase_uid: userId,
+          user_created: false,
+          analysis: {
+            match_score: aiResults.matchScore,
+            strengths: aiResults.strengths,
+            gaps: aiResults.gaps,
+            suggestions: aiResults.suggestions,
+            tweaked_resume_text: aiResults.optimizedResumeText
+          },
+          optimization_successful: true,
+          score_threshold_met: aiResults.matchScore >= 70,
+          tweaked_text: aiResults.optimizedResumeText,
+          explanation: aiResults.summary
+        }
       };
 
-      // Create abort controller for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.API_TIMEOUT);
-      
-      try {
-        // Determine which endpoint to use based on environment
-        const endpoint = process.env.NODE_ENV === 'production' 
-          ? this.API_URL  // Use direct API in production (with proper CORS on server)
-          : this.PROXY_URL; // Use proxy in development
-        
-        // Send request to API using our error handling utility
-        const response = await fetchWithErrorHandling<OptimizationResponse>(
-          endpoint,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': '*/*',
-              // Add origin for CORS preflight requests
-              'Origin': window.location.origin
-            },
-            // Include credentials if needed (for cookies/auth)
-            // credentials: 'include',
-            body: JSON.stringify(requestData),
-            signal: controller.signal
-          },
-          requestData
-        );
-        
-        clearTimeout(timeoutId);
-        console.log('API response received successfully');
-        
-        return response;
-      } catch (error) {
-        clearTimeout(timeoutId);
-        
-        // Enhance error with API details if not already present
-        if (!(error as any).endpoint) {
-          throw createApiError(
-            error instanceof Error ? error.message : String(error),
-            this.API_URL,
-            requestData
-          );
-        }
-        
-        throw error;
-      }
+      console.log('OpenAI optimization completed successfully');
+      return response;
+
     } catch (error) {
       console.error('Error optimizing resume:', error);
-      throw error;
+
+      return {
+        success: false,
+        message: 'Resume optimization failed',
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
     }
   }
 
@@ -149,7 +127,7 @@ export class ResumeOptimizationService {
     // If API response has data, use it
     if (apiResponse.success && apiResponse.data) {
       const { data } = apiResponse;
-      
+
       return {
         // Map the new API response structure to our expected format
         matchScore: data.analysis.match_score,
@@ -182,12 +160,10 @@ export class ResumeOptimizationService {
         }
       };
     }
-    
+
     // Otherwise, throw an error
-    throw createApiError(
-      apiResponse.error || 'API response does not contain valid data',
-      this.API_URL,
-      { success: apiResponse.success, message: apiResponse.message }
+    throw new Error(
+      apiResponse.error || 'API response does not contain valid data'
     );
   }
 }
