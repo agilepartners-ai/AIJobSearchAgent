@@ -1,5 +1,6 @@
 import { FirebaseDBService } from './firebaseDBService';
 
+
 export interface UserProfileData {
   // Basic Information
   fullName: string;

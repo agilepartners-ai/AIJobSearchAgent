@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { JobSearchService } from '../../services/jobSearchService';
 
+
 export interface WorkExperience {
   jobTitle: string;
   company: string;
