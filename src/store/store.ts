@@ -5,23 +5,7 @@ import dashboardReducer from './dashboardSlice';
 import resumeTemplateFormReducer from './resumeTemplateFormSlice';
 import aiEnhancementModalReducer from './aiEnhancementModalSlice';
 import { persistStore, persistReducer } from 'redux-persist';
-import createWebStorage from 'redux-persist/lib/storage/createWebStorage';
-
-const createNoopStorage = () => {
-  return {
-    getItem(_key) {
-      return Promise.resolve(null);
-    },
-    setItem(_key, value) {
-      return Promise.resolve(value);
-    },
-    removeItem(_key) {
-      return Promise.resolve();
-    },
-  };
-};
-
-const customStorage = typeof window !== 'undefined' ? createWebStorage('local') : createNoopStorage();
+import storage from 'redux-persist/lib/storage';
 
 const rootReducer = combineReducers({
   applicationModal: applicationModalReducer,
@@ -32,7 +16,7 @@ const rootReducer = combineReducers({
 
 const persistConfig = {
   key: 'root',
-  storage: customStorage,
+  storage,
   whitelist: ['applicationModal', 'dashboard', 'resumeTemplateForm', 'aiEnhancementModal']
 };
 

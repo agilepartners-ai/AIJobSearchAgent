@@ -7,7 +7,7 @@ import { IConversation } from '../types';
  */
 export const createConversation = async (context?: string): Promise<IConversation> => {
   try {
-    const apiKey = process.env.NEXT_TAVUS_API_KEY;
+    const apiKey = import.meta.env.VITE_TAVUS_API_KEY;
     
     if (!apiKey) {
       throw new Error('Tavus API key not found. Please check your environment configuration.');
@@ -50,7 +50,7 @@ export const createConversation = async (context?: string): Promise<IConversatio
  */
 export const endConversation = async (conversationId: string): Promise<void> => {
   try {
-    const apiKey = process.env.NEXT_TAVUS_API_KEY;
+    const apiKey = import.meta.env.VITE_TAVUS_API_KEY;
     
     if (!apiKey) {
       throw new Error('Tavus API key not found. Please check your environment configuration.');

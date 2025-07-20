@@ -1,8 +1,6 @@
-"use client";
-
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import Interactive3DVisualization from './Interactive3DVisualization';
 import Mobile3DFallback from './Mobile3DFallback';
 import Typewriter from './Typewriter';
@@ -76,7 +74,7 @@ const Hero: React.FC = () => {
               Transform your job search with our intelligent platform. Get personalized resume optimization, practice with AI-powered mock interviews, and discover opportunities tailored to your skills and career goals.
             </p>            <div className="flex flex-col sm:flex-row gap-4 lg:justify-start justify-center items-center lg:items-start opacity-0 animate-fadeIn" style={{ animationDelay: '3.5s', animationFillMode: 'forwards' }}>
               <Link 
-                href="/login" 
+                to="/login" 
                 className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-10 py-5 rounded-xl font-semibold text-center flex items-center justify-center gap-2 group transition-all hover:-translate-y-2 hover:shadow-2xl shadow-blue-500/40 backdrop-blur-sm border border-blue-400/20 text-lg"
               >
                 Start Your Career Journey
