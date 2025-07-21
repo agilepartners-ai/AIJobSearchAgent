@@ -137,7 +137,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
     // Check API configuration
     if (!config.hasApiKey) {
-      dispatch(setError('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.'));
+      dispatch(setError('OpenAI API key is not configured. Please set NEXT_PUBLIC_OPENAI_API_KEY in your environment variables.'));
       return;
     }
 

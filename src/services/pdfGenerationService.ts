@@ -283,7 +283,7 @@ export class PDFGenerationService {
                     'POST',
                     { fileId, position, companyName, personalInfo, options },
                     null,
-                    'OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.'
+                    'OpenAI API key is not configured. Please set NEXT_PUBLIC_OPENAI_API_KEY in your environment variables.'
                 );
             }
 
