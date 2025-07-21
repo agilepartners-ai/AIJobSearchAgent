@@ -21,6 +21,7 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
 
+
 # Cache static assets
 [[headers]]
   for = "/assets/*"
