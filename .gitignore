@@ -1,0 +1,35 @@
+node_modules
+dist
+.env
+.env.*
+!.env.example
+.DS_Store
+
+
+# Debug files
+*debug*.js
+*debug*.ts
+debug-*
+*-debug.*
+
+# Test files
+*test*.js
+*test*.ts
+test-*
+*-test.*
+
+# SQL migration files (keep only in database folder)
+*.sql
+
+# Development documentation
+*FIX*.md
+*SUMMARY*.md
+*.docx
+
+# Temporary files
+*.tmp
+*.temp
+
+# Team updates folder
+latest updates from team/
+*~
