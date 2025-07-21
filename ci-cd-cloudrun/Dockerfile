@@ -16,7 +16,7 @@ COPY . .
 
 # Run the build script
 # The `VITE_` prefix is important for environment variables to be exposed to the browser
-RUN npm run build
+RUN npm run build --legacy-peer-deps
 
 # Stage 2: Serve the application with Nginx
 FROM nginx:1.25-alpine
