@@ -97,7 +97,7 @@
         "transform": "lodash/{{member}}"
       }
     },
-    "outputFileTracingRoot": "C:\\Users\\yatha\\OneDrive\\Desktop\\Bolt_Hackathon\\AIJobSearchAgent",
+    "outputFileTracingRoot": "C:\\Users\\acube\\agilepartners-ai\\website4\\AIJobSearchAgent",
     "experimental": {
       "useSkewCookie": false,
       "nodeMiddleware": false,
@@ -156,7 +156,7 @@
       "middlewarePrefetch": "flexible",
       "optimisticClientCache": true,
       "manualClientBasePath": false,
-      "cpus": 11,
+      "cpus": 21,
       "memoryBasedWorkersCount": false,
       "imgOptConcurrency": null,
       "imgOptTimeoutInSeconds": 7,
@@ -288,10 +288,10 @@
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.mjs",
     "turbopack": {
-      "root": "C:\\Users\\yatha\\OneDrive\\Desktop\\Bolt_Hackathon\\AIJobSearchAgent"
+      "root": "C:\\Users\\acube\\agilepartners-ai\\website4\\AIJobSearchAgent"
     }
   },
-  "appDir": "C:\\Users\\yatha\\OneDrive\\Desktop\\Bolt_Hackathon\\AIJobSearchAgent",
+  "appDir": "C:\\Users\\acube\\agilepartners-ai\\website4\\AIJobSearchAgent",
   "relativeAppDir": "",
   "files": [
     ".next\\routes-manifest.json",

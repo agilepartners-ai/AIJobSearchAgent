@@ -38,7 +38,7 @@ export const useAuth = () => {
     initializeAuth();
 
     // Listen for auth state changes
-    const unsubscribe = FirebaseAuthService.onAuthStateChange(async (user) => {
+    const unsubscribe = FirebaseAuthService.onAuthStateChanged(async (user) => {
       setUser(user);
       
       if (user) {

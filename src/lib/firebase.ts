@@ -13,10 +13,46 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+// Aggressive build-time detection
+const isServer = typeof window === 'undefined';
+const isBuild = process.env.NODE_ENV === 'production' && isServer;
+const isNextBuild = process.env.NEXT_PHASE === 'phase-production-build';
+
+// Validate Firebase configuration
+const hasValidConfig = firebaseConfig.apiKey && 
+                      firebaseConfig.authDomain && 
+                      firebaseConfig.projectId &&
+                      firebaseConfig.apiKey !== 'undefined' &&
+                      firebaseConfig.apiKey !== '';
+
+let app: any = null;
+let auth: any = null;
+let db: any = null;
+let analytics: any = null;
+
+// Only initialize Firebase in browser environment with valid config
+if (!isServer && !isBuild && !isNextBuild && hasValidConfig) {
+  try {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    analytics = getAnalytics(app);
+    console.log('Firebase initialized successfully');
+  } catch (error) {
+    console.warn('Firebase initialization failed:', error);
+    app = null;
+    auth = null;
+    db = null;
+    analytics = null;
+  }
+} else {
+  console.log('Firebase initialization skipped:', {
+    isServer,
+    isBuild,
+    isNextBuild,
+    hasValidConfig,
+    apiKeyPresent: !!firebaseConfig.apiKey
+  });
+}
 
 export { app, auth, db, analytics };
