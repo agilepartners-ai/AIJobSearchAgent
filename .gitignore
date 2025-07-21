@@ -5,7 +5,6 @@ dist
 !.env.example
 .DS_Store
 
-.next
 
 # Debug files
 *debug*.js
