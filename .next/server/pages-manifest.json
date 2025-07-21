@@ -1,0 +1,15 @@
+{
+  "/_app": "pages/_app.js",
+  "/_error": "pages/_error.js",
+  "/job-listings": "pages/job-listings.html",
+  "/forgot-password": "pages/forgot-password.html",
+  "/ai-interview": "pages/ai-interview.html",
+  "/job-search": "pages/job-search.html",
+  "/": "pages/index.html",
+  "/dashboard": "pages/dashboard.html",
+  "/login": "pages/login.html",
+  "/verify-phone": "pages/verify-phone.html",
+  "/register": "pages/register.html",
+  "/_document": "pages/_document.js",
+  "/404": "pages/404.html"
+}
