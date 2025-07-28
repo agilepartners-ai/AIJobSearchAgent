@@ -21,15 +21,24 @@ RUN npm run build --legacy-peer-deps
 # Stage 2: Serve the application with Nginx
 FROM nginx:1.25-alpine
 
+# Install envsubst for environment variable substitution
+RUN apk add --no-cache gettext
+
 # Copy the build output from the build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copy the nginx configuration file
-# We will create this file next if it doesn't exist
-COPY ci-cd-cloudrun/nginx.conf /etc/nginx/conf.d/default.conf
+# Copy the nginx configuration template
+COPY ci-cd-cloudrun/nginx.conf /etc/nginx/conf.d/default.conf.template
 
-# Expose port 80
-EXPOSE 80
+# Create a startup script to handle environment variable substitution
+RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
+    echo 'export PORT=${PORT:-8080}' >> /docker-entrypoint.sh && \
+    echo 'envsubst < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo 'exec nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
+    chmod +x /docker-entrypoint.sh
 
-# Start Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Expose the port (Cloud Run will override this with PORT env var)
+EXPOSE 8080
+
+# Use the startup script
+CMD ["/docker-entrypoint.sh"]
