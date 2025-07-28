@@ -37,21 +37,12 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   const cardWidth = 320; // Width of each card + margin
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
   
-  const handleQuickApply = async (application: JobApplication) => {
-    try {
-      const url = application.job_posting_url;
-      if (url) {
-        // Update status to 'applied' if currently 'not_applied'
-        if (application.status === 'not_applied' && onUpdateApplicationStatus) {
-          console.log('ApplicationsTable: Updating status to applied for', application.id);
-          onUpdateApplicationStatus(application.id, 'applied');
-        }
-        window.open(url, '_blank');
-      } else {
-        console.log('No application URL available');
+  const handleQuickApply = (application: JobApplication) => {
+    if (application.job_posting_url) {
+      window.open(application.job_posting_url, '_blank', 'noopener,noreferrer');
+      if (application.status === 'not_applied' && onUpdateApplicationStatus) {
+        onUpdateApplicationStatus(application.id, 'applied');
       }
-    } catch (error) {
-      console.error('Error during quick apply:', error);
     }
   };
 
@@ -198,8 +189,14 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                 {filteredApplications.map((application) => (
                   <div
                     key={application.id}
-                    className="flex-shrink-0 w-80 bg-white dark:bg-gray-700 rounded-xl shadow-lg transition-all duration-300 border border-gray-200 dark:border-gray-600 cursor-pointer"
+                    className="relative flex-shrink-0 w-80 bg-white dark:bg-gray-700 rounded-xl shadow-lg transition-all duration-300 border border-gray-200 dark:border-gray-600 cursor-pointer"
                   >
+                    {application.status === 'applied' && (
+                      <div className="absolute top-0 right-0 h-8 w-8 bg-gradient-to-bl from-green-400 to-transparent rounded-tr-xl"></div>
+                    )}
+                    {application.status === 'not_applied' && (
+                      <div className="absolute top-0 right-0 h-8 w-8 bg-gradient-to-bl from-red-400 to-transparent rounded-tr-xl"></div>
+                    )}
                     {/* Card Header */}
                     <div className="p-6 border-b border-gray-200 dark:border-gray-600">
                       <div className="flex items-start justify-between">
@@ -212,9 +209,11 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                             <span className="text-sm">{application.company_name}</span>
                           </div>
                         </div>
-                        <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(application.status || 'not_applied')}`}>
-                          {(application.status || 'not_applied').replace('_', ' ').toUpperCase()}
-                        </span>
+                        {application.status !== 'applied' && application.status !== 'not_applied' && (
+                          <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(application.status || 'not_applied')}`}>
+                            {(application.status || 'not_applied').replace('_', ' ').toUpperCase()}
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -275,10 +274,10 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                           
                           {application.job_posting_url && application.status !== 'not_applied' && (
                             <button
-                              onClick={() => window.open(application.job_posting_url || '', '_blank')}
+                              onClick={() => onEditApplication(application)}
                               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md"
                             >
-                              <ExternalLink size={14} className="mr-2" />
+                              <Edit3 size={14} className="mr-2" />
                               View Job
                             </button>
                           )}
@@ -297,10 +296,10 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                           {onLoadAIEnhanced && (
                             <button
                               onClick={() => onLoadAIEnhanced(application)}
-                              className="w-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md mt-2"
+                              className="w-full bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md mt-2"
                             >
                               <Sparkles size={14} className="mr-2" />
-                              AI Resume & Cover Letter
+                              AI Enhance
                             </button>
                           )}
                         </div>
@@ -382,7 +381,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
       {viewMode === 'table' && (
         <div className="overflow-x-auto">
           {filteredApplications.length > 0 ? (
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 applications-table">
               <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
