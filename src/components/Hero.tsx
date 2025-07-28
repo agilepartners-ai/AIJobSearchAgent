@@ -9,13 +9,16 @@ import Typewriter from './Typewriter';
 
 const Hero: React.FC = () => {
   return (
-    <div className="relative min-h-screen flex items-center bg-gray-900 dark:bg-gray-950 overflow-hidden">      {/* Full-section 3D Background - Expanded Coverage */}
-      <div className="absolute inset-0 z-0 overflow-hidden">        {/* Desktop 3D Visualization - Full Section Background with Extended Area */}
+    <div className="relative min-h-screen flex items-center bg-gray-900 dark:bg-gray-950 overflow-hidden">
+      {/* Full-section 3D Background - Expanded Coverage */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        {/* Desktop 3D Visualization - Full Section Background with Extended Area */}
         <div className="hidden lg:block absolute -inset-10 w-[calc(100%+5rem)] h-[calc(100%+5rem)]">
           <Interactive3DVisualization className="absolute inset-0 w-full h-full scale-110" />
           {/* Stronger overlay for better text readability */}
           <div className="absolute inset-0 bg-gray-900/60 dark:bg-gray-950/70"></div>
-        </div>{/* Mobile - Enhanced Gradient Background with Larger 3D Elements */}
+        </div>
+        {/* Mobile - Enhanced Gradient Background with Larger 3D Elements */}
         <div className="block lg:hidden w-full h-full bg-gradient-to-br from-gray-900 via-blue-900/40 to-gray-900 dark:from-gray-950 dark:via-blue-950/50 dark:to-gray-950">
           {/* Enhanced Animated Particles for Mobile */}
           <div className="absolute inset-0 overflow-hidden">
@@ -58,7 +61,8 @@ const Hero: React.FC = () => {
           <div className="text-center lg:text-left flex-1 max-w-2xl mx-auto lg:mx-0">
             <span className="inline-block px-6 py-2 bg-blue-600/40 dark:bg-blue-500/40 rounded-full text-blue-200 dark:text-blue-100 font-medium mb-3 backdrop-blur-md animate-fadeIn border border-blue-400/30 shadow-lg">
               AI-Powered Career Success
-            </span>            <h1 className="text-3xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-bold text-white mb-3 leading-tight drop-shadow-2xl">
+            </span>
+            <h1 className="text-3xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-bold text-white mb-3 leading-tight drop-shadow-2xl">
               <Typewriter 
                 text="Land Your Dream Job"
                 speed={60}
@@ -72,9 +76,11 @@ const Hero: React.FC = () => {
                   delay={1800}
                 />
               </span>
-            </h1><p className="text-lg lg:text-xl text-gray-100 dark:text-gray-200 mb-6 leading-relaxed max-w-xl lg:max-w-none mx-auto lg:mx-0 drop-shadow-lg font-medium opacity-0 animate-fadeIn" style={{ animationDelay: '3s', animationFillMode: 'forwards' }}>
+            </h1>
+            <p className="text-lg lg:text-xl text-gray-100 dark:text-gray-200 mb-6 leading-relaxed max-w-xl lg:max-w-none mx-auto lg:mx-0 drop-shadow-lg font-medium opacity-0 animate-fadeIn" style={{ animationDelay: '3s', animationFillMode: 'forwards' }}>
               Transform your job search with our intelligent platform. Get personalized resume optimization, practice with AI-powered mock interviews, and discover opportunities tailored to your skills and career goals.
-            </p>            <div className="flex flex-col sm:flex-row gap-4 lg:justify-start justify-center items-center lg:items-start opacity-0 animate-fadeIn" style={{ animationDelay: '3.5s', animationFillMode: 'forwards' }}>
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 lg:justify-start justify-center items-center lg:items-start opacity-0 animate-fadeIn" style={{ animationDelay: '3.5s', animationFillMode: 'forwards' }}>
               <Link 
                 href="/login" 
                 className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-10 py-5 rounded-xl font-semibold text-center flex items-center justify-center gap-2 group transition-all hover:-translate-y-2 hover:shadow-2xl shadow-blue-500/40 backdrop-blur-sm border border-blue-400/20 text-lg"

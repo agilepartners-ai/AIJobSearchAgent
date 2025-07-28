@@ -11,12 +11,18 @@ export interface JobPreferences {
 }
 
 export class JobPreferencesService {
-  private static basePath(userId: string) {
-    return `users/${userId}/jobPreferences`;
+  private static documentPath(userId: string): string {
+    if (!userId) {
+      throw new Error("User ID is required to access job preferences.");
+    }
+    // Use a fixed document ID for each user's job preferences
+    return `users/${userId}/jobPreferences/default`;
   }
 
   static async getJobPreferences(userId: string): Promise<JobPreferences | null> {
-    return FirebaseDBService.read<JobPreferences>(this.basePath(userId));
+    const doc = await FirebaseDBService.read<JobPreferences>(this.documentPath(userId));
+    // Attach the ID since it's not stored in the document data
+    return doc ? { ...doc, id: 'default' } : null;
   }
 
   static async saveJobPreferences(userId: string, preferences: Omit<JobPreferences, 'id' | 'user_id'>): Promise<string> {
@@ -24,10 +30,13 @@ export class JobPreferencesService {
       ...preferences,
       user_id: userId,
     };
-    return FirebaseDBService.create(this.basePath(userId), fullPreferences);
+    // Use 'set' to create or overwrite the single preferences document
+    await FirebaseDBService.set(this.documentPath(userId), fullPreferences);
+    return 'default';
   }
 
   static async updateJobPreferences(userId: string, updates: Partial<JobPreferences>): Promise<void> {
-    return FirebaseDBService.update(this.basePath(userId), updates);
+    // 'update' requires a document path, which is now correctly provided
+    return FirebaseDBService.update(this.documentPath(userId), updates);
   }
 }
