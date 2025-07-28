@@ -1,15 +1,23 @@
 # CI/CD Pipeline for Google Cloud Run
 
-This document provides instructions for setting up the CI/CD pipeline to build, publish, and deploy the web application to Google Cloud Run using GitHub Actions.
+This document provides instructions for setting up the CI/CD pipeline to build, publish, and deploy the AI Job Search Agent web application to Google Cloud Run.
 
 ## Overview
 
-The pipeline is defined in the `.github/workflows/deploy-to-cloud-run.yml` file and is designed to:
+This directory contains all the necessary files for deploying to Google Cloud Run:
 
-1.  **Trigger automatically** on pushes to the `main` (production) and `develop` (development) branches.
-2.  **Build a Docker image** of the application using the `ci-cd-cloudrun/Dockerfile`.
-3.  **Push the Docker image** to Google Artifact Registry.
-4.  **Deploy the image** to the corresponding Google Cloud Run service (`prod` or `dev`).
+- `Dockerfile` - Multi-stage Docker build optimized for Cloud Run
+- `nginx.conf` - Nginx configuration with dynamic port binding
+- `cloudbuild.yaml` - Google Cloud Build configuration
+- `deploy.sh` - Manual deployment script
+- `.github-workflow-deploy-to-cloud-run.yml` - GitHub Actions workflow (move to `.github/workflows/`)
+
+The deployment process:
+
+1.  **Builds** a Docker image using the optimized Dockerfile
+2.  **Pushes** the image to Google Artifact Registry
+3.  **Deploys** to Cloud Run with proper configuration
+4.  **Supports** both manual and automated CI/CD deployment
 
 ## Prerequisites
 
@@ -18,8 +26,38 @@ Before you can use this pipeline, you need:
 *   A Google Cloud Platform (GCP) project for both development and production environments.
 *   The `gcloud` CLI installed and authenticated locally for the initial setup.
 *   Owner or sufficient IAM permissions in the GCP projects to create resources.
+*   Docker installed locally (for manual deployment)
 
-## Setup Instructions
+## Quick Deployment Guide
+
+### Option 1: Manual Deployment (Recommended for testing)
+
+1. **Set environment variables:**
+   ```bash
+   export PROJECT_ID="your-project-id"
+   export SERVICE_NAME="myjobsearchagent"
+   export REGION="us-central1"
+   ```
+
+2. **Run the deployment script:**
+   ```bash
+   chmod +x ci-cd-cloudrun/deploy.sh
+   ./ci-cd-cloudrun/deploy.sh
+   ```
+
+### Option 2: Using Cloud Build directly
+
+```bash
+gcloud builds submit --config ci-cd-cloudrun/cloudbuild.yaml .
+```
+
+### Option 3: GitHub Actions (Automated CI/CD)
+
+1. Move the workflow file: `mv ci-cd-cloudrun/.github-workflow-deploy-to-cloud-run.yml .github/workflows/deploy-to-cloud-run.yml`
+2. Set up the required GitHub secrets (see detailed setup below)
+3. Push to `main` or `develop` branch
+
+## Setup Instructions 
 
 Follow these steps for **each environment** (e.g., once for `dev` and once for `prod`).
 
