@@ -39,13 +39,13 @@ const Toast: React.FC<ToastProps> = ({ id, type, title, message, duration = 5000
   const getBackgroundColor = () => {
     switch (type) {
       case 'success':
-        return 'bg-green-100 dark:bg-green-800/90 border-green-300 dark:border-green-600';
+        return 'bg-green-500 bg-opacity-20 backdrop-blur-lg border-green-500';
       case 'error':
-        return 'bg-red-100 dark:bg-red-800/90 border-red-300 dark:border-red-600';
+        return 'bg-red-100 dark:bg-red-900 border-red-300 dark:border-red-700';
       case 'warning':
-        return 'bg-yellow-100 dark:bg-yellow-800/90 border-yellow-300 dark:border-yellow-600';
+        return 'bg-yellow-100 dark:bg-yellow-900 border-yellow-300 dark:border-yellow-700';
       default:
-        return 'bg-blue-100 dark:bg-blue-800/90 border-blue-300 dark:border-blue-600';
+        return 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700';
     }
   };
 
@@ -61,11 +61,11 @@ const Toast: React.FC<ToastProps> = ({ id, type, title, message, duration = 5000
       <div className="flex items-start gap-3">
         {getIcon()}
         <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+          <h4 className={`text-sm font-bold ${type === 'success' ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
             {title}
           </h4>
           {message && (
-            <p className="text-sm text-gray-700 dark:text-gray-200 mt-1">
+            <p className={`text-sm mt-1 ${type === 'success' ? 'text-gray-200' : 'text-gray-700 dark:text-gray-200'}`}>
               {message}
             </p>
           )}
