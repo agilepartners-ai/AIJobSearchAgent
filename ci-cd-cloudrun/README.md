@@ -57,7 +57,7 @@ gcloud builds submit --config ci-cd-cloudrun/cloudbuild.yaml .
 2. Set up the required GitHub secrets (see detailed setup below)
 3. Push to `main` or `develop` branch
 
-## Setup Instructions
+## Setup Instructions 
 
 Follow these steps for **each environment** (e.g., once for `dev` and once for `prod`).
 

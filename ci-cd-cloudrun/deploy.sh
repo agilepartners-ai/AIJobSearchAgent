@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Cloud Run Deployment Script
+# Cloud Run Deployment Script Hello 
 # This script builds and deploys the application to Google Cloud Run
 
 set -e

@@ -1,7 +1,7 @@
-# Stage 1: Build the application
+# Stage 1: Build the application 
 FROM node:20-alpine AS build
 
-# Set the working directory
+# Set the working directory hello
 WORKDIR /app
 
 # Copy package.json and package-lock.json (or yarn.lock, or pnpm-lock.yaml)
