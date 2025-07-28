@@ -1,0 +1,31 @@
+name: super linter
+
+on:
+  push:
+    branches: main
+  pull_request:
+    branches: main
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  lint:
+    name: run super-linter
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+
+      - name: run github super linter
+        uses: github/super-linter@v6
+        env:
+          VALIDATE_ALL_CODEBASE: true
+          VALIDATE_MARKDOWN: false
+          VALIDATE_NATURAL_LANGUAGE: false
+          VALIDATE_JSCPD: false
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      

@@ -1,0 +1,456 @@
+export interface AIEnhancementOptions {
+    modelType?: string;
+    model?: string;
+    fileId?: string;
+}
+
+export interface AIEnhancementRequest {
+    resume_json?: any;
+    job_description: string;
+    api_key: string;
+    model_type?: string;
+    model?: string;
+    file_id?: string;
+}
+
+export interface KeywordAnalysis {
+    missing_keywords: string[];
+    present_keywords: string[];
+    keyword_density_score: number;
+}
+
+export interface SectionRecommendations {
+    skills: string;
+    experience: string;
+    education: string;
+}
+
+export interface Analysis {
+    match_score: number;
+    strengths: string[];
+    gaps: string[];
+    suggestions: string[];
+    keyword_analysis: KeywordAnalysis;
+    section_recommendations: SectionRecommendations;
+}
+
+export interface CoverLetterOutline {
+    opening: string;
+    body: string;
+    closing: string;
+}
+
+export interface Enhancements {
+    enhanced_summary: string;
+    enhanced_skills: string[];
+    enhanced_experience_bullets: string[];
+    cover_letter_outline: CoverLetterOutline;
+}
+
+export interface AIEnhancementMetadata {
+    model_used: string;
+    model_type: string;
+    timestamp: string;
+    resume_sections_analyzed: string[];
+}
+
+export interface AIEnhancementResponse {
+    success: boolean;
+    analysis: Analysis;
+    enhancements: Enhancements;
+    metadata: AIEnhancementMetadata;
+    file_id: string;
+    error?: string;
+    message?: string;
+}
+
+// Import OpenAI with proper error handling for browser compatibility
+let OpenAI: any;
+
+// Dynamically import OpenAI only when needed in browser environment
+const getOpenAIInstance = async () => {
+    if (typeof window === 'undefined') {
+        throw new Error('OpenAI can only be used in browser environment');
+    }
+
+    if (!OpenAI) {
+        try {
+            const openaiModule = await import('openai');
+            OpenAI = openaiModule.default;
+        } catch (error) {
+            console.error('Failed to import OpenAI:', error);
+            throw new Error('Failed to load OpenAI library');
+        }
+    }
+
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        throw new Error('OpenAI API key is not configured. Please set NEXT_PUBLIC_OPENAI_API_KEY in your environment variables.');
+    }
+
+    return new OpenAI({
+        apiKey: apiKey,
+        dangerouslyAllowBrowser: true
+    });
+};
+
+// Get API key from environment variables with proper browser compatibility
+const getApiKey = (): string => {
+    if (typeof window !== 'undefined') {
+        return process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
+    } else {
+        return process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
+    }
+};
+
+export class AIEnhancementService {
+    private static readonly API_KEY = getApiKey();
+    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'OpenAI';
+    private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'gpt-4o';
+
+    // Create system prompt for AI enhancement (matching old repo pattern)
+    private static createSystemPrompt(): string {
+        return `You are an expert resume optimization AI assistant specializing in ATS optimization and job matching. Your task is to analyze a resume against a job description and provide comprehensive optimization recommendations.
+
+You must respond with a valid JSON object containing the following structure:
+{
+  "match_score": number (0-100),
+  "analysis": {
+    "strengths": ["array of strengths"],
+    "gaps": ["array of gaps/weaknesses"],
+    "suggestions": ["array of specific improvement suggestions"],
+    "keyword_analysis": {
+      "missing_keywords": ["important keywords missing from resume"],
+      "present_keywords": ["keywords found in resume"],
+      "keyword_density_score": number (0-100)
+    },
+    "section_recommendations": {
+      "skills": "recommendations for skills section",
+      "experience": "recommendations for experience section", 
+      "education": "recommendations for education section"
+    }
+  },
+  "enhancements": {
+    "enhanced_summary": "AI-improved professional summary",
+    "enhanced_skills": ["prioritized technical and soft skills"],
+    "enhanced_experience_bullets": ["improved bullet points with metrics"],
+    "cover_letter_outline": {
+      "opening": "compelling opening paragraph",
+      "body": "main body content highlighting relevant experience",
+      "closing": "strong closing with call to action"
+    }
+  }
+}
+
+Focus on:
+1. ATS optimization and keyword matching
+2. Quantifiable achievements and metrics
+3. Industry-specific terminology
+4. Proper formatting and structure
+5. Tailoring content to specific job requirements`;
+    }
+
+    // Create user prompt
+    private static createUserPrompt(resumeText: string, jobDescription: string): string {
+        return `Please analyze and optimize this resume for the given job description.
+
+JOB DESCRIPTION:
+${jobDescription}
+
+CURRENT RESUME:
+${resumeText}
+
+Provide a comprehensive analysis and optimization following the JSON structure specified in the system prompt. Make sure all recommendations are specific, actionable, and tailored to this exact job posting.`;
+    }
+
+    // Enhanced resume analysis using OpenAI directly (like AiJobSearch-old)
+    static async enhanceWithOpenAI(
+        resumeText: string,
+        jobDescription: string,
+        options: AIEnhancementOptions = {}
+    ): Promise<AIEnhancementResponse> {
+        try {
+            console.log('Starting OpenAI resume enhancement...');
+
+            const openai = await getOpenAIInstance();
+
+            const completion = await openai.chat.completions.create({
+                model: options.model || this.DEFAULT_MODEL,
+                messages: [
+                    {
+                        role: 'system',
+                        content: this.createSystemPrompt()
+                    },
+                    {
+                        role: 'user',
+                        content: this.createUserPrompt(resumeText, jobDescription)
+                    }
+                ],
+                temperature: 0.6,
+                max_tokens: 4000,
+                response_format: { type: 'json_object' }
+            });
+
+            const responseText = completion.choices[0]?.message?.content;
+            if (!responseText) {
+                throw new Error('No response from OpenAI');
+            }
+
+            console.log('OpenAI response received, parsing...');
+            const aiResults = JSON.parse(responseText);
+
+            // Transform to our expected format
+            const enhancementResponse: AIEnhancementResponse = {
+                success: true,
+                analysis: {
+                    match_score: aiResults.match_score || 0,
+                    strengths: aiResults.analysis?.strengths || [],
+                    gaps: aiResults.analysis?.gaps || [],
+                    suggestions: aiResults.analysis?.suggestions || [],
+                    keyword_analysis: {
+                        missing_keywords: aiResults.analysis?.keyword_analysis?.missing_keywords || [],
+                        present_keywords: aiResults.analysis?.keyword_analysis?.present_keywords || [],
+                        keyword_density_score: aiResults.analysis?.keyword_analysis?.keyword_density_score || 0
+                    },
+                    section_recommendations: {
+                        skills: aiResults.analysis?.section_recommendations?.skills || '',
+                        experience: aiResults.analysis?.section_recommendations?.experience || '',
+                        education: aiResults.analysis?.section_recommendations?.education || ''
+                    }
+                },
+                enhancements: {
+                    enhanced_summary: aiResults.enhancements?.enhanced_summary || '',
+                    enhanced_skills: aiResults.enhancements?.enhanced_skills || [],
+                    enhanced_experience_bullets: aiResults.enhancements?.enhanced_experience_bullets || [],
+                    cover_letter_outline: {
+                        opening: aiResults.enhancements?.cover_letter_outline?.opening || '',
+                        body: aiResults.enhancements?.cover_letter_outline?.body || '',
+                        closing: aiResults.enhancements?.cover_letter_outline?.closing || ''
+                    }
+                },
+                metadata: {
+                    model_used: options.model || this.DEFAULT_MODEL,
+                    model_type: options.modelType || this.DEFAULT_MODEL_TYPE,
+                    timestamp: new Date().toISOString(),
+                    resume_sections_analyzed: ['summary', 'experience', 'skills', 'education']
+                },
+                file_id: options.fileId || `enhance_${Date.now()}`
+            };
+
+            console.log('OpenAI enhancement completed successfully');
+            return enhancementResponse;
+
+        } catch (error: any) {
+            console.error('OpenAI enhancement failed:', error);
+
+            if (error instanceof Error) {
+                if (error.message.includes('API key') || error.message.includes('401')) {
+                    throw new Error('OpenAI API key is missing or invalid. Please check your configuration.');
+                } else if (error.message.includes('quota') || error.message.includes('429')) {
+                    throw new Error('OpenAI API quota exceeded. Please check your usage limits.');
+                } else if (error.message.includes('JSON')) {
+                    throw new Error('Failed to parse AI response. Please try again.');
+                } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                    throw new Error('Network error. Please check your internet connection and try again.');
+                }
+            }
+
+            throw new Error(`AI enhancement failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+
+    // Enhance resume with file upload (fallback to backend if needed)
+    static async enhanceWithFile(
+        file: File,
+        jobDescription: string,
+        options: AIEnhancementOptions = {}
+    ): Promise<AIEnhancementResponse> {
+        try {
+            // First try to extract text from file and use OpenAI directly
+            const { extractTextFromPDF } = await import('../utils/pdfUtils');
+            const extractionResult = await extractTextFromPDF(file);
+
+            if (extractionResult.text && extractionResult.text.length > 50) {
+                console.log('Using extracted text with OpenAI directly...');
+                return await this.enhanceWithOpenAI(extractionResult.text, jobDescription, options);
+            } else {
+                throw new Error('Unable to extract sufficient text from file');
+            }
+        } catch (error: any) {
+            console.error('Error in AI enhancement with file:', error);
+
+            if (error.name === 'AbortError') {
+                throw new Error('AI enhancement timed out. The analysis is taking longer than expected. Please try again.');
+            }
+
+            if (error.message.includes('Failed to fetch')) {
+                throw new Error('Unable to connect to the AI enhancement service. Please check your internet connection and try again.');
+            }
+
+            throw new Error(error.message || 'Failed to enhance resume with AI');
+        }
+    }
+
+    // Enhance resume with JSON data using OpenAI directly
+    static async enhanceWithJson(
+        resumeJson: any,
+        jobDescription: string,
+        options: AIEnhancementOptions = {}
+    ): Promise<AIEnhancementResponse> {
+        try {
+            // Convert JSON resume data to text format for OpenAI
+            let resumeText = '';
+
+            if (resumeJson.personal) {
+                resumeText += `PERSONAL INFORMATION:\n`;
+                resumeText += `Name: ${resumeJson.personal.name || ''}\n`;
+                resumeText += `Email: ${resumeJson.personal.email || ''}\n`;
+                resumeText += `Phone: ${resumeJson.personal.phone || ''}\n`;
+                resumeText += `Location: ${resumeJson.personal.location || ''}\n\n`;
+            }
+
+            if (resumeJson.summary) {
+                resumeText += `PROFESSIONAL SUMMARY:\n${resumeJson.summary}\n\n`;
+            }
+
+            if (resumeJson.experience && Array.isArray(resumeJson.experience)) {
+                resumeText += `WORK EXPERIENCE:\n`;
+                resumeJson.experience.forEach((exp: any) => {
+                    resumeText += `${exp.position || ''} at ${exp.company || ''} (${exp.duration || ''})\n`;
+                    if (exp.description) resumeText += `${exp.description}\n`;
+                    if (exp.achievements && Array.isArray(exp.achievements)) {
+                        exp.achievements.forEach((achievement: string) => {
+                            resumeText += `• ${achievement}\n`;
+                        });
+                    }
+                    resumeText += '\n';
+                });
+            }
+
+            if (resumeJson.education && Array.isArray(resumeJson.education)) {
+                resumeText += `EDUCATION:\n`;
+                resumeJson.education.forEach((edu: any) => {
+                    resumeText += `${edu.degree || ''} from ${edu.institution || ''} (${edu.year || ''})\n`;
+                });
+                resumeText += '\n';
+            }
+
+            if (resumeJson.skills) {
+                resumeText += `SKILLS:\n`;
+                if (Array.isArray(resumeJson.skills)) {
+                    resumeText += resumeJson.skills.join(', ') + '\n';
+                } else if (typeof resumeJson.skills === 'object') {
+                    Object.entries(resumeJson.skills).forEach(([category, skills]) => {
+                        if (Array.isArray(skills)) {
+                            resumeText += `${category}: ${skills.join(', ')}\n`;
+                        }
+                    });
+                }
+            }
+
+            console.log('Using JSON resume data with OpenAI directly...');
+            return await this.enhanceWithOpenAI(resumeText, jobDescription, options);
+
+        } catch (error: any) {
+            console.error('Error in AI enhancement with JSON:', error);
+
+            if (error.name === 'AbortError') {
+                throw new Error('AI enhancement timed out. The analysis is taking longer than expected. Please try again.');
+            }
+
+            if (error.message.includes('Failed to fetch')) {
+                throw new Error('Unable to connect to the AI enhancement service. Please check your internet connection and try again.');
+            }
+
+            throw new Error(error.message || 'Failed to enhance resume with AI');
+        }
+    }
+
+    // Get current configuration for debugging
+    static getConfiguration() {
+        return {
+            hasApiKey: !!this.API_KEY,
+            defaultModelType: this.DEFAULT_MODEL_TYPE,
+            defaultModel: this.DEFAULT_MODEL
+        };
+    }
+
+    // Validate enhancement request
+    static validateEnhancementRequest(jobDescription: string, resumeData?: any): { isValid: boolean; error?: string } {
+        if (!jobDescription || jobDescription.trim().length === 0) {
+            return {
+                isValid: false,
+                error: 'Job description is required for AI enhancement'
+            };
+        }
+
+        if (jobDescription.trim().length < 50) {
+            return {
+                isValid: false,
+                error: 'Job description is too short. Please provide a more detailed job description (at least 50 characters).'
+            };
+        }
+
+        if (resumeData && typeof resumeData !== 'object') {
+            return {
+                isValid: false,
+                error: 'Resume data must be a valid object'
+            };
+        }
+
+        return { isValid: true };
+    }
+
+    // Parse and normalize enhancement response
+    static normalizeEnhancementResponse(response: any): AIEnhancementResponse {
+        try {
+            // Ensure all required fields exist with defaults
+            return {
+                success: response.success || false,
+                analysis: {
+                    match_score: response.analysis?.match_score || 0,
+                    strengths: Array.isArray(response.analysis?.strengths) ? response.analysis.strengths : [],
+                    gaps: Array.isArray(response.analysis?.gaps) ? response.analysis.gaps : [],
+                    suggestions: Array.isArray(response.analysis?.suggestions) ? response.analysis.suggestions : [],
+                    keyword_analysis: {
+                        missing_keywords: Array.isArray(response.analysis?.keyword_analysis?.missing_keywords)
+                            ? response.analysis.keyword_analysis.missing_keywords : [],
+                        present_keywords: Array.isArray(response.analysis?.keyword_analysis?.present_keywords)
+                            ? response.analysis.keyword_analysis.present_keywords : [],
+                        keyword_density_score: response.analysis?.keyword_analysis?.keyword_density_score || 0
+                    },
+                    section_recommendations: {
+                        skills: response.analysis?.section_recommendations?.skills || '',
+                        experience: response.analysis?.section_recommendations?.experience || '',
+                        education: response.analysis?.section_recommendations?.education || ''
+                    }
+                },
+                enhancements: {
+                    enhanced_summary: response.enhancements?.enhanced_summary || '',
+                    enhanced_skills: Array.isArray(response.enhancements?.enhanced_skills)
+                        ? response.enhancements.enhanced_skills : [],
+                    enhanced_experience_bullets: Array.isArray(response.enhancements?.enhanced_experience_bullets)
+                        ? response.enhancements.enhanced_experience_bullets : [],
+                    cover_letter_outline: {
+                        opening: response.enhancements?.cover_letter_outline?.opening || '',
+                        body: response.enhancements?.cover_letter_outline?.body || '',
+                        closing: response.enhancements?.cover_letter_outline?.closing || ''
+                    }
+                },
+                metadata: {
+                    model_used: response.metadata?.model_used || 'gpt-4o',
+                    model_type: response.metadata?.model_type || 'OpenAI',
+                    timestamp: response.metadata?.timestamp || new Date().toISOString(),
+                    resume_sections_analyzed: Array.isArray(response.metadata?.resume_sections_analyzed)
+                        ? response.metadata.resume_sections_analyzed : []
+                },
+                file_id: response.file_id || `enhance_${Date.now()}`,
+                error: response.error,
+                message: response.message
+            };
+        } catch (error) {
+            console.error('Error normalizing enhancement response:', error);
+            throw new Error('Failed to process AI enhancement response');
+        }
+    }
+}
