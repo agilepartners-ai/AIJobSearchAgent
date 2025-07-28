@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "pdfjs-dist": "4.2.67",
     "@daily-co/daily-js": "^0.57.0",
     "@daily-co/daily-react": "^0.15.0",
     "@radix-ui/react-slot": "^1.2.3",
@@ -40,6 +41,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "pdfjs-dist": "4.2.67",
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^20",
     "@types/react": "^18",
