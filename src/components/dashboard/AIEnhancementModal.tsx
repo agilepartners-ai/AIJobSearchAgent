@@ -820,7 +820,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+              className="px-6 py-3 bg-red-600 dark:bg-red-700 text-white rounded-lg font-medium hover:bg-red-700 dark:hover:bg-red-800 transition-all"
             >
               Cancel
             </button>

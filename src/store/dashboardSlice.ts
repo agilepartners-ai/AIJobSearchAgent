@@ -5,6 +5,8 @@ interface DashboardState {
   showJobPreferencesModal: boolean;
   showJobSearchModal: boolean;
   showProfileModal: boolean;
+  showAIEnhancementModal: boolean;
+  showJobDescriptionModal: boolean;
   editingApplication: any | null;
   searchForm: {
     query: string;
@@ -25,6 +27,8 @@ const initialState: DashboardState = {
   showJobPreferencesModal: false,
   showJobSearchModal: false,
   showProfileModal: false,
+  showAIEnhancementModal: false,
+  showJobDescriptionModal: false,
   editingApplication: null,
   searchForm: {
     query: '',
@@ -56,6 +60,12 @@ const dashboardSlice = createSlice({
     setShowProfileModal(state, action: PayloadAction<boolean>) {
       state.showProfileModal = action.payload;
     },
+    setShowAIEnhancementModal(state, action: PayloadAction<boolean>) {
+      state.showAIEnhancementModal = action.payload;
+    },
+    setShowJobDescriptionModal(state, action: PayloadAction<boolean>) {
+      state.showJobDescriptionModal = action.payload;
+    },
     setEditingApplication(state, action: PayloadAction<any | null>) {
       state.editingApplication = action.payload;
     },
@@ -85,6 +95,8 @@ export const {
   setShowJobPreferencesModal,
   setShowJobSearchModal,
   setShowProfileModal,
+  setShowAIEnhancementModal,
+  setShowJobDescriptionModal,
   setEditingApplication,
   setSearchForm,
   setSearchResults,

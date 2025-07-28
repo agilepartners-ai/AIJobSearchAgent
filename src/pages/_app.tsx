@@ -4,6 +4,7 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { AppProps } from 'next/app';
 import { ToastProvider } from '../components/ui/ToastProvider';
 import '../index.css';
+import '../styles/dashboard-responsive.css';
 
 function MyApp({ Component, pageProps }: AppProps) {
   return (

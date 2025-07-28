@@ -293,7 +293,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+                className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-red-700 transition-all"
               >
                 Cancel
               </button>

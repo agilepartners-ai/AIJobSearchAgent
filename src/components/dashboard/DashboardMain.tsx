@@ -6,6 +6,8 @@ import {
   setShowJobSearchModal,
   setShowProfileModal,
   setEditingApplication,
+  setShowAIEnhancementModal,
+  setShowJobDescriptionModal,
   setSearchForm,
   setSearchResults,
   setSearchLoading,
@@ -21,6 +23,7 @@ import ApplicationModal from './ApplicationModal';
 import JobPreferencesModal from './JobPreferencesModal';
 import JobSearchModal from './JobSearchModal';
 import ProfileModal from './ProfileModal';
+import AIEnhancementModal from './AIEnhancementModal';
 import { JobApplication, ApplicationStats, FirebaseJobApplicationService } from '../../services/firebaseJobApplicationService';
 import { JobSearchService } from '../../services/jobSearchService';
 import { useAuth } from '../../hooks/useAuth';
@@ -49,6 +52,8 @@ const Dashboard: React.FC = () => {
   const showJobSearchModal = useAppSelector((state) => state.dashboard.showJobSearchModal);
   const showProfileModal = useAppSelector((state) => state.dashboard.showProfileModal);
   const editingApplication = useAppSelector((state) => state.dashboard.editingApplication);
+  const showAIEnhancementModal = useAppSelector((state) => state.dashboard.showAIEnhancementModal);
+  const showJobDescriptionModal = useAppSelector((state) => state.dashboard.showJobDescriptionModal);
   const searchForm = useAppSelector((state) => state.dashboard.searchForm);
   const searchResults = useAppSelector((state) => state.dashboard.searchResults);
   const searchLoading = useAppSelector((state) => state.dashboard.searchLoading);
@@ -372,14 +377,8 @@ const Dashboard: React.FC = () => {
       setError('');
       const applicationToUpdate = applications.find(app => app.id === applicationId);
       
-      if (applicationToUpdate && applicationToUpdate.status === 'not_applied' && newStatus === 'applied') {
-        const applicationData: CreateJobApplicationData = {
-          ...applicationToUpdate,
-          status: 'applied',
-        };
-        await FirebaseJobApplicationService.addApplication(user.uid, applicationData);
-        // Remove from combinedListings if it exists there
-        setCombinedListings(prev => prev.filter(job => job.id !== applicationId));
+      if (applicationToUpdate) {
+        await FirebaseJobApplicationService.updateApplication(user.uid, applicationId, { status: newStatus as any });
         showSuccess('Application Status Updated', `Status changed to ${newStatus}.`);
         await loadApplications();
         return;
@@ -400,6 +399,16 @@ const Dashboard: React.FC = () => {
 
   const handleViewJobDescription = (job: { title: string; company: string; description: string }) => {
     dispatch(setSelectedJobDescription(job));
+    dispatch(setShowJobDescriptionModal(true));
+  };
+
+  const handleLoadAIEnhanced = (application: JobApplication) => {
+    dispatch(setSelectedJobDescription({
+      title: application.position,
+      company: application.company_name,
+      description: application.job_description || ''
+    }));
+    dispatch(setShowAIEnhancementModal(true));
   };
 
   if (authLoading) {
@@ -423,7 +432,7 @@ const Dashboard: React.FC = () => {
         onFindMoreJobs={handleFindMoreJobs}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 dashboard-main">
         {loading && (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -478,14 +487,15 @@ const Dashboard: React.FC = () => {
             onViewJobDescription={handleViewJobDescription}
             onDeleteApplication={handleDeleteApplication}
             onUpdateApplicationStatus={handleUpdateApplicationStatus}
+            onLoadAIEnhanced={handleLoadAIEnhanced}
           />
         </div>
       </main>
       {/* Modals */}
       <JobDescriptionModal
-        isOpen={!!selectedJobDescription}
+        isOpen={showJobDescriptionModal}
         jobDescription={selectedJobDescription}
-        onClose={() => dispatch(setSelectedJobDescription(null))}
+        onClose={() => dispatch(setShowJobDescriptionModal(false))}
       />
 
       {showModal && (
@@ -504,6 +514,21 @@ const Dashboard: React.FC = () => {
       {showProfileModal && (
         <ProfileModal
           onClose={() => dispatch(setShowProfileModal(false))}
+        />
+      )}
+      {showAIEnhancementModal && (
+        <AIEnhancementModal
+          jobDescription={selectedJobDescription?.description || ''}
+          applicationData={{
+            position: selectedJobDescription?.title || '',
+            company_name: selectedJobDescription?.company || ''
+          }}
+          onSave={(resumeUrl: string, coverLetterUrl: string) => {
+            if (editingApplication) {
+              handleSaveApplication({ ...editingApplication, resume_url: resumeUrl, cover_letter_url: coverLetterUrl });
+            }
+          }}
+          onClose={() => dispatch(setShowAIEnhancementModal(false))}
         />
       )}
       {showJobSearchModal && (

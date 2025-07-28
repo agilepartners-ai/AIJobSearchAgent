@@ -17,8 +17,8 @@ const setupPDFWorker = () => {
     try {
         // Import pdfjs-dist dynamically to avoid SSR issues
         return import('pdfjs-dist').then((pdfjsLib) => {
-            // Use the same CDN approach that works in AiJobSearch-old
-            pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+            // Use a local worker to avoid CDN issues
+            pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdfjs-dist/build/pdf.worker.min.mjs`;
             console.log('PDF.js worker configured successfully, version:', pdfjsLib.version);
             return pdfjsLib;
         });

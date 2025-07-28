@@ -28,7 +28,7 @@ const LoginForm: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4 transition-colors duration-300">
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4 transition-colors duration-300 dark:bg-gray-950">
       <div className="absolute inset-0 w-full h-full overflow-hidden">
         {[...Array(20)].map((_, i) => (
           <div 
@@ -53,13 +53,13 @@ const LoginForm: React.FC = () => {
             <img src="/AGENT_Logo.png" alt="AIJobSearchAgent" className="h-20 w-auto mx-auto mb-6" />
           </Link>
           <h2 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Welcome Back</h2>
-          <p className="text-blue-100">Sign in to your account</p>
+          <p className="text-blue-100 dark:text-blue-200">Sign in to your account</p>
         </div>
         
-        <div className="backdrop-blur-lg bg-white/20 dark:bg-gray-900/40 rounded-2xl shadow-xl border border-white/30 dark:border-gray-700/50 p-8 transition-all duration-300">
+        <div className="backdrop-blur-lg bg-white/20 dark:bg-gray-900/60 rounded-2xl shadow-xl border border-white/30 dark:border-gray-700/50 p-8 transition-all duration-300">
           <form className="space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-500/20 dark:bg-red-900/30 backdrop-blur-sm text-red-100 dark:text-red-200 p-4 rounded-xl text-sm border border-red-500/30 dark:border-red-700/50">
+            <div className="bg-red-500/20 dark:bg-red-900/40 backdrop-blur-sm text-red-100 dark:text-red-200 p-4 rounded-xl text-sm border border-red-500/30 dark:border-red-700/50">
               {error}
             </div>
           )}
@@ -74,7 +74,7 @@ const LoginForm: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full px-4 py-3 bg-white/10 dark:bg-gray-800/30 border border-white/20 dark:border-gray-600/30 rounded-xl backdrop-blur-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 focus:border-transparent text-white dark:text-blue-50 placeholder-blue-200/70 dark:placeholder-blue-300/50 transition-colors duration-300"
+                className="mt-1 block w-full px-4 py-3 bg-white/10 dark:bg-gray-800/50 border border-white/20 dark:border-gray-600/50 rounded-xl backdrop-blur-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 focus:border-transparent text-white dark:text-blue-50 placeholder-blue-200/70 dark:placeholder-blue-300/60 transition-colors duration-300"
                 placeholder="Enter your email"
               />
             </div>
@@ -88,7 +88,7 @@ const LoginForm: React.FC = () => {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full px-4 py-3 bg-white/10 dark:bg-gray-800/30 border border-white/20 dark:border-gray-600/30 rounded-xl backdrop-blur-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 focus:border-transparent text-white dark:text-blue-50 placeholder-blue-200/70 dark:placeholder-blue-300/50 transition-colors duration-300"
+                className="mt-1 block w-full px-4 py-3 bg-white/10 dark:bg-gray-800/50 border border-white/20 dark:border-gray-600/50 rounded-xl backdrop-blur-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 focus:border-transparent text-white dark:text-blue-50 placeholder-blue-200/70 dark:placeholder-blue-300/60 transition-colors duration-300"
                 placeholder="Enter your password"
               />
             </div>
@@ -99,7 +99,7 @@ const LoginForm: React.FC = () => {
               <input
                 id="remember-me"
                 type="checkbox"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-white/30 dark:border-gray-600/50 rounded bg-white/20 dark:bg-gray-800/30"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-white/30 dark:border-gray-600/50 rounded bg-white/20 dark:bg-gray-800/40"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-white dark:text-blue-100">
                 Remember me
