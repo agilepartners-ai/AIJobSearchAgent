@@ -45,23 +45,86 @@ export interface Enhancements {
     enhanced_skills: string[];
     enhanced_experience_bullets: string[];
     cover_letter_outline: CoverLetterOutline;
+    // Add new detailed content fields
+    detailed_resume_sections: {
+        professional_summary: string;
+        technical_skills: string[];
+        soft_skills: string[];
+        experience: DetailedExperience[];
+        education: DetailedEducation[];
+        projects: DetailedProject[];
+        certifications: DetailedCertification[];
+        awards: DetailedAward[];
+        volunteer_work: DetailedVolunteerWork[];
+        publications: DetailedPublication[];
+    };
+    detailed_cover_letter: {
+        opening_paragraph: string;
+        body_paragraph: string;
+        closing_paragraph: string;
+    };
 }
 
-export interface AIEnhancementMetadata {
-    model_used: string;
-    model_type: string;
-    timestamp: string;
-    resume_sections_analyzed: string[];
+export interface DetailedExperience {
+    company: string;
+    position: string;
+    duration: string;
+    location: string;
+    achievements: string[];
+    key_responsibilities: string[];
+    technologies_used: string[];
+    quantified_results: string[];
 }
 
-export interface AIEnhancementResponse {
-    success: boolean;
-    analysis: Analysis;
-    enhancements: Enhancements;
-    metadata: AIEnhancementMetadata;
-    file_id: string;
-    error?: string;
-    message?: string;
+export interface DetailedEducation {
+    institution: string;
+    degree: string;
+    field_of_study: string;
+    graduation_date: string;
+    gpa?: string;
+    relevant_coursework: string[];
+    honors: string[];
+}
+
+export interface DetailedProject {
+    name: string;
+    description: string;
+    technologies: string[];
+    achievements: string[];
+    duration: string;
+    team_size?: string;
+    role: string;
+}
+
+export interface DetailedCertification {
+    name: string;
+    issuing_organization: string;
+    issue_date: string;
+    expiration_date?: string;
+    credential_id?: string;
+}
+
+export interface DetailedAward {
+    title: string;
+    issuing_organization: string;
+    date: string;
+    description: string;
+}
+
+export interface DetailedVolunteerWork {
+    organization: string;
+    role: string;
+    duration: string;
+    description: string;
+    achievements: string[];
+}
+
+export interface DetailedPublication {
+    title: string;
+    publication: string;
+    date: string;
+    authors: string[];
+    description: string;
 }
 
 // Import OpenAI with proper error handling for browser compatibility
@@ -150,6 +213,129 @@ Focus on:
 5. Tailoring content to specific job requirements`;
     }
 
+    // Create system prompt for detailed AI enhancement
+    private static createDetailedSystemPrompt(): string {
+        return `You are an expert resume and cover letter writer specializing in creating comprehensive, ATS-optimized, multi-page professional documents. Your task is to analyze a resume against a job description and create detailed, enhanced content.
+
+You must respond with a valid JSON object containing the following structure:
+{
+  "match_score": number (0-100),
+  "analysis": {
+    "strengths": ["array of specific strengths"],
+    "gaps": ["array of gaps/weaknesses"],
+    "suggestions": ["array of specific improvement suggestions"],
+    "keyword_analysis": {
+      "missing_keywords": ["important keywords missing from resume"],
+      "present_keywords": ["keywords found in resume"],
+      "keyword_density_score": number (0-100)
+    },
+    "section_recommendations": {
+      "skills": "recommendations for skills section",
+      "experience": "recommendations for experience section", 
+      "education": "recommendations for education section"
+    }
+  },
+  "enhancements": {
+    "enhanced_summary": "2-3 sentence professional summary tailored to job",
+    "enhanced_skills": ["prioritized technical and soft skills relevant to job"],
+    "enhanced_experience_bullets": ["improved bullet points with metrics and achievements"],
+    "detailed_resume_sections": {
+      "professional_summary": "3-4 paragraph detailed professional summary highlighting relevant experience and value proposition",
+      "technical_skills": ["comprehensive list of technical skills categorized by proficiency"],
+      "soft_skills": ["relevant soft skills with context"],
+      "experience": [
+        {
+          "company": "Company Name",
+          "position": "Enhanced Job Title",
+          "duration": "Start Date - End Date",
+          "location": "City, State",
+          "achievements": ["3-5 quantified achievements with metrics"],
+          "key_responsibilities": ["4-6 detailed responsibilities using action verbs"],
+          "technologies_used": ["relevant technologies and tools"],
+          "quantified_results": ["specific numbers, percentages, dollar amounts"]
+        }
+      ],
+      "education": [
+        {
+          "institution": "University Name",
+          "degree": "Degree Type",
+          "field_of_study": "Major/Field",
+          "graduation_date": "Month Year",
+          "gpa": "GPA if impressive",
+          "relevant_coursework": ["courses relevant to target job"],
+          "honors": ["academic honors and achievements"]
+        }
+      ],
+      "projects": [
+        {
+          "name": "Project Name",
+          "description": "2-3 sentence detailed description",
+          "technologies": ["technologies used"],
+          "achievements": ["quantified results and impact"],
+          "duration": "timeframe",
+          "team_size": "if applicable",
+          "role": "your specific role"
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Certification Name",
+          "issuing_organization": "Organization",
+          "issue_date": "Month Year",
+          "expiration_date": "Month Year if applicable",
+          "credential_id": "ID if available"
+        }
+      ],
+      "awards": [
+        {
+          "title": "Award Name",
+          "issuing_organization": "Organization",
+          "date": "Month Year",
+          "description": "Brief description of achievement"
+        }
+      ],
+      "volunteer_work": [
+        {
+          "organization": "Organization Name",
+          "role": "Volunteer Role",
+          "duration": "Start - End",
+          "description": "Description of work",
+          "achievements": ["measurable impact"]
+        }
+      ],
+      "publications": [
+        {
+          "title": "Publication Title",
+          "publication": "Journal/Conference Name",
+          "date": "Month Year",
+          "authors": ["author names"],
+          "description": "Brief description of contribution"
+        }
+      ]
+    },
+    "detailed_cover_letter": {
+      "opening_paragraph": "4-5 sentence engaging opening that mentions specific job title, company, and highlights most relevant qualification with enthusiasm",
+      "body_paragraph": "8-10 sentence detailed paragraph connecting specific experiences to job requirements, using concrete examples and quantified achievements that demonstrate value to the company",
+      "closing_paragraph": "3-4 sentence strong closing that reiterates interest, mentions next steps, and includes professional sign-off"
+    },
+    "cover_letter_outline": {
+      "opening": "Brief opening guidance",
+      "body": "Main body guidance",
+      "closing": "Closing guidance"
+    }
+  }
+}
+
+Focus on:
+1. Creating comprehensive, multi-page content suitable for experienced professionals
+2. Using specific examples and quantified achievements
+3. Incorporating job-specific keywords naturally
+4. Ensuring ATS optimization while maintaining readability
+5. Creating compelling narratives that connect experience to job requirements
+6. Providing detailed sections that showcase full professional profile
+7. Making cover letter highly personalized and compelling`;
+    }
+
     // Create user prompt
     private static createUserPrompt(resumeText: string, jobDescription: string): string {
         return `Please analyze and optimize this resume for the given job description.
@@ -163,6 +349,27 @@ ${resumeText}
 Provide a comprehensive analysis and optimization following the JSON structure specified in the system prompt. Make sure all recommendations are specific, actionable, and tailored to this exact job posting.`;
     }
 
+    // Create detailed user prompt
+    private static createDetailedUserPrompt(resumeText: string, jobDescription: string): string {
+        return `Please analyze and create detailed, comprehensive enhanced content for this resume and a personalized cover letter for the given job description.
+
+JOB DESCRIPTION:
+${jobDescription}
+
+CURRENT RESUME:
+${resumeText}
+
+Create a comprehensive analysis and detailed enhanced content following the JSON structure. The enhanced resume should be suitable for a multi-page document with detailed sections. The cover letter should have two substantial paragraphs that create a compelling narrative connecting the candidate's experience to the job requirements.
+
+Make sure all content is:
+1. Highly detailed and professional
+2. Tailored specifically to the job posting
+3. Includes quantified achievements where possible
+4. Uses industry-specific terminology
+5. Optimized for ATS systems
+6. Creates a compelling narrative for the candidate`;
+    }
+
     // Enhanced resume analysis using OpenAI directly (like AiJobSearch-old)
     static async enhanceWithOpenAI(
         resumeText: string,
@@ -170,7 +377,7 @@ Provide a comprehensive analysis and optimization following the JSON structure s
         options: AIEnhancementOptions = {}
     ): Promise<AIEnhancementResponse> {
         try {
-            console.log('Starting OpenAI resume enhancement...');
+            console.log('Starting detailed OpenAI resume enhancement...');
 
             const openai = await getOpenAIInstance();
 
@@ -179,15 +386,15 @@ Provide a comprehensive analysis and optimization following the JSON structure s
                 messages: [
                     {
                         role: 'system',
-                        content: this.createSystemPrompt()
+                        content: this.createDetailedSystemPrompt()
                     },
                     {
                         role: 'user',
-                        content: this.createUserPrompt(resumeText, jobDescription)
+                        content: this.createDetailedUserPrompt(resumeText, jobDescription)
                     }
                 ],
-                temperature: 0.6,
-                max_tokens: 4000,
+                temperature: 0.7,
+                max_tokens: 6000, // Increased for detailed content
                 response_format: { type: 'json_object' }
             });
 
@@ -196,10 +403,10 @@ Provide a comprehensive analysis and optimization following the JSON structure s
                 throw new Error('No response from OpenAI');
             }
 
-            console.log('OpenAI response received, parsing...');
+            console.log('OpenAI detailed response received, parsing...');
             const aiResults = JSON.parse(responseText);
 
-            // Transform to our expected format
+            // Transform to our expected format with detailed content
             const enhancementResponse: AIEnhancementResponse = {
                 success: true,
                 analysis: {
@@ -226,18 +433,21 @@ Provide a comprehensive analysis and optimization following the JSON structure s
                         opening: aiResults.enhancements?.cover_letter_outline?.opening || '',
                         body: aiResults.enhancements?.cover_letter_outline?.body || '',
                         closing: aiResults.enhancements?.cover_letter_outline?.closing || ''
-                    }
+                    },
+                    // Add detailed content
+                    detailed_resume_sections: aiResults.enhancements?.detailed_resume_sections || {},
+                    detailed_cover_letter: aiResults.enhancements?.detailed_cover_letter || {}
                 },
                 metadata: {
                     model_used: options.model || this.DEFAULT_MODEL,
                     model_type: options.modelType || this.DEFAULT_MODEL_TYPE,
                     timestamp: new Date().toISOString(),
-                    resume_sections_analyzed: ['summary', 'experience', 'skills', 'education']
+                    resume_sections_analyzed: ['summary', 'experience', 'skills', 'education', 'projects', 'certifications', 'awards', 'volunteer', 'publications']
                 },
                 file_id: options.fileId || `enhance_${Date.now()}`
             };
 
-            console.log('OpenAI enhancement completed successfully');
+            console.log('OpenAI detailed enhancement completed successfully');
             return enhancementResponse;
 
         } catch (error: any) {
@@ -435,7 +645,9 @@ Provide a comprehensive analysis and optimization following the JSON structure s
                         opening: response.enhancements?.cover_letter_outline?.opening || '',
                         body: response.enhancements?.cover_letter_outline?.body || '',
                         closing: response.enhancements?.cover_letter_outline?.closing || ''
-                    }
+                    },
+                    detailed_resume_sections: response.enhancements?.detailed_resume_sections || {},
+                    detailed_cover_letter: response.enhancements?.detailed_cover_letter || {}
                 },
                 metadata: {
                     model_used: response.metadata?.model_used || 'gpt-4o',
@@ -453,4 +665,21 @@ Provide a comprehensive analysis and optimization following the JSON structure s
             throw new Error('Failed to process AI enhancement response');
         }
     }
+}
+
+export interface AIEnhancementMetadata {
+    model_used: string;
+    model_type: string;
+    timestamp: string;
+    resume_sections_analyzed: string[];
+}
+
+export interface AIEnhancementResponse {
+    success: boolean;
+    analysis: Analysis;
+    enhancements: Enhancements;
+    metadata: AIEnhancementMetadata;
+    file_id: string;
+    error?: string;
+    message?: string;
 }
