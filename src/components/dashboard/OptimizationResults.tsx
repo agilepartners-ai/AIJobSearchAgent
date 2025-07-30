@@ -27,118 +27,241 @@ interface OptimizationResultsProps {
   onBack: () => void;
 }
 
-// PDF Styles
+// PDF Styles with tighter spacing
 const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
     backgroundColor: '#FFFFFF',
-    padding: 30,
+    padding: 20, // Reduced padding
     fontFamily: 'Helvetica',
+    fontSize: 10, // Smaller base font
+    lineHeight: 1.2, // Tighter line height
   },
   header: {
-    marginBottom: 20,
-    borderBottom: '2 solid #2563eb',
-    paddingBottom: 10,
+    marginBottom: 15, // Reduced margin
+    borderBottom: '1 solid #2563eb',
+    paddingBottom: 8,
   },
   name: {
-    fontSize: 24,
+    fontSize: 18, // Reduced from 24
     fontWeight: 'bold',
     color: '#1f2937',
-    marginBottom: 5,
+    marginBottom: 3, // Reduced margin
+    lineHeight: 1.1,
   },
   title: {
-    fontSize: 16,
+    fontSize: 12, // Reduced from 16
     color: '#2563eb',
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 6, // Reduced margin
+    lineHeight: 1.1,
   },
   contactInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    fontSize: 10,
+    fontSize: 9, // Reduced from 10
     color: '#6b7280',
+    lineHeight: 1.1,
   },
   section: {
-    marginBottom: 15,
+    marginBottom: 10, // Reduced from 15
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 11, // Reduced from 14
     fontWeight: 'bold',
     color: '#1f2937',
-    marginBottom: 8,
-    borderLeft: '4 solid #2563eb',
-    paddingLeft: 8,
+    marginBottom: 4, // Reduced from 8
+    borderLeft: '2 solid #2563eb',
+    paddingLeft: 6, // Reduced from 8
+    lineHeight: 1.1,
   },
   text: {
-    fontSize: 10,
-    lineHeight: 1.4,
+    fontSize: 9, // Reduced from 10
+    lineHeight: 1.3, // Tighter line height
     color: '#374151',
-    marginBottom: 5,
+    marginBottom: 2, // Reduced from 5
   },
   bulletPoint: {
-    fontSize: 10,
-    lineHeight: 1.4,
+    fontSize: 9, // Reduced from 10
+    lineHeight: 1.3, // Tighter line height
     color: '#374151',
-    marginBottom: 3,
-    marginLeft: 10,
+    marginBottom: 1, // Reduced from 3
+    marginLeft: 8, // Reduced from 10
   },
+  compactSection: {
+    marginBottom: 8, // Even more compact for certain sections
+  },
+  smallText: {
+    fontSize: 8,
+    lineHeight: 1.2,
+    color: '#6b7280',
+    marginBottom: 1,
+  }
 });
 
-// Resume PDF Document Component
+// Resume PDF Document Component with better content parsing
 const ResumePDFDocument: React.FC<{ content: string; jobDetails: any }> = ({ content, jobDetails }) => {
-  // Parse HTML content to plain text for PDF
-  const plainTextContent = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
+  // Enhanced parsing for better PDF formatting
+  const parseHTMLContent = (htmlContent: string) => {
+    // Remove HTML tags and extract text with basic structure
+    let text = htmlContent.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+
+    // Split content into sections based on common patterns
+    const sections = text.split(/(?=PROFESSIONAL SUMMARY|TECHNICAL SKILLS|CORE COMPETENCIES|PROFESSIONAL EXPERIENCE|EDUCATION|KEY PROJECTS|CERTIFICATIONS|AWARDS|VOLUNTEER EXPERIENCE|PUBLICATIONS)/i);
+
+    // Parse each section for better structure
+    const parsedSections = sections.filter(section => section.trim().length > 0).map(section => {
+      const lines = section.split('\n').filter(line => line.trim().length > 0);
+      const title = lines[0]?.trim() || '';
+      const content = lines.slice(1).join('\n').trim();
+
+      return {
+        title,
+        content,
+        type: getSectionType(title)
+      };
+    });
+
+    return {
+      fullText: text,
+      sections: parsedSections
+    };
+  };
+
+  const getSectionType = (title: string): 'header' | 'list' | 'paragraph' => {
+    const listSections = ['TECHNICAL SKILLS', 'CORE COMPETENCIES', 'CERTIFICATIONS', 'AWARDS'];
+    if (listSections.some(section => title.toUpperCase().includes(section))) {
+      return 'list';
+    }
+    return 'paragraph';
+  };
+
+  const parsedContent = parseHTMLContent(content);
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.name}>AI-Enhanced Resume</Text>
+          <Text style={styles.name}>AI-Enhanced Professional Resume</Text>
           <Text style={styles.title}>Optimized for {jobDetails.title} at {jobDetails.company}</Text>
+          <View style={styles.contactInfo}>
+            <Text>Enhanced with AI • ATS Optimized • Multiple Sections</Text>
+          </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>AI-Enhanced Content</Text>
-          <Text style={styles.text}>{plainTextContent}</Text>
-        </View>
+        {/* Render sections with appropriate spacing */}
+        {parsedContent.sections.slice(0, 6).map((section, index) => (
+          <View key={index} style={index < 2 ? styles.section : styles.compactSection}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            {section.type === 'list' ? (
+              // Render as compact list
+              section.content.split(/[,•\n]/).filter(item => item.trim()).map((item, itemIndex) => (
+                <Text key={itemIndex} style={styles.bulletPoint}>• {item.trim()}</Text>
+              ))
+            ) : (
+              // Render as paragraph with line breaks
+              section.content.split('\n').filter(line => line.trim()).map((line, lineIndex) => (
+                <Text key={lineIndex} style={lineIndex === 0 ? styles.text : styles.smallText}>
+                  {line.trim()}
+                </Text>
+              ))
+            )}
+          </View>
+        ))}
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Target Position</Text>
-          <Text style={styles.text}>Position: {jobDetails.title}</Text>
-          <Text style={styles.text}>Company: {jobDetails.company}</Text>
+        <View style={styles.compactSection}>
+          <Text style={styles.sectionTitle}>Document Information</Text>
+          <Text style={styles.smallText}>Generated: {new Date().toLocaleDateString()}</Text>
+          <Text style={styles.smallText}>Position: {jobDetails.title}</Text>
+          <Text style={styles.smallText}>Company: {jobDetails.company}</Text>
         </View>
       </Page>
+
+      {/* Second page for remaining content with even tighter spacing */}
+      {parsedContent.sections.length > 6 && (
+        <Page size="A4" style={styles.page}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Professional Resume - Page 2</Text>
+          </View>
+
+          {parsedContent.sections.slice(6).map((section, index) => (
+            <View key={index + 6} style={styles.compactSection}>
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+              {section.type === 'list' ? (
+                section.content.split(/[,•\n]/).filter(item => item.trim()).map((item, itemIndex) => (
+                  <Text key={itemIndex} style={styles.bulletPoint}>• {item.trim()}</Text>
+                ))
+              ) : (
+                section.content.split('\n').filter(line => line.trim()).map((line, lineIndex) => (
+                  <Text key={lineIndex} style={styles.smallText}>
+                    {line.trim()}
+                  </Text>
+                ))
+              )}
+            </View>
+          ))}
+
+          <View style={styles.compactSection}>
+            <Text style={styles.sectionTitle}>Content Summary</Text>
+            <Text style={styles.smallText}>
+              This comprehensive resume includes detailed sections covering professional experience, technical skills, projects, certifications, and other relevant qualifications specifically tailored for the {jobDetails.title} position.
+            </Text>
+          </View>
+        </Page>
+      )}
     </Document>
   );
 };
 
-// Cover Letter PDF Document Component  
+// Cover Letter PDF Document Component with better spacing
 const CoverLetterPDFDocument: React.FC<{ content: string; jobDetails: any }> = ({ content, jobDetails }) => {
-  const plainTextContent = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
+  // Extract meaningful content from HTML with better parsing
+  const extractCoverLetterContent = (htmlContent: string) => {
+    const text = htmlContent.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+
+    // Split into meaningful paragraphs
+    const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 50); // Only substantial paragraphs
+
+    return {
+      fullText: text,
+      paragraphs: paragraphs.length > 0 ? paragraphs : [text] // Fallback to full text if no good splits
+    };
+  };
+
+  const parsedContent = extractCoverLetterContent(content);
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.name}>AI-Generated Cover Letter</Text>
+          <Text style={styles.name}>AI-Enhanced Cover Letter</Text>
           <Text style={styles.title}>For {jobDetails.title} at {jobDetails.company}</Text>
+          <View style={styles.contactInfo}>
+            <Text>{new Date().toLocaleDateString()}</Text>
+          </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.text}>{new Date().toLocaleDateString()}</Text>
-        </View>
-
-        <View style={styles.section}>
+        <View style={styles.compactSection}>
           <Text style={styles.text}>Dear Hiring Manager,</Text>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.text}>{plainTextContent}</Text>
-        </View>
+        {/* Render each paragraph with proper spacing */}
+        {parsedContent.paragraphs.map((paragraph, index) => (
+          <View key={index} style={styles.section}>
+            <Text style={styles.text}>{paragraph.trim()}</Text>
+          </View>
+        ))}
 
-        <View style={styles.section}>
+        <View style={styles.compactSection}>
           <Text style={styles.text}>Sincerely,</Text>
           <Text style={styles.text}>Your Name</Text>
+        </View>
+
+        <View style={styles.compactSection}>
+          <Text style={styles.sectionTitle}>Letter Details</Text>
+          <Text style={styles.smallText}>Position: {jobDetails.title}</Text>
+          <Text style={styles.smallText}>Company: {jobDetails.company}</Text>
+          <Text style={styles.smallText}>Type: AI-Enhanced, Personalized</Text>
         </View>
       </Page>
     </Document>
@@ -327,8 +450,8 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
               <button
                 onClick={() => setActiveDocument('resume')}
                 className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${activeDocument === 'resume'
-                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400'
+                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400'
                   }`}
               >
                 <FileText className="h-4 w-4 inline mr-2" />
@@ -337,8 +460,8 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
               <button
                 onClick={() => setActiveDocument('cover-letter')}
                 className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${activeDocument === 'cover-letter'
-                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400'
+                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400'
                   }`}
               >
                 <Award className="h-4 w-4 inline mr-2" />

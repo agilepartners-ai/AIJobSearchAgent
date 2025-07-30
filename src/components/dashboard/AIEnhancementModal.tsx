@@ -300,7 +300,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       const enhancedResumeUrl = `https://example.com/ai-enhanced-resume-${documentId}.pdf`;
       const enhancedCoverLetterUrl = `https://example.com/ai-enhanced-cover-letter-${documentId}.pdf`;
 
-      // Structure results using the AI analysis
+      // Structure results using the detailed AI analysis
       const optimizationResults = {
         matchScore: enhancementResult.analysis.match_score,
         summary: enhancementResult.analysis.match_score >= 80
@@ -329,8 +329,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
         // Enhanced skills optimization using AI data
         skillsOptimization: {
-          technicalSkills: enhancementResult.enhancements.enhanced_skills.slice(0, 8),
-          softSkills: ["Leadership", "Problem Solving", "Communication", "Team Collaboration"],
+          technicalSkills: enhancementResult.enhancements.detailed_resume_sections?.technical_skills || enhancementResult.enhancements.enhanced_skills.slice(0, 8),
+          softSkills: enhancementResult.enhancements.detailed_resume_sections?.soft_skills || ["Leadership", "Problem Solving", "Communication", "Team Collaboration"],
           missingSkills: enhancementResult.analysis.keyword_analysis.missing_keywords.slice(0, 5)
         },
 
@@ -344,12 +344,15 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           }
         },
 
-        // Include AI enhancements
+        // Include detailed AI enhancements
         aiEnhancements: {
           enhancedSummary: enhancementResult.enhancements.enhanced_summary,
           enhancedExperienceBullets: enhancementResult.enhancements.enhanced_experience_bullets,
           coverLetterOutline: enhancementResult.enhancements.cover_letter_outline,
-          sectionRecommendations: enhancementResult.analysis.section_recommendations
+          sectionRecommendations: enhancementResult.analysis.section_recommendations,
+          // Add detailed sections
+          detailedResumeSections: enhancementResult.enhancements.detailed_resume_sections || {},
+          detailedCoverLetter: enhancementResult.enhancements.detailed_cover_letter || {}
         },
 
         // Enhanced metadata
@@ -468,27 +471,20 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   }, [showResults, optimizationResults]);
 
   if (showResults && optimizationResults) {
-    console.log('🎯 Rendering OptimizationResults component');
+    console.log('🎯 Rendering OptimizationResults component with detailed content');
     console.log('🎯 Results data:', optimizationResults);
 
-    const coverLetterHtml = `
-      <div>
-        <h3>Opening</h3>
-        <p>${optimizationResults.aiEnhancements?.coverLetterOutline?.opening || 'AI-generated opening paragraph will appear here.'}</p>
-        
-        <h3>Body</h3>
-        <p>${optimizationResults.aiEnhancements?.coverLetterOutline?.body || 'AI-generated body content will appear here.'}</p>
-        
-        <h3>Closing</h3>
-        <p>${optimizationResults.aiEnhancements?.coverLetterOutline?.closing || 'AI-generated closing paragraph will appear here.'}</p>
-      </div>
-    `;
+    // Generate detailed resume HTML content
+    const detailedResumeHtml = generateDetailedResumeHTML(optimizationResults);
+
+    // Generate detailed cover letter HTML content
+    const detailedCoverLetterHtml = generateDetailedCoverLetterHTML(optimizationResults);
 
     return (
       <OptimizationResults
         results={{
-          resume_html: optimizationResults.aiEnhancements?.enhancedSummary || 'AI-enhanced resume summary will appear here.',
-          cover_letter_html: coverLetterHtml,
+          resume_html: detailedResumeHtml,
+          cover_letter_html: detailedCoverLetterHtml,
         }}
         jobDetails={{
           title: applicationData?.position || 'Position',
@@ -846,3 +842,312 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 };
 
 export default AIEnhancementModal;
+
+// Helper functions to generate detailed HTML content with better formatting
+const generateDetailedResumeHTML = (results: any): string => {
+  const sections = results.aiEnhancements?.detailedResumeSections || {};
+  const personalInfo = results.parsedResume?.personal || {};
+
+  return `
+    <div style="font-family: 'Arial', sans-serif; line-height: 1.4; color: #333; max-width: 800px;">
+      <!-- Header Section -->
+      <header style="text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 15px; margin-bottom: 20px;">
+        <h1 style="font-size: 26px; margin-bottom: 8px; color: #1f2937; font-weight: 700;">${personalInfo.name || 'Professional Name'}</h1>
+        <div style="font-size: 13px; color: #6b7280; margin-bottom: 5px;">
+          <span>${personalInfo.email || 'email@example.com'}</span> • 
+          <span>${personalInfo.phone || '+1 (555) 123-4567'}</span> • 
+          <span>${personalInfo.location || 'City, State'}</span>
+        </div>
+      </header>
+
+      <!-- Professional Summary -->
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PROFESSIONAL SUMMARY</h2>
+        <p style="text-align: justify; line-height: 1.6; font-size: 13px; margin: 0;">
+          ${sections.professional_summary || results.aiEnhancements?.enhancedSummary || 'AI-enhanced professional summary highlighting relevant experience, key skills, and value proposition tailored to the target position. This comprehensive summary demonstrates alignment with job requirements and showcases unique qualifications that make the candidate an ideal fit for the role.'}
+        </p>
+      </section>
+
+      <!-- Technical Skills -->
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">TECHNICAL SKILLS</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 6px; margin-bottom: 8px;">
+          ${(sections.technical_skills || results.skillsOptimization?.technicalSkills || []).map((skill: string) =>
+    `<span style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-size: 12px; border: 1px solid #e5e7eb;">${skill}</span>`
+  ).join('')}
+        </div>
+      </section>
+
+      <!-- Core Competencies -->
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">CORE COMPETENCIES</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 6px;">
+          ${(sections.soft_skills || results.skillsOptimization?.softSkills || []).map((skill: string) =>
+    `<span style="background: #e0f2fe; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #0277bd; border: 1px solid #b3e5fc;">${skill}</span>`
+  ).join('')}
+        </div>
+      </section>
+
+      <!-- Professional Experience -->
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PROFESSIONAL EXPERIENCE</h2>
+        ${(sections.experience || []).map((exp: any) => `
+          <div style="margin-bottom: 18px; page-break-inside: avoid;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;">
+              <h3 style="font-size: 14px; font-weight: 600; margin: 0; color: #1f2937;">${exp.position || 'Job Title'}</h3>
+              <span style="font-size: 12px; color: #6b7280; font-weight: 500;">${exp.duration || 'Start - End'}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <span style="font-size: 13px; color: #4b5563; font-weight: 500;">${exp.company || 'Company Name'}</span>
+              <span style="font-size: 12px; color: #6b7280;">${exp.location || 'City, State'}</span>
+            </div>
+            
+            ${exp.key_responsibilities?.length ? `
+              <div style="margin-bottom: 8px;">
+                <strong style="font-size: 12px; color: #374151;">Key Responsibilities:</strong>
+                <ul style="margin: 3px 0 0 15px; padding: 0;">
+                  ${exp.key_responsibilities.map((resp: string) => `<li style="margin-bottom: 3px; font-size: 12px; line-height: 1.4;">${resp}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+            
+            ${exp.achievements?.length ? `
+              <div style="margin-bottom: 8px;">
+                <strong style="font-size: 12px; color: #374151;">Key Achievements:</strong>
+                <ul style="margin: 3px 0 0 15px; padding: 0;">
+                  ${exp.achievements.map((achievement: string) => `<li style="margin-bottom: 3px; font-size: 12px; line-height: 1.4; color: #059669;">${achievement}</li>`).join('')}
+                </ul>
+              </div>
+            ` : ''}
+            
+            ${exp.technologies_used?.length ? `
+              <div style="margin-top: 5px;">
+                <strong style="font-size: 11px; color: #6b7280;">Technologies:</strong>
+                <span style="font-size: 11px; color: #6b7280;"> ${exp.technologies_used.join(', ')}</span>
+              </div>
+            ` : ''}
+          </div>
+        `).join('')}
+      </section>
+
+      <!-- Education -->
+      ${sections.education?.length ? `
+        <section style="margin-bottom: 20px;">
+          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">EDUCATION</h2>
+          ${sections.education.map((edu: any) => `
+            <div style="margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <h3 style="font-size: 13px; font-weight: 600; margin: 0; color: #1f2937;">${edu.degree || 'Degree'} in ${edu.field_of_study || 'Field'}</h3>
+                <span style="font-size: 12px; color: #6b7280;">${edu.graduation_date || 'Year'}</span>
+              </div>
+              <div style="font-size: 12px; color: #4b5563; margin-bottom: 3px;">${edu.institution || 'Institution Name'}</div>
+              ${edu.gpa ? `<div style="font-size: 11px; color: #6b7280;">GPA: ${edu.gpa}</div>` : ''}
+              ${edu.relevant_coursework?.length ? `
+                <div style="margin-top: 3px;">
+                  <strong style="font-size: 11px;">Relevant Coursework:</strong>
+                  <span style="font-size: 11px; color: #6b7280;"> ${edu.relevant_coursework.join(', ')}</span>
+                </div>
+              ` : ''}
+              ${edu.honors?.length ? `
+                <div style="margin-top: 3px;">
+                  <strong style="font-size: 11px;">Honors:</strong>
+                  <span style="font-size: 11px; color: #059669;"> ${edu.honors.join(', ')}</span>
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+        </section>
+      ` : ''}
+
+      <!-- Projects -->
+      ${sections.projects?.length ? `
+        <section style="margin-bottom: 20px;">
+          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">KEY PROJECTS</h2>
+          ${sections.projects.map((project: any) => `
+            <div style="margin-bottom: 15px; page-break-inside: avoid;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px;">
+                <h3 style="font-size: 13px; font-weight: 600; margin: 0; color: #1f2937;">${project.name || 'Project Name'}</h3>
+                <span style="font-size: 11px; color: #6b7280;">${project.duration || 'Duration'}</span>
+              </div>
+              <p style="font-size: 12px; margin-bottom: 5px; line-height: 1.4;">${project.description || 'Project description'}</p>
+              ${project.achievements?.length ? `
+                <ul style="margin: 5px 0 0 15px; padding: 0;">
+                  ${project.achievements.map((achievement: string) => `<li style="margin-bottom: 2px; font-size: 12px; color: #059669;">${achievement}</li>`).join('')}
+                </ul>
+              ` : ''}
+              ${project.technologies?.length ? `
+                <div style="margin-top: 5px;">
+                  <strong style="font-size: 11px; color: #6b7280;">Technologies:</strong>
+                  <span style="font-size: 11px; color: #6b7280;"> ${project.technologies.join(', ')}</span>
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+        </section>
+      ` : ''}
+
+      <!-- Certifications -->
+      ${sections.certifications?.length ? `
+        <section style="margin-bottom: 20px;">
+          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">CERTIFICATIONS</h2>
+          ${sections.certifications.map((cert: any) => `
+            <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong style="font-size: 12px; color: #1f2937;">${cert.name || 'Certification Name'}</strong>
+                <div style="font-size: 11px; color: #6b7280;">${cert.issuing_organization || 'Issuing Organization'}</div>
+              </div>
+              <div style="text-align: right; font-size: 11px; color: #6b7280;">
+                <div>Issued: ${cert.issue_date || 'Date'}</div>
+                ${cert.expiration_date ? `<div>Expires: ${cert.expiration_date}</div>` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </section>
+      ` : ''}
+
+      <!-- Awards -->
+      ${sections.awards?.length ? `
+        <section style="margin-bottom: 20px;">
+          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">AWARDS & RECOGNITION</h2>
+          ${sections.awards.map((award: any) => `
+            <div style="margin-bottom: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <strong style="font-size: 12px; color: #1f2937;">${award.title || 'Award Title'}</strong>
+                <span style="font-size: 11px; color: #6b7280;">${award.date || 'Date'}</span>
+              </div>
+              <div style="font-size: 11px; color: #6b7280;">${award.issuing_organization || 'Organization'}</div>
+              ${award.description ? `<p style="font-size: 11px; margin-top: 2px; line-height: 1.3;">${award.description}</p>` : ''}
+            </div>
+          `).join('')}
+        </section>
+      ` : ''}
+
+      <!-- Volunteer Work -->
+      ${sections.volunteer_work?.length ? `
+        <section style="margin-bottom: 20px;">
+          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">VOLUNTEER EXPERIENCE</h2>
+          ${sections.volunteer_work.map((vol: any) => `
+            <div style="margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px;">
+                <strong style="font-size: 12px; color: #1f2937;">${vol.role || 'Volunteer Role'}</strong>
+                <span style="font-size: 11px; color: #6b7280;">${vol.duration || 'Duration'}</span>
+              </div>
+              <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">${vol.organization || 'Organization Name'}</div>
+              <p style="font-size: 11px; line-height: 1.3; margin-bottom: 3px;">${vol.description || 'Description of volunteer work'}</p>
+              ${vol.achievements?.length ? `
+                <ul style="margin: 3px 0 0 15px; padding: 0;">
+                  ${vol.achievements.map((achievement: string) => `<li style="margin-bottom: 2px; font-size: 11px; color: #059669;">${achievement}</li>`).join('')}
+                </ul>
+              ` : ''}
+            </div>
+          `).join('')}
+        </section>
+      ` : ''}
+
+      <!-- Publications -->
+      ${sections.publications?.length ? `
+        <section style="margin-bottom: 20px;">
+          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PUBLICATIONS</h2>
+          ${sections.publications.map((pub: any) => `
+            <div style="margin-bottom: 10px;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px;">
+                <strong style="font-size: 12px; color: #1f2937;">${pub.title || 'Publication Title'}</strong>
+                <span style="font-size: 11px; color: #6b7280;">${pub.date || 'Date'}</span>
+              </div>
+              <div style="font-size: 11px; color: #6b7280; font-style: italic; margin-bottom: 2px;">${pub.publication || 'Publication Name'}</div>
+              ${pub.authors?.length ? `<div style="font-size: 10px; color: #6b7280;">Authors: ${pub.authors.join(', ')}</div>` : ''}
+              ${pub.description ? `<p style="font-size: 11px; margin-top: 3px; line-height: 1.3;">${pub.description}</p>` : ''}
+            </div>
+          `).join('')}
+        </section>
+      ` : ''}
+    </div>
+  `;
+};
+
+const generateDetailedCoverLetterHTML = (results: any): string => {
+  const coverLetter = results.aiEnhancements?.detailedCoverLetter || {};
+  const personalInfo = results.parsedResume?.personal || {};
+  const jobDetails = results.applicationData || {};
+
+  return `
+    <div style="font-family: 'Arial', sans-serif; line-height: 1.5; color: #333; max-width: 700px; margin: 0 auto;">
+      <!-- Header -->
+      <header style="text-align: center; margin-bottom: 30px;">
+        <h1 style="font-size: 22px; margin-bottom: 8px; color: #1f2937; font-weight: 600;">${personalInfo.name || 'Your Name'}</h1>
+        <div style="font-size: 13px; color: #6b7280;">
+          <div>${personalInfo.email || 'email@example.com'} • ${personalInfo.phone || '+1 (555) 123-4567'}</div>
+          <div>${personalInfo.location || 'City, State'}</div>
+        </div>
+      </header>
+
+      <!-- Date -->
+      <div style="margin-bottom: 25px; text-align: right;">
+        <p style="font-size: 13px; color: #6b7280; margin: 0;">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      </div>
+
+      <!-- Employer Info -->
+      <div style="margin-bottom: 25px;">
+        <p style="font-size: 13px; color: #374151; margin: 0; line-height: 1.4;">
+          Hiring Manager<br>
+          ${jobDetails.company_name || 'Company Name'}<br>
+          ${jobDetails.location || 'Company Location'}
+        </p>
+      </div>
+
+      <!-- Subject Line -->
+      <div style="margin-bottom: 20px;">
+        <p style="font-size: 13px; color: #374151; margin: 0;">
+          <strong>Re: Application for ${jobDetails.position || 'Position Title'}</strong>
+        </p>
+      </div>
+
+      <!-- Salutation -->
+      <div style="margin-bottom: 15px;">
+        <p style="font-size: 13px; color: #374151; margin: 0;">Dear Hiring Manager,</p>
+      </div>
+
+      <!-- Opening Paragraph -->
+      <div style="margin-bottom: 20px;">
+        <p style="font-size: 13px; line-height: 1.6; text-align: justify; color: #374151; margin: 0;">
+          ${coverLetter.opening_paragraph ||
+    `I am writing to express my strong interest in the ${jobDetails.position || 'Position Title'} role at ${jobDetails.company_name || 'Company Name'}. With my comprehensive background in relevant technologies and proven track record of delivering exceptional results, I am excited about the opportunity to contribute to your team's continued success. My experience aligns perfectly with your requirements, and I am particularly drawn to this position because of its potential for professional growth and the company's reputation for innovation. Having researched your organization extensively, I am confident that my skills and passion make me an ideal candidate for this role.`
+    }
+        </p>
+      </div>
+
+      <!-- Body Paragraph -->
+      <div style="margin-bottom: 20px;">
+        <p style="font-size: 13px; line-height: 1.6; text-align: justify; color: #374151; margin: 0;">
+          ${coverLetter.body_paragraph ||
+    `Throughout my career, I have developed extensive expertise in key areas that directly align with your job requirements. In my previous roles, I have successfully led cross-functional teams, implemented innovative solutions that improved efficiency by significant percentages, and consistently delivered projects on time and within budget. My technical skills encompass the full range of technologies mentioned in your job posting, and I have applied these in real-world scenarios to drive measurable business outcomes. For example, I spearheaded initiatives that resulted in substantial cost savings, improved user satisfaction scores, and enhanced system performance metrics. I am particularly excited about the opportunity to bring my passion for problem-solving and my collaborative approach to your dynamic team, where I can contribute to achieving your organization's strategic objectives while continuing to grow professionally. My experience in stakeholder management, agile methodologies, and continuous improvement positions me well to make an immediate impact in this role.`
+    }
+        </p>
+      </div>
+
+      <!-- Closing Paragraph -->
+      <div style="margin-bottom: 25px;">
+        <p style="font-size: 13px; line-height: 1.6; text-align: justify; color: #374151; margin: 0;">
+          ${coverLetter.closing_paragraph ||
+    `I am eager to discuss how my background, skills, and enthusiasm can contribute to ${jobDetails.company_name || 'your company'}'s continued success. I would welcome the opportunity to speak with you about how I can add value to your team and help achieve your business goals. Thank you for your time and consideration. I look forward to hearing from you soon and am available at your convenience for an interview.`
+    }
+        </p>
+      </div>
+
+      <!-- Sign-off -->
+      <div style="margin-bottom: 15px;">
+        <p style="font-size: 13px; color: #374151; margin: 0;">
+          Sincerely,<br><br>
+          ${personalInfo.name || 'Your Name'}
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: center;">
+        <p style="font-size: 11px; color: #9ca3af; margin: 0;">
+          This cover letter was AI-enhanced and personalized for the ${jobDetails.position || 'target position'} at ${jobDetails.company_name || 'the company'}.
+        </p>
+      </div>
+    </div>
+  `;
+};
