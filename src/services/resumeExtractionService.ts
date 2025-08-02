@@ -24,8 +24,10 @@ export class ResumeExtractionService {
     ): Promise<ResumeExtractionResponse> {
         try {
             // Validate API key
+            console.log(' [DEBUG] ResumeExtractionService - API_KEY value:', this.API_KEY ? `${this.API_KEY.substring(0, 20)}...` : 'NOT FOUND');
+            console.log(' [DEBUG] ResumeExtractionService - API_KEY length:', this.API_KEY ? this.API_KEY.length : 0);
             if (!this.API_KEY) {
-                throw new Error('OpenAI API key is not configured. Please set NEXT_PUBLIC_OPENAI_API_KEY in your environment variables.');
+                throw new Error('OpenAI API key is not configured or invalid. Please check your environment variables.');
             }
 
             // Create form data

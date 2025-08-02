@@ -77,13 +77,15 @@ export class PDFGenerationService {
         
         try {
             // Validate API key
+            console.log(' [DEBUG] PDFGenerationService - API_KEY value:', this.API_KEY ? `${this.API_KEY.substring(0, 20)}...` : 'NOT FOUND');
+            console.log(' [DEBUG] PDFGenerationService - API_KEY length:', this.API_KEY ? this.API_KEY.length : 0);
             if (!this.API_KEY) {
                 throw createApiError(
                     endpoint,
                     'POST',
                     { fileId, hasJobDescription: !!jobDescription, options },
                     null,
-                    'OpenAI API key is not configured. Please set NEXT_PUBLIC_OPENAI_API_KEY in your environment variables.'
+                    'OpenAI API key is not configured or invalid. Please check your environment variables.'
                 );
             }
 
@@ -283,7 +285,7 @@ export class PDFGenerationService {
                     'POST',
                     { fileId, position, companyName, personalInfo, options },
                     null,
-                    'OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your environment variables.'
+                    'OpenAI API key is not configured. Please set NEXT_PUBLIC_OPENAI_API_KEY in your environment variables.'
                 );
             }
 
