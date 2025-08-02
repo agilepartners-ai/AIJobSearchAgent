@@ -32,7 +32,7 @@ export const Intro: React.FC = () => {
           {!token && (
             <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-center">
               <p className="text-sm text-red-200">
-                API key not configured. Please set VITE_TAVUS_API_KEY in your environment variables.
+                API key not configured. Please set NEXT_PUBLIC_TAVUS_API_KEY in your environment variables.
               </p>
             </div>
           )}

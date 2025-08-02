@@ -1,8 +1,36 @@
 steps:
-  # Build the Docker image
+  # Build the Docker image with build arguments
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_API_KEY=${_NEXT_PUBLIC_FIREBASE_API_KEY}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_PROJECT_ID=${_NEXT_PUBLIC_FIREBASE_PROJECT_ID}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${_NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${_NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_APP_ID=${_NEXT_PUBLIC_FIREBASE_APP_ID}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${_NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_JSEARCH_API_KEY=${_NEXT_PUBLIC_JSEARCH_API_KEY}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_JSEARCH_API_HOST=${_NEXT_PUBLIC_JSEARCH_API_HOST}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_TAVUS_API_KEY=${_NEXT_PUBLIC_TAVUS_API_KEY}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_RESUME_API_BASE_URL=${_NEXT_PUBLIC_RESUME_API_BASE_URL}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_RESUME_API_MODEL_TYPE=${_NEXT_PUBLIC_RESUME_API_MODEL_TYPE}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_RESUME_API_MODEL=${_NEXT_PUBLIC_RESUME_API_MODEL}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_OPENAI_API_KEY=${_NEXT_PUBLIC_OPENAI_API_KEY}'
       - '-t'
       - '${_GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:${COMMIT_SHA}'
       - '-f'
@@ -34,7 +62,7 @@ steps:
       - '--port'
       - '8080'
       - '--set-env-vars'
-      - 'PORT=8080'
+      - 'PORT=8080,NEXT_PUBLIC_OPENAI_API_KEY=${_NEXT_PUBLIC_OPENAI_API_KEY}'
       - '--memory'
       - '1Gi'
       - '--cpu'
@@ -49,9 +77,25 @@ steps:
 
 # Substitution variables (can be overridden in trigger or command line)
 substitutions:
-  _GAR_LOCATION: 'us-central1'
-  _REPOSITORY: 'myjobsearchagent-repo'
-  _SERVICE_NAME: 'myjobsearchagent'
+  _GAR_LOCATION: ''
+  _REPOSITORY: ''
+  _SERVICE_NAME: ''
+  # Environment variables for build and runtime
+  _NEXT_PUBLIC_FIREBASE_API_KEY: ''
+  _NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ''
+  _NEXT_PUBLIC_FIREBASE_PROJECT_ID: ''
+  _NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ''
+  _NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ''
+  _NEXT_PUBLIC_FIREBASE_APP_ID: ''
+  _NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ''
+  _NEXT_PUBLIC_JSEARCH_API_KEY: ''
+  _NEXT_PUBLIC_JSEARCH_API_HOST: ''
+  _NEXT_PUBLIC_TAVUS_API_KEY: ''
+  _NEXT_PUBLIC_RESUME_API_BASE_URL: ''
+  _NEXT_PUBLIC_RESUME_API_MODEL_TYPE: ''
+  _NEXT_PUBLIC_RESUME_API_MODEL: ''
+  _NEXT_PUBLIC_OPENAI_API_KEY: ''
+  
 
 
 # Configure build options

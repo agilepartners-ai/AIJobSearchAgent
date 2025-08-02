@@ -159,11 +159,16 @@ const getOpenAIInstance = async () => {
 
 // Get API key from environment variables with proper browser compatibility
 const getApiKey = (): string => {
+    let apiKey = '';
     if (typeof window !== 'undefined') {
-        return process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
+        apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
+        console.log('🔍 [DEBUG] Browser environment - NEXT_PUBLIC_OPENAI_API_KEY:', apiKey ? `${apiKey.substring(0, 20)}...` : 'NOT FOUND');
     } else {
-        return process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
+        apiKey = process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
+        console.log('🔍 [DEBUG] Server environment - OpenAI API Key:', apiKey ? `${apiKey.substring(0, 20)}...` : 'NOT FOUND');
     }
+    console.log('🔍 [DEBUG] Final API key length:', apiKey.length);
+    return apiKey;
 };
 
 export class AIEnhancementService {
