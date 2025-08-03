@@ -364,15 +364,60 @@ ${jobDescription}
 CURRENT RESUME:
 ${resumeText}
 
-Create a comprehensive analysis and detailed enhanced content following the JSON structure. The enhanced resume should be suitable for a multi-page document with detailed sections. The cover letter should have two substantial paragraphs that create a compelling narrative connecting the candidate's experience to the job requirements.
+Create a comprehensive analysis and detailed enhanced content following the JSON structure. Focus on:
+
+1. PROFESSIONAL TITLE: Generate a compelling professional title that directly matches the target role
+2. PROFESSIONAL SUMMARY: Create a 3-4 sentence summary that:
+   - Positions the candidate as the perfect fit for THIS specific role
+   - Highlights the most relevant experience and skills
+   - Quantifies achievements where possible
+   - Uses keywords from the job description naturally
+
+3. COMPLETE EXPERIENCE SECTION: For each job in the original resume:
+   - Enhance the job title to be more impactful if needed
+   - Keep all original companies, dates, and locations
+   - Rewrite responsibilities to emphasize relevance to the target role
+   - Add quantified achievements and metrics
+   - Use action verbs and industry-specific terminology
+   - Highlight transferable skills and technologies mentioned in the job posting
+
+4. EDUCATION SECTION: Maintain all original education details and enhance with:
+   - Relevant coursework that aligns with the job requirements
+   - Academic achievements and honors
+   - Projects or thesis work relevant to the target role
+
+5. SKILLS OPTIMIZATION: 
+   - Prioritize technical skills mentioned in the job posting
+   - Include all relevant skills from the original resume
+   - Add complementary skills that support the target role
+   - Organize by categories (technical, soft skills, tools, etc.)
+
+6. PROJECTS ENHANCEMENT: For each project:
+   - Emphasize technologies and methodologies relevant to the target role
+   - Quantify impact and results
+   - Highlight problem-solving and innovation
+
+7. COMPLETE SECTIONS: Include and enhance ALL sections from the original resume:
+   - Certifications with expiration dates and credential IDs
+   - Awards with context and impact
+   - Volunteer work with leadership and impact examples
+   - Publications with proper citations
+
+8. COVER LETTER: Create a compelling, personalized cover letter that:
+   - Opens with enthusiasm for the specific role and company
+   - Connects the candidate's background directly to job requirements
+   - Provides specific examples of relevant achievements
+   - Closes with a strong call to action
 
 Make sure all content is:
 1. Highly detailed and professional
-2. Tailored specifically to the job posting
-3. Includes quantified achievements where possible
-4. Uses industry-specific terminology
-5. Optimized for ATS systems
-6. Creates a compelling narrative for the candidate`;
+2. Tailored specifically to the job posting with natural keyword integration
+3. Includes quantified achievements and specific examples
+4. Uses industry-specific terminology and action verbs
+5. Optimized for ATS systems while remaining readable
+6. Creates a compelling narrative that positions the candidate as the ideal fit
+7. Maintains all factual information from the original resume while enhancing presentation
+8. Provides a complete, comprehensive profile suitable for a multi-page professional resume`;
     }
 
     // Enhanced resume analysis using OpenAI directly (like AiJobSearch-old)

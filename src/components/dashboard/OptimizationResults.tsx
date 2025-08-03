@@ -27,69 +27,135 @@ interface OptimizationResultsProps {
   onBack: () => void;
 }
 
-// PDF Styles with tighter spacing
+// Enhanced PDF Styles with better spacing and structure
 const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
     backgroundColor: '#FFFFFF',
-    padding: 20, // Reduced padding
+    padding: 16,
     fontFamily: 'Helvetica',
-    fontSize: 10, // Smaller base font
-    lineHeight: 1.2, // Tighter line height
+    fontSize: 9,
+    lineHeight: 1.3,
   },
   header: {
-    marginBottom: 15, // Reduced margin
+    marginBottom: 12,
     borderBottom: '1 solid #2563eb',
-    paddingBottom: 8,
+    paddingBottom: 6,
+    textAlign: 'center',
   },
   name: {
-    fontSize: 18, // Reduced from 24
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#1f2937',
-    marginBottom: 3, // Reduced margin
+    marginBottom: 3,
     lineHeight: 1.1,
   },
-  title: {
-    fontSize: 12, // Reduced from 16
+  professionalTitle: {
+    fontSize: 13,
     color: '#2563eb',
     fontWeight: 'bold',
-    marginBottom: 6, // Reduced margin
+    marginBottom: 4,
     lineHeight: 1.1,
   },
   contactInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    fontSize: 9, // Reduced from 10
+    fontSize: 9,
     color: '#6b7280',
-    lineHeight: 1.1,
+    lineHeight: 1.2,
+    marginBottom: 1,
   },
   section: {
-    marginBottom: 10, // Reduced from 15
-  },
-  sectionTitle: {
-    fontSize: 11, // Reduced from 14
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 4, // Reduced from 8
-    borderLeft: '2 solid #2563eb',
-    paddingLeft: 6, // Reduced from 8
-    lineHeight: 1.1,
-  },
-  text: {
-    fontSize: 9, // Reduced from 10
-    lineHeight: 1.3, // Tighter line height
-    color: '#374151',
-    marginBottom: 2, // Reduced from 5
-  },
-  bulletPoint: {
-    fontSize: 9, // Reduced from 10
-    lineHeight: 1.3, // Tighter line height
-    color: '#374151',
-    marginBottom: 1, // Reduced from 3
-    marginLeft: 8, // Reduced from 10
+    marginBottom: 10,
   },
   compactSection: {
-    marginBottom: 8, // Even more compact for certain sections
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 4,
+    borderLeft: '2 solid #2563eb',
+    paddingLeft: 6,
+    lineHeight: 1.1,
+    textTransform: 'uppercase',
+  },
+  summaryText: {
+    fontSize: 9,
+    lineHeight: 1.4,
+    color: '#374151',
+    marginBottom: 2,
+    textAlign: 'justify',
+  },
+  experienceItem: {
+    marginBottom: 8,
+    pageBreakInside: false,
+  },
+  jobTitle: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 1,
+  },
+  companyInfo: {
+    fontSize: 9,
+    color: '#6b7280',
+    marginBottom: 3,
+    fontStyle: 'italic',
+  },
+  bulletPoint: {
+    fontSize: 8,
+    lineHeight: 1.3,
+    color: '#374151',
+    marginBottom: 1,
+    marginLeft: 8,
+  },
+  skillsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 3,
+  },
+  skillItem: {
+    fontSize: 8,
+    backgroundColor: '#f3f4f6',
+    padding: 2,
+    margin: 1,
+    borderRadius: 2,
+    color: '#374151',
+  },
+  educationItem: {
+    marginBottom: 6,
+  },
+  degreeInfo: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 1,
+  },
+  schoolInfo: {
+    fontSize: 8,
+    color: '#6b7280',
+    marginBottom: 2,
+  },
+  projectItem: {
+    marginBottom: 6,
+  },
+  projectTitle: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 1,
+  },
+  projectDesc: {
+    fontSize: 8,
+    lineHeight: 1.3,
+    color: '#374151',
+    marginBottom: 2,
+  },
+  certificationItem: {
+    fontSize: 8,
+    lineHeight: 1.3,
+    color: '#374151',
+    marginBottom: 2,
   },
   smallText: {
     fontSize: 8,
@@ -99,132 +165,569 @@ const styles = StyleSheet.create({
   }
 });
 
-// Resume PDF Document Component with better content parsing
+// Enhanced Resume PDF Document Component with comprehensive parsing
 const ResumePDFDocument: React.FC<{ content: string; jobDetails: any }> = ({ content, jobDetails }) => {
-  // Enhanced parsing for better PDF formatting
-  const parseHTMLContent = (htmlContent: string) => {
-    // Remove HTML tags and extract text with basic structure
-    let text = htmlContent.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+  // Enhanced parsing to extract ALL resume information
+  const parseComprehensiveResumeData = (htmlContent: string) => {
+    console.log('🔍 Parsing comprehensive resume data...');
 
-    // Split content into sections based on common patterns
-    const sections = text.split(/(?=PROFESSIONAL SUMMARY|TECHNICAL SKILLS|CORE COMPETENCIES|PROFESSIONAL EXPERIENCE|EDUCATION|KEY PROJECTS|CERTIFICATIONS|AWARDS|VOLUNTEER EXPERIENCE|PUBLICATIONS)/i);
+    // Clean up HTML and get text content
+    let text = htmlContent
+      .replace(/<[^>]*>/g, '\n')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/\s+/g, ' ')
+      .replace(/\n\s*\n/g, '\n')
+      .trim();
 
-    // Parse each section for better structure
-    const parsedSections = sections.filter(section => section.trim().length > 0).map(section => {
-      const lines = section.split('\n').filter(line => line.trim().length > 0);
-      const title = lines[0]?.trim() || '';
-      const content = lines.slice(1).join('\n').trim();
+    console.log('📄 Resume text length:', text.length);
 
-      return {
-        title,
-        content,
-        type: getSectionType(title)
-      };
-    });
+    const data = {
+      professionalTitle: extractProfessionalTitle(text, jobDetails),
+      personalInfo: extractPersonalInfo(text),
+      professionalSummary: extractSection(text, ['PROFESSIONAL SUMMARY', 'SUMMARY', 'PROFILE', 'OBJECTIVE']),
+      technicalSkills: extractSection(text, ['TECHNICAL SKILLS', 'SKILLS', 'TECHNOLOGIES']),
+      coreCompetencies: extractSection(text, ['CORE COMPETENCIES', 'COMPETENCIES', 'SOFT SKILLS']),
+      experience: extractAllExperience(text),
+      education: extractAllEducation(text),
+      projects: extractAllProjects(text),
+      certifications: extractSection(text, ['CERTIFICATIONS', 'LICENSES', 'CREDENTIALS']),
+      awards: extractSection(text, ['AWARDS', 'RECOGNITION', 'HONORS']),
+      volunteer: extractSection(text, ['VOLUNTEER EXPERIENCE', 'VOLUNTEER', 'COMMUNITY SERVICE']),
+      publications: extractSection(text, ['PUBLICATIONS', 'RESEARCH', 'PAPERS'])
+    };
+
+    console.log('📊 Parsed data summary:');
+    console.log('- Experience entries:', data.experience.length);
+    console.log('- Education entries:', data.education.length);
+    console.log('- Projects:', data.projects.length);
+    console.log('- Professional title:', data.professionalTitle);
+
+    return data;
+  };
+
+  const extractProfessionalTitle = (text: string, jobDetails: any): string => {
+    // Generate relevant title based on job details and resume content
+    const jobTitle = jobDetails.title || '';
+
+    // Look for existing title patterns in resume
+    const titlePatterns = [
+      /PROFESSIONAL TITLE[:\s]*([^\n]+)/i,
+      /JOB TITLE[:\s]*([^\n]+)/i,
+      // Look for title after name
+      /^(?:[A-Z][a-z]+ [A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*\n\s*([A-Z][a-zA-Z\s&,.-]*(?:Engineer|Developer|Manager|Analyst|Specialist|Coordinator|Director|Lead|Senior|Consultant|Executive))/m
+    ];
+
+    for (const pattern of titlePatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]?.trim()) {
+        return match[1].trim();
+      }
+    }
+
+    // Generate title based on job posting and resume content
+    const skillsText = extractSection(text, ['TECHNICAL SKILLS', 'SKILLS']).toLowerCase();
+    const experienceText = extractSection(text, ['PROFESSIONAL EXPERIENCE', 'EXPERIENCE']).toLowerCase();
+
+    let generatedTitle = jobTitle;
+
+    // Enhance title based on seniority level found in resume
+    if (experienceText.includes('senior') || experienceText.includes('lead') || experienceText.includes('principal')) {
+      if (!jobTitle.toLowerCase().includes('senior') && !jobTitle.toLowerCase().includes('lead')) {
+        generatedTitle = `Senior ${jobTitle}`;
+      }
+    }
+
+    return generatedTitle || 'Professional Specialist';
+  };
+
+  const extractPersonalInfo = (text: string): any => {
+    const emailMatch = text.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
+    const phoneMatch = text.match(/\b(\+?1?[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})\b/);
+    const nameMatch = text.match(/^([A-Z][a-z]+ [A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/m);
+    const locationMatch = text.match(/([A-Z][a-z]+,\s*[A-Z]{2})|([A-Z][a-z]+\s+[A-Z][a-z]+,\s*[A-Z]{2})/);
 
     return {
-      fullText: text,
-      sections: parsedSections
+      name: nameMatch ? nameMatch[1] : 'Professional Name',
+      email: emailMatch ? emailMatch[0] : 'email@example.com',
+      phone: phoneMatch ? phoneMatch[0] : '+1 (555) 123-4567',
+      location: locationMatch ? locationMatch[0] : 'City, State'
     };
   };
 
-  const getSectionType = (title: string): 'header' | 'list' | 'paragraph' => {
-    const listSections = ['TECHNICAL SKILLS', 'CORE COMPETENCIES', 'CERTIFICATIONS', 'AWARDS'];
-    if (listSections.some(section => title.toUpperCase().includes(section))) {
-      return 'list';
+  const extractSection = (text: string, sectionNames: string[]): string => {
+    for (const sectionName of sectionNames) {
+      const patterns = [
+        new RegExp(`${sectionName}[:\\s]*([\\s\\S]*?)(?=(?:PROFESSIONAL TITLE|PROFESSIONAL SUMMARY|TECHNICAL SKILLS|CORE COMPETENCIES|PROFESSIONAL EXPERIENCE|WORK EXPERIENCE|EDUCATION|KEY PROJECTS|PROJECTS|CERTIFICATIONS|AWARDS|VOLUNTEER EXPERIENCE|PUBLICATIONS)|$)`, 'i'),
+        new RegExp(`${sectionName}[:\\s]*([\\s\\S]*?)(?=\\n\\s*[A-Z][A-Z\\s]{8,}|$)`, 'i')
+      ];
+
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        if (match && match[1]?.trim() && match[1].trim().length > 10) {
+          return match[1].trim();
+        }
+      }
     }
-    return 'paragraph';
+    return '';
   };
 
-  const parsedContent = parseHTMLContent(content);
+  const extractAllExperience = (text: string): any[] => {
+    const experienceSection = extractSection(text, ['PROFESSIONAL EXPERIENCE', 'WORK EXPERIENCE', 'EXPERIENCE', 'EMPLOYMENT HISTORY']);
+    console.log('📋 Experience section length:', experienceSection.length);
+
+    if (!experienceSection || experienceSection.length < 20) return [];
+
+    // Multiple parsing approaches to catch ALL experience entries
+    let allExperiences: string[] = [];
+
+    // Method 1: Split by job title patterns (most comprehensive)
+    const jobPatterns = [
+      /(?=\n\s*(?:[A-Z][a-zA-Z\s&,.-]*(?:Engineer|Developer|Manager|Analyst|Specialist|Coordinator|Director|Lead|Senior|Junior|Intern|Consultant|Associate|Executive|Administrator|Supervisor|Officer|Representative|Technician|Designer|Architect|Scientist|Researcher|Professor|Teacher|Sales|Marketing|Operations|Finance|HR|Legal|Product|Strategy|Business|Data|Software|Hardware|Network|Security|Quality|Project|Program|Technical|Creative|Digital|Web|Mobile|Cloud|DevOps|AI|ML|Machine Learning|Artificial Intelligence)))/gm,
+      /(?=\n\s*[A-Z][a-zA-Z\s&,.-]+\s+(?:at|@|\|)\s+[A-Z])/gm,
+      /(?=\n\s*[A-Z][a-zA-Z\s&,.-]+\s+[-–—]\s+[A-Z])/gm,
+      /(?=\n\s*\d{1,2}\/\d{4}|\d{4}\s*[-–—]\s*(?:Present|Current|\d{4}))/gm,
+      /(?=\n\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4})/gm
+    ];
+
+    for (const pattern of jobPatterns) {
+      const entries = experienceSection.split(pattern).filter(entry => entry.trim().length > 30);
+      if (entries.length > allExperiences.length) {
+        allExperiences = entries;
+        console.log(`✅ Found ${entries.length} experience entries using pattern`);
+      }
+    }
+
+    // Method 2: Manual line-by-line parsing if patterns fail
+    if (allExperiences.length < 2) {
+      console.log('🔄 Using manual parsing approach...');
+      const lines = experienceSection.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+      let currentExp = '';
+      const experiences = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // Enhanced job title detection
+        const isJobTitle = (
+          /^[A-Z][a-zA-Z\s&,.-]*(?:Engineer|Developer|Manager|Analyst|Specialist|Coordinator|Director|Lead|Senior|Junior|Intern|Consultant|Associate|Executive|Administrator|Supervisor|Officer|Representative|Technician|Designer|Architect|Scientist|Researcher|Professor|Teacher|Sales|Marketing|Operations|Finance|HR|Legal|Product|Strategy|Business|Data|Software|Hardware|Network|Security|Quality|Project|Program|Technical|Creative|Digital|Web|Mobile|Cloud|DevOps|AI|ML)/i.test(line) ||
+          /^[A-Z][a-zA-Z\s&,.-]+\s+(?:at|@|\|)\s+[A-Z]/i.test(line) ||
+          /^\d{1,2}\/\d{4}|\d{4}\s*[-–—]\s*(?:Present|Current|\d{4})/i.test(line) ||
+          /^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}/i.test(line)
+        );
+
+        if (isJobTitle && currentExp.trim().length > 30) {
+          experiences.push(currentExp.trim());
+          currentExp = line;
+        } else {
+          currentExp += '\n' + line;
+        }
+      }
+
+      if (currentExp.trim().length > 30) {
+        experiences.push(currentExp.trim());
+      }
+
+      if (experiences.length > allExperiences.length) {
+        allExperiences = experiences;
+        console.log(`✅ Manual parsing found ${experiences.length} experience entries`);
+      }
+    }
+
+    // Parse each experience entry
+    const parsedExperiences = allExperiences
+      .filter(entry => entry.trim().length > 20)
+      .map((entry, index) => {
+        console.log(`📝 Parsing experience ${index + 1}:`, entry.substring(0, 100) + '...');
+        return parseExperienceEntry(entry);
+      })
+      .filter(exp => exp.title && exp.title.length > 0);
+
+    console.log(`✅ Final parsed experiences: ${parsedExperiences.length}`);
+    return parsedExperiences;
+  };
+
+  const parseExperienceEntry = (entry: string): any => {
+    const lines = entry.split('\n').filter(line => line.trim()).map(line => line.trim());
+    if (lines.length === 0) return {};
+
+    let title = '';
+    let company = '';
+    let dates = '';
+    let location = '';
+    let responsibilities: string[] = [];
+
+    // Enhanced parsing for various resume formats
+    const firstLine = lines[0] || '';
+    const secondLine = lines[1] || '';
+    const thirdLine = lines[2] || '';
+
+    // Multiple pattern matching approaches
+    const titleCompanyPatterns = [
+      /^(.+?)\s+(?:at|@)\s+(.+?)(?:\s+[•·|]\s+(.+?))?(?:\s+[•·|]\s+(.+?))?$/i,
+      /^(.+?)\s+[-–—]\s+(.+?)(?:\s+[•·|(]\s*(.+?)[\)]*)?(?:\s+[•·|]\s+(.+?))?$/i,
+      /^(.+?)\s*\|\s*(.+?)(?:\s*\|\s*(.+?))?(?:\s*\|\s*(.+?))?$/i,
+      /^(.+?),\s+(.+?)(?:\s+[•·|]\s+(.+?))?(?:\s+[•·|]\s+(.+?))?$/i
+    ];
+
+    let parsed = false;
+
+    // Try to parse the first line
+    for (const pattern of titleCompanyPatterns) {
+      const match = firstLine.match(pattern);
+      if (match) {
+        title = match[1]?.trim() || '';
+        company = match[2]?.trim() || '';
+
+        const part3 = match[3]?.trim() || '';
+        const part4 = match[4]?.trim() || '';
+
+        const datePattern = /\d{4}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Present|Current/i;
+
+        if (datePattern.test(part3)) {
+          dates = part3;
+          location = part4 || '';
+        } else {
+          location = part3;
+          dates = part4 || '';
+        }
+
+        parsed = true;
+        break;
+      }
+    }
+
+    // Alternative parsing if first line failed
+    if (!parsed) {
+      title = firstLine;
+
+      if (secondLine) {
+        const companyPatterns = [
+          /^(.+?)(?:\s+[•·|]\s+(.+?))?(?:\s+[•·|]\s+(.+?))?$/,
+          /^(.+?),\s+(.+?)(?:\s+[•·|]\s+(.+?))$/
+        ];
+
+        for (const pattern of companyPatterns) {
+          const match = secondLine.match(pattern);
+          if (match) {
+            company = match[1]?.trim() || '';
+            const part2 = match[2]?.trim() || '';
+            const part3 = match[3]?.trim() || '';
+
+            const datePattern = /\d{4}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Present|Current/i;
+
+            if (datePattern.test(part2)) {
+              dates = part2;
+              location = part3 || '';
+            } else {
+              location = part2;
+              dates = part3 || '';
+            }
+            break;
+          }
+        }
+      }
+
+      if (thirdLine && (!dates || !location)) {
+        const datePattern = /\d{4}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Present|Current/i;
+        if (datePattern.test(thirdLine)) {
+          dates = dates || thirdLine;
+        } else {
+          location = location || thirdLine;
+        }
+      }
+    }
+
+    // Extract responsibilities with better filtering
+    const startIndex = parsed ? 1 : (company ? 2 : 3);
+    responsibilities = lines.slice(startIndex)
+      .map(line => line.replace(/^[•·\-*→▪▫◦‣⁃]\s*/, '').trim())
+      .filter(line => {
+        return line.length > 10 &&
+          !line.match(/^\d{4}/) &&
+          !line.match(/^[A-Z][a-z]+\s+\d{4}/) &&
+          !line.match(/^(?:at|@)\s+[A-Z]/) &&
+          !line.match(/^[A-Z][a-zA-Z\s&,.-]*(?:Engineer|Developer|Manager|Analyst)/);
+      })
+      .slice(0, 6); // Keep up to 6 responsibilities per job
+
+    return {
+      title: title || 'Professional Role',
+      company: company || 'Company Name',
+      dates: dates || '',
+      location: location || '',
+      responsibilities: responsibilities.length > 0 ? responsibilities : [
+        'Delivered key results and contributed to business objectives.',
+        'Collaborated with cross-functional teams to achieve project goals.',
+        'Applied technical expertise to solve complex challenges.'
+      ]
+    };
+  };
+
+  const extractAllEducation = (text: string): any[] => {
+    const educationSection = extractSection(text, ['EDUCATION', 'ACADEMIC BACKGROUND', 'ACADEMIC QUALIFICATIONS']);
+    if (!educationSection) return [];
+
+    // Split by common education patterns
+    const educationPatterns = [
+      /(?=\n\s*(?:Bachelor|Master|PhD|Associate|Diploma|Certificate|B\.S\.|M\.S\.|B\.A\.|M\.A\.|B\.Sc\.|M\.Sc\.|Doctor|Doctorate))/gi,
+      /(?=\n\s*[A-Z][a-zA-Z\s&,.-]+(?:University|College|Institute|School|Academy))/gi,
+      /(?=\n\s*\d{4}\s*[-–—]\s*\d{4})/gm
+    ];
+
+    let allEducation: string[] = [];
+
+    for (const pattern of educationPatterns) {
+      const entries = educationSection.split(pattern).filter(entry => entry.trim().length > 10);
+      if (entries.length > allEducation.length) {
+        allEducation = entries;
+      }
+    }
+
+    // Fallback parsing
+    if (allEducation.length === 0) {
+      allEducation = educationSection.split(/\n\s*\n/).filter(entry => entry.trim().length > 10);
+    }
+
+    return allEducation.map(entry => {
+      const lines = entry.split('\n').filter(line => line.trim());
+
+      let degree = '';
+      let school = '';
+      let year = '';
+      let details = '';
+
+      // Extract degree information
+      const degreePattern = /(Bachelor|Master|PhD|Associate|Diploma|Certificate|B\.S\.|M\.S\.|B\.A\.|M\.A\.|B\.Sc\.|M\.Sc\.|Doctor|Doctorate)[^,\n]*/i;
+      const degreeMatch = entry.match(degreePattern);
+      if (degreeMatch) {
+        degree = degreeMatch[0].trim();
+      } else {
+        degree = lines[0]?.trim() || 'Degree';
+      }
+
+      // Extract school/university
+      const schoolPattern = /([A-Z][a-zA-Z\s&,.-]+(?:University|College|Institute|School|Academy))/i;
+      const schoolMatch = entry.match(schoolPattern);
+      if (schoolMatch) {
+        school = schoolMatch[1].trim();
+      } else {
+        school = lines[1]?.trim() || 'Institution';
+      }
+
+      // Extract year
+      const yearPattern = /\b(19|20)\d{2}\b/;
+      const yearMatch = entry.match(yearPattern);
+      if (yearMatch) {
+        year = yearMatch[0];
+      }
+
+      // Extract additional details
+      details = lines.slice(2).join(' • ').trim();
+
+      return { degree, school, year, details };
+    });
+  };
+
+  const extractAllProjects = (text: string): any[] => {
+    const projectsSection = extractSection(text, ['KEY PROJECTS', 'PROJECTS', 'NOTABLE PROJECTS', 'SELECTED PROJECTS']);
+    if (!projectsSection) return [];
+
+    const projectPatterns = [
+      /(?=\n\s*[A-Z][a-zA-Z\s&,.-]*(?:Project|System|Application|Platform|Tool|Solution|Website|App|Portal|Dashboard|Framework|Library|API|Service|Module|Component))/gi,
+      /(?=\n\s*[A-Z][a-zA-Z\s&,.-]+\s+[-–—]\s+)/gm,
+      /(?=\n\s*\d+\.\s*[A-Z])/gm,
+      /(?=\n\s*•\s*[A-Z])/gm
+    ];
+
+    let allProjects: string[] = [];
+
+    for (const pattern of projectPatterns) {
+      const entries = projectsSection.split(pattern).filter(entry => entry.trim().length > 15);
+      if (entries.length > allProjects.length) {
+        allProjects = entries;
+      }
+    }
+
+    if (allProjects.length === 0) {
+      allProjects = projectsSection.split(/\n\s*\n/).filter(p => p.trim().length > 15);
+    }
+
+    return allProjects.map(project => {
+      const lines = project.split('\n').filter(line => line.trim());
+      const title = lines[0]?.replace(/^[•\d.\s-]+/, '').trim() || 'Project';
+      const description = lines.slice(1).join(' ').trim() || 'Project description and key achievements.';
+
+      // Extract technologies if mentioned
+      const techMatch = description.match(/(?:Technologies?|Tech Stack|Built with|Using|Implemented with)[:\s]*([^.]+)/i);
+      const technologies = techMatch ? techMatch[1].split(/[,;|]/).map(t => t.trim()) : [];
+
+      return {
+        title,
+        description: description.replace(/(?:Technologies?|Tech Stack|Built with|Using|Implemented with)[:\s]*[^.]+/i, '').trim(),
+        technologies
+      };
+    });
+  };
+
+  const resumeData = parseComprehensiveResumeData(content);
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        {/* Header Section */}
         <View style={styles.header}>
-          <Text style={styles.name}>AI-Enhanced Professional Resume</Text>
-          <Text style={styles.title}>Optimized for {jobDetails.title} at {jobDetails.company}</Text>
-          <View style={styles.contactInfo}>
-            <Text>Enhanced with AI • ATS Optimized • Multiple Sections</Text>
-          </View>
+          <Text style={styles.name}>{resumeData.personalInfo.name}</Text>
+          {resumeData.professionalTitle && (
+            <Text style={styles.professionalTitle}>{resumeData.professionalTitle}</Text>
+          )}
+          <Text style={styles.contactInfo}>
+            {resumeData.personalInfo.email} • {resumeData.personalInfo.phone}
+          </Text>
+          <Text style={styles.contactInfo}>
+            {resumeData.personalInfo.location}
+          </Text>
         </View>
 
-        {/* Render sections with appropriate spacing */}
-        {parsedContent.sections.slice(0, 6).map((section, index) => (
-          <View key={index} style={index < 2 ? styles.section : styles.compactSection}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            {section.type === 'list' ? (
-              // Render as compact list
-              section.content.split(/[,•\n]/).filter(item => item.trim()).map((item, itemIndex) => (
-                <Text key={itemIndex} style={styles.bulletPoint}>• {item.trim()}</Text>
-              ))
-            ) : (
-              // Render as paragraph with line breaks
-              section.content.split('\n').filter(line => line.trim()).map((line, lineIndex) => (
-                <Text key={lineIndex} style={lineIndex === 0 ? styles.text : styles.smallText}>
-                  {line.trim()}
-                </Text>
-              ))
-            )}
+        {/* Professional Summary */}
+        {resumeData.professionalSummary && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Professional Summary</Text>
+            {resumeData.professionalSummary.split(/\.\s+/).filter(sentence => sentence.trim().length > 10).map((sentence, index) => (
+              <Text key={index} style={styles.summaryText}>
+                {sentence.trim()}{sentence.trim().endsWith('.') ? '' : '.'}
+              </Text>
+            ))}
           </View>
-        ))}
+        )}
 
-        <View style={styles.compactSection}>
-          <Text style={styles.sectionTitle}>Document Information</Text>
-          <Text style={styles.smallText}>Generated: {new Date().toLocaleDateString()}</Text>
-          <Text style={styles.smallText}>Position: {jobDetails.title}</Text>
-          <Text style={styles.smallText}>Company: {jobDetails.company}</Text>
+        {/* Technical Skills */}
+        {(resumeData.technicalSkills || resumeData.coreCompetencies) && (
+          <View style={styles.compactSection}>
+            <Text style={styles.sectionTitle}>Technical Skills & Core Competencies</Text>
+            <View style={styles.skillsGrid}>
+              {[
+                ...(resumeData.technicalSkills?.split(/[,•\n|]/) || []),
+                ...(resumeData.coreCompetencies?.split(/[,•\n|]/) || [])
+              ]
+                .filter(skill => skill.trim())
+                .slice(0, 20)
+                .map((skill, index) => (
+                  <Text key={index} style={styles.skillItem}>
+                    {skill.trim()}
+                  </Text>
+                ))}
+            </View>
+          </View>
+        )}
+
+        {/* Professional Experience - Show ALL experiences */}
+        {resumeData.experience.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Professional Experience</Text>
+            {resumeData.experience.map((exp, index) => (
+              <View key={index} style={styles.experienceItem}>
+                <Text style={styles.jobTitle}>{exp.title}</Text>
+                <Text style={styles.companyInfo}>
+                  {[exp.company, exp.location, exp.dates].filter(Boolean).join(' • ')}
+                </Text>
+                {exp.responsibilities.slice(0, 5).map((responsibility: string, respIndex: number) => (
+                  <Text key={respIndex} style={styles.bulletPoint}>
+                    • {responsibility}
+                  </Text>
+                ))}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Education - Show ALL education entries */}
+        {resumeData.education.length > 0 && (
+          <View style={styles.compactSection}>
+            <Text style={styles.sectionTitle}>Education</Text>
+            {resumeData.education.map((edu, index) => (
+              <View key={index} style={styles.educationItem}>
+                <Text style={styles.degreeInfo}>{edu.degree}</Text>
+                {edu.school && <Text style={styles.schoolInfo}>{edu.school} {edu.year && `• ${edu.year}`}</Text>}
+                {edu.details && <Text style={styles.schoolInfo}>{edu.details}</Text>}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Projects */}
+        {resumeData.projects.length > 0 && (
+          <View style={styles.compactSection}>
+            <Text style={styles.sectionTitle}>Key Projects</Text>
+            {resumeData.projects.slice(0, 4).map((project, index) => (
+              <View key={index} style={styles.projectItem}>
+                <Text style={styles.projectTitle}>{project.title}</Text>
+                <Text style={styles.projectDesc}>{project.description}</Text>
+                {project.technologies && project.technologies.length > 0 && (
+                  <Text style={styles.smallText}>Technologies: {project.technologies.join(', ')}</Text>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Additional sections */}
+        {resumeData.certifications && (
+          <View style={styles.compactSection}>
+            <Text style={styles.sectionTitle}>Certifications</Text>
+            {resumeData.certifications.split(/[,\n|]/).filter(cert => cert.trim()).slice(0, 5).map((cert, index) => (
+              <Text key={index} style={styles.certificationItem}>
+                • {cert.trim()}
+              </Text>
+            ))}
+          </View>
+        )}
+
+        {resumeData.awards && (
+          <View style={styles.compactSection}>
+            <Text style={styles.sectionTitle}>Awards & Recognition</Text>
+            {resumeData.awards.split(/[,\n|]/).filter(award => award.trim()).slice(0, 4).map((award, index) => (
+              <Text key={index} style={styles.certificationItem}>
+                • {award.trim()}
+              </Text>
+            ))}
+          </View>
+        )}
+
+        {/* Footer */}
+        <View style={{ marginTop: 'auto', paddingTop: 6, borderTop: '0.5 solid #e5e7eb' }}>
+          <Text style={styles.smallText}>
+            AI-Enhanced Resume • Optimized for {jobDetails.title} at {jobDetails.company}
+          </Text>
         </View>
       </Page>
-
-      {/* Second page for remaining content with even tighter spacing */}
-      {parsedContent.sections.length > 6 && (
-        <Page size="A4" style={styles.page}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Professional Resume - Page 2</Text>
-          </View>
-
-          {parsedContent.sections.slice(6).map((section, index) => (
-            <View key={index + 6} style={styles.compactSection}>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
-              {section.type === 'list' ? (
-                section.content.split(/[,•\n]/).filter(item => item.trim()).map((item, itemIndex) => (
-                  <Text key={itemIndex} style={styles.bulletPoint}>• {item.trim()}</Text>
-                ))
-              ) : (
-                section.content.split('\n').filter(line => line.trim()).map((line, lineIndex) => (
-                  <Text key={lineIndex} style={styles.smallText}>
-                    {line.trim()}
-                  </Text>
-                ))
-              )}
-            </View>
-          ))}
-
-          <View style={styles.compactSection}>
-            <Text style={styles.sectionTitle}>Content Summary</Text>
-            <Text style={styles.smallText}>
-              This comprehensive resume includes detailed sections covering professional experience, technical skills, projects, certifications, and other relevant qualifications specifically tailored for the {jobDetails.title} position.
-            </Text>
-          </View>
-        </Page>
-      )}
     </Document>
   );
 };
 
-// Cover Letter PDF Document Component with better spacing
+// Enhanced Cover Letter PDF Document Component
 const CoverLetterPDFDocument: React.FC<{ content: string; jobDetails: any }> = ({ content, jobDetails }) => {
-  // Extract meaningful content from HTML with better parsing
   const extractCoverLetterContent = (htmlContent: string) => {
     const text = htmlContent.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
+    // Extract personal info for header
+    const emailMatch = text.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
+    const phoneMatch = text.match(/\b(\+?1?[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})\b/);
+    const nameMatch = text.match(/^([A-Z][a-z]+ [A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/m);
+
     // Split into meaningful paragraphs
-    const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 50); // Only substantial paragraphs
+    const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 30);
 
     return {
       fullText: text,
-      paragraphs: paragraphs.length > 0 ? paragraphs : [text] // Fallback to full text if no good splits
+      personalInfo: {
+        name: nameMatch ? nameMatch[1] : 'Your Name',
+        email: emailMatch ? emailMatch[0] : 'email@example.com',
+        phone: phoneMatch ? phoneMatch[0] : '+1 (555) 123-4567'
+      },
+      paragraphs: paragraphs.length > 0 ? paragraphs : [text]
     };
   };
 
@@ -234,34 +737,39 @@ const CoverLetterPDFDocument: React.FC<{ content: string; jobDetails: any }> = (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.name}>AI-Enhanced Cover Letter</Text>
-          <Text style={styles.title}>For {jobDetails.title} at {jobDetails.company}</Text>
-          <View style={styles.contactInfo}>
-            <Text>{new Date().toLocaleDateString()}</Text>
-          </View>
+          <Text style={styles.name}>{parsedContent.personalInfo.name}</Text>
+          <Text style={styles.contactInfo}>
+            {parsedContent.personalInfo.email} • {parsedContent.personalInfo.phone}
+          </Text>
+          <Text style={styles.contactInfo}>
+            {new Date().toLocaleDateString()}
+          </Text>
         </View>
 
         <View style={styles.compactSection}>
-          <Text style={styles.text}>Dear Hiring Manager,</Text>
+          <Text style={styles.summaryText}>
+            Hiring Manager{'\n'}
+            {jobDetails.company}{'\n'}
+            {'\n'}
+            Re: Application for {jobDetails.title}
+          </Text>
         </View>
 
-        {/* Render each paragraph with proper spacing */}
+        <View style={styles.compactSection}>
+          <Text style={styles.summaryText}>Dear Hiring Manager,</Text>
+        </View>
+
         {parsedContent.paragraphs.map((paragraph, index) => (
           <View key={index} style={styles.section}>
-            <Text style={styles.text}>{paragraph.trim()}</Text>
+            <Text style={styles.summaryText}>{paragraph.trim()}</Text>
           </View>
         ))}
 
         <View style={styles.compactSection}>
-          <Text style={styles.text}>Sincerely,</Text>
-          <Text style={styles.text}>Your Name</Text>
-        </View>
-
-        <View style={styles.compactSection}>
-          <Text style={styles.sectionTitle}>Letter Details</Text>
-          <Text style={styles.smallText}>Position: {jobDetails.title}</Text>
-          <Text style={styles.smallText}>Company: {jobDetails.company}</Text>
-          <Text style={styles.smallText}>Type: AI-Enhanced, Personalized</Text>
+          <Text style={styles.summaryText}>
+            Sincerely,{'\n'}
+            {parsedContent.personalInfo.name}
+          </Text>
         </View>
       </Page>
     </Document>
@@ -429,7 +937,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
           </p>
         </div>
 
-        {/* Document Viewer Section */}
+        {/* Document Viewer Section with Fixed PDF */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">
@@ -552,13 +1060,13 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
               </div>
             </div>
 
-            {/* Right: PDF Preview */}
+            {/* Right: Fixed PDF Preview */}
             {showPDFPreview && (
               <div>
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-4">PDF Preview</h4>
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-                  <div className="h-96 bg-white rounded border">
-                    <PDFViewer width="100%" height="100%" style={{ border: 'none' }}>
+                  <div className="h-96 bg-white rounded border overflow-hidden">
+                    <PDFViewer width="100%" height="100%" style={{ border: 'none' }} showToolbar={false}>
                       {activeDocument === 'resume' ?
                         <ResumePDFDocument content={results.resume_html} jobDetails={jobDetails} /> :
                         <CoverLetterPDFDocument content={results.cover_letter_html} jobDetails={jobDetails} />

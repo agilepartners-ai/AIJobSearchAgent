@@ -40,36 +40,31 @@ export class ResumeOptimizationService {
    * @param jobDescription Job description
    * @returns Validation result
    */
-  static validateOptimizationRequest(
+  private static validateOptimizationRequest(
     userId: string,
     resumeText: string,
     jobDescription: string
-  ): { isValid: boolean; errors: string[] } {
-    const errors: string[] = [];
-
-    if (!userId) {
-      errors.push('User ID is required');
+  ): { isValid: boolean; error?: string } {
+    if (!userId || userId.trim().length === 0) {
+      return { isValid: false, error: 'User ID is required' };
     }
 
     if (!resumeText || resumeText.trim().length < 100) {
-      errors.push('Resume text is too short or empty');
+      return { isValid: false, error: 'Resume text must be at least 100 characters long' };
     }
 
     if (!jobDescription || jobDescription.trim().length < 50) {
-      errors.push('Job description is too short or empty');
+      return { isValid: false, error: 'Job description must be at least 50 characters long' };
     }
 
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
+    return { isValid: true };
   }
 
   /**
-   * Optimize resume based on job description
-   * @param userId User ID
-   * @param resumeText Resume text
-   * @param jobDescription Job description
+   * Optimize resume for a specific job posting
+   * @param userId Firebase UID
+   * @param resumeText Complete resume text
+   * @param jobDescription Target job description
    * @returns Optimization results
    */
   static async optimizeResume(
@@ -78,165 +73,239 @@ export class ResumeOptimizationService {
     jobDescription: string
   ): Promise<OptimizationResponse> {
     try {
-      console.log('Starting resume optimization...');
+      // Validate input
+      const validation = this.validateOptimizationRequest(userId, resumeText, jobDescription);
+      if (!validation.isValid) {
+        return {
+          success: false,
+          message: validation.error || 'Invalid input data',
+          error: validation.error
+        };
+      }
 
-      // Prepare request data
       const requestData: OptimizationRequest = {
         firebase_uid: userId,
         resume_text: resumeText,
-        job_description: jobDescription.replace(/[\n\s]+/g, ' ')
+        job_description: jobDescription
       };
 
-      // Create abort controller for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.API_TIMEOUT);
+      const response = await fetch(this.API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(requestData),
+        signal: AbortSignal.timeout(this.API_TIMEOUT)
+      });
 
-      try {
-        // Determine which endpoint to use based on environment
-        const endpoint = process.env.NODE_ENV === 'production'
-          ? this.API_URL  // Use direct API in production (with proper CORS on server)
-          : this.PROXY_URL; // Use proxy in development
-
-        // Send request to API using our error handling utility
-        const response = await fetchWithErrorHandling<OptimizationResponse>(
-          endpoint,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': '*/*',
-              // Add origin for CORS preflight requests
-              'Origin': window.location.origin
-            },
-            // Include credentials if needed (for cookies/auth)
-            // credentials: 'include',
-            body: JSON.stringify(requestData),
-            signal: controller.signal
-          },
-          requestData
-        );
-
-        clearTimeout(timeoutId);
-        console.log('API response received successfully');
-
-        return response;
-      } catch (error) {
-        clearTimeout(timeoutId);
-
-        // Enhance error with API details if not already present
-        if (!(error as any).endpoint) {
-          throw createApiError(
-            error instanceof Error ? error.message : String(error),
-            this.API_URL,
-            requestData
-          );
-        }
-
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
-    } catch (error) {
-      console.error('Error optimizing resume:', error);
-      throw error;
+
+      const result: OptimizationResponse = await response.json();
+      return result;
+
+    } catch (error: any) {
+      console.error('Resume optimization error:', error);
+
+      if (error.name === 'AbortError') {
+        return {
+          success: false,
+          message: 'Request timed out. Please try again.',
+          error: 'Timeout error'
+        };
+      }
+
+      return {
+        success: false,
+        message: error.message || 'Failed to optimize resume',
+        error: error.message
+      };
     }
   }
 
   /**
-   * Transform API response to our format with enhanced detail handling
-   * @param apiResponse API response
-   * @returns Transformed results
+   * Extract structured data from resume text
+   * @param resumeText Raw resume text
+   * @returns Structured resume data
    */
-  static transformApiResponse(apiResponse: OptimizationResponse): any {
-    // If API response has data, use it
-    if (apiResponse.success && apiResponse.data) {
-      const { data } = apiResponse;
+  static parseResumeText(resumeText: string): any {
+    const sections = {
+      personal: this.extractPersonalInfo(resumeText),
+      summary: this.extractSection(resumeText, ['PROFESSIONAL SUMMARY', 'SUMMARY', 'PROFILE', 'OBJECTIVE']),
+      experience: this.extractExperience(resumeText),
+      education: this.extractEducation(resumeText),
+      skills: this.extractSkills(resumeText),
+      projects: this.extractProjects(resumeText),
+      certifications: this.extractSection(resumeText, ['CERTIFICATIONS', 'LICENSES', 'CREDENTIALS']),
+      awards: this.extractSection(resumeText, ['AWARDS', 'HONORS', 'RECOGNITION']),
+      volunteer: this.extractSection(resumeText, ['VOLUNTEER', 'COMMUNITY SERVICE', 'VOLUNTEER EXPERIENCE']),
+      publications: this.extractSection(resumeText, ['PUBLICATIONS', 'RESEARCH', 'PAPERS'])
+    };
 
-      return {
-        // Map the new API response structure to our expected format
-        matchScore: data.analysis.match_score,
-        strengths: data.analysis.strengths || [],
-        gaps: data.analysis.gaps || [],
-        suggestions: data.analysis.suggestions || [],
-        optimizedResumeText: data.analysis.tweaked_resume_text || '',
-        tweakedText: data.tweaked_text || '',
+    return sections;
+  }
 
-        // Enhanced URL generation for detailed documents
-        optimizedResumeUrl: "https://example.com/ai-enhanced-detailed-resume.pdf",
-        optimizedCoverLetterUrl: "https://example.com/ai-enhanced-detailed-cover-letter.pdf",
+  private static extractPersonalInfo(text: string): any {
+    const emailMatch = text.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/);
+    const phoneMatch = text.match(/\b(\+?1?[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})\b/);
+    const nameMatch = text.match(/^([A-Z][a-z]+ [A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/m);
 
-        // Include the new fields from the updated interface
-        djangoUserId: data.django_user_id,
-        firebaseUid: data.firebase_uid,
-        optimizationSuccessful: data.optimization_successful,
-        explanation: data.explanation || 'Resume has been comprehensively analyzed and enhanced with detailed sections including professional summary, technical skills, core competencies, detailed work experience with quantified achievements, education with relevant coursework, key projects with technologies and results, certifications, awards, volunteer experience, and publications where applicable.',
+    return {
+      name: nameMatch ? nameMatch[1] : '',
+      email: emailMatch ? emailMatch[0] : '',
+      phone: phoneMatch ? phoneMatch[0] : '',
+      location: this.extractLocation(text)
+    };
+  }
 
-        // Enhanced keyword analysis with more detail
-        keywordAnalysis: {
-          coverageScore: Math.min(85, 75 + Math.floor(Math.random() * 10)), // Realistic score
-          coveredKeywords: data.analysis.strengths.slice(0, 8) || [],
-          missingKeywords: data.analysis.gaps.slice(0, 5) || []
-        },
+  private static extractLocation(text: string): string {
+    const locationPatterns = [
+      /([A-Z][a-z]+,\s*[A-Z]{2})/g,
+      /([A-Z][a-z]+\s+[A-Z][a-z]+,\s*[A-Z]{2})/g,
+      /([A-Z][a-z]+,\s*[A-Z][a-z]+)/g
+    ];
 
-        // Enhanced experience optimization with detailed breakdown
-        experienceOptimization: [
-          {
-            company: "Previous Company",
-            position: "Enhanced Position Title",
-            relevanceScore: 88,
-            included: true,
-            reasoning: "Strong alignment with target role requirements and technologies"
-          }
-        ],
+    for (const pattern of locationPatterns) {
+      const match = text.match(pattern);
+      if (match) return match[0];
+    }
+    return '';
+  }
 
-        // Enhanced skills optimization with categorization
-        skillsOptimization: {
-          technicalSkills: [
-            "Advanced Programming Languages", "Cloud Technologies", "Database Management",
-            "API Development", "DevOps Tools", "Testing Frameworks", "Version Control",
-            "Agile Methodologies"
-          ],
-          softSkills: [
-            "Leadership & Team Management", "Strategic Problem Solving",
-            "Cross-functional Collaboration", "Project Management",
-            "Stakeholder Communication", "Analytical Thinking"
-          ],
-          missingSkills: data.analysis.gaps.slice(0, 4) || []
-        },
+  private static extractSection(text: string, sectionNames: string[]): string {
+    for (const sectionName of sectionNames) {
+      const regex = new RegExp(`${sectionName}[:\\s]*([\\s\\S]*?)(?=(?:PROFESSIONAL SUMMARY|EXPERIENCE|EDUCATION|SKILLS|PROJECTS|CERTIFICATIONS|AWARDS|VOLUNTEER|PUBLICATIONS|$))`, 'i');
+      const match = text.match(regex);
+      if (match && match[1]?.trim()) {
+        return match[1].trim();
+      }
+    }
+    return '';
+  }
 
-        // Add detailed sections metadata
-        detailedSections: {
-          professionalSummary: {
-            enhanced: true,
-            length: "3-4 paragraphs",
-            focus: "Value proposition and relevant experience alignment"
-          },
-          technicalSkills: {
-            categorized: true,
-            sections: ["Programming Languages", "Frameworks", "Tools", "Databases", "Cloud Platforms"],
-            count: 25
-          },
-          experience: {
-            detailed: true,
-            quantifiedAchievements: true,
-            technologiesListed: true,
-            averagePerRole: "5-7 bullet points with metrics"
-          },
-          additionalSections: [
-            "Education with relevant coursework",
-            "Key projects with technologies",
-            "Professional certifications",
-            "Awards and recognition",
-            "Volunteer experience",
-            "Publications (if applicable)"
-          ]
-        }
-      };
+  private static extractExperience(text: string): any[] {
+    const experienceSection = this.extractSection(text, ['PROFESSIONAL EXPERIENCE', 'WORK EXPERIENCE', 'EXPERIENCE', 'EMPLOYMENT HISTORY']);
+    if (!experienceSection) return [];
+
+    // Enhanced experience parsing
+    const experiences = [];
+    const jobPatterns = [
+      /(?=\n\s*(?:[A-Z][a-zA-Z\s&,.-]*(?:Engineer|Developer|Manager|Analyst|Specialist|Coordinator|Director|Lead|Senior|Junior|Intern|Consultant|Associate|Executive|Administrator|Supervisor|Officer|Representative)))/gm,
+      /(?=\n\s*[A-Z][a-zA-Z\s&,.-]+\s+(?:at|@|\|)\s+[A-Z])/gm
+    ];
+
+    let allExperiences: string[] = [];
+    for (const pattern of jobPatterns) {
+      const entries = experienceSection.split(pattern).filter(entry => entry.trim().length > 40);
+      if (entries.length > allExperiences.length) {
+        allExperiences = entries;
+      }
     }
 
-    // Otherwise, throw an error
-    throw createApiError(
-      apiResponse.error || 'API response does not contain valid data for detailed resume generation',
-      this.API_URL,
-      { success: apiResponse.success, message: apiResponse.message }
-    );
+    return allExperiences.map(exp => this.parseExperienceEntry(exp)).filter(exp => exp.title);
+  }
+
+  private static parseExperienceEntry(entry: string): any {
+    const lines = entry.split('\n').filter(line => line.trim()).map(line => line.trim());
+    if (lines.length === 0) return {};
+
+    let title = '';
+    let company = '';
+    let dates = '';
+    let location = '';
+    const responsibilities = [];
+
+    // Parse first line for title and company
+    const firstLine = lines[0] || '';
+    const titleCompanyPattern = /^(.+?)\s+(?:at|@)\s+(.+?)(?:\s+[•·|]\s+(.+?))?(?:\s+[•·|]\s+(.+?))?$/i;
+    const match = firstLine.match(titleCompanyPattern);
+
+    if (match) {
+      title = match[1]?.trim() || '';
+      company = match[2]?.trim() || '';
+      const part3 = match[3]?.trim() || '';
+      const part4 = match[4]?.trim() || '';
+
+      const datePattern = /\d{4}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Present|Current/i;
+      if (datePattern.test(part3)) {
+        dates = part3;
+        location = part4 || '';
+      } else {
+        location = part3;
+        dates = part4 || '';
+      }
+    } else {
+      title = firstLine;
+      if (lines[1]) {
+        company = lines[1];
+      }
+    }
+
+    // Extract responsibilities from remaining lines
+    const startIndex = match ? 1 : 2;
+    for (let i = startIndex; i < lines.length; i++) {
+      const line = lines[i].replace(/^[•·\-*→▪▫◦‣⁃]\s*/, '').trim();
+      if (line.length > 10 && !line.match(/^\d{4}/) && !line.match(/^[A-Z][a-z]+\s+\d{4}/)) {
+        responsibilities.push(line);
+      }
+    }
+
+    return {
+      title: title || 'Professional Role',
+      company: company || 'Company',
+      dates: dates || '',
+      location: location || '',
+      responsibilities: responsibilities.length > 0 ? responsibilities : ['Managed key responsibilities and delivered results.']
+    };
+  }
+
+  private static extractEducation(text: string): any[] {
+    const educationSection = this.extractSection(text, ['EDUCATION', 'ACADEMIC BACKGROUND', 'ACADEMIC QUALIFICATIONS']);
+    if (!educationSection) return [];
+
+    const educationEntries = educationSection.split(/(?=(?:Bachelor|Master|PhD|Associate|Diploma|Certificate|B\.S\.|M\.S\.|B\.A\.|M\.A\.|B\.Sc\.|M\.Sc\.))/i);
+
+    return educationEntries.filter(entry => entry.trim().length > 10).map(entry => {
+      const lines = entry.split('\n').filter(line => line.trim());
+      return {
+        degree: lines[0]?.trim() || 'Degree',
+        school: lines[1]?.trim() || 'Institution',
+        year: this.extractYear(entry),
+        details: lines.slice(2).join(' • ').trim()
+      };
+    });
+  }
+
+  private static extractSkills(text: string): string[] {
+    const skillsSection = this.extractSection(text, ['TECHNICAL SKILLS', 'SKILLS', 'CORE COMPETENCIES', 'TECHNOLOGIES']);
+    if (!skillsSection) return [];
+
+    return skillsSection
+      .split(/[,•\n|]/)
+      .map(skill => skill.trim())
+      .filter(skill => skill.length > 1 && skill.length < 50);
+  }
+
+  private static extractProjects(text: string): any[] {
+    const projectsSection = this.extractSection(text, ['PROJECTS', 'KEY PROJECTS', 'NOTABLE PROJECTS']);
+    if (!projectsSection) return [];
+
+    const projectEntries = projectsSection.split(/(?=\n\s*[A-Z][a-zA-Z\s&,.-]*(?:Project|System|Application|Platform|Tool|Solution|Website|App|Portal|Dashboard))/gi);
+
+    return projectEntries.filter(entry => entry.trim().length > 15).map(project => {
+      const lines = project.split('\n').filter(line => line.trim());
+      return {
+        title: lines[0]?.replace(/^[•\d.\s-]+/, '').trim() || 'Project',
+        description: lines.slice(1).join(' ').trim() || 'Project description'
+      };
+    });
+  }
+
+  private static extractYear(text: string): string {
+    const yearMatch = text.match(/\b(19|20)\d{2}\b/);
+    return yearMatch ? yearMatch[0] : '';
   }
 }

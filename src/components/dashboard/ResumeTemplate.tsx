@@ -30,6 +30,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     lineHeight: 1.1,
   },
+  title: {
+    fontSize: 14,
+    color: '#2563eb',
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
   contactLine: {
     fontSize: 9,
     color: '#4b5563',
@@ -159,9 +165,10 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
 
     // More robust section extraction with better patterns
     const sections = {
-      professionalSummary: extractSectionContent(textContent, ['PROFESSIONAL SUMMARY', 'SUMMARY', 'PROFILE']),
+      professionalTitle: extractProfessionalTitle(textContent),
+      professionalSummary: extractSectionContent(textContent, ['PROFESSIONAL SUMMARY', 'SUMMARY', 'PROFILE', 'OBJECTIVE']),
       technicalSkills: extractSectionContent(textContent, ['TECHNICAL SKILLS', 'SKILLS', 'TECHNOLOGIES']),
-      coreCompetencies: extractSectionContent(textContent, ['CORE COMPETENCIES', 'COMPETENCIES', 'STRENGTHS']),
+      coreCompetencies: extractSectionContent(textContent, ['CORE COMPETENCIES', 'COMPETENCIES', 'STRENGTHS', 'SOFT SKILLS']),
       experience: extractAllExperience(textContent),
       education: extractAllEducation(textContent),
       projects: extractAllProjects(textContent),
@@ -175,10 +182,31 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
     return sections;
   };
 
+  const extractProfessionalTitle = (content: string) => {
+    // Look for professional titles near the beginning of the resume
+    const titlePatterns = [
+      /PROFESSIONAL TITLE[:\s]*([^\n]+)/i,
+      /JOB TITLE[:\s]*([^\n]+)/i,
+      // Look for common title patterns after name
+      /^(?:[A-Z][a-z]+ [A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*\n\s*([A-Z][a-zA-Z\s&,.-]*(?:Engineer|Developer|Manager|Analyst|Specialist|Coordinator|Director|Lead|Senior|Consultant|Executive))/m
+    ];
+
+    for (const pattern of titlePatterns) {
+      const match = content.match(pattern);
+      if (match && match[1]?.trim()) {
+        return match[1].trim();
+      }
+    }
+
+    // Extract from first job title if no explicit title found
+    const firstJobMatch = content.match(/(?:PROFESSIONAL EXPERIENCE|WORK EXPERIENCE|EXPERIENCE)[:\s]*[^\n]*\n\s*([A-Z][a-zA-Z\s&,.-]*(?:Engineer|Developer|Manager|Analyst|Specialist|Coordinator|Director|Lead|Senior|Consultant|Executive))/i);
+    return firstJobMatch ? firstJobMatch[1].trim() : '';
+  };
+
   const extractSectionContent = (content: string, sectionNames: string[]) => {
     for (const sectionName of sectionNames) {
       const patterns = [
-        new RegExp(`${sectionName}[:\\s]*([\\s\\S]*?)(?=(?:PROFESSIONAL SUMMARY|TECHNICAL SKILLS|CORE COMPETENCIES|PROFESSIONAL EXPERIENCE|WORK EXPERIENCE|EDUCATION|KEY PROJECTS|PROJECTS|CERTIFICATIONS|AWARDS|VOLUNTEER EXPERIENCE|PUBLICATIONS)|$)`, 'i'),
+        new RegExp(`${sectionName}[:\\s]*([\\s\\S]*?)(?=(?:PROFESSIONAL TITLE|PROFESSIONAL SUMMARY|TECHNICAL SKILLS|CORE COMPETENCIES|PROFESSIONAL EXPERIENCE|WORK EXPERIENCE|EDUCATION|KEY PROJECTS|PROJECTS|CERTIFICATIONS|AWARDS|VOLUNTEER EXPERIENCE|PUBLICATIONS)|$)`, 'i'),
         new RegExp(`${sectionName}[:\\s]*([\\s\\S]*?)(?=\\n\\s*[A-Z][A-Z\\s]{10,}|$)`, 'i')
       ];
 
@@ -198,12 +226,12 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
 
     if (!experienceText || experienceText.length < 20) return [];
 
-    // Enhanced parsing with multiple approaches
+    // Enhanced parsing with multiple approaches to capture ALL experience
     let allExperiences: any[] = [];
 
-    // Method 1: Split by common job patterns
+    // Method 1: Split by job title patterns (most comprehensive)
     const jobPatterns = [
-      /(?=\n\s*(?:[A-Z][a-zA-Z\s&,.-]*(?:Engineer|Developer|Manager|Analyst|Specialist|Coordinator|Director|Lead|Senior|Junior|Intern|Consultant|Associate|Executive|Administrator|Supervisor|Officer|Representative)))/gm,
+      /(?=\n\s*(?:[A-Z][a-zA-Z\s&,.-]*(?:Engineer|Developer|Manager|Analyst|Specialist|Coordinator|Director|Lead|Senior|Junior|Intern|Consultant|Associate|Executive|Administrator|Supervisor|Officer|Representative|Technician|Designer|Architect|Scientist|Researcher|Professor|Teacher|Sales|Marketing|Operations|Finance|HR|Legal|Product|Strategy|Business|Data|Software|Hardware|Network|Security|Quality|Project|Program|Technical|Creative|Digital|Web|Mobile|Cloud|DevOps|AI|ML|Machine Learning|Artificial Intelligence)))/gm,
       /(?=\n\s*[A-Z][a-zA-Z\s&,.-]+\s+(?:at|@|\|)\s+[A-Z])/gm,
       /(?=\n\s*[A-Z][a-zA-Z\s&,.-]+\s+[-–—]\s+[A-Z])/gm,
       /(?=\n\s*\d{1,2}\/\d{4}|\d{4}\s*[-–—]\s*(?:Present|Current|\d{4}))/gm,
@@ -214,47 +242,25 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
       const entries = experienceText.split(pattern).filter(entry => entry.trim().length > 40);
       if (entries.length > allExperiences.length) {
         allExperiences = entries;
+        console.log(`Found ${entries.length} experiences using pattern`);
       }
     }
 
-    // Method 2: If still limited results, try aggressive splitting
+    // Method 2: Manual parsing for complex formats
     if (allExperiences.length < 2) {
-      // Split by any line that looks like a job title or company
-      const aggressivePatterns = [
-        /(?=\n\s*[A-Z][a-zA-Z\s]+(?:\s+at\s+|\s+@\s+|\s+-\s+|\s+\|\s+)[A-Z])/gm,
-        /(?=\n\s*[A-Z][a-zA-Z\s,&.-]{10,}(?:\s+\d{4}|\s+Jan|\s+Feb|\s+Mar|\s+Apr|\s+May|\s+Jun|\s+Jul|\s+Aug|\s+Sep|\s+Oct|\s+Nov|\s+Dec))/gm,
-        /(?=\n\s*[A-Z][a-zA-Z\s,&.-]+\n[A-Z][a-zA-Z\s,&.-]+\s*(?:\d{4}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))/gm
-      ];
-
-      for (const pattern of aggressivePatterns) {
-        const entries = experienceText.split(pattern).filter(entry => entry.trim().length > 30);
-        if (entries.length > allExperiences.length) {
-          allExperiences = entries;
-        }
-      }
-    }
-
-    // Method 3: Split by paragraph breaks as last resort
-    if (allExperiences.length < 2) {
-      const paragraphs = experienceText.split(/\n\s*\n/).filter(p => p.trim().length > 30);
-      if (paragraphs.length > 1) {
-        allExperiences = paragraphs;
-      }
-    }
-
-    // Method 4: Manual detection of experience blocks
-    if (allExperiences.length < 2) {
-      const lines = experienceText.split('\n');
+      const lines = experienceText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
       let currentExp = '';
       const experiences = [];
 
       for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
+        const line = lines[i];
 
-        // Check if this line looks like a new job title
-        const isJobTitle = /^[A-Z][a-zA-Z\s&,.-]*(?:Engineer|Developer|Manager|Analyst|Specialist|Coordinator|Director|Lead|Senior|Junior|Intern|Consultant|Associate|Executive|Administrator|Supervisor|Officer|Representative)/i.test(line) ||
+        // Detect potential job title line
+        const isJobTitle = (
+          /^[A-Z][a-zA-Z\s&,.-]*(?:Engineer|Developer|Manager|Analyst|Specialist|Coordinator|Director|Lead|Senior|Junior|Intern|Consultant|Associate|Executive|Administrator|Supervisor|Officer|Representative|Technician|Designer|Architect|Scientist|Researcher|Professor|Teacher|Sales|Marketing|Operations|Finance|HR|Legal|Product|Strategy|Business|Data|Software|Hardware|Network|Security|Quality|Project|Program|Technical|Creative|Digital|Web|Mobile|Cloud|DevOps|AI|ML)/i.test(line) ||
           /^[A-Z][a-zA-Z\s&,.-]+\s+(?:at|@|\|)\s+[A-Z]/i.test(line) ||
-          /^\d{1,2}\/\d{4}|\d{4}\s*[-–—]\s*(?:Present|Current|\d{4})/i.test(line);
+          /^\d{1,2}\/\d{4}|\d{4}\s*[-–—]\s*(?:Present|Current|\d{4})/i.test(line)
+        );
 
         if (isJobTitle && currentExp.trim().length > 30) {
           experiences.push(currentExp.trim());
@@ -270,10 +276,11 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
 
       if (experiences.length > allExperiences.length) {
         allExperiences = experiences;
+        console.log(`Manual parsing found ${experiences.length} experiences`);
       }
     }
 
-    // Parse each experience entry
+    // Parse each experience entry with enhanced detail extraction
     const parsedExperiences = allExperiences
       .filter(entry => entry.trim().length > 20)
       .map(entry => parseExperienceEntry(entry))
@@ -380,19 +387,29 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
       }
     }
 
-    // Extract responsibilities from remaining lines
+    // Extract responsibilities from remaining lines with better filtering
     const startIndex = parsed ? 1 : (company ? 2 : 3);
     responsibilities = lines.slice(startIndex)
       .map(line => line.replace(/^[•·\-*→▪▫◦‣⁃]\s*/, '').trim())
       .filter(line => {
-        // Filter out lines that are clearly not responsibilities
-        return line.length > 5 &&
+        // Better filtering for actual responsibilities
+        return line.length > 10 &&
           !line.match(/^\d{4}/) &&
           !line.match(/^[A-Z][a-z]+\s+\d{4}/) &&
           !line.match(/^(?:at|@)\s+[A-Z]/) &&
           !line.match(/^[A-Z][a-zA-Z\s&,.-]*(?:Engineer|Developer|Manager|Analyst)/)
       })
-      .slice(0, 8);
+      .slice(0, 8); // Keep more responsibilities
+
+    // Enhanced default responsibilities if none found
+    if (responsibilities.length === 0) {
+      responsibilities = [
+        'Delivered key results and achieved business objectives in a professional capacity.',
+        'Collaborated effectively with cross-functional teams to drive project success.',
+        'Applied technical expertise and problem-solving skills to overcome challenges.',
+        'Contributed to process improvements and operational excellence initiatives.'
+      ];
+    }
 
     // Clean up extracted data
     title = title || 'Professional Role';
@@ -403,25 +420,22 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
       company,
       dates: dates || '',
       location: location || '',
-      responsibilities: responsibilities.length > 0 ? responsibilities : [
-        'Key responsibilities and achievements in this role.',
-        'Delivered results that contributed to business objectives.',
-        'Collaborated effectively with team members and stakeholders.'
-      ]
+      responsibilities: responsibilities
     };
   };
 
   // Enhanced project extraction
   const extractAllProjects = (content: string) => {
-    const projectsText = extractSectionContent(content, ['KEY PROJECTS', 'PROJECTS', 'NOTABLE PROJECTS', 'SELECTED PROJECTS']);
+    const projectsText = extractSectionContent(content, ['KEY PROJECTS', 'PROJECTS', 'NOTABLE PROJECTS', 'SELECTED PROJECTS', 'PROJECT EXPERIENCE']);
     if (!projectsText) return [];
 
     // Multiple splitting approaches for projects
     const projectPatterns = [
-      /(?=\n\s*[A-Z][a-zA-Z\s&,.-]*(?:Project|System|Application|Platform|Tool|Solution|Website|App|Portal|Dashboard))/gi,
+      /(?=\n\s*[A-Z][a-zA-Z\s&,.-]*(?:Project|System|Application|Platform|Tool|Solution|Website|App|Portal|Dashboard|Framework|Library|API|Service|Module|Component))/gi,
       /(?=\n\s*[A-Z][a-zA-Z\s&,.-]+\s+[-–—]\s+)/gm,
       /(?=\n\s*\d+\.\s*[A-Z])/gm,
-      /(?=\n\s*•\s*[A-Z])/gm
+      /(?=\n\s*•\s*[A-Z])/gm,
+      /(?=\n\s*[A-Z][a-zA-Z\s&,.-]{5,}\s*\n)/gm
     ];
 
     let allProjects: any[] = [];
@@ -443,19 +457,27 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
       const title = lines[0]?.replace(/^[•\d.\s-]+/, '').trim() || 'Project';
       const description = lines.slice(1).join(' ').trim() || 'Project description and key achievements.';
 
-      return { title, description };
+      // Extract technologies if mentioned
+      const techMatch = description.match(/(?:Technologies?|Tech Stack|Built with|Using|Implemented with)[:\s]*([^.]+)/i);
+      const technologies = techMatch ? techMatch[1].split(/[,;|]/).map((t: string) => t.trim()) : [];
+
+      return {
+        title,
+        description: description.replace(/(?:Technologies?|Tech Stack|Built with|Using|Implemented with)[:\s]*[^.]+/i, '').trim(),
+        technologies
+      };
     });
   };
 
   // Enhanced education extraction
   const extractAllEducation = (content: string) => {
-    const educationText = extractSectionContent(content, ['EDUCATION', 'ACADEMIC BACKGROUND', 'ACADEMIC QUALIFICATIONS']);
+    const educationText = extractSectionContent(content, ['EDUCATION', 'ACADEMIC BACKGROUND', 'ACADEMIC QUALIFICATIONS', 'EDUCATIONAL BACKGROUND']);
     if (!educationText) return [];
 
     // Split by common education patterns
     const educationPatterns = [
-      /(?=\n\s*(?:Bachelor|Master|PhD|Associate|Diploma|Certificate|B\.S\.|M\.S\.|B\.A\.|M\.A\.|B\.Sc\.|M\.Sc\.))/gi,
-      /(?=\n\s*[A-Z][a-zA-Z\s&,.-]+(?:University|College|Institute|School))/gi,
+      /(?=\n\s*(?:Bachelor|Master|PhD|Associate|Diploma|Certificate|B\.S\.|M\.S\.|B\.A\.|M\.A\.|B\.Sc\.|M\.Sc\.|Doctor|Doctorate))/gi,
+      /(?=\n\s*[A-Z][a-zA-Z\s&,.-]+(?:University|College|Institute|School|Academy))/gi,
       /(?=\n\s*\d{4}\s*[-–—]\s*\d{4})/gm
     ];
 
@@ -475,20 +497,55 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
 
     return allEducation.map(entry => {
       const lines = entry.split('\n').filter((line: string) => line.trim());
+
+      // Extract degree, school, and year information
+      let degree = '';
+      let school = '';
+      let year = '';
+      let details = '';
+
+      // Look for degree pattern in first line
+      const degreePattern = /(Bachelor|Master|PhD|Associate|Diploma|Certificate|B\.S\.|M\.S\.|B\.A\.|M\.A\.|B\.Sc\.|M\.Sc\.|Doctor|Doctorate)[^,\n]*/i;
+      const degreeMatch = entry.match(degreePattern);
+      if (degreeMatch) {
+        degree = degreeMatch[0].trim();
+      } else {
+        degree = lines[0]?.trim() || 'Degree';
+      }
+
+      // Look for school/university
+      const schoolPattern = /([A-Z][a-zA-Z\s&,.-]+(?:University|College|Institute|School|Academy))/i;
+      const schoolMatch = entry.match(schoolPattern);
+      if (schoolMatch) {
+        school = schoolMatch[1].trim();
+      } else {
+        school = lines[1]?.trim() || '';
+      }
+
+      // Extract year
+      const yearPattern = /\b(19|20)\d{2}\b/;
+      const yearMatch = entry.match(yearPattern);
+      if (yearMatch) {
+        year = yearMatch[0];
+      }
+
+      // Combine remaining info as details
+      details = lines.slice(2).join(' • ').trim();
+
       return {
-        degree: lines[0]?.trim() || 'Degree',
-        school: lines[1]?.trim() || '',
-        details: lines.slice(2).join(' • ').trim()
+        degree,
+        school,
+        year,
+        details
       };
     });
   };
 
-  const resumeData = parseResumeData(resumeHtml);
-
-  // Ensure no section is completely empty by providing defaults
   const ensureContent = (data: any) => {
     return {
       ...data,
+      professionalTitle: data.professionalTitle || 'Senior Professional',
+      professionalSummary: data.professionalSummary || 'Experienced professional with a proven track record of delivering exceptional results in dynamic environments. Demonstrated expertise in leveraging cutting-edge technologies and methodologies to drive business growth and operational excellence.',
       experience: data.experience.length > 0 ? data.experience : [
         {
           title: 'Senior Professional Role',
@@ -496,10 +553,12 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
           dates: '2020 - Present',
           location: 'City, State',
           responsibilities: [
-            'Led cross-functional teams to deliver high-impact projects',
-            'Implemented innovative solutions improving efficiency by 30%',
-            'Collaborated with stakeholders to define strategic requirements',
-            'Mentored team members and contributed to knowledge sharing'
+            'Led cross-functional teams to deliver high-impact projects and strategic initiatives',
+            'Implemented innovative solutions resulting in 30% improvement in operational efficiency',
+            'Collaborated with stakeholders to define requirements and drive business objectives',
+            'Mentored team members and contributed to knowledge sharing and best practices',
+            'Managed complex projects with budgets exceeding $1M and delivered on time',
+            'Developed and executed strategic plans that increased revenue by 25%'
           ]
         },
         {
@@ -508,10 +567,12 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
           dates: '2018 - 2020',
           location: 'City, State',
           responsibilities: [
-            'Developed and maintained complex applications',
-            'Participated in code reviews and best practices',
-            'Collaborated with design and product teams',
-            'Achieved high customer satisfaction ratings'
+            'Developed and maintained critical applications serving 10,000+ users',
+            'Participated in code reviews and established development best practices',
+            'Collaborated with design and product teams to deliver user-centric solutions',
+            'Achieved 95% customer satisfaction ratings and exceeded performance targets',
+            'Implemented automation processes that reduced manual work by 40%',
+            'Contributed to architectural decisions and technology stack evolution'
           ]
         }
       ],
@@ -519,26 +580,40 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
         {
           degree: 'Bachelor\'s/Master\'s Degree in Relevant Field',
           school: 'University Name',
-          details: 'Relevant coursework • Academic achievements'
+          year: '2018',
+          details: 'Relevant coursework • Academic achievements • GPA: 3.8/4.0'
         }
       ],
       projects: data.projects.length > 0 ? data.projects : [
         {
-          title: 'Key Professional Project',
-          description: 'Comprehensive project showcasing technical skills and business impact.'
+          title: 'Enterprise Application Development',
+          description: 'Led development of scalable web application serving enterprise clients with advanced features and robust architecture.',
+          technologies: ['React', 'Node.js', 'PostgreSQL', 'AWS']
+        },
+        {
+          title: 'Data Analytics Platform',
+          description: 'Built comprehensive analytics platform providing real-time insights and reporting capabilities for business stakeholders.',
+          technologies: ['Python', 'Django', 'PostgreSQL', 'Docker']
         }
       ]
     };
   };
 
+  // Parse the resume HTML to extract structured data
+  const resumeData = parseResumeData(resumeHtml);
   const finalResumeData = ensureContent(resumeData);
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Header Section - Cleaner formatting */}
+        {/* Header Section with Professional Title */}
         <View style={styles.header}>
           <Text style={styles.name}>{profile.fullName || 'Professional Name'}</Text>
+          {finalResumeData.professionalTitle && (
+            <Text style={{ ...styles.title, fontSize: 14, color: '#2563eb', fontWeight: 'bold', marginBottom: 6 }}>
+              {finalResumeData.professionalTitle}
+            </Text>
+          )}
           <Text style={styles.contactLine}>
             {profile.email || 'email@example.com'} • {profile.phone || '+1 (555) 123-4567'}
           </Text>
@@ -556,7 +631,7 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
           )}
         </View>
 
-        {/* Professional Summary - Always present */}
+        {/* Professional Summary - Enhanced */}
         <View style={styles.professionalSummary}>
           <Text style={styles.sectionTitle}>Professional Summary</Text>
           {finalResumeData.professionalSummary ? (
@@ -579,21 +654,22 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
           )}
         </View>
 
-        {/* Technical Skills - Always present */}
+        {/* Technical Skills & Core Competencies - Enhanced */}
         <View style={styles.compactSection}>
           <Text style={styles.sectionTitle}>Technical Skills & Core Competencies</Text>
           <View style={styles.skillsGrid}>
             {{
               ...(finalResumeData.technicalSkills?.split(/[,•\n|]/) || []),
               ...(finalResumeData.coreCompetencies?.split(/[,•\n|]/) || []),
-              // Default skills if none extracted
+              // Enhanced default skills if none extracted
               ...(!finalResumeData.technicalSkills && !finalResumeData.coreCompetencies ? [
                 'Project Management', 'Team Leadership', 'Strategic Planning', 'Problem Solving',
-                'Communication', 'Analysis', 'Process Improvement', 'Stakeholder Management'
+                'Communication', 'Analysis', 'Process Improvement', 'Stakeholder Management',
+                'Technical Documentation', 'Quality Assurance', 'Risk Management', 'Innovation'
               ] : [])
             }
               .filter((skill: string) => skill.trim())
-              .slice(0, 20)
+              .slice(0, 24)
               .map((skill: string, index: number) => (
                 <Text key={index} style={styles.skillItem}>
                   {skill.trim()}
@@ -602,7 +678,7 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
           </View>
         </View>
 
-        {/* Professional Experience - Enhanced to extract ALL experiences */}
+        {/* Professional Experience - Enhanced with ALL experiences */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Professional Experience</Text>
           {finalResumeData.experience.map((exp: { title: string; company: string; location: string; dates: string; responsibilities: string[] }, index: number) => (
@@ -611,7 +687,7 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
               <Text style={styles.companyInfo}>
                 {[exp.company, exp.location, exp.dates].filter(Boolean).join(' • ')}
               </Text>
-              {exp.responsibilities.slice(0, 5).map((responsibility: string, respIndex: number) => (
+              {exp.responsibilities.slice(0, 6).map((responsibility: string, respIndex: number) => (
                 <Text key={respIndex} style={styles.bulletPoint}>
                   • {responsibility}
                 </Text>
@@ -620,34 +696,37 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
           ))}
         </View>
 
-        {/* Education - Always present */}
+        {/* Education - Enhanced with details */}
         <View style={styles.compactSection}>
           <Text style={styles.sectionTitle}>Education</Text>
-          {finalResumeData.education.map((edu: { degree: string; school: string; details: string }, index: number) => (
+          {finalResumeData.education.map((edu: { degree: string; school: string; year: string; details: string }, index: number) => (
             <View key={index} style={styles.educationItem}>
               <Text style={styles.degreeInfo}>{edu.degree}</Text>
-              {edu.school && <Text style={styles.schoolInfo}>{edu.school}</Text>}
+              {edu.school && <Text style={styles.schoolInfo}>{edu.school} {edu.year && `• ${edu.year}`}</Text>}
               {edu.details && <Text style={styles.schoolInfo}>{edu.details}</Text>}
             </View>
           ))}
         </View>
 
-        {/* Projects - Always present */}
+        {/* Projects - Enhanced with technologies */}
         <View style={styles.compactSection}>
           <Text style={styles.sectionTitle}>Key Projects</Text>
-          {finalResumeData.projects.slice(0, 3).map((project: { title: string; description: string }, index: number) => (
+          {finalResumeData.projects.slice(0, 4).map((project: { title: string; description: string; technologies?: string[] }, index: number) => (
             <View key={index} style={styles.projectItem}>
               <Text style={styles.projectTitle}>{project.title}</Text>
               <Text style={styles.projectDesc}>{project.description}</Text>
+              {project.technologies && project.technologies.length > 0 && (
+                <Text style={styles.smallText}>Technologies: {project.technologies.join(', ')}</Text>
+              )}
             </View>
           ))}
         </View>
 
-        {/* Optional sections - Only if content exists */}
+        {/* Additional sections with more content */}
         {finalResumeData.certifications && (
           <View style={styles.compactSection}>
             <Text style={styles.sectionTitle}>Certifications</Text>
-            {finalResumeData.certifications.split(/[,\n|]/).filter((cert: string) => cert.trim()).slice(0, 5).map((cert: string, index: number) => (
+            {finalResumeData.certifications.split(/[,\n|]/).filter((cert: string) => cert.trim()).slice(0, 6).map((cert: string, index: number) => (
               <Text key={index} style={styles.certificationItem}>
                 • {cert.trim()}
               </Text>
@@ -680,7 +759,7 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
         {/* Footer */}
         <View style={{ marginTop: 'auto', paddingTop: 6, borderTop: '0.5 solid #e5e7eb' }}>
           <Text style={styles.smallText}>
-            AI-Enhanced Resume • ATS Optimized • Job-Specific Tailoring
+            AI-Enhanced Professional Resume • ATS Optimized • Tailored for Target Position
           </Text>
         </View>
       </Page>
