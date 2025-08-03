@@ -89,6 +89,7 @@ export class ResumeOptimizationService {
         include_all_experience: true,
         include_all_education: true,
         enhance_summary: true
+      }
 
       // Create abort controller for timeout
       const controller = new AbortController();

@@ -268,6 +268,121 @@ const CoverLetterPDFDocument: React.FC<{ content: string; jobDetails: any }> = (
   );
 };
 
+/* Enhanced CSS for better resume formatting */
+.resume-content {
+  font-family: 'Arial', sans-serif;
+  line-height: 1.5;
+  color: #333;
+}
+
+.resume-content .header {
+  text-align: center;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #2563eb;
+  padding-bottom: 20px;
+}
+
+.resume-content .name {
+  font-size: 28px;
+  font-weight: bold;
+  color: #2563eb;
+  margin-bottom: 8px;
+}
+
+.resume-content .title {
+  font-size: 18px;
+  color: #666;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.resume-content .contact-info {
+  font-size: 14px;
+  color: #666;
+}
+
+.resume-content .section {
+  margin-bottom: 25px;
+}
+
+.resume-content .section-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #2563eb;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 8px;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.resume-content .experience-item,
+.resume-content .education-item {
+  margin-bottom: 20px;
+}
+
+.resume-content .job-title,
+.resume-content .degree {
+  font-weight: bold;
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.resume-content .company,
+.resume-content .school {
+  font-weight: 600;
+  color: #2563eb;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.resume-content .date-location {
+  color: #666;
+  font-size: 13px;
+  font-style: italic;
+  margin-bottom: 8px;
+}
+
+.resume-content .description {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.resume-content .description ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.resume-content .description li {
+  margin-bottom: 4px;
+}
+
+.resume-content .skills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.resume-content .skill-tag {
+  background: #f3f4f6;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  border: 1px solid #e5e7eb;
+}
+
+.resume-content .summary {
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: justify;
+  margin-bottom: 25px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-left: 4px solid #2563eb;
+}
+
 const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobDetails, analysisData, onBack }) => {
   const [copiedResume, setCopiedResume] = useState(false);
   const [copiedCoverLetter, setCopiedCoverLetter] = useState(false);
