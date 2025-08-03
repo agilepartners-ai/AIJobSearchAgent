@@ -50,61 +50,6 @@ export interface GenerateCoverLetterRequest {
     model?: string;
 }
 
-export const generateResumePDF = async (htmlContent: string): Promise<Blob> => {
-  try {
-    // Enhanced PDF generation with better formatting
-    const response = await fetch('/api/generate-pdf', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        html: htmlContent,
-        options: {
-          format: 'A4',
-          margin: {
-            top: '0.75in',
-            right: '0.75in',
-            bottom: '0.75in',
-            left: '0.75in'
-          },
-          printBackground: true,
-          preferCSSPageSize: true,
-          displayHeaderFooter: false,
-          scale: 0.9
-        }
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('PDF generation failed');
-    }
-
-    return await response.blob();
-  } catch (error) {
-    console.error('PDF generation error:', error);
-    
-    // Fallback: create a better formatted PDF using browser's print functionality
-    return new Promise((resolve) => {
-      // Create a more sophisticated fallback
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(htmlContent);
-        printWindow.document.close();
-        
-        printWindow.onload = () => {
-          printWindow.print();
-          printWindow.close();
-        };
-      }
-      
-      // Create a blob for download
-      const blob = new Blob([htmlContent], { type: 'text/html' });
-      resolve(blob);
-    });
-  }
-};
-
 export class PDFGenerationService {
     private static readonly API_BASE_URL = process.env.NEXT_PUBLIC_RESUME_API_BASE_URL || 'https://resumebuilder-arfb.onrender.com';
     private static readonly API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;

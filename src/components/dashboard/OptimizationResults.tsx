@@ -495,7 +495,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
 
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-600">
                 <div
-                  className="prose prose-sm max-w-none dark:prose-invert"
+                  className="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-200 leading-relaxed"
                   dangerouslySetInnerHTML={{
                     __html: activeDocument === 'resume' ? results.resume_html : results.cover_letter_html
                   }}
