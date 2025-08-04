@@ -268,121 +268,6 @@ const CoverLetterPDFDocument: React.FC<{ content: string; jobDetails: any }> = (
   );
 };
 
-/* Enhanced CSS for better resume formatting */
-.resume-content {
-  font-family: 'Arial', sans-serif;
-  line-height: 1.5;
-  color: #333;
-}
-
-.resume-content .header {
-  text-align: center;
-  margin-bottom: 30px;
-  border-bottom: 2px solid #2563eb;
-  padding-bottom: 20px;
-}
-
-.resume-content .name {
-  font-size: 28px;
-  font-weight: bold;
-  color: #2563eb;
-  margin-bottom: 8px;
-}
-
-.resume-content .title {
-  font-size: 18px;
-  color: #666;
-  margin-bottom: 12px;
-  font-weight: 600;
-}
-
-.resume-content .contact-info {
-  font-size: 14px;
-  color: #666;
-}
-
-.resume-content .section {
-  margin-bottom: 25px;
-}
-
-.resume-content .section-title {
-  font-size: 18px;
-  font-weight: bold;
-  color: #2563eb;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 8px;
-  margin-bottom: 15px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.resume-content .experience-item,
-.resume-content .education-item {
-  margin-bottom: 20px;
-}
-
-.resume-content .job-title,
-.resume-content .degree {
-  font-weight: bold;
-  font-size: 16px;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.resume-content .company,
-.resume-content .school {
-  font-weight: 600;
-  color: #2563eb;
-  font-size: 15px;
-  margin-bottom: 4px;
-}
-
-.resume-content .date-location {
-  color: #666;
-  font-size: 13px;
-  font-style: italic;
-  margin-bottom: 8px;
-}
-
-.resume-content .description {
-  margin-top: 8px;
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-.resume-content .description ul {
-  margin: 8px 0;
-  padding-left: 20px;
-}
-
-.resume-content .description li {
-  margin-bottom: 4px;
-}
-
-.resume-content .skills-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.resume-content .skill-tag {
-  background: #f3f4f6;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  border: 1px solid #e5e7eb;
-}
-
-.resume-content .summary {
-  font-size: 14px;
-  line-height: 1.5;
-  text-align: justify;
-  margin-bottom: 25px;
-  padding: 15px;
-  background: #f8f9fa;
-  border-left: 4px solid #2563eb;
-}
-
 const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobDetails, analysisData, onBack }) => {
   const [copiedResume, setCopiedResume] = useState(false);
   const [copiedCoverLetter, setCopiedCoverLetter] = useState(false);
@@ -427,126 +312,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
         setCopiedResume(true);
         setTimeout(() => setCopiedResume(false), 2000);
       } else {
-      // Enhanced HTML structure for better PDF conversion
-      const enhancedHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            body { 
-              font-family: 'Arial', sans-serif; 
-              line-height: 1.4; 
-              margin: 0; 
-              padding: 20px;
-              color: #333;
-              font-size: 11pt;
-            }
-            .resume-container { 
-              max-width: 8.5in; 
-              margin: 0 auto; 
-              background: white;
-            }
-            .header { 
-              text-align: center; 
-              margin-bottom: 20px; 
-              border-bottom: 2px solid #2563eb;
-              padding-bottom: 15px;
-            }
-            .name { 
-              font-size: 24pt; 
-              font-weight: bold; 
-              color: #2563eb; 
-              margin-bottom: 5px;
-            }
-            .title { 
-              font-size: 14pt; 
-              color: #666; 
-              margin-bottom: 10px;
-              font-weight: 600;
-            }
-            .contact-info { 
-              font-size: 10pt; 
-              color: #666;
-            }
-            .section { 
-              margin-bottom: 20px;
-            }
-            .section-title { 
-              font-size: 14pt; 
-              font-weight: bold; 
-              color: #2563eb; 
-              border-bottom: 1px solid #ddd;
-              padding-bottom: 5px;
-              margin-bottom: 10px;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-            }
-            .experience-item, .education-item { 
-              margin-bottom: 15px;
-              page-break-inside: avoid;
-            }
-            .job-title, .degree { 
-              font-weight: bold; 
-              font-size: 12pt;
-              color: #333;
-            }
-            .company, .school { 
-              font-weight: 600; 
-              color: #2563eb;
-              font-size: 11pt;
-            }
-            .date-location { 
-              color: #666; 
-              font-size: 10pt;
-              font-style: italic;
-              margin-bottom: 5px;
-            }
-            .description { 
-              margin-top: 5px;
-              font-size: 10pt;
-              line-height: 1.3;
-            }
-            .description ul { 
-              margin: 5px 0; 
-              padding-left: 20px;
-            }
-            .description li { 
-              margin-bottom: 3px;
-            }
-            .skills-list { 
-              display: flex; 
-              flex-wrap: wrap; 
-              gap: 8px;
-            }
-            .skill-tag { 
-              background: #f3f4f6; 
-              padding: 4px 8px; 
-              border-radius: 4px; 
-              font-size: 9pt;
-              border: 1px solid #e5e7eb;
-            }
-            .summary { 
-              font-size: 10pt; 
-              line-height: 1.4; 
-              text-align: justify;
-              margin-bottom: 20px;
-            }
-            @media print {
-              body { margin: 0; padding: 15px; }
-              .resume-container { max-width: none; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="resume-container">
-            ${results.optimizedResume}
-          </div>
-        </body>
-        </html>
-      `;
-      
-      const pdfBlob = await generateResumePDF(enhancedHtml);
+        setCopiedCoverLetter(true);
         setTimeout(() => setCopiedCoverLetter(false), 2000);
       }
     } catch (error) {
@@ -714,17 +480,10 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
                 </h4>
                 <div className="flex items-center gap-2">
                   <button
-              <div className="bg-white shadow-lg rounded-lg p-8 max-w-4xl mx-auto">
-                <div 
-                  className="resume-content"
-                  dangerouslySetInnerHTML={{ __html: results.optimizedResume }}
-                  style={{
-                    fontFamily: 'Arial, sans-serif',
-                    lineHeight: '1.4',
-                    color: '#333'
-                  }}
-                />
-              </div>
+                    onClick={() => copyToClipboard(
+                      activeDocument === 'resume' ? results.resume_html : results.cover_letter_html,
+                      activeDocument === 'resume' ? 'resume' : 'cover'
+                    )}
                     className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     title="Copy content"
                   >
@@ -736,25 +495,11 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
 
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-600">
                 <div
-                <div className="w-full h-full flex flex-col">
-                  <div className="flex-1">
-                    <iframe
-                      src={pdfUrl}
-                      className="w-full h-full border-0 rounded-lg"
-                      title="Resume PDF Preview"
-                    />
-                  </div>
-                  <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-                    <a
-                      href={pdfUrl}
-                      download="optimized-resume.pdf"
-                      className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                    >
-                      <Download size={16} className="mr-2" />
-                      Download PDF
-                    </a>
-                  </div>
-                </div>
+                  className="prose prose-sm max-w-none dark:prose-invert"
+                  dangerouslySetInnerHTML={{
+                    __html: activeDocument === 'resume' ? results.resume_html : results.cover_letter_html
+                  }}
+                />
               </div>
 
               {/* Download Options */}
