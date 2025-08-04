@@ -85,7 +85,10 @@ export class ResumeOptimizationService {
         firebase_uid: userId,
         resume_text: resumeText,
         job_description: jobDescription.replace(/[\n\s]+/g, ' ')
-      };
+        format: 'json',
+        include_all_experience: true,
+        include_all_education: true,
+        enhance_summary: true
 
       // Create abort controller for timeout
       const controller = new AbortController();
