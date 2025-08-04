@@ -391,22 +391,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       console.log('✅ About to show results screen...');
 
       // Set results first
-      // Enhanced optimization request with specific instructions
-      const enhancedJobDescription = `
-        ${jobDescription}
-        
-        OPTIMIZATION INSTRUCTIONS:
-        - Include ALL experience entries from the original resume
-        - Include ALL education entries from the original resume  
-        - Create a professional title relevant to this position
-        - Write a compelling summary that highlights why the candidate is perfect for this role
-        - Ensure all information is complete, detailed, and relevant
-        - Maintain chronological order for experience and education
-        - Enhance descriptions with action verbs and quantifiable achievements
-        - Optimize keywords for ATS compatibility
-      `;
-      
-      const result = await optimizeResume(resumeText, enhancedJobDescription);
+      dispatch(setOptimizationResults(optimizationResults));
 
       // Then show results screen - add a small delay to ensure state is updated
       setTimeout(() => {
