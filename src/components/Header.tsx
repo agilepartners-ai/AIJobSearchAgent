@@ -43,20 +43,6 @@ const Header: React.FC = () => {
                 className="h-6 sm:h-7 md:h-10 lg:h-11 w-auto transition-all duration-300"
               />
             </Link>
-            
-            {/* Powered By Logo - Moved closer with responsive spacing */}
-            <a 
-              href="https://bolt.new/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 items-center justify-center"
-            >
-              <img 
-                src="/logotext_poweredby_360w.png" 
-                alt="Powered By" 
-                className="h-6 sm:h-7 md:h-10 lg:h-11 w-auto opacity-90 hover:opacity-100 transition-all duration-300"
-              />
-            </a>
           </div>
 
           {/* Desktop Navigation */}
