@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain, Settings, Upload, HardDrive, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import OptimizationResults from './OptimizationResults';
-import { ResumeExtractionService } from '../../services/resumeExtractionService';
 import { AIEnhancementService } from '../../services/aiEnhancementService';
 import { UserProfileData } from '../../services/profileService';
 import { useAuth } from '../../hooks/useAuth';

@@ -10,9 +10,6 @@ declare namespace NodeJS {
     NEXT_PUBLIC_JSEARCH_API_KEY: string;
     NEXT_PUBLIC_JSEARCH_API_HOST: string;
     NEXT_PUBLIC_TAVUS_API_KEY: string;
-    NEXT_PUBLIC_RESUME_API_BASE_URL: string;
-    NEXT_PUBLIC_RESUME_API_MODEL_TYPE: string;
-    NEXT_PUBLIC_RESUME_API_MODEL: string;
     NEXT_PUBLIC_OPENAI_API_KEY: string;
   }
 }

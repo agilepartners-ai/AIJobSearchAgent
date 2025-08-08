@@ -7,15 +7,6 @@ import Testimonials from './components/Testimonials';
 import Team from './components/Team';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
-import LoginForm from './components/auth/LoginForm';
-import RegisterForm from './components/auth/RegisterForm';
-import ForgotPassword from './components/auth/ForgotPassword';
-import VerifyPhone from './components/auth/VerifyPhone';
-
-import JobSearchPage from './components/pages/JobSearchPage';
-import JobListingsPage from './components/pages/JobListingsPage';
-import AIInterviewPage from './components/pages/AIInterviewPage';
-import Dashboard from './components/dashboard/DashboardMain';
 import ErrorBoundary from './components/dashboard/ErrorBoundary';
 import { ToastProvider } from './components/ui/ToastProvider';
 
