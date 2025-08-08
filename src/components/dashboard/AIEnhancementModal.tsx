@@ -475,17 +475,17 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           cover_letter_html: detailedCoverLetterHtml,
         }}
         jobDetails={{
-          title: applicationData?.position || 'Position',
-          company: applicationData?.company_name || 'Company',
+          title: (applicationData && typeof applicationData === 'object' && 'position' in applicationData) ? String(applicationData.position) : 'Position',
+          company: (applicationData && typeof applicationData === 'object' && 'company_name' in applicationData) ? String(applicationData.company_name) : 'Company',
           description: jobDescription,
         }}
         analysisData={{
-          matchScore: optimizationResults.matchScore || 85,
-          summary: optimizationResults.summary || 'AI analysis summary will appear here.',
-          strengths: optimizationResults.strengths || [],
-          gaps: optimizationResults.gaps || [],
-          suggestions: optimizationResults.suggestions || [],
-          keywordAnalysis: optimizationResults.keywordAnalysis || {
+          matchScore: typeof optimizationResults.matchScore === 'number' ? optimizationResults.matchScore : 85,
+          summary: typeof optimizationResults.summary === 'string' ? optimizationResults.summary : 'AI analysis summary will appear here.',
+          strengths: Array.isArray(optimizationResults.strengths) ? optimizationResults.strengths : [],
+          gaps: Array.isArray(optimizationResults.gaps) ? optimizationResults.gaps : [],
+          suggestions: Array.isArray(optimizationResults.suggestions) ? optimizationResults.suggestions : [],
+          keywordAnalysis: (optimizationResults.keywordAnalysis && typeof optimizationResults.keywordAnalysis === 'object') ? optimizationResults.keywordAnalysis as { coverageScore: number; coveredKeywords: string[]; missingKeywords: string[]; } : {
             coverageScore: 75,
             coveredKeywords: [],
             missingKeywords: []
@@ -571,8 +571,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Document ID: {documentId.slice(0, 8)}...
-                {applicationData && (
-                  <span className="ml-2">• {applicationData.position} at {applicationData.company_name}</span>
+                {applicationData && typeof applicationData === 'object' && 'position' in applicationData && 'company_name' in applicationData && (
+                  <span className="ml-2">• {String(applicationData.position)} at {String(applicationData.company_name)}</span>
                 )}
               </p>
             </div>
