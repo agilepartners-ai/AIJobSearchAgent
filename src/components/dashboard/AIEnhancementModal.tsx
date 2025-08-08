@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { X, FileText, CheckCircle, AlertCircle, Target, Brain, Upload, HardDrive, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import OptimizationResults from './OptimizationResults';
 import { AIEnhancementService } from '../../services/aiEnhancementService';
-import { Profile as UserProfileData } from '../../services/ProfileService';
+import { Profile as UserProfileData } from '../../services/firebaseProfileService';
 import { useAuth } from '../../hooks/useAuth';
 import { extractTextFromPDF, validatePDFFile, PDFExtractionResult, extractTextFallback } from '../../utils/pdfUtils';
 
