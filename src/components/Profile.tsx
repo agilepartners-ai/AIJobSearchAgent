@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, User, Mail, Phone, MapPin, Briefcase } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { Profile as UserProfile } from '../services/firebaseProfileService';
+import { Profile as UserProfile } from '../services/ProfileService';
 
 const Profile: React.FC = () => {
   const { user, userProfile, loading: authLoading } = useAuth();

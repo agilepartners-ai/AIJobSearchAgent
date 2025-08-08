@@ -24,7 +24,7 @@ import JobPreferencesModal from './JobPreferencesModal';
 import JobSearchModal from './JobSearchModal';
 import ProfileModal from './ProfileModal';
 import AIEnhancementModal from './AIEnhancementModal';
-import { JobApplication, ApplicationStats, FirebaseJobApplicationService } from '../../services/firebaseJobApplicationService';
+import { JobApplication, ApplicationStats, JobApplicationService } from '../../services/JobApplicationService';
 import { JobSearchService } from '../../services/jobSearchService';
 import { useAuth } from '../../hooks/useAuth';
 import { useToastContext } from '../ui/ToastProvider';
@@ -87,8 +87,8 @@ const Dashboard: React.FC = () => {
     console.log('[loadApplications] Starting to fetch applications and stats...');
     try {
       const [applicationsData, statsData] = await Promise.all([
-        FirebaseJobApplicationService.getUserApplications(user.uid),
-        FirebaseJobApplicationService.getApplicationStats(user.uid)
+        JobApplicationService.getUserApplications(user.uid),
+        JobApplicationService.getApplicationStats(user.uid)
       ]);
       
       console.log('[loadApplications] Successfully fetched data.');
@@ -251,7 +251,7 @@ const Dashboard: React.FC = () => {
         follow_up_date: null,
       };
 
-      await FirebaseJobApplicationService.addApplication(user.uid, applicationData);
+      await JobApplicationService.addApplication(user.uid, applicationData);
       
       // Show success message
       showSuccess(
@@ -300,7 +300,7 @@ const Dashboard: React.FC = () => {
             response_date: null,
             follow_up_date: null,
           };
-          return await FirebaseJobApplicationService.addApplication(user.uid, applicationData);
+          return await JobApplicationService.addApplication(user.uid, applicationData);
         } catch (err) {
           console.error(`Failed to save job: ${job.job_title}`, err);
           return null; // Return null for failed saves
@@ -343,10 +343,10 @@ const Dashboard: React.FC = () => {
       setError('');
 
       if (editingApplication) {
-        await FirebaseJobApplicationService.updateApplication(user.uid, editingApplication.id, applicationData);
+        await JobApplicationService.updateApplication(user.uid, editingApplication.id, applicationData);
         showSuccess('Application Updated', 'The application has been successfully updated.');
       } else {
-        await FirebaseJobApplicationService.addApplication(user.uid, applicationData);
+        await JobApplicationService.addApplication(user.uid, applicationData);
         showSuccess('Application Added', 'The new application has been successfully added.');
       }
       await loadApplications();
@@ -362,7 +362,7 @@ const Dashboard: React.FC = () => {
 
     try {
       setError('');
-      await FirebaseJobApplicationService.deleteApplication(user.uid, applicationId);
+      await JobApplicationService.deleteApplication(user.uid, applicationId);
       await loadApplications();
       showSuccess('Application Deleted', 'The application has been successfully removed.');
     } catch (err: any) {
@@ -378,14 +378,14 @@ const Dashboard: React.FC = () => {
       const applicationToUpdate = applications.find(app => app.id === applicationId);
       
       if (applicationToUpdate) {
-        await FirebaseJobApplicationService.updateApplication(user.uid, applicationId, { status: newStatus as any });
+        await JobApplicationService.updateApplication(user.uid, applicationId, { status: newStatus as any });
         showSuccess('Application Status Updated', `Status changed to ${newStatus}.`);
         await loadApplications();
         return;
       }
       
       // Handle regular application status updates
-      await FirebaseJobApplicationService.updateApplication(user.uid, applicationId, { status: newStatus as any });
+      await JobApplicationService.updateApplication(user.uid, applicationId, { status: newStatus as any });
       await loadApplications();
     } catch (err: any) {
       setError(err.message || 'Failed to update application status');

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { CheckCircle } from 'lucide-react';
 import FirebaseAuthService from '../../services/firebaseAuthService';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -10,11 +11,23 @@ const LoginForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const router = useRouter();
+
+  useEffect(() => {
+    // Check for success messages from URL params
+    const message = router.query.message as string;
+    if (message === 'password-reset-success') {
+      setSuccessMessage('Password updated successfully! You can now sign in with your new password.');
+      // Clear the message from URL
+      router.replace('/login', undefined, { shallow: true });
+    }
+  }, [router.query.message]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
     setLoading(true);
 
     try {
@@ -61,6 +74,12 @@ const LoginForm: React.FC = () => {
           {error && (
             <div className="bg-red-500/20 dark:bg-red-900/40 backdrop-blur-sm text-red-100 dark:text-red-200 p-4 rounded-xl text-sm border border-red-500/30 dark:border-red-700/50">
               {error}
+            </div>
+          )}
+          {successMessage && (
+            <div className="bg-green-500/20 dark:bg-green-900/30 backdrop-blur-sm text-green-100 dark:text-green-200 p-4 rounded-xl text-sm border border-green-500/30 dark:border-green-700/50 flex items-center gap-3">
+              <CheckCircle size={20} className="flex-shrink-0" />
+              <span>{successMessage}</span>
             </div>
           )}
           <div className="space-y-5">

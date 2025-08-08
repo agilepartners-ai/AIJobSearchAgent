@@ -104,18 +104,117 @@ export class FirebaseAuthService {
 
   static async sendPasswordResetEmail(email: string): Promise<void> {
     try {
-      await firebaseSendPasswordResetEmail(auth, email);
+      // Validate email format
+      if (!email || !email.includes('@')) {
+        throw new Error('Please enter a valid email address');
+      }
+
+      // Check if we're in browser environment
+      const continueUrl = typeof window !== 'undefined' 
+        ? `${window.location.origin}/login`
+        : process.env.NEXT_PUBLIC_APP_URL 
+          ? `${process.env.NEXT_PUBLIC_APP_URL}/login`
+          : 'https://your-app-domain.com/login'; // fallback
+
+      await firebaseSendPasswordResetEmail(auth, email, {
+        // Customize the email template
+        url: continueUrl,
+        handleCodeInApp: false,
+      });
     } catch (error) {
-      throw new Error('Failed to send password reset email');
+      const authError = error as AuthError;
+      
+      // Handle specific Firebase auth errors
+      switch (authError.code) {
+        case 'auth/user-not-found':
+          throw new Error('No account found with this email address');
+        case 'auth/invalid-email':
+          throw new Error('Invalid email address');
+        case 'auth/too-many-requests':
+          throw new Error('Too many password reset requests. Please try again later');
+        case 'auth/network-request-failed':
+          throw new Error('Network error. Please check your connection and try again');
+        default:
+          throw new Error(authError.message || 'Failed to send password reset email');
+      }
     }
   }
 
   static async updatePassword(newPassword: string): Promise<void> {
     if (!auth.currentUser) throw new Error('No user is signed in.');
+    
     try {
+      // Validate password strength
+      if (newPassword.length < 6) {
+        throw new Error('Password must be at least 6 characters long');
+      }
+
       await firebaseUpdatePassword(auth.currentUser, newPassword);
     } catch (error) {
-      throw new Error('Failed to update password');
+      const authError = error as AuthError;
+      
+      switch (authError.code) {
+        case 'auth/weak-password':
+          throw new Error('Password is too weak. Please choose a stronger password');
+        case 'auth/requires-recent-login':
+          throw new Error('Please sign in again before changing your password');
+        default:
+          throw new Error(authError.message || 'Failed to update password');
+      }
+    }
+  }
+
+  /**
+   * Validate password strength
+   */
+  static validatePasswordStrength(password: string): {
+    isValid: boolean;
+    errors: string[];
+    strength: 'weak' | 'medium' | 'strong';
+  } {
+    const errors: string[] = [];
+    let score = 0;
+
+    if (password.length < 6) {
+      errors.push('Password must be at least 6 characters long');
+    } else if (password.length >= 8) {
+      score += 1;
+    }
+
+    if (/[A-Z]/.test(password)) score += 1;
+    if (/[a-z]/.test(password)) score += 1;
+    if (/[0-9]/.test(password)) score += 1;
+    if (/[^A-Za-z0-9]/.test(password)) score += 1;
+
+    if (password.length >= 6 && score < 2) {
+      errors.push('Password should contain a mix of letters, numbers, and symbols');
+    }
+
+    const strength = score <= 2 ? 'weak' : score <= 3 ? 'medium' : 'strong';
+
+    return {
+      isValid: password.length >= 6 && errors.length === 0,
+      errors,
+      strength
+    };
+  }
+
+  /**
+   * Check if email exists in the system (for password reset validation)
+   */
+  static async checkEmailExists(email: string): Promise<boolean> {
+    try {
+      // This is a workaround since Firebase doesn't provide a direct way to check if email exists
+      // We'll try to send a password reset email and catch the user-not-found error
+      await firebaseSendPasswordResetEmail(auth, email);
+      return true;
+    } catch (error) {
+      const authError = error as AuthError;
+      if (authError.code === 'auth/user-not-found') {
+        return false;
+      }
+      // If it's any other error, assume the email exists
+      return true;
     }
   }
 

@@ -3,7 +3,7 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setFormData, updateFormField, resetForm } from '../../store/applicationModalSlice';
 import { openModal as openAIModal, closeModal as closeAIModal, resetState as resetAIState } from '../../store/aiEnhancementModalSlice';
 import { X, Calendar, Building, FileText, User, Link, Sparkles, MapPin } from 'lucide-react';
-import { JobApplication } from '../../services/firebaseJobApplicationService';
+import { JobApplication } from '../../services/JobApplicationService';
 import { UserProfileData } from '../../services/profileService';
 import AIEnhancementModal from './AIEnhancementModal';
 

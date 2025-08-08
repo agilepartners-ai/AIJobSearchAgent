@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import ApplicationModal from './ApplicationModal';
 import ProfileModal from './ProfileModal';
 import JobPreferencesModal from './JobPreferencesModal';
-import { JobApplication } from '../../services/firebaseJobApplicationService';
-import { FirebaseJobApplicationService } from '../../services/firebaseJobApplicationService';
+import { JobApplication, JobApplicationService } from '../../services/JobApplicationService';
 import { useAuth } from '../../hooks/useAuth';
 import { useToastContext } from '../ui/ToastProvider';
 import FirebaseAuthService from '../../services/firebaseAuthService';
@@ -60,8 +59,8 @@ const Dashboard: React.FC = () => {
       setError('');
       
       const [applicationsData, statsData] = await Promise.all([
-        FirebaseJobApplicationService.getUserApplications(user.uid),
-        FirebaseJobApplicationService.getApplicationStats(user.uid)
+        JobApplicationService.getUserApplications(user.uid),
+        JobApplicationService.getApplicationStats(user.uid)
       ]);
       
       setApplications(applicationsData);
@@ -122,10 +121,10 @@ const Dashboard: React.FC = () => {
       
       if (editingApplication) {
         // Update existing application
-        await FirebaseJobApplicationService.updateApplication(user.uid, editingApplication.id, applicationData);
+        await JobApplicationService.updateApplication(user.uid, editingApplication.id, applicationData);
       } else {
         // Add new application
-        await FirebaseJobApplicationService.addApplication(user.uid, applicationData);
+        await JobApplicationService.addApplication(user.uid, applicationData);
       }
       
       setShowModal(false);
@@ -144,7 +143,7 @@ const Dashboard: React.FC = () => {
 
     try {
       setError('');
-            await FirebaseJobApplicationService.deleteApplication(user.uid, applicationId);
+            await JobApplicationService.deleteApplication(user.uid, applicationId);
       await loadApplications(); // Reload data
     } catch (err: any) {
       setError(err.message || 'Failed to delete application');
