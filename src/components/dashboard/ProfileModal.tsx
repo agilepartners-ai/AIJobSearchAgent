@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, User, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import ProfileForm, { ProfileData } from '../forms/ProfileFormNew';
-import { ProfileService, UserProfileData } from '../../services/profileService';
+import { ProfileService, Profile as UserProfileData } from '../../services/ProfileService';
 
 interface ProfileModalProps {
   onClose: () => void;

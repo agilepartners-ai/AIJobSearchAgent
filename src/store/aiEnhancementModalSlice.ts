@@ -16,7 +16,7 @@ export interface AIEnhancementModalState {
   cloudFileUrl: string;
   error: string;
   showResults: boolean;
-  optimizationResults: any;
+  optimizationResults: Record<string, unknown> | null;
 }
 
 const initialState: AIEnhancementModalState = {
@@ -39,7 +39,7 @@ const aiEnhancementModalSlice = createSlice({
       state.isOpen = true;
       state.jobDescription = action.payload.jobDescription;
     },
-    closeModal(state) {
+    closeModal() {
       return { ...initialState };
     },
     setSelectedFile(state, action: PayloadAction<{ meta: FileMeta; content: string }>) {
@@ -63,7 +63,7 @@ const aiEnhancementModalSlice = createSlice({
     setShowResults(state, action: PayloadAction<boolean>) {
       state.showResults = action.payload;
     },
-    setOptimizationResults(state, action: PayloadAction<any>) {
+    setOptimizationResults(state, action: PayloadAction<Record<string, unknown> | null>) {
       state.optimizationResults = action.payload;
     },
     resetState() {

@@ -21,7 +21,7 @@ const Testimonial: React.FC<TestimonialProps> = ({ content, name, role, company,
         ))}
       </div>
       <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed mb-6">
-        "{content}"
+        &quot;{content}&quot;
       </p>
       <div className="flex items-center">
         <img 

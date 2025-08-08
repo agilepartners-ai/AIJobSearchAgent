@@ -1,6 +1,7 @@
 import { cn } from "@/utils";
 import { motion } from "framer-motion";
 import { quantum } from 'ldrs';
+import Image from 'next/image';
 
 quantum.register();
 
@@ -61,9 +62,10 @@ export const AnimatedWrapper = ({
         mobileClassName,
       )}
     >
-      <img
+      <Image
         src="/images/dialogBlur.svg"
         alt="background"
+        fill
         className="absolute inset-0 h-full w-full object-cover"
       />
       {children}
@@ -124,9 +126,11 @@ export const StaticTextBlockWrapper = ({
 }) => {
   return (
     <div className="flex flex-col items-center justify-center">
-      <img
+      <Image
         src={imgSrc}
         alt="icon"
+        width={80}
+        height={80}
         className="mb-4 size-20 sm:mb-8 lg:size-30"
       />
       <h2

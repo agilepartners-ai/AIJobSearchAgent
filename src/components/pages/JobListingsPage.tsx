@@ -268,7 +268,7 @@ const JobListingsPage: React.FC = () => {  const router = useRouter();
               No Job Search Found
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
-              It looks like you haven't searched for jobs yet. Start by searching for your dream job!
+              It looks like you haven&apos;t searched for jobs yet. Start by searching for your dream job!
             </p>
             <button
               onClick={handleBack}
@@ -328,7 +328,7 @@ const JobListingsPage: React.FC = () => {  const router = useRouter();
         {searchCriteria && (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 mb-8">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Search Results for "{searchCriteria.query}"
+              Search Results for &quot;{searchCriteria.query}&quot;
             </h2>
             <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
               <span>📍 {searchCriteria.location}</span>
@@ -353,7 +353,7 @@ const JobListingsPage: React.FC = () => {  const router = useRouter();
             </h3>
             {jobs.length > 0 && (
               <p className="text-gray-600 dark:text-gray-400">
-                Select jobs you're interested in ({selectedJobs.size} selected)
+                Select jobs you&apos;re interested in ({selectedJobs.size} selected)
               </p>
             )}
           </div>
@@ -367,7 +367,7 @@ const JobListingsPage: React.FC = () => {  const router = useRouter();
                 No Jobs Found
               </h3>
               <p className="text-xl text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
-                We couldn't find any jobs matching your search criteria. Try adjusting your search terms or expanding your location preferences.
+                We couldn&apos;t find any jobs matching your search criteria. Try adjusting your search terms or expanding your location preferences.
               </p>
               <button
                 onClick={handleBack}

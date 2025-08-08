@@ -15,7 +15,7 @@ export type ApplicationFormData = {
 
 type ApplicationModalState = {
   showModal: boolean;
-  editingApplication: any | null;
+  editingApplication: Record<string, unknown> | null;
   formData: ApplicationFormData;
 };
 
@@ -40,7 +40,7 @@ const applicationModalSlice = createSlice({
   name: 'applicationModal',
   initialState,
   reducers: {
-    openModal(state, action: PayloadAction<{ editingApplication: any | null, formData?: ApplicationFormData }>) {
+    openModal(state, action: PayloadAction<{ editingApplication: Record<string, unknown> | null, formData?: ApplicationFormData }>) {
       state.showModal = true;
       state.editingApplication = action.payload.editingApplication;
       if (action.payload.formData) {

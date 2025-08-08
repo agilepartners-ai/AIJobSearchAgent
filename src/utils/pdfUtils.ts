@@ -4,7 +4,7 @@ const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefine
 export interface PDFExtractionResult {
     text: string;
     pages: number;
-    metadata?: any;
+    metadata?: Record<string, unknown>;
     error?: string;
 }
 
@@ -92,7 +92,7 @@ export const extractTextFromPDF = async (file: File): Promise<PDFExtractionResul
 
                 // Extract text with simple concatenation like AiJobSearch-old
                 const pageText = textContent.items
-                    .map((item: any) => item.str || '')
+                    .map((item: { str?: string }) => item.str || '')
                     .join(' ');
 
                 if (pageText.trim()) {

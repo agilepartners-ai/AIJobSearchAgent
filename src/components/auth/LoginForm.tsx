@@ -5,6 +5,7 @@ import { CheckCircle } from 'lucide-react';
 import FirebaseAuthService from '../../services/firebaseAuthService';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 
 const LoginForm: React.FC = () => {  
   const [email, setEmail] = useState('');
@@ -22,7 +23,7 @@ const LoginForm: React.FC = () => {
       // Clear the message from URL
       router.replace('/login', undefined, { shallow: true });
     }
-  }, [router.query.message]);
+  }, [router, router.query.message]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,8 +34,9 @@ const LoginForm: React.FC = () => {
     try {
       await FirebaseAuthService.signIn({ email, password });
       router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred during login';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -63,7 +65,7 @@ const LoginForm: React.FC = () => {
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
-            <img src="/AGENT_Logo.png" alt="AIJobSearchAgent" className="h-20 w-auto mx-auto mb-6" />
+            <Image src="/AGENT_Logo.png" alt="AIJobSearchAgent" width={80} height={80} className="h-20 w-auto mx-auto mb-6" priority />
           </Link>
           <h2 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Welcome Back</h2>
           <p className="text-blue-100 dark:text-blue-200">Sign in to your account</p>
@@ -125,9 +127,9 @@ const LoginForm: React.FC = () => {
               </label>
             </div>
             <div className="text-sm">
-              <a href="/forgot-password" className="text-blue-200 dark:text-blue-300 hover:text-white dark:hover:text-white transition-colors">
+              <Link href="/forgot-password" className="text-blue-200 dark:text-blue-300 hover:text-white dark:hover:text-white transition-colors">
                 Forgot your password?
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -141,7 +143,7 @@ const LoginForm: React.FC = () => {
           
           <div className="mt-6 text-center">
             <Link href="/register" className="text-blue-200 dark:text-blue-300 hover:text-white dark:hover:text-white transition-colors">
-              Don't have an account? <span className="font-medium">Sign up</span>
+              Don&apos;t have an account? <span className="font-medium">Sign up</span>
             </Link>
           </div>
         </form>

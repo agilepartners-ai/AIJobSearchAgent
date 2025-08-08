@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
-import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain, Settings, Upload, HardDrive, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, FileText, CheckCircle, AlertCircle, Target, Brain, Upload, HardDrive, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import OptimizationResults from './OptimizationResults';
 import { AIEnhancementService } from '../../services/aiEnhancementService';
-import { UserProfileData } from '../../services/profileService';
+import { Profile as UserProfileData } from '../../services/ProfileService';
 import { useAuth } from '../../hooks/useAuth';
 import { extractTextFromPDF, validatePDFFile, PDFExtractionResult, extractTextFallback } from '../../utils/pdfUtils';
 
@@ -14,7 +14,7 @@ import {
   setError,
   setShowResults,
   setOptimizationResults,
-  resetState,
+
 } from '../../store/aiEnhancementModalSlice';
 
 interface AIEnhancementModalProps {
@@ -49,7 +49,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   const {
     selectedFileMeta,
     selectedFileContent,
-    cloudProvider,
+
     cloudFileUrl,
     error,
     showResults,
@@ -147,8 +147,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         setShowExtractedText(true);
         console.log(`File processed successfully: extracted ${extractionResult.text.length} characters from ${extractionResult.pages} pages.`);
       }
-    } catch (error) {
-      console.error('Error processing file:', error);
+    } catch (error: unknown) {
+      console.error('Error generating AI content:', error);
       setShowManualInput(true);
       setExtractedPDFData(null);
       dispatch(setError('Unable to process the file automatically. Please use the manual text input below.'));
@@ -191,12 +191,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     }
   };
 
-  const handleCloudProviderChange = (provider: string) => {
-    dispatch(setCloudProvider(provider));
-    // Clear local file if cloud provider is selected
-    dispatch(setSelectedFile({ meta: { name: '', type: '', size: 0, lastModified: 0 }, content: '' }));
-    dispatch(setCloudFileUrl(''));
-  };
+
 
   const downloadFileFromUrl = async (url: string): Promise<File> => {
     try {
@@ -256,7 +251,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         const mimeMatch = arr[0].match(/:(.*?);/);
         const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
         const bstr = arr[1] ? atob(arr[1]) : '';
-        let n = bstr.length, u8arr = new Uint8Array(n);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
         while (n--) u8arr[n] = bstr.charCodeAt(n);
         const fileToProcess = new File([u8arr], selectedFileMeta.name, { type: mime });
 
@@ -424,7 +420,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   };
 
   // Helper method to convert resume JSON to text
-  const convertResumeJsonToText = (resumeJson: any): string => {
+  const convertResumeJsonToText = (resumeJson: Record<string, unknown>): string => {
     let text = '';
 
     if (resumeJson.personal) {
@@ -843,7 +839,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 export default AIEnhancementModal;
 
 // Helper functions to generate detailed HTML content with better formatting
-const generateDetailedResumeHTML = (results: any): string => {
+const generateDetailedResumeHTML = (results: Record<string, unknown>): string => {
   const sections = results.aiEnhancements?.detailedResumeSections || {};
   const personalInfo = results.parsedResume?.personal || {};
 
@@ -1064,7 +1060,7 @@ const generateDetailedResumeHTML = (results: any): string => {
   `;
 };
 
-const generateDetailedCoverLetterHTML = (results: any): string => {
+const generateDetailedCoverLetterHTML = (results: Record<string, unknown>): string => {
   const coverLetter = results.aiEnhancements?.detailedCoverLetter || {};
   const personalInfo = results.parsedResume?.personal || {};
   const jobDetails = results.applicationData || {};

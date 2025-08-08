@@ -75,7 +75,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
         {/* Features */}
         <div className="px-6 pb-6">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
-            What's included:
+            What&apos;s included:
           </h3>
           <div className="space-y-3">
             {proFeatures.map((feature, index) => (

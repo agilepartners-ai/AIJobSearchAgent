@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Mail, ArrowLeft, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import { AlertCircle, Mail, CheckCircle, ArrowLeft, Loader } from 'lucide-react';
 import FirebaseAuthService from '../../services/firebaseAuthService';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -54,20 +55,23 @@ const ForgotPassword: React.FC = () => {
       await FirebaseAuthService.sendPasswordResetEmail(email.trim().toLowerCase());
       setSuccess(true);
       startCooldown();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Password reset error:', err);
       
       // Handle specific Firebase auth errors
       let errorMessage = 'Failed to send password reset email';
       
-      if (err.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email address';
-      } else if (err.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address';
-      } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many requests. Please try again later';
-      } else if (err.message) {
-        errorMessage = err.message;
+      if (err && typeof err === 'object' && 'code' in err) {
+        const firebaseError = err as { code: string; message?: string };
+        if (firebaseError.code === 'auth/user-not-found') {
+          errorMessage = 'No account found with this email address';
+        } else if (firebaseError.code === 'auth/invalid-email') {
+          errorMessage = 'Invalid email address';
+        } else if (firebaseError.code === 'auth/too-many-requests') {
+          errorMessage = 'Too many requests. Please try again later';
+        } else if (firebaseError.message) {
+          errorMessage = firebaseError.message;
+        }
       }
       
       setError(errorMessage);
@@ -86,7 +90,7 @@ const ForgotPassword: React.FC = () => {
       await FirebaseAuthService.sendPasswordResetEmail(email.trim().toLowerCase());
       setSuccess(true);
       startCooldown();
-    } catch (err: any) {
+    } catch {
       setError('Failed to resend email. Please try again.');
     } finally {
       setLoading(false);
@@ -116,10 +120,10 @@ const ForgotPassword: React.FC = () => {
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
-            <img src="/AGENT_Logo.png" alt="AIJobSearchAgent" className="h-20 w-auto mx-auto mb-6" />
+            <Image src="/AGENT_Logo.png" alt="AIJobSearchAgent" width={80} height={80} className="h-20 w-auto mx-auto mb-6" priority />
           </Link>
           <h2 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Reset Your Password</h2>
-          <p className="text-blue-100">We'll send you instructions to reset your password</p>
+          <p className="text-blue-100">We&apos;ll send you instructions to reset your password</p>
         </div>
         
         <div className="backdrop-blur-lg bg-white/20 dark:bg-gray-900/40 rounded-2xl shadow-xl border border-white/30 dark:border-gray-700/50 p-8 transition-all duration-300">
@@ -152,7 +156,7 @@ const ForgotPassword: React.FC = () => {
                   />
                 </div>
                 <p className="text-xs text-blue-200/70 dark:text-blue-300/50">
-                  We'll send you a link to reset your password
+                  We&apos;ll send you a link to reset your password
                 </p>
               </div>
 
@@ -190,7 +194,7 @@ const ForgotPassword: React.FC = () => {
                 <CheckCircle className="mx-auto mb-4 text-green-300" size={48} />
                 <h3 className="text-lg font-semibold mb-2">Email Sent!</h3>
                 <p className="text-sm">
-                  We've sent password reset instructions to <strong>{email}</strong>
+                  We&apos;ve sent password reset instructions to <strong>{email}</strong>
                 </p>
                 <p className="text-xs mt-2 opacity-80">
                   Check your inbox and spam folder
@@ -199,7 +203,7 @@ const ForgotPassword: React.FC = () => {
 
               <div className="space-y-4">
                 <div className="text-sm text-blue-200/70 dark:text-blue-300/50">
-                  Didn't receive the email?
+                  Didn&apos;t receive the email?
                 </div>
                 
                 <button

@@ -4,12 +4,30 @@ import { AlertTriangle, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Copy, C
 interface ApiErrorHandlerProps {
   error: Error | string;
   endpoint: string;
-  params: Record<string, any>;
-  responseData?: any;
+  params: Record<string, unknown>;
+  responseData?: unknown;
   statusCode?: number;
-  onRetry: (endpoint: string, params: Record<string, any>) => Promise<void>;
+  onRetry: (endpoint: string, params: Record<string, unknown>) => Promise<void>;
   onClose?: () => void;
 }
+
+// Helper function moved outside component to avoid hoisting issues
+const isCorsError = (error: Error | string, statusCode?: number, responseData?: unknown): boolean => {
+  const message = typeof error === 'string' ? error : error.message;
+  
+  // Check basic CORS indicators
+  const hasCorsinMessage = message.includes('CORS') || message.includes('cross-origin');
+  const hasZeroStatus = statusCode === 0;
+  
+  // Check response data for CORS error type
+  const hasCorsinResponse = responseData && 
+    typeof responseData === 'object' && 
+    responseData !== null && 
+    'type' in responseData && 
+    (responseData as { type: string }).type === 'CORS_ERROR';
+  
+  return hasCorsinMessage || hasZeroStatus || Boolean(hasCorsinResponse);
+};
 
 const ApiErrorHandler: React.FC<ApiErrorHandlerProps> = ({
   error,
@@ -26,19 +44,11 @@ const ApiErrorHandler: React.FC<ApiErrorHandlerProps> = ({
   const [retryError, setRetryError] = useState<string | null>(null);
   const [showJsonViewer, setShowJsonViewer] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [showCorsHelp, setShowCorsHelp] = useState(isCorsError(error, statusCode));
+  const [showCorsHelp, setShowCorsHelp] = useState(isCorsError(error, statusCode, responseData));
 
   const errorMessage = typeof error === 'string' ? error : error.message;
 
-  function isCorsError(error: Error | string, statusCode?: number): boolean {
-    const message = typeof error === 'string' ? error : error.message;
-    return message.includes('CORS') || 
-           message.includes('cross-origin') || 
-           statusCode === 0 || 
-           (responseData && responseData.type === 'CORS_ERROR');
-  }
-
-  const handleParamChange = (key: string, value: any) => {
+  const handleParamChange = (key: string, value: unknown) => {
     setModifiedParams(prev => ({
       ...prev,
       [key]: value
@@ -52,8 +62,9 @@ const ApiErrorHandler: React.FC<ApiErrorHandlerProps> = ({
     try {
       await onRetry(modifiedEndpoint, modifiedParams);
       // If successful, the parent component will handle closing this
-    } catch (err: any) {
-      setRetryError(err.message || 'Failed to retry request');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to retry request';
+      setRetryError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -73,10 +84,10 @@ const ApiErrorHandler: React.FC<ApiErrorHandlerProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const formatJson = (json: any): string => {
+  const formatJson = (json: unknown): string => {
     try {
       return JSON.stringify(json, null, 2);
-    } catch (e) {
+    } catch {
       return 'Invalid JSON data';
     }
   };
@@ -152,7 +163,8 @@ const ApiErrorHandler: React.FC<ApiErrorHandlerProps> = ({
             {retryError}
           </div>
         )}
-
+       </div>
+       
         {/* Endpoint URL */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -172,51 +184,69 @@ const ApiErrorHandler: React.FC<ApiErrorHandlerProps> = ({
             Request Parameters
           </h3>
           <div className="space-y-4 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-            {Object.entries(modifiedParams).map(([key, value]) => (
+            {Object.entries(modifiedParams).map(([key, value]: [string, unknown]) => (
               <div key={key}>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   {key}
                 </label>
-                {typeof value === 'string' ? (
-                  key === 'job_description' || key === 'resume_text' || value.length > 100 ? (
-                    <textarea
-                      value={value}
-                      onChange={(e) => handleParamChange(key, e.target.value)}
-                      rows={8}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white font-mono text-sm resize-vertical whitespace-pre-wrap"
-                      style={{ minHeight: '150px' }}
-                      spellCheck="false"
-                      wrap="soft"
-                    />
-                  ) : (
-                    <input
-                      type="text"
-                      value={value}
-                      onChange={(e) => handleParamChange(key, e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                    />
-                  )
-                ) : typeof value === 'boolean' ? (
-                  <select
-                    value={value.toString()}
-                    onChange={(e) => handleParamChange(key, e.target.value === 'true')}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value="true">True</option>
-                    <option value="false">False</option>
-                  </select>
-                ) : typeof value === 'number' ? (
-                  <input
-                    type="number"
-                    value={value}
-                    onChange={(e) => handleParamChange(key, Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  />
-                ) : (
-                  <div className="text-sm text-gray-500 dark:text-gray-400 italic">
-                    Complex value (object/array) - edit in JSON viewer
-                  </div>
-                )}
+                {(() => {
+                  if (typeof value === 'string') {
+                    return key === 'job_description' || key === 'resume_text' || value.length > 100 ? (
+                      <textarea
+                        value={value}
+                        onChange={(e) => handleParamChange(key, e.target.value)}
+                        rows={8}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white font-mono text-sm resize-vertical whitespace-pre-wrap"
+                        style={{ minHeight: '150px' }}
+                        spellCheck="false"
+                        wrap="soft"
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        value={String(value)}
+                        onChange={(e) => handleParamChange(key, e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    );
+                  } else if (typeof value === 'boolean') {
+                    return (
+                      <select
+                        value={String(value)}
+                        onChange={(e) => handleParamChange(key, e.target.value === 'true')}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      >
+                        <option value="true">True</option>
+                        <option value="false">False</option>
+                      </select>
+                    );
+                  } else if (typeof value === 'number') {
+                    return (
+                      <input
+                        type="number"
+                        value={String(value)}
+                        onChange={(e) => handleParamChange(key, Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    );
+                  } else if (value === null || value === undefined) {
+                    return (
+                      <input
+                        type="text"
+                        value=""
+                        onChange={(e) => handleParamChange(key, e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="null/undefined value"
+                      />
+                    );
+                  } else {
+                    return (
+                      <div className="text-sm text-gray-500 dark:text-gray-400 italic">
+                        Complex value (object/array) - edit in JSON viewer
+                      </div>
+                    );
+                  }
+                })()}
               </div>
             ))}
           </div>

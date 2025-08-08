@@ -4,7 +4,7 @@ import { setFormData, updateFormField, resetForm } from '../../store/application
 import { openModal as openAIModal, closeModal as closeAIModal, resetState as resetAIState } from '../../store/aiEnhancementModalSlice';
 import { X, Calendar, Building, FileText, User, Link, Sparkles, MapPin } from 'lucide-react';
 import { JobApplication } from '../../services/JobApplicationService';
-import { UserProfileData } from '../../services/profileService';
+import { Profile as UserProfileData } from '../../services/ProfileService';
 import AIEnhancementModal from './AIEnhancementModal';
 
 const ApplicationStatus = {

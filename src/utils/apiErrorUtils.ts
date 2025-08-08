@@ -8,11 +8,16 @@
 export function createApiError(
   endpoint: string,
   method: string,
-  params: Record<string, any>,
-  responseData?: any,
+  params: Record<string, unknown>,
+  responseData?: unknown,
   message?: string
 ): Error {
-  const error = new Error(message || `API request to ${endpoint} failed`) as any;
+  const error = new Error(message || `API request to ${endpoint} failed`) as Error & {
+    endpoint: string;
+    method: string;
+    params: Record<string, unknown>;
+    responseData?: unknown;
+  };
   error.endpoint = endpoint;
   error.method = method;
   error.params = params;
@@ -26,7 +31,7 @@ export function createApiError(
 export async function handleApiError(
   response: Response,
   endpoint: string,
-  params: Record<string, any>
+  params: Record<string, unknown>
 ): Promise<never> {
   let errorMessage = `API request failed with status ${response.status}`;
   let responseData = null;
@@ -48,14 +53,14 @@ export async function handleApiError(
     if (responseData?.message || responseData?.error) {
       errorMessage = responseData.message || responseData.error;
     }
-  } catch (e) {
+  } catch {
     // If not JSON, try to get text
     try {
       const textResponse = await response.text();
       if (textResponse) {
         errorMessage = textResponse;
       }
-    } catch (textError) {
+    } catch {
       // If text extraction fails, use default message
     }
   }
@@ -75,7 +80,7 @@ export async function handleApiError(
 export async function fetchWithErrorHandling<T>(
   endpoint: string,
   options: RequestInit = {},
-  params: Record<string, any> = {}
+  params: Record<string, unknown> = {}
 ): Promise<T> {
   try {
     const response = await fetch(endpoint, options);
@@ -97,7 +102,7 @@ export async function fetchWithErrorHandling<T>(
       );
     }
     
-    if ((error as any).endpoint) {
+    if ((error as Error & { endpoint?: string }).endpoint) {
       // Already an enhanced API error
       throw error;
     }

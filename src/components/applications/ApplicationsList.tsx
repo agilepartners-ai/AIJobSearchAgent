@@ -74,8 +74,9 @@ const ApplicationsList: React.FC = () => {
       // Mock API call - replace with actual API later
       await new Promise(resolve => setTimeout(resolve, 500));
       setApplications(mockApplications);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch applications');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch applications';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

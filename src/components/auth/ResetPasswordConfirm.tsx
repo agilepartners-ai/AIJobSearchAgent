@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { Eye, EyeOff, CheckCircle, AlertCircle, Lock, Loader } from 'lucide-react';
+import FirebaseAuthService from '../../services/firebaseAuthService';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Eye, EyeOff, Lock, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+
 import { confirmPasswordReset, verifyPasswordResetCode } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
-import FirebaseAuthService from '../../services/firebaseAuthService';
 import PasswordStrengthIndicator from '../ui/PasswordStrengthIndicator';
-import Link from 'next/link';
 
 const ResetPasswordConfirm: React.FC = () => {
   const router = useRouter();
@@ -41,7 +42,7 @@ const ResetPasswordConfirm: React.FC = () => {
         const email = await verifyPasswordResetCode(auth, oobCode);
         setUserEmail(email);
         setValidCode(true);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error verifying reset code:', error);
         setError('Invalid or expired password reset link');
       } finally {
@@ -90,23 +91,26 @@ const ResetPasswordConfirm: React.FC = () => {
       setTimeout(() => {
         router.push('/login?message=password-reset-success');
       }, 3000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Password reset error:', error);
       
       let errorMessage = 'Failed to reset password';
       
-      switch (error.code) {
-        case 'auth/expired-action-code':
-          errorMessage = 'Password reset link has expired. Please request a new one';
-          break;
-        case 'auth/invalid-action-code':
-          errorMessage = 'Invalid password reset link. Please request a new one';
-          break;
-        case 'auth/weak-password':
-          errorMessage = 'Password is too weak. Please choose a stronger password';
-          break;
-        default:
-          errorMessage = error.message || 'Failed to reset password';
+      if (error && typeof error === 'object' && 'code' in error) {
+        const firebaseError = error as { code: string; message?: string };
+        switch (firebaseError.code) {
+          case 'auth/expired-action-code':
+            errorMessage = 'Password reset link has expired. Please request a new one';
+            break;
+          case 'auth/invalid-action-code':
+            errorMessage = 'Invalid password reset link. Please request a new one';
+            break;
+          case 'auth/weak-password':
+            errorMessage = 'Password is too weak. Please choose a stronger password';
+            break;
+          default:
+            errorMessage = firebaseError.message || 'Failed to reset password';
+        }
       }
       
       setError(errorMessage);

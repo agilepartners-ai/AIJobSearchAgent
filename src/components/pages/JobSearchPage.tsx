@@ -137,7 +137,7 @@ const JobSearchPage: React.FC = () => {  const router = useRouter();
             What kind of job are you looking for?
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Tell us your preferences and we'll find the perfect opportunities for you
+            Tell us your preferences and we&apos;ll find the perfect opportunities for you
           </p>
         </div>
 

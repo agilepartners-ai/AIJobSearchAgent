@@ -456,7 +456,7 @@ const Dashboard: React.FC = () => {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Welcome to Your Dashboard!</h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Great job! We've loaded your selected job opportunities. You can now manage applications, track progress, and discover more opportunities.
+                  Great job! We&apos;ve loaded your selected job opportunities. You can now manage applications, track progress, and discover more opportunities.
                 </p>
               </div>
             </div>

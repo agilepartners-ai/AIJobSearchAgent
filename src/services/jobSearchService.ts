@@ -98,7 +98,7 @@ export class JobSearchService {
           },
           success: true
         };
-      }      const jobs: JobResult[] = data.data.map((jobData: any, index: number) => {
+      }      const jobs: JobResult[] = data.data.map((jobData: Record<string, unknown>, index: number) => {
         if (index < 3) {
           console.log(`Sample job data ${index + 1}:`, jobData);
         }

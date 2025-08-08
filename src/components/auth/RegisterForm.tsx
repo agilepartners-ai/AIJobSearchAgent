@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import FirebaseAuthService from '../../services/firebaseAuthService';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import Image from 'next/image';
 import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 
 const RegisterForm: React.FC = () => {
@@ -21,7 +22,7 @@ const RegisterForm: React.FC = () => {
       // Add default country code if not provided
       const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+1${phoneNumber}`;
       return isValidPhoneNumber(formattedNumber);
-    } catch (err) {
+    } catch {
       return false;
     }
   };
@@ -33,7 +34,7 @@ const RegisterForm: React.FC = () => {
       const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+1${phoneNumber}`;
       const parsed = parsePhoneNumber(formattedNumber);
       return parsed?.format('E.164') || phoneNumber;
-    } catch (err) {
+    } catch {
       return phoneNumber;
     }
   };
@@ -70,8 +71,9 @@ const RegisterForm: React.FC = () => {
       } else {
         // Route guard will handle redirect to /dashboard
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred during registration';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -100,7 +102,7 @@ const RegisterForm: React.FC = () => {
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
-            <img src="/AGENT_Logo.png" alt="AIJobSearchAgent" className="h-20 w-auto mx-auto mb-6" />
+            <Image src="/AGENT_Logo.png" alt="AIJobSearchAgent" width={80} height={80} className="h-20 w-auto mx-auto mb-6" priority />
           </Link>
           <h2 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Create an Account</h2>
           <p className="text-blue-100">Start your journey with us</p>

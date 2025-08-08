@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import Link from 'next/link';
 import { useToastContext } from '../ui/ToastProvider';
+import Image from 'next/image';
 
 const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
   const [error, setError] = useState('');
@@ -27,8 +28,9 @@ const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
       console.log('Phone verification simulated for code:', code);
 
       // Route guard will handle redirect to /dashboard
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred during verification';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -38,8 +40,9 @@ const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
     try {
       // Simulate resend code
       showInfo('Code Resent', 'Verification code has been resent to your phone.');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred during verification';
+      setError(errorMessage);
     }
   };
 
@@ -66,7 +69,7 @@ const VerifyPhone: React.FC = () => {  const [code, setCode] = useState('');
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
-            <img src="/AGENT_Logo.png" alt="AIJobSearchAgent" className="h-20 w-auto mx-auto mb-6" />
+            <Image src="/AGENT_Logo.png" alt="AIJobSearchAgent" width={80} height={80} className="h-20 w-auto mx-auto mb-6" priority />
           </Link>
           <h2 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">Verify Your Phone</h2>
           <p className="text-blue-100">Enter the verification code sent to your phone</p>

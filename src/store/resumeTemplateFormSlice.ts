@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface ResumeTemplateFormState {
-  formData: any;
+  formData: Record<string, unknown>;
   expandedSections: string[];
   formatChoice: string;
   selectedTemplate: string;
@@ -18,7 +18,7 @@ const resumeTemplateFormSlice = createSlice({
   name: 'resumeTemplateForm',
   initialState,
   reducers: {
-    setFormData(state, action: PayloadAction<any>) {
+    setFormData(state, action: PayloadAction<Record<string, unknown>>) {
       state.formData = action.payload;
     },
     setExpandedSections(state, action: PayloadAction<string[]>) {

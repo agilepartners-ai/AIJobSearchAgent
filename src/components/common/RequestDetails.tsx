@@ -6,7 +6,7 @@ interface RequestDetailsProps {
   method: string;
   url: string;
   headers?: Record<string, string>;
-  body?: any;
+  body?: unknown;
   initialExpanded?: boolean;
 }
 
@@ -61,7 +61,7 @@ const RequestDetails: React.FC<RequestDetailsProps> = ({
             </div>
           )}
           
-          {body && (
+          {body !== null && body !== undefined && (
             <div>
               <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Request Body</h4>
               <JsonViewer data={body} maxHeight="200px" />

@@ -15,9 +15,9 @@ interface ApiErrorBoundaryState {
 
 interface ApiError extends Error {
   endpoint?: string;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
   statusCode?: number;
-  responseData?: any;
+  responseData?: unknown;
 }
 
 class ApiErrorBoundary extends Component<ApiErrorBoundaryProps, ApiErrorBoundaryState> {
@@ -48,7 +48,7 @@ class ApiErrorBoundary extends Component<ApiErrorBoundaryProps, ApiErrorBoundary
     console.error('API Error caught by boundary:', error, errorInfo);
   }
 
-  handleRetry = async (endpoint: string, params: Record<string, any>): Promise<void> => {
+  handleRetry = async (endpoint: string, params: Record<string, unknown>): Promise<void> => {
     try {
       // Make a new request with the modified parameters
       const response = await fetch(endpoint, {

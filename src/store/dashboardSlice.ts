@@ -7,7 +7,7 @@ interface DashboardState {
   showProfileModal: boolean;
   showAIEnhancementModal: boolean;
   showJobDescriptionModal: boolean;
-  editingApplication: any | null;
+  editingApplication: Record<string, unknown> | null;
   searchForm: {
     query: string;
     location: string;
@@ -16,7 +16,7 @@ interface DashboardState {
     remote_jobs_only: boolean;
     date_posted: string;
   };
-  searchResults: any[];
+  searchResults: Record<string, unknown>[];
   searchLoading: boolean;
   searchError: string;
   selectedJobDescription: { title: string; company: string; description: string } | null;
@@ -66,13 +66,13 @@ const dashboardSlice = createSlice({
     setShowJobDescriptionModal(state, action: PayloadAction<boolean>) {
       state.showJobDescriptionModal = action.payload;
     },
-    setEditingApplication(state, action: PayloadAction<any | null>) {
+    setEditingApplication(state, action: PayloadAction<Record<string, unknown> | null>) {
       state.editingApplication = action.payload;
     },
     setSearchForm(state, action: PayloadAction<DashboardState['searchForm']>) {
       state.searchForm = action.payload;
     },
-    setSearchResults(state, action: PayloadAction<any[]>) {
+    setSearchResults(state, action: PayloadAction<Record<string, unknown>[]>) {
       state.searchResults = action.payload;
     },
     setSearchLoading(state, action: PayloadAction<boolean>) {

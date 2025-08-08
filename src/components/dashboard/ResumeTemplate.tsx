@@ -1,6 +1,6 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
-import { UserProfileData } from '../../services/profileService';
+import { Profile as UserProfileData } from '../../services/ProfileService';
 
 interface ResumeTemplateProps {
   profile: UserProfileData;

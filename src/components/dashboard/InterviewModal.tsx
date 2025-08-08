@@ -128,7 +128,7 @@ const InterviewModal: React.FC<InterviewModalProps> = ({ application, onClose })
                 onClick={handleStartInterview}
                 className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-3 px-6 rounded-lg font-medium transition-all"
               >
-                Let's Start Interview
+                Let&apos;s Start Interview
               </button>
             </div>
           )}

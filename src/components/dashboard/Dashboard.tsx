@@ -7,7 +7,7 @@ import ProfileModal from './ProfileModal';
 import JobPreferencesModal from './JobPreferencesModal';
 import { JobApplication, JobApplicationService } from '../../services/JobApplicationService';
 import { useAuth } from '../../hooks/useAuth';
-import { useToastContext } from '../ui/ToastProvider';
+
 import FirebaseAuthService from '../../services/firebaseAuthService';
 
 const ApplicationStatus = {

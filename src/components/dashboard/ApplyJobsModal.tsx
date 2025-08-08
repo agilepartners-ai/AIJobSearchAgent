@@ -103,7 +103,7 @@ const ApplyJobsModal: React.FC<ApplyJobsModalProps> = ({
   };
 
 
-  // Don't reset form on modal open; just hide modal visually
+  // Don&apos;t reset form on modal open; just hide modal visually
   if (!isOpen) return null;
 
   const updateForm = (field: keyof ApplyJobsForm, value: any) => {

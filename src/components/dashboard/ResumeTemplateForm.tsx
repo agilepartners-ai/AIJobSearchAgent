@@ -7,7 +7,7 @@ import {
   setSelectedTemplate,
   resetResumeTemplateForm
 } from '../../store/resumeTemplateFormSlice';
-import { X, Plus, Minus, User, GraduationCap, Briefcase, Wrench, Rocket, Award, Trophy, Globe, Palette, FileText, Edit, Download } from 'lucide-react';
+import { X, Plus, Minus, User, GraduationCap, Briefcase, Wrench, Rocket, Palette, FileText, Download } from 'lucide-react';
 
 interface ParsedResume {
   personal: {
@@ -143,7 +143,7 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
     newFormData[section].push(emptyEntry);
     dispatch(setFormData(newFormData));
     // Auto-expand section
-    let newExpanded: string[] = Array.isArray(expandedSections)
+    const newExpanded: string[] = Array.isArray(expandedSections)
       ? [...expandedSections]
       : Array.from(expandedSections as any);
     if (!newExpanded.includes(section)) {

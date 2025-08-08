@@ -94,7 +94,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
         return 'Invalid date';
       }
       return format(date, 'MMM d, yyyy');
-    } catch (error) {
+    } catch {
       return 'Invalid date';
     }
   };
@@ -250,7 +250,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                       {application.notes && (
                         <div>
                           <p className="text-xs text-gray-500 dark:text-gray-500 italic">
-                            "{application.notes.substring(0, 60)}..."
+                            &quot;{application.notes.substring(0, 60)}...&quot;
                           </p>
                         </div>
                       )}

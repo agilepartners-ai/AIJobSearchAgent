@@ -6,7 +6,7 @@ const originalWarn = console.warn;
 const originalError = console.error;
 const originalLog = console.log;
 
-console.warn = (...args: any[]) => {
+console.warn = (...args: unknown[]) => {
   const message = args.join(' ');
   
   // Filter out SES deprecation warnings
@@ -24,7 +24,7 @@ console.warn = (...args: any[]) => {
   originalWarn.apply(console, args);
 };
 
-console.error = (...args: any[]) => {
+console.error = (...args: unknown[]) => {
   const message = args.join(' ');
   
   // Filter out SES-related errors
@@ -40,7 +40,7 @@ console.error = (...args: any[]) => {
   originalError.apply(console, args);
 };
 
-console.log = (...args: any[]) => {
+console.log = (...args: unknown[]) => {
   const message = args.join(' ');
   
   // Filter out SES-related logs

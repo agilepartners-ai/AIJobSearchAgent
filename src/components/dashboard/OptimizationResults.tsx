@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { ArrowLeft, Download, FileText, CheckCircle, Target, TrendingUp, Award, Brain, Copy, Check, ChevronDown, ChevronUp, AlertCircle, Eye } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, Download, FileText, CheckCircle, Target, TrendingUp, Award, Brain, Copy, Check, AlertCircle, Eye } from 'lucide-react';
 import { PDFViewer, PDFDownloadLink, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 interface OptimizationResultsProps {
@@ -104,7 +104,7 @@ const ResumePDFDocument: React.FC<{ content: string; jobDetails: any }> = ({ con
   // Enhanced parsing for better PDF formatting
   const parseHTMLContent = (htmlContent: string) => {
     // Remove HTML tags and extract text with basic structure
-    let text = htmlContent.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+    const text = htmlContent.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
     // Split content into sections based on common patterns
     const sections = text.split(/(?=PROFESSIONAL SUMMARY|TECHNICAL SKILLS|CORE COMPETENCIES|PROFESSIONAL EXPERIENCE|EDUCATION|KEY PROJECTS|CERTIFICATIONS|AWARDS|VOLUNTEER EXPERIENCE|PUBLICATIONS)/i);
@@ -541,7 +541,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
                     }
                     className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
                   >
-                    {({ blob, url, loading, error }) => (
+                    {({ loading }) => (
                       <>
                         <Download size={16} />
                         {loading ? 'Generating PDF...' : 'Download PDF'}

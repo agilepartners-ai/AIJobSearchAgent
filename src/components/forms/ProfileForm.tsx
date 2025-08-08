@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { User, MapPin, Briefcase, ChevronDown, Camera, X, Phone, Mail, Globe, DollarSign, Clock, Shield, UserCheck, ExternalLink } from 'lucide-react';
+import { User, MapPin, Briefcase, ChevronDown, Camera, X } from 'lucide-react';
 import { JobSearchService } from '../../services/jobSearchService';
 
 export interface WorkExperience {
