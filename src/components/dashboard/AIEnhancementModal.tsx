@@ -193,20 +193,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
 
 
-  const downloadFileFromUrl = async (url: string): Promise<File> => {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to download file: ${response.status}`);
-      }
 
-      const blob = await response.blob();
-      const filename = url.split('/').pop() || 'resume.pdf';
-      return new File([blob], filename, { type: blob.type });
-    } catch (error) {
-      throw new Error('Failed to download file from URL. Please check the URL and permissions.');
-    }
-  };
 
   const handleGenerateAI = async () => {
     if (!selectedFileMeta && !cloudFileUrl && !extractedPDFData?.text) {
