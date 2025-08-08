@@ -319,7 +319,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         // Include parsed resume data (mock for now)
         parsedResume: {
           personal: {
-            name: detailedUserProfile?.fullName || 'John Doe',
+            name: detailedUserProfile?.full_name || 'John Doe',
             email: detailedUserProfile?.email || 'john.doe@email.com',
             phone: detailedUserProfile?.phone || '+1 (555) 123-4567',
             location: detailedUserProfile?.location || 'City, State'
@@ -771,7 +771,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                         <span>📝 Characters: {extractedPDFData.text.length}</span>
                         <span>📊 Words: ~{extractedPDFData.text.split(/\s+/).length}</span>
                         {extractedPDFData.metadata && (
-                          <span>📋 Source: {extractedPDFData.metadata.source || 'pdf_extraction'}</span>
+                          <span>📋 Source: {String((extractedPDFData.metadata as Record<string, unknown>).source || 'pdf_extraction')}</span>
                         )}
                       </div>
                     </>
@@ -833,163 +833,44 @@ export default AIEnhancementModal;
 
 // Helper functions to generate detailed HTML content with better formatting
 const generateDetailedResumeHTML = (results: Record<string, unknown>): string => {
-  const sections = results.aiEnhancements?.detailedResumeSections || {};
-  const personalInfo = results.parsedResume?.personal || {};
+  const aiEnhancements = results.aiEnhancements as Record<string, unknown> | undefined;
+  const sections = (aiEnhancements?.detailedResumeSections as Record<string, unknown>) || {};
+  const parsedResume = results.parsedResume as Record<string, unknown> | undefined;
+  const personalInfo = (parsedResume?.personal as Record<string, unknown>) || {};
 
   return `
     <div style="font-family: 'Arial', sans-serif; line-height: 1.4; color: #333; max-width: 800px;">
       <!-- Header Section -->
       <header style="text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 15px; margin-bottom: 20px;">
-        <h1 style="font-size: 26px; margin-bottom: 8px; color: #1f2937; font-weight: 700;">${personalInfo.name || 'Professional Name'}</h1>
+        <h1 style="font-size: 26px; margin-bottom: 8px; color: #1f2937; font-weight: 700;">${String(personalInfo.name || 'Professional Name')}</h1>
         <div style="font-size: 13px; color: #6b7280; margin-bottom: 5px;">
-          <span>${personalInfo.email || 'email@example.com'}</span> • 
-          <span>${personalInfo.phone || '+1 (555) 123-4567'}</span> • 
-          <span>${personalInfo.location || 'City, State'}</span>
+          <span>${String(personalInfo.email || 'email@example.com')}</span> • 
+          <span>${String(personalInfo.phone || '+1 (555) 123-4567')}</span> • 
+          <span>${String(personalInfo.location || 'City, State')}</span>
         </div>
       </header>
 
-      <!-- Professional Summary -->
-      <section style="margin-bottom: 20px;">
-        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PROFESSIONAL SUMMARY</h2>
-        <p style="text-align: justify; line-height: 1.6; font-size: 13px; margin: 0;">
-          ${sections.professional_summary || results.aiEnhancements?.enhancedSummary || 'AI-enhanced professional summary highlighting relevant experience, key skills, and value proposition tailored to the target position. This comprehensive summary demonstrates alignment with job requirements and showcases unique qualifications that make the candidate an ideal fit for the role.'}
-        </p>
-      </section>
+      <!-- Enhanced Summary -->
+      ${sections.enhancedSummary ? `
+        <section style="margin-bottom: 20px;">
+          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PROFESSIONAL SUMMARY</h2>
+          <p style="font-size: 12px; line-height: 1.5; text-align: justify; margin: 0;">${String(sections.enhancedSummary)}</p>
+        </section>
+      ` : ''}
 
       <!-- Technical Skills -->
-      <section style="margin-bottom: 20px;">
-        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">TECHNICAL SKILLS</h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 6px; margin-bottom: 8px;">
-          ${(sections.technical_skills || results.skillsOptimization?.technicalSkills || []).map((skill: string) =>
-    `<span style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-size: 12px; border: 1px solid #e5e7eb;">${skill}</span>`
-  ).join('')}
-        </div>
-      </section>
-
-      <!-- Core Competencies -->
-      <section style="margin-bottom: 20px;">
-        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">CORE COMPETENCIES</h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 6px;">
-          ${(sections.soft_skills || results.skillsOptimization?.softSkills || []).map((skill: string) =>
-    `<span style="background: #e0f2fe; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #0277bd; border: 1px solid #b3e5fc;">${skill}</span>`
-  ).join('')}
-        </div>
-      </section>
-
-      <!-- Professional Experience -->
-      <section style="margin-bottom: 20px;">
-        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PROFESSIONAL EXPERIENCE</h2>
-        ${(sections.experience || []).map((exp: any) => `
-          <div style="margin-bottom: 18px; page-break-inside: avoid;">
-            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;">
-              <h3 style="font-size: 14px; font-weight: 600; margin: 0; color: #1f2937;">${exp.position || 'Job Title'}</h3>
-              <span style="font-size: 12px; color: #6b7280; font-weight: 500;">${exp.duration || 'Start - End'}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-              <span style="font-size: 13px; color: #4b5563; font-weight: 500;">${exp.company || 'Company Name'}</span>
-              <span style="font-size: 12px; color: #6b7280;">${exp.location || 'City, State'}</span>
-            </div>
-            
-            ${exp.key_responsibilities?.length ? `
-              <div style="margin-bottom: 8px;">
-                <strong style="font-size: 12px; color: #374151;">Key Responsibilities:</strong>
-                <ul style="margin: 3px 0 0 15px; padding: 0;">
-                  ${exp.key_responsibilities.map((resp: string) => `<li style="margin-bottom: 3px; font-size: 12px; line-height: 1.4;">${resp}</li>`).join('')}
-                </ul>
-              </div>
-            ` : ''}
-            
-            ${exp.achievements?.length ? `
-              <div style="margin-bottom: 8px;">
-                <strong style="font-size: 12px; color: #374151;">Key Achievements:</strong>
-                <ul style="margin: 3px 0 0 15px; padding: 0;">
-                  ${exp.achievements.map((achievement: string) => `<li style="margin-bottom: 3px; font-size: 12px; line-height: 1.4; color: #059669;">${achievement}</li>`).join('')}
-                </ul>
-              </div>
-            ` : ''}
-            
-            ${exp.technologies_used?.length ? `
-              <div style="margin-top: 5px;">
-                <strong style="font-size: 11px; color: #6b7280;">Technologies:</strong>
-                <span style="font-size: 11px; color: #6b7280;"> ${exp.technologies_used.join(', ')}</span>
-              </div>
-            ` : ''}
-          </div>
-        `).join('')}
-      </section>
-
-      <!-- Education -->
-      ${sections.education?.length ? `
+      ${Array.isArray(sections.technicalSkills) && sections.technicalSkills.length ? `
         <section style="margin-bottom: 20px;">
-          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">EDUCATION</h2>
-          ${sections.education.map((edu: any) => `
-            <div style="margin-bottom: 12px;">
-              <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                <h3 style="font-size: 13px; font-weight: 600; margin: 0; color: #1f2937;">${edu.degree || 'Degree'} in ${edu.field_of_study || 'Field'}</h3>
-                <span style="font-size: 12px; color: #6b7280;">${edu.graduation_date || 'Year'}</span>
-              </div>
-              <div style="font-size: 12px; color: #4b5563; margin-bottom: 3px;">${edu.institution || 'Institution Name'}</div>
-              ${edu.gpa ? `<div style="font-size: 11px; color: #6b7280;">GPA: ${edu.gpa}</div>` : ''}
-              ${edu.relevant_coursework?.length ? `
-                <div style="margin-top: 3px;">
-                  <strong style="font-size: 11px;">Relevant Coursework:</strong>
-                  <span style="font-size: 11px; color: #6b7280;"> ${edu.relevant_coursework.join(', ')}</span>
-                </div>
-              ` : ''}
-              ${edu.honors?.length ? `
-                <div style="margin-top: 3px;">
-                  <strong style="font-size: 11px;">Honors:</strong>
-                  <span style="font-size: 11px; color: #059669;"> ${edu.honors.join(', ')}</span>
-                </div>
-              ` : ''}
-            </div>
-          `).join('')}
+          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">TECHNICAL SKILLS</h2>
+          <div style="font-size: 11px; line-height: 1.4;">${sections.technicalSkills.map(skill => String(skill)).join(' • ')}</div>
         </section>
       ` : ''}
 
-      <!-- Projects -->
-      ${sections.projects?.length ? `
+      <!-- Soft Skills -->
+      ${Array.isArray(sections.softSkills) && sections.softSkills.length ? `
         <section style="margin-bottom: 20px;">
-          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">KEY PROJECTS</h2>
-          ${sections.projects.map((project: any) => `
-            <div style="margin-bottom: 15px; page-break-inside: avoid;">
-              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px;">
-                <h3 style="font-size: 13px; font-weight: 600; margin: 0; color: #1f2937;">${project.name || 'Project Name'}</h3>
-                <span style="font-size: 11px; color: #6b7280;">${project.duration || 'Duration'}</span>
-              </div>
-              <p style="font-size: 12px; margin-bottom: 5px; line-height: 1.4;">${project.description || 'Project description'}</p>
-              ${project.achievements?.length ? `
-                <ul style="margin: 5px 0 0 15px; padding: 0;">
-                  ${project.achievements.map((achievement: string) => `<li style="margin-bottom: 2px; font-size: 12px; color: #059669;">${achievement}</li>`).join('')}
-                </ul>
-              ` : ''}
-              ${project.technologies?.length ? `
-                <div style="margin-top: 5px;">
-                  <strong style="font-size: 11px; color: #6b7280;">Technologies:</strong>
-                  <span style="font-size: 11px; color: #6b7280;"> ${project.technologies.join(', ')}</span>
-                </div>
-              ` : ''}
-            </div>
-          `).join('')}
-        </section>
-      ` : ''}
-
-      <!-- Certifications -->
-      ${sections.certifications?.length ? `
-        <section style="margin-bottom: 20px;">
-          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">CERTIFICATIONS</h2>
-          ${sections.certifications.map((cert: any) => `
-            <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <strong style="font-size: 12px; color: #1f2937;">${cert.name || 'Certification Name'}</strong>
-                <div style="font-size: 11px; color: #6b7280;">${cert.issuing_organization || 'Issuing Organization'}</div>
-              </div>
-              <div style="text-align: right; font-size: 11px; color: #6b7280;">
-                <div>Issued: ${cert.issue_date || 'Date'}</div>
-                ${cert.expiration_date ? `<div>Expires: ${cert.expiration_date}</div>` : ''}
-              </div>
-            </div>
-          `).join('')}
+          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">CORE COMPETENCIES</h2>
+          <div style="font-size: 11px; line-height: 1.4;">${sections.softSkills.map(skill => String(skill)).join(' • ')}</div>
         </section>
       ` : ''}
 
