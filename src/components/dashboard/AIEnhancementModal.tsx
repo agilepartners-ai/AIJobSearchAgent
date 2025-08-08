@@ -410,22 +410,24 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   const convertResumeJsonToText = (resumeJson: Record<string, unknown>): string => {
     let text = '';
 
-    if (resumeJson.personal) {
+    if (resumeJson.personal && typeof resumeJson.personal === 'object') {
+      const personal = resumeJson.personal as Record<string, unknown>;
       text += `PERSONAL INFORMATION:\n`;
-      text += `Name: ${resumeJson.personal.name || ''}\n`;
-      text += `Email: ${resumeJson.personal.email || ''}\n`;
-      text += `Phone: ${resumeJson.personal.phone || ''}\n\n`;
+      text += `Name: ${personal.name || ''}\n`;
+      text += `Email: ${personal.email || ''}\n`;
+      text += `Phone: ${personal.phone || ''}\n\n`;
     }
 
     if (resumeJson.summary) {
       text += `PROFESSIONAL SUMMARY:\n${resumeJson.summary}\n\n`;
     }
 
-    if (resumeJson.experience) {
+    if (resumeJson.experience && Array.isArray(resumeJson.experience)) {
       text += `WORK EXPERIENCE:\n`;
-      resumeJson.experience.forEach((exp: any) => {
-        text += `${exp.position || ''} at ${exp.company || ''}\n`;
-        if (exp.description) text += `${exp.description}\n`;
+      resumeJson.experience.forEach((exp: unknown) => {
+        const experience = exp as Record<string, unknown>;
+        text += `${experience.position || ''} at ${experience.company || ''}\n`;
+        if (experience.description) text += `${experience.description}\n`;
       });
       text += '\n';
     }
@@ -441,7 +443,11 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     dispatch(setShowResults(false));
     // Save the URLs to the parent component
     if (optimizationResults) {
-      onSave(optimizationResults.optimizedResumeUrl, optimizationResults.optimizedCoverLetterUrl);
+      const results = optimizationResults as Record<string, unknown>;
+      onSave(
+        typeof results.optimizedResumeUrl === 'string' ? results.optimizedResumeUrl : '',
+        typeof results.optimizedCoverLetterUrl === 'string' ? results.optimizedCoverLetterUrl : ''
+      );
     }
     onClose();
   };
