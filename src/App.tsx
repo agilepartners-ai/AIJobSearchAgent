@@ -9,7 +9,6 @@ import Contact from './components/Contact';
 import Footer from './components/Footer';
 import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
-import ForgotPassword from './components/auth/ForgotPassword';
 import VerifyPhone from './components/auth/VerifyPhone';
 
 import JobSearchPage from './components/pages/JobSearchPage';
