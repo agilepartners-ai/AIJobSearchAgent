@@ -157,7 +157,7 @@ export class FirebaseAuthProvider implements AuthProvider {
 
       // Update Firestore user document
       const userDocRef = doc(db, 'users', auth.currentUser.uid);
-      const updateData: Record<string, unknown> = {
+      const updateData: { [key: string]: any } = {
         updatedAt: new Date(),
       };
 
