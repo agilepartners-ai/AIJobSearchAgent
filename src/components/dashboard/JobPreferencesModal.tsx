@@ -38,7 +38,7 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
       
       try {
         setLoading(true);
-        const userPreferences = await FirebaseJobPreferencesService.getUserJobPreferences(user.uid);
+        const userPreferences = await FirebaseJobPreferencesService.getUserJobPreferences(user.id);
         
         if (userPreferences) {
           setPreferences(userPreferences);
@@ -167,9 +167,9 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
         skills: preferences?.skills || [],
       };
 
-      await FirebaseJobPreferencesService.saveJobPreferences(user.uid, preferencesToSave as any);
+      await FirebaseJobPreferencesService.saveJobPreferences(user.id, preferencesToSave as any);
       
-      const updatedPreferences = await FirebaseJobPreferencesService.getUserJobPreferences(user.uid);
+      const updatedPreferences = await FirebaseJobPreferencesService.getUserJobPreferences(user.id);
       setPreferences(updatedPreferences);
       
       showSuccess('Preferences Saved', 'Your job preferences have been successfully saved.');

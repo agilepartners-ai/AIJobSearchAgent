@@ -85,13 +85,13 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
   }, [isOpen]);
 
   const loadJobPreferences = async () => {
-    if (!user || !user.uid) {
+    if (!user || !user.id) {
       console.error("User not available for loading job preferences.");
       return;
     }
 
     try {
-      const preferences = await JobPreferencesService.getJobPreferences(user.uid);
+      const preferences = await JobPreferencesService.getJobPreferences(user.id);
       setJobPreferences(preferences);
     } catch (err: any) {
       console.error('Error loading job preferences:', err);

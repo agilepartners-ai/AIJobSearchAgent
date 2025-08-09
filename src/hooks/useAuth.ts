@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import FirebaseAuthService, { AuthUser } from '../services/firebaseAuthService';
+import { AuthService, AuthUser } from '../services/authService';
 import { FirebaseProfileService, Profile } from '../services/firebaseProfileService';
 
 export const useAuth = () => {
@@ -11,13 +11,13 @@ export const useAuth = () => {
     // Get initial user
     const initializeAuth = async () => {
       try {
-        const currentUser = await FirebaseAuthService.getCurrentUser();
+        const currentUser = await AuthService.getCurrentUser();
         setUser(currentUser);
         
         if (currentUser) {
           try {
             const profile = await FirebaseProfileService.getOrCreateProfile(
-              currentUser.uid, 
+              currentUser.id, 
               currentUser.email || '', 
               currentUser.displayName || ''
             );
@@ -38,13 +38,13 @@ export const useAuth = () => {
     initializeAuth();
 
     // Listen for auth state changes
-    const unsubscribe = FirebaseAuthService.onAuthStateChange(async (user) => {
+    const unsubscribe = AuthService.onAuthStateChange(async (user) => {
       setUser(user);
       
       if (user) {
         try {
           const profile = await FirebaseProfileService.getOrCreateProfile(
-            user.uid, 
+            user.id, 
             user.email || '', 
             user.displayName || ''
           );

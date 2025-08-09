@@ -160,7 +160,7 @@ const AIInterviewPage: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId: user.uid, email: user.email }),
+        body: JSON.stringify({ userId: user.id, email: user.email }),
       });
 
       const { checkoutUrl, error } = await response.json();

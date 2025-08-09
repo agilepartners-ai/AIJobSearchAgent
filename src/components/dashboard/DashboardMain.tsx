@@ -87,8 +87,8 @@ const Dashboard: React.FC = () => {
     console.log('[loadApplications] Starting to fetch applications and stats...');
     try {
       const [applicationsData, statsData] = await Promise.all([
-        FirebaseJobApplicationService.getUserApplications(user.uid),
-        FirebaseJobApplicationService.getApplicationStats(user.uid)
+        FirebaseJobApplicationService.getUserApplications(user.id),
+        FirebaseJobApplicationService.getApplicationStats(user.id)
       ]);
       
       console.log('[loadApplications] Successfully fetched data.');
@@ -107,7 +107,7 @@ const Dashboard: React.FC = () => {
         const selectedJobs = JSON.parse(selectedJobsData);
         const jobApplications: JobApplication[] = selectedJobs.map((job: any, index: number) => ({
           id: `workflow-${Date.now()}-${index}`,
-          user_id: user?.uid || '',
+          user_id: user?.id || '',
           company_name: job.employer_name || 'Unknown Company',
           position: job.job_title || 'Unknown Position',
           status: 'not_applied' as const,
@@ -251,7 +251,7 @@ const Dashboard: React.FC = () => {
         follow_up_date: null,
       };
 
-      await FirebaseJobApplicationService.addApplication(user.uid, applicationData);
+      await FirebaseJobApplicationService.addApplication(user.id, applicationData);
       
       // Show success message
       showSuccess(
@@ -300,7 +300,7 @@ const Dashboard: React.FC = () => {
             response_date: null,
             follow_up_date: null,
           };
-          return await FirebaseJobApplicationService.addApplication(user.uid, applicationData);
+          return await FirebaseJobApplicationService.addApplication(user.id, applicationData);
         } catch (err) {
           console.error(`Failed to save job: ${job.job_title}`, err);
           return null; // Return null for failed saves
@@ -343,10 +343,10 @@ const Dashboard: React.FC = () => {
       setError('');
 
       if (editingApplication) {
-        await FirebaseJobApplicationService.updateApplication(user.uid, editingApplication.id, applicationData);
+        await FirebaseJobApplicationService.updateApplication(user.id, editingApplication.id, applicationData);
         showSuccess('Application Updated', 'The application has been successfully updated.');
       } else {
-        await FirebaseJobApplicationService.addApplication(user.uid, applicationData);
+        await FirebaseJobApplicationService.addApplication(user.id, applicationData);
         showSuccess('Application Added', 'The new application has been successfully added.');
       }
       await loadApplications();
@@ -362,7 +362,7 @@ const Dashboard: React.FC = () => {
 
     try {
       setError('');
-      await FirebaseJobApplicationService.deleteApplication(user.uid, applicationId);
+      await FirebaseJobApplicationService.deleteApplication(user.id, applicationId);
       await loadApplications();
       showSuccess('Application Deleted', 'The application has been successfully removed.');
     } catch (err: any) {
@@ -378,14 +378,14 @@ const Dashboard: React.FC = () => {
       const applicationToUpdate = applications.find(app => app.id === applicationId);
       
       if (applicationToUpdate) {
-        await FirebaseJobApplicationService.updateApplication(user.uid, applicationId, { status: newStatus as any });
+        await FirebaseJobApplicationService.updateApplication(user.id, applicationId, { status: newStatus as any });
         showSuccess('Application Status Updated', `Status changed to ${newStatus}.`);
         await loadApplications();
         return;
       }
       
       // Handle regular application status updates
-      await FirebaseJobApplicationService.updateApplication(user.uid, applicationId, { status: newStatus as any });
+      await FirebaseJobApplicationService.updateApplication(user.id, applicationId, { status: newStatus as any });
       await loadApplications();
     } catch (err: any) {
       setError(err.message || 'Failed to update application status');

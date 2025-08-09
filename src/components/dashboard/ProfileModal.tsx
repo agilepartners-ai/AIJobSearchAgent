@@ -21,7 +21,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       if (!user) return;
       try {
         const profile = await ProfileService.getOrCreateProfile(
-          user.uid,
+          user.id,
           user.email || '',
           user.displayName || 'New User'
         );
@@ -72,11 +72,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         linkedin: profileData.socialLinks?.linkedin,
       };
 
-      await ProfileService.updateUserProfile(user.uid, updateData);
-      const updatedProfile = await ProfileService.getUserProfile(user.uid);
+      await ProfileService.updateUserProfile(user.id, updateData);
+      const updatedProfile = await ProfileService.getUserProfile(user.id);
       setLocalUserProfile(updatedProfile);
       setSuccess('Profile saved successfully!');
-      setTimeout(() => onClose(), 2000);
+      onClose()
     } catch (error) {
       setError('Failed to save profile. Please try again.');
     } finally {
@@ -157,13 +157,19 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
   return (
     <div 
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      onClick={onClose}
     >
       <div 
         ref={modalRef}
-        className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6"
+        className="relative bg-white dark:bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6"
         onClick={(e) => e.stopPropagation()}
       >
+        <button 
+          onClick={onClose} 
+          className="absolute top-4 right-4 text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white"
+          aria-label="Close Modal"
+        >
+          <X className="w-6 h-6" />
+        </button>
         {isLoading ? (
           <div className="text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>

@@ -63,7 +63,7 @@ const ApplyJobsModal: React.FC<ApplyJobsModalProps> = ({
     if (!user) return;
 
     try {
-      const preferences = await FirebaseJobPreferencesService.getUserJobPreferences(user.uid);
+      const preferences = await FirebaseJobPreferencesService.getUserJobPreferences(user.id);
       if (preferences) {
         setJobPreferences(preferences);
         const jobTitles = preferences.job_titles || [];

@@ -1,15 +1,19 @@
 "use client";
 
 import React, { useState } from 'react';
-import FirebaseAuthService from '../../services/firebaseAuthService';
+import { AuthService } from '../../services/authService';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { Icon } from '@iconify/react';
+import ForgotPasswordModal from './ForgotPasswordModal';
 
-const LoginForm: React.FC = () => {  
+const LoginForm: React.FC = () => {
+  const [isForgotPasswordModalOpen, setForgotPasswordModalOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -18,7 +22,7 @@ const LoginForm: React.FC = () => {
     setLoading(true);
 
     try {
-      await FirebaseAuthService.signIn({ email, password });
+      await AuthService.signIn({ email, password });
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message);
@@ -82,15 +86,28 @@ const LoginForm: React.FC = () => {
               <label htmlFor="password" className="block text-sm font-medium text-white dark:text-blue-100">
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full px-4 py-3 bg-white/10 dark:bg-gray-800/50 border border-white/20 dark:border-gray-600/50 rounded-xl backdrop-blur-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 focus:border-transparent text-white dark:text-blue-50 placeholder-blue-200/70 dark:placeholder-blue-300/60 transition-colors duration-300"
-                placeholder="Enter your password"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="mt-1 block w-full px-4 py-3 pr-12 bg-white/10 dark:bg-gray-800/50 border border-white/20 dark:border-gray-600/50 rounded-xl backdrop-blur-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 focus:border-transparent text-white dark:text-blue-50 placeholder-blue-200/70 dark:placeholder-blue-300/60 transition-colors duration-300"
+                  placeholder="Enter your password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-200/70 hover:text-white dark:text-blue-300/60 dark:hover:text-white transition-colors duration-200 focus:outline-none focus:text-white"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  <Icon 
+                    icon={showPassword ? "mdi:eye-off" : "mdi:eye"} 
+                    className="w-5 h-5"
+                  />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -106,9 +123,13 @@ const LoginForm: React.FC = () => {
               </label>
             </div>
             <div className="text-sm">
-              <a href="/forgot-password" className="text-blue-200 dark:text-blue-300 hover:text-white dark:hover:text-white transition-colors">
+              <button
+                type="button"
+                onClick={() => setForgotPasswordModalOpen(true)}
+                className="font-medium text-blue-400 hover:text-blue-300"
+              >
                 Forgot your password?
-              </a>
+              </button>
             </div>
           </div>
 
@@ -126,7 +147,11 @@ const LoginForm: React.FC = () => {
             </Link>
           </div>
         </form>
-      </div>
+        </div>
+        <ForgotPasswordModal
+          isOpen={isForgotPasswordModalOpen}
+          onClose={() => setForgotPasswordModalOpen(false)}
+        />
       </div>
     </div>
   );

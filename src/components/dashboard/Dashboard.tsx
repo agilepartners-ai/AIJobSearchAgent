@@ -9,7 +9,7 @@ import { JobApplication } from '../../services/firebaseJobApplicationService';
 import { FirebaseJobApplicationService } from '../../services/firebaseJobApplicationService';
 import { useAuth } from '../../hooks/useAuth';
 import { useToastContext } from '../ui/ToastProvider';
-import FirebaseAuthService from '../../services/firebaseAuthService';
+import { AuthService } from '../../services/authService';
 
 const ApplicationStatus = {
   NOT_APPLIED: 'not_applied',
@@ -60,8 +60,8 @@ const Dashboard: React.FC = () => {
       setError('');
       
       const [applicationsData, statsData] = await Promise.all([
-        FirebaseJobApplicationService.getUserApplications(user.uid),
-        FirebaseJobApplicationService.getApplicationStats(user.uid)
+        FirebaseJobApplicationService.getUserApplications(user.id),
+        FirebaseJobApplicationService.getApplicationStats(user.id)
       ]);
       
       setApplications(applicationsData);
@@ -76,7 +76,7 @@ const Dashboard: React.FC = () => {
 
   const handleSignOut = async () => {
     try {
-      await FirebaseAuthService.signOut();
+      await AuthService.signOut();
       router.push('/login');
     } catch (err: any) {
       setError(err.message);
@@ -122,10 +122,10 @@ const Dashboard: React.FC = () => {
       
       if (editingApplication) {
         // Update existing application
-        await FirebaseJobApplicationService.updateApplication(user.uid, editingApplication.id, applicationData);
+        await FirebaseJobApplicationService.updateApplication(user.id, editingApplication.id, applicationData);
       } else {
         // Add new application
-        await FirebaseJobApplicationService.addApplication(user.uid, applicationData);
+        await FirebaseJobApplicationService.addApplication(user.id, applicationData);
       }
       
       setShowModal(false);
@@ -144,7 +144,7 @@ const Dashboard: React.FC = () => {
 
     try {
       setError('');
-            await FirebaseJobApplicationService.deleteApplication(user.uid, applicationId);
+            await FirebaseJobApplicationService.deleteApplication(user.id, applicationId);
       await loadApplications(); // Reload data
     } catch (err: any) {
       setError(err.message || 'Failed to delete application');

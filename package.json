@@ -12,6 +12,7 @@
     "@daily-co/daily-js": "^0.57.0",
     "@daily-co/daily-react": "^0.15.0",
     "@emailjs/browser": "^4.4.1",
+    "@iconify/react": "^6.0.0",
     "@radix-ui/react-slot": "^1.2.3",
     "@react-pdf/renderer": "^4.3.0",
     "@reduxjs/toolkit": "^2.8.2",
