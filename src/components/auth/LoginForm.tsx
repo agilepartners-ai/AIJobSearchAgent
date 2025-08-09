@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import FirebaseAuthService from '../../services/firebaseAuthService';
+import { AuthService } from '../../services/authService';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Icon } from '@iconify/react';
@@ -22,7 +22,7 @@ const LoginForm: React.FC = () => {
     setLoading(true);
 
     try {
-      await FirebaseAuthService.signIn({ email, password });
+      await AuthService.signIn({ email, password });
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message);

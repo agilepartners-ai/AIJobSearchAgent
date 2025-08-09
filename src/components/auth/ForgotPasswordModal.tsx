@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import FirebaseAuthService from '../../services/firebaseAuthService';
+import { PasswordResetService } from '../../services/passwordResetService';
 
 interface ForgotPasswordModalProps {
   isOpen: boolean;
@@ -9,28 +9,56 @@ interface ForgotPasswordModalProps {
 }
 
 const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClose }) => {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
+  const [method, setMethod] = useState<'email' | 'sms'>('email');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  // Rate limiting - prevent spam
+  React.useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess(false);
-
-    if (!email.trim()) {
-      setError('Please enter your email address.');
+    
+    if (cooldown > 0) {
+      setError(`Please wait ${cooldown} seconds before trying again`);
       return;
     }
 
+    // Validate identifier format
+    const validation = PasswordResetService.validateIdentifier(identifier, method);
+    if (!validation.valid) {
+      setError(validation.error || 'Invalid format');
+      return;
+    }
+
+    setError('');
+    setSuccess(false);
     setLoading(true);
+
     try {
-      await FirebaseAuthService.sendPasswordResetEmail(email.trim().toLowerCase());
-      setSuccess(true);
-      setEmail('');
-    } catch (err: any) {
-      setError(err.message);
+      const result = await PasswordResetService.requestPasswordReset({
+        identifier: identifier.trim().toLowerCase(),
+        method
+      });
+      
+      if (result.success) {
+        setSuccess(true);
+        setIdentifier('');
+        setCooldown(60); // 60 second cooldown
+      } else {
+        setError(result.message);
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send reset instructions';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -53,7 +81,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
         
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-white">Reset Password</h2>
-          <p className="text-gray-300 mt-2">Enter your email to receive a reset link.</p>
+          <p className="text-gray-300 mt-2">Choose how you'd like to receive reset instructions.</p>
         </div>
 
         {success ? (
@@ -76,24 +104,57 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
                 {error}
               </div>
             )}
+            
+            {/* Method Selection */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-white">
+                Reset method
+              </label>
+              <div className="flex space-x-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="email"
+                    checked={method === 'email'}
+                    onChange={(e) => setMethod(e.target.value as 'email')}
+                    className="mr-2 text-blue-600"
+                  />
+                  <span className="text-white">Email</span>
+                </label>
+                <label className="flex items-center opacity-50">
+                  <input
+                    type="radio"
+                    value="sms"
+                    checked={method === 'sms'}
+                    onChange={(e) => setMethod(e.target.value as 'sms')}
+                    className="mr-2 text-blue-600"
+                    disabled
+                  />
+                  <span className="text-white">SMS (Coming Soon)</span>
+                </label>
+              </div>
+            </div>
+
             <div>
-              <label htmlFor="modal-email" className="sr-only">Email address</label>
+              <label htmlFor="modal-identifier" className="sr-only">
+                {method === 'email' ? 'Email address' : 'Phone number'}
+              </label>
               <input
-                id="modal-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="modal-identifier"
+                type={method === 'email' ? 'email' : 'tel'}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400"
-                placeholder="Enter your email address"
+                placeholder={method === 'email' ? 'Enter your email address' : 'Enter your phone number'}
                 required
               />
             </div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || cooldown > 0}
               className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-60"
             >
-              {loading ? 'Sending...' : 'Send Reset Link'}
+              {loading ? 'Sending...' : cooldown > 0 ? `Wait ${cooldown}s` : 'Send Reset Link'}
             </button>
           </form>
         )}

@@ -21,7 +21,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
       if (!user) return;
       try {
         const profile = await ProfileService.getOrCreateProfile(
-          user.uid,
+          user.id,
           user.email || '',
           user.displayName || 'New User'
         );
@@ -72,8 +72,8 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ onClose }) => {
         linkedin: profileData.socialLinks?.linkedin,
       };
 
-      await ProfileService.updateUserProfile(user.uid, updateData);
-      const updatedProfile = await ProfileService.getUserProfile(user.uid);
+      await ProfileService.updateUserProfile(user.id, updateData);
+      const updatedProfile = await ProfileService.getUserProfile(user.id);
       setLocalUserProfile(updatedProfile);
       setSuccess('Profile saved successfully!');
       onClose()
