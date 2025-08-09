@@ -875,41 +875,47 @@ const generateDetailedResumeHTML = (results: Record<string, unknown>): string =>
       ` : ''}
 
       <!-- Awards -->
-      ${sections.awards?.length ? `
+      ${Array.isArray(sections.awards) && sections.awards.length ? `
         <section style="margin-bottom: 20px;">
           <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">AWARDS & RECOGNITION</h2>
-          ${sections.awards.map((award: any) => `
+          ${sections.awards.map((award: unknown) => {
+            const awardObj = award as Record<string, unknown>;
+            return `
             <div style="margin-bottom: 8px;">
               <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                <strong style="font-size: 12px; color: #1f2937;">${award.title || 'Award Title'}</strong>
-                <span style="font-size: 11px; color: #6b7280;">${award.date || 'Date'}</span>
+                <strong style="font-size: 12px; color: #1f2937;">${String(awardObj.title || 'Award Title')}</strong>
+                <span style="font-size: 11px; color: #6b7280;">${String(awardObj.date || 'Date')}</span>
               </div>
-              <div style="font-size: 11px; color: #6b7280;">${award.issuing_organization || 'Organization'}</div>
-              ${award.description ? `<p style="font-size: 11px; margin-top: 2px; line-height: 1.3;">${award.description}</p>` : ''}
+              <div style="font-size: 11px; color: #6b7280;">${String(awardObj.organization || 'Organization')}</div>
+              ${awardObj.description ? `<p style="font-size: 11px; margin-top: 3px; line-height: 1.3;">${String(awardObj.description)}</p>` : ''}
             </div>
-          `).join('')}
+            `;
+          }).join('')}
         </section>
       ` : ''}
 
       <!-- Volunteer Work -->
-      ${sections.volunteer_work?.length ? `
+      ${Array.isArray(sections.volunteer_work) && sections.volunteer_work.length ? `
         <section style="margin-bottom: 20px;">
           <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">VOLUNTEER EXPERIENCE</h2>
-          ${sections.volunteer_work.map((vol: any) => `
+          ${sections.volunteer_work.map((vol: unknown) => {
+            const volObj = vol as Record<string, unknown>;
+            return `
             <div style="margin-bottom: 12px;">
               <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px;">
-                <strong style="font-size: 12px; color: #1f2937;">${vol.role || 'Volunteer Role'}</strong>
-                <span style="font-size: 11px; color: #6b7280;">${vol.duration || 'Duration'}</span>
+                <strong style="font-size: 12px; color: #1f2937;">${String(volObj.role || 'Volunteer Role')}</strong>
+                <span style="font-size: 11px; color: #6b7280;">${String(volObj.duration || 'Duration')}</span>
               </div>
-              <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">${vol.organization || 'Organization Name'}</div>
-              <p style="font-size: 11px; line-height: 1.3; margin-bottom: 3px;">${vol.description || 'Description of volunteer work'}</p>
-              ${vol.achievements?.length ? `
-                <ul style="margin: 3px 0 0 15px; padding: 0;">
-                  ${vol.achievements.map((achievement: string) => `<li style="margin-bottom: 2px; font-size: 11px; color: #059669;">${achievement}</li>`).join('')}
+              <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">${String(volObj.organization || 'Organization')}</div>
+              <p style="font-size: 11px; margin: 0; line-height: 1.4;">${String(volObj.description || 'Description of volunteer work and impact.')}</p>
+              ${Array.isArray(volObj.achievements) && volObj.achievements.length ? `
+                <ul style="margin: 5px 0 0 15px; padding: 0;">
+                  ${volObj.achievements.map((achievement: unknown) => `<li style="margin-bottom: 2px; font-size: 11px; color: #059669;">${String(achievement)}</li>`).join('')}
                 </ul>
               ` : ''}
             </div>
-          `).join('')}
+            `;
+          }).join('')}
         </section>
       ` : ''}
 
@@ -959,15 +965,15 @@ const generateDetailedCoverLetterHTML = (results: Record<string, unknown>): stri
       <div style="margin-bottom: 25px;">
         <p style="font-size: 13px; color: #374151; margin: 0; line-height: 1.4;">
           Hiring Manager<br>
-          ${jobDetails.company_name || 'Company Name'}<br>
-          ${jobDetails.location || 'Company Location'}
+          ${String(jobDetails.company_name || 'Company Name')}<br>
+          ${String(jobDetails.location || 'Company Location')}
         </p>
       </div>
 
       <!-- Subject Line -->
       <div style="margin-bottom: 20px;">
         <p style="font-size: 13px; color: #374151; margin: 0;">
-          <strong>Re: Application for ${jobDetails.position || 'Position Title'}</strong>
+          <strong>Re: Application for ${String(jobDetails.position || 'Position Title')}</strong>
         </p>
       </div>
 
@@ -979,8 +985,8 @@ const generateDetailedCoverLetterHTML = (results: Record<string, unknown>): stri
       <!-- Opening Paragraph -->
       <div style="margin-bottom: 20px;">
         <p style="font-size: 13px; line-height: 1.6; text-align: justify; color: #374151; margin: 0;">
-          ${coverLetter.opening_paragraph ||
-    `I am writing to express my strong interest in the ${jobDetails.position || 'Position Title'} role at ${jobDetails.company_name || 'Company Name'}. With my comprehensive background in relevant technologies and proven track record of delivering exceptional results, I am excited about the opportunity to contribute to your team's continued success. My experience aligns perfectly with your requirements, and I am particularly drawn to this position because of its potential for professional growth and the company's reputation for innovation. Having researched your organization extensively, I am confident that my skills and passion make me an ideal candidate for this role.`
+          ${String(coverLetter.opening_paragraph || '') ||
+    `I am writing to express my strong interest in the ${String(jobDetails.position || 'Position Title')} role at ${String(jobDetails.company_name || 'Company Name')}. With my comprehensive background in relevant technologies and proven track record of delivering exceptional results, I am excited about the opportunity to contribute to your team's continued success. My experience aligns perfectly with your requirements, and I am particularly drawn to this position because of its potential for professional growth and the company's reputation for innovation. Having researched your organization extensively, I am confident that my skills and passion make me an ideal candidate for this role.`
     }
         </p>
       </div>
@@ -988,7 +994,7 @@ const generateDetailedCoverLetterHTML = (results: Record<string, unknown>): stri
       <!-- Body Paragraph -->
       <div style="margin-bottom: 20px;">
         <p style="font-size: 13px; line-height: 1.6; text-align: justify; color: #374151; margin: 0;">
-          ${coverLetter.body_paragraph ||
+          ${String(coverLetter.body_paragraph || '') ||
     `Throughout my career, I have developed extensive expertise in key areas that directly align with your job requirements. In my previous roles, I have successfully led cross-functional teams, implemented innovative solutions that improved efficiency by significant percentages, and consistently delivered projects on time and within budget. My technical skills encompass the full range of technologies mentioned in your job posting, and I have applied these in real-world scenarios to drive measurable business outcomes. For example, I spearheaded initiatives that resulted in substantial cost savings, improved user satisfaction scores, and enhanced system performance metrics. I am particularly excited about the opportunity to bring my passion for problem-solving and my collaborative approach to your dynamic team, where I can contribute to achieving your organization's strategic objectives while continuing to grow professionally. My experience in stakeholder management, agile methodologies, and continuous improvement positions me well to make an immediate impact in this role.`
     }
         </p>
@@ -997,8 +1003,8 @@ const generateDetailedCoverLetterHTML = (results: Record<string, unknown>): stri
       <!-- Closing Paragraph -->
       <div style="margin-bottom: 25px;">
         <p style="font-size: 13px; line-height: 1.6; text-align: justify; color: #374151; margin: 0;">
-          ${coverLetter.closing_paragraph ||
-    `I am eager to discuss how my background, skills, and enthusiasm can contribute to ${jobDetails.company_name || 'your company'}'s continued success. I would welcome the opportunity to speak with you about how I can add value to your team and help achieve your business goals. Thank you for your time and consideration. I look forward to hearing from you soon and am available at your convenience for an interview.`
+          ${String(coverLetter.closing_paragraph || '') ||
+    `I am eager to discuss how my background, skills, and enthusiasm can contribute to ${String(jobDetails.company_name || 'your company')}'s continued success. I would welcome the opportunity to speak with you about how I can add value to your team and help achieve your business goals. Thank you for your time and consideration. I look forward to hearing from you soon and am available at your convenience for an interview.`
     }
         </p>
       </div>
@@ -1007,14 +1013,14 @@ const generateDetailedCoverLetterHTML = (results: Record<string, unknown>): stri
       <div style="margin-bottom: 15px;">
         <p style="font-size: 13px; color: #374151; margin: 0;">
           Sincerely,<br><br>
-          ${personalInfo.name || 'Your Name'}
+          ${String(personalInfo.name || 'Your Name')}
         </p>
       </div>
 
       <!-- Footer -->
       <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: center;">
         <p style="font-size: 11px; color: #9ca3af; margin: 0;">
-          This cover letter was AI-enhanced and personalized for the ${jobDetails.position || 'target position'} at ${jobDetails.company_name || 'the company'}.
+          This cover letter was AI-enhanced and personalized for the ${String(jobDetails.position || 'target position')} at ${String(jobDetails.company_name || 'the company')}.
         </p>
       </div>
     </div>

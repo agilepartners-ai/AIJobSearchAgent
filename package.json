@@ -14,7 +14,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@react-pdf/renderer": "^4.3.0",
     "@reduxjs/toolkit": "^2.8.2",
-    "@supabase/ssr": "^0.3.0",
+    "@supabase/ssr": "^0.6.1",
     "@types/flubber": "^0.4.0",
     "@types/three": "^0.177.0",
     "class-variance-authority": "^0.7.0",
@@ -40,18 +40,18 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^8.12.0",
-    "@typescript-eslint/parser": "^8.12.0",
+    "@netlify/plugin-nextjs": "^5.11.6",
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@typescript-eslint/eslint-plugin": "^8.12.0",
+    "@typescript-eslint/parser": "^8.12.0",
     "autoprefixer": "^10.4.17",
     "eslint": "^8",
     "eslint-config-next": "^15.4.2",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5",
-    "@netlify/plugin-nextjs": "^5.11.6"
+    "typescript": "^5"
   }
 }
