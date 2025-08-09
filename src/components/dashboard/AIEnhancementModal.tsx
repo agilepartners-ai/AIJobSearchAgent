@@ -875,36 +875,31 @@ const generateDetailedResumeHTML = (results: Record<string, unknown>): string =>
       ` : ''}
 
       <!-- Awards -->
-      ${Array.isArray(sections.awards) && sections.awards.length ? `
+      ${sections.awards?.length ? `
         <section style="margin-bottom: 20px;">
           <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">AWARDS & RECOGNITION</h2>
-          ${sections.awards.map((award: unknown) => {
-            const awardObj = award as Record<string, unknown>;
-            return `
+          ${sections.awards.map((award: any) => `
             <div style="margin-bottom: 8px;">
               <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                <strong style="font-size: 12px; color: #1f2937;">${String(awardObj.title || 'Award Title')}</strong>
-                <span style="font-size: 11px; color: #6b7280;">${String(awardObj.date || 'Date')}</span>
+                <strong style="font-size: 12px; color: #1f2937;">${award.title || 'Award Title'}</strong>
+                <span style="font-size: 11px; color: #6b7280;">${award.date || 'Date'}</span>
               </div>
-              <div style="font-size: 11px; color: #6b7280;">${String(awardObj.organization || 'Organization')}</div>
-              ${awardObj.description ? `<p style="font-size: 11px; margin-top: 3px; line-height: 1.3;">${String(awardObj.description)}</p>` : ''}
+              <div style="font-size: 11px; color: #6b7280;">${award.issuing_organization || 'Organization'}</div>
+              ${award.description ? `<p style="font-size: 11px; margin-top: 2px; line-height: 1.3;">${award.description}</p>` : ''}
             </div>
-            `;
-          }).join('')}
+          `).join('')}
         </section>
       ` : ''}
 
       <!-- Volunteer Work -->
-      ${Array.isArray(sections.volunteer_work) && sections.volunteer_work.length ? `
+      ${sections.volunteer_work?.length ? `
         <section style="margin-bottom: 20px;">
           <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">VOLUNTEER EXPERIENCE</h2>
-          ${sections.volunteer_work.map((vol: unknown) => {
-            const volObj = vol as Record<string, unknown>;
-            return `
+          ${sections.volunteer_work.map((vol: any) => `
             <div style="margin-bottom: 12px;">
               <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px;">
-                <strong style="font-size: 12px; color: #1f2937;">${String(volObj.role || 'Volunteer Role')}</strong>
-                <span style="font-size: 11px; color: #6b7280;">${String(volObj.duration || 'Duration')}</span>
+                <strong style="font-size: 12px; color: #1f2937;">${vol.role || 'Volunteer Role'}</strong>
+                <span style="font-size: 11px; color: #6b7280;">${vol.duration || 'Duration'}</span>
               </div>
               <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">${String(volObj.organization || 'Organization')}</div>
               <p style="font-size: 11px; margin: 0; line-height: 1.4;">${String(volObj.description || 'Description of volunteer work and impact.')}</p>
