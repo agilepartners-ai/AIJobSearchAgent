@@ -106,7 +106,23 @@ export class FirebaseAuthService {
     try {
       await firebaseSendPasswordResetEmail(auth, email);
     } catch (error) {
-      throw new Error('Failed to send password reset email');
+      const errorMessage = this.getPasswordResetErrorMessage(error as AuthError);
+      throw new Error(errorMessage);
+    }
+  }
+
+  private static getPasswordResetErrorMessage(error: AuthError): string {
+    switch (error.code) {
+      case 'auth/user-not-found':
+        return 'No account found with this email address';
+      case 'auth/invalid-email':
+        return 'Please enter a valid email address';
+      case 'auth/too-many-requests':
+        return 'Too many requests. Please wait before trying again';
+      case 'auth/network-request-failed':
+        return 'Network error. Please check your connection and try again';
+      default:
+        return 'Failed to send password reset email. Please try again';
     }
   }
 
@@ -147,4 +163,3 @@ export class FirebaseAuthService {
 }
 
 export default FirebaseAuthService;
-
