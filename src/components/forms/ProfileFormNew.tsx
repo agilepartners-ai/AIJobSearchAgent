@@ -192,7 +192,6 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
 
   // Initialize form data with initialData when it changes
   useEffect(() => {
-    console.log('useEffect triggered')
     const isValid = initialData && initialData.fullName && !formInitialized.current;
 
     if (isValid) {
@@ -558,6 +557,15 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     e.preventDefault();
     e.stopPropagation();
 
+    // 🛑 Only validate required fields on Section 0
+    if (currentSection === 0) {
+      const isValid = validateForm();
+      if (!isValid) {
+        console.log("❌ Validation failed — not moving to next section.");
+        return;
+      }
+    }
+
     if (currentSection < sections.length - 1) {
       // Save only relevant fields for the current section
       const updatedSectionData = {
@@ -584,6 +592,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       console.log(`✅ Moving to section ${nextSectionIndex}: ${sections[nextSectionIndex]}`);
     }
   };
+
 
 
 
