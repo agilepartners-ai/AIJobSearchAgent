@@ -3,7 +3,7 @@ import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Aw
 import OptimizationResults from './OptimizationResults';
 import { ResumeExtractionService } from '../../services/resumeExtractionService';
 import { AIEnhancementService } from '../../services/aiEnhancementService';
-import { UserProfileData } from '../../services/profileService';
+import { UserProfileData, ProfileService } from '../../services/profileService';
 import { useAuth } from '../../hooks/useAuth';
 import { extractTextFromPDF, validatePDFFile, PDFExtractionResult, extractTextFallback } from '../../utils/pdfUtils';
 
@@ -68,9 +68,27 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   const [copiedExtracted, setCopiedExtracted] = React.useState(false);
   const [manualText, setManualText] = React.useState<string>('');
   const [showManualInput, setShowManualInput] = React.useState(false);
+  // NEW: additional instructions for AI
+  const [additionalPrompt, setAdditionalPrompt] = React.useState<string>('');
 
   const { user } = useAuth();
-  const config = AIEnhancementService.getConfiguration(); // Use AIEnhancementService instead
+  const config = AIEnhancementService.getConfiguration();
+
+  // NEW: resolve user profile (prop -> fetched)
+  const [resolvedProfile, setResolvedProfile] = React.useState<UserProfileData | null>(detailedUserProfile ?? null);
+
+  useEffect(() => {
+    if (detailedUserProfile) setResolvedProfile(detailedUserProfile);
+  }, [detailedUserProfile]);
+
+  useEffect(() => {
+    // fetch only if not provided by props
+    if (!resolvedProfile && user?.id) {
+      ProfileService.getUserProfile(user.id)
+        .then((p) => p && setResolvedProfile(p))
+        .catch(() => {/* ignore */ });
+    }
+  }, [resolvedProfile, user?.id]);
 
   // Keep jobDescription in sync with Redux (for persistence)
   useEffect(() => {
@@ -220,10 +238,17 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       return;
     }
 
-    if (!jobDescription.trim()) {
+    // use either immediate prop or persisted value
+    const baseJD = (jobDescription || persistedJobDescription || '').trim();
+    if (!baseJD) {
       dispatch(setError('Job description is required for AI enhancement'));
       return;
     }
+
+    // append additional instructions (minimal change)
+    const combinedJobDescription = additionalPrompt.trim()
+      ? `${baseJD}\n\nAdditional instructions: ${additionalPrompt.trim()}`
+      : baseJD;
 
     // Check API configuration
     if (!config.hasApiKey) {
@@ -231,8 +256,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       return;
     }
 
-    // Validate enhancement request
-    const validation = AIEnhancementService.validateEnhancementRequest(jobDescription);
+    // Validate enhancement request (use combined prompt)
+    const validation = AIEnhancementService.validateEnhancementRequest(combinedJobDescription);
     if (!validation.isValid) {
       dispatch(setError(validation.error || 'Invalid request'));
       return;
@@ -276,12 +301,12 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         throw new Error('Resume text is too short or empty. Please provide a more detailed resume.');
       }
 
-      // Step 2: Enhance resume using OpenAI directly (like AiJobSearch-old)
+      // Step 2: Enhance resume using OpenAI
       setExtractionProgress('Analyzing resume with OpenAI...');
 
       const enhancementResult = await AIEnhancementService.enhanceWithOpenAI(
         resumeText,
-        jobDescription,
+        combinedJobDescription, // use combined prompt
         {
           modelType: config.defaultModelType,
           model: config.defaultModel,
@@ -334,13 +359,13 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           missingSkills: enhancementResult.analysis.keyword_analysis.missing_keywords.slice(0, 5)
         },
 
-        // Include parsed resume data (mock for now)
+        // Include parsed resume data BUT WITHOUT placeholders (avoid polluting fallbacks)
         parsedResume: {
           personal: {
-            name: detailedUserProfile?.fullName || 'John Doe',
-            email: detailedUserProfile?.email || 'john.doe@email.com',
-            phone: detailedUserProfile?.phone || '+1 (555) 123-4567',
-            location: detailedUserProfile?.location || 'City, State'
+            name: resolvedProfile?.fullName || '',
+            email: resolvedProfile?.email || user?.email || '',
+            phone: resolvedProfile?.phone || '',
+            location: resolvedProfile?.location || ''
           }
         },
 
@@ -380,7 +405,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         applicationData: applicationData,
 
         // Add detailed user profile and user for cover letter generation
-        detailedUserProfile: detailedUserProfile,
+        detailedUserProfile: resolvedProfile, // ensure profile is available to HTML generators
         user: user,
 
         // Include extracted text for debugging
@@ -693,6 +718,22 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* NEW: Additional instructions for AI */}
+            <div className="mt-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Additional instructions for AI (optional)
+              </label>
+              <textarea
+                value={additionalPrompt}
+                onChange={(e) => setAdditionalPrompt(e.target.value)}
+                placeholder="Add any extra guidance to emphasize in your resume or cover letter (e.g., highlight leadership on project X, stress TypeScript expertise, prefer remote roles, etc.)"
+                className="w-full h-24 p-3 border border-gray-300 dark:border-gray-600 rounded-lg resize-y text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                This text is appended to the AI prompt.
+              </p>
+            </div>
           </div>
 
           {/* Manual Text Input Section */}
@@ -846,17 +887,40 @@ export default AIEnhancementModal;
 // Helper functions to generate detailed HTML content with better formatting
 const generateDetailedResumeHTML = (results: any): string => {
   const sections = results.aiEnhancements?.detailedResumeSections || {};
-  const personalInfo = results.parsedResume?.personal || {};
+  // prefer profile -> auth user -> parsed resume -> placeholder
+  const profile = results.detailedUserProfile || {};
+  const authUser = results.user || {};
+  const parsedPersonal = results.parsedResume?.personal || {};
+
+  const name =
+    (profile.fullName && profile.fullName.trim()) ||
+    authUser.displayName ||
+    (parsedPersonal.name && parsedPersonal.name.trim()) ||
+    'Professional Name';
+
+  const email =
+    (profile.email && profile.email.trim()) ||
+    authUser.email ||
+    (parsedPersonal.email && parsedPersonal.email.trim()) ||
+    'email@example.com';
+
+  const phone =
+    (profile.phone && profile.phone.trim()) ||
+    (parsedPersonal.phone && parsedPersonal.phone.trim()) ||
+    '';
+
+  const location =
+    (profile.location && profile.location.trim()) ||
+    (parsedPersonal.location && parsedPersonal.location.trim()) ||
+    '';
 
   return `
     <div style="font-family: 'Arial', sans-serif; line-height: 1.4; color: #333; max-width: 800px;">
       <!-- Header Section -->
       <header style="text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 15px; margin-bottom: 20px;">
-        <h1 style="font-size: 26px; margin-bottom: 8px; color: #1f2937; font-weight: 700;">${personalInfo.name || 'Professional Name'}</h1>
+        <h1 style="font-size: 26px; margin-bottom: 8px; color: #1f2937; font-weight: 700;">${name}</h1>
         <div style="font-size: 13px; color: #6b7280; margin-bottom: 5px;">
-          <span>${personalInfo.email || 'email@example.com'}</span> • 
-          <span>${personalInfo.phone || '+1 (555) 123-4567'}</span> • 
-          <span>${personalInfo.location || 'City, State'}</span>
+          <span>${email}</span>${phone ? ` • <span>${phone}</span>` : ''}${location ? ` • <span>${location}</span>` : ''}
         </div>
       </header>
 
@@ -1067,17 +1131,42 @@ const generateDetailedResumeHTML = (results: any): string => {
 
 const generateDetailedCoverLetterHTML = (results: any): string => {
   const coverLetter = results.aiEnhancements?.detailedCoverLetter || {};
-  const personalInfo = results.parsedResume?.personal || {};
   const jobDetails = results.applicationData || {};
+  // prefer profile -> auth user -> parsed resume -> placeholder
+  const profile = results.detailedUserProfile || {};
+  const authUser = results.user || {};
+  const parsedPersonal = results.parsedResume?.personal || {};
+
+  const name =
+    (profile.fullName && profile.fullName.trim()) ||
+    authUser.displayName ||
+    (parsedPersonal.name && parsedPersonal.name.trim()) ||
+    'Your Name';
+
+  const email =
+    (profile.email && profile.email.trim()) ||
+    authUser.email ||
+    (parsedPersonal.email && parsedPersonal.email.trim()) ||
+    'email@example.com';
+
+  const phone =
+    (profile.phone && profile.phone.trim()) ||
+    (parsedPersonal.phone && parsedPersonal.phone.trim()) ||
+    '';
+
+  const location =
+    (profile.location && profile.location.trim()) ||
+    (parsedPersonal.location && parsedPersonal.location.trim()) ||
+    '';
 
   return `
     <div style="font-family: 'Arial', sans-serif; line-height: 1.5; color: #333; max-width: 700px; margin: 0 auto;">
       <!-- Header -->
       <header style="text-align: center; margin-bottom: 30px;">
-        <h1 style="font-size: 22px; margin-bottom: 8px; color: #1f2937; font-weight: 600;">${personalInfo.name || 'Your Name'}</h1>
+        <h1 style="font-size: 22px; margin-bottom: 8px; color: #1f2937; font-weight: 600;">${name}</h1>
         <div style="font-size: 13px; color: #6b7280;">
-          <div>${personalInfo.email || 'email@example.com'} • ${personalInfo.phone || '+1 (555) 123-4567'}</div>
-          <div>${personalInfo.location || 'City, State'}</div>
+          <div>${email}${phone ? ` • ${phone}` : ''}</div>
+          ${location ? `<div>${location}</div>` : ''}
         </div>
       </header>
 
@@ -1138,7 +1227,7 @@ const generateDetailedCoverLetterHTML = (results: any): string => {
       <div style="margin-bottom: 15px;">
         <p style="font-size: 13px; color: #374151; margin: 0;">
           Sincerely,<br><br>
-          ${personalInfo.name || 'Your Name'}
+          ${name}
         </p>
       </div>
 
