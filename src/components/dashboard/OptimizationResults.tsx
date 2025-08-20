@@ -141,13 +141,13 @@ const ResumePDFDocument: React.FC<{ content: string; jobDetails: any }> = ({ con
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <Text style={styles.name}>AI-Enhanced Professional Resume</Text>
+        {/* <View style={styles.header}>
+          {<Text style={styles.name}>AI-Enhanced Professional Resume</Text>}
           <Text style={styles.title}>Optimized for {jobDetails.title} at {jobDetails.company}</Text>
           <View style={styles.contactInfo}>
             <Text>Enhanced with AI • ATS Optimized • Multiple Sections</Text>
           </View>
-        </View>
+        </View> */}
 
         {/* Render sections with appropriate spacing */}
         {parsedContent.sections.slice(0, 6).map((section, index) => (
@@ -234,7 +234,7 @@ const CoverLetterPDFDocument: React.FC<{ content: string; jobDetails: any }> = (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.name}>AI-Enhanced Cover Letter</Text>
+          <Text style={styles.name}>Cover Letter</Text>
           <Text style={styles.title}>For {jobDetails.title} at {jobDetails.company}</Text>
           <View style={styles.contactInfo}>
             <Text>{new Date().toLocaleDateString()}</Text>

@@ -70,6 +70,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   const [showManualInput, setShowManualInput] = React.useState(false);
   // NEW: additional instructions for AI
   const [additionalPrompt, setAdditionalPrompt] = React.useState<string>('');
+  // NEW: editable full AI prompt
+  const [aiPrompt, setAiPrompt] = React.useState<string>('');
 
   const { user } = useAuth();
   const config = AIEnhancementService.getConfiguration();
@@ -96,6 +98,18 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       dispatch({ type: 'aiEnhancementModal/openModal', payload: { jobDescription } });
     }
   }, [jobDescription, dispatch, persistedJobDescription]);
+
+  // Initialize aiPrompt with the default detailed prompt when resume/job changes
+  useEffect(() => {
+    // Use extracted text or manual text or empty string
+    const resumeText =
+      extractedPDFData?.text ||
+      manualText ||
+      '';
+    // Use jobDescription or persistedJobDescription
+    const jd = jobDescription || persistedJobDescription || '';
+    setAiPrompt(AIEnhancementService['createDetailedUserPrompt'](resumeText, jd));
+  }, [extractedPDFData?.text, manualText, jobDescription, persistedJobDescription]);
 
   // File select handler: reads file as base64 and stores meta/content in Redux, plus extracts text
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -245,14 +259,17 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       return;
     }
 
-    // append additional instructions (minimal change)
-    const combinedJobDescription = additionalPrompt.trim()
-      ? `${baseJD}\n\nAdditional instructions: ${additionalPrompt.trim()}`
-      : baseJD;
+    // Use the user-edited prompt instead of additionalPrompt logic
+    const combinedJobDescription = aiPrompt;
 
     // Check API configuration
-    if (!config.hasApiKey) {
-      dispatch(setError('OpenAI API key is not configured. Please set NEXT_PUBLIC_OPENAI_API_KEY in your environment variables.'));
+    const isGemini = config.defaultModelType.toLowerCase() === 'gemini' || config.defaultModelType.toLowerCase() === 'gemnin';
+    if (isGemini ? !config.hasGeminiApiKey : !config.hasApiKey) {
+      dispatch(setError(
+        isGemini
+          ? 'Gemini API key is not configured. Please set NEXT_PUBLIC_GEMINI_API_KEY in your environment variables.'
+          : 'OpenAI API key is not configured. Please set NEXT_PUBLIC_OPENAI_API_KEY in your environment variables.'
+      ));
       return;
     }
 
@@ -302,11 +319,11 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       }
 
       // Step 2: Enhance resume using OpenAI
-      setExtractionProgress('Analyzing resume with OpenAI...');
+      setExtractionProgress('Analyzing resume with AI...');
 
       const enhancementResult = await AIEnhancementService.enhanceWithOpenAI(
         resumeText,
-        combinedJobDescription, // use combined prompt
+        combinedJobDescription, // now the full prompt
         {
           modelType: config.defaultModelType,
           model: config.defaultModel,
@@ -718,22 +735,22 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* NEW: Additional instructions for AI */}
-            <div className="mt-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Additional instructions for AI (optional)
-              </label>
-              <textarea
-                value={additionalPrompt}
-                onChange={(e) => setAdditionalPrompt(e.target.value)}
-                placeholder="Add any extra guidance to emphasize in your resume or cover letter (e.g., highlight leadership on project X, stress TypeScript expertise, prefer remote roles, etc.)"
-                className="w-full h-24 p-3 border border-gray-300 dark:border-gray-600 rounded-lg resize-y text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                This text is appended to the AI prompt.
-              </p>
-            </div>
+          {/* Editable AI Prompt Section */}
+          <div className="mt-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              AI Prompt (edit the full prompt sent to the AI)
+            </label>
+            <textarea
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              placeholder="Edit the full prompt sent to the AI here..."
+              className="w-full h-32 p-3 border border-gray-300 dark:border-gray-600 rounded-lg resize-y text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              You can fully customize the prompt sent to the AI. This will override any additional instructions.
+            </p>
           </div>
 
           {/* Manual Text Input Section */}
@@ -839,7 +856,16 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
             <button
               type="button"
               onClick={handleGenerateAI}
-              disabled={loading || (!selectedFileMeta && !cloudFileUrl) || !(jobDescription || persistedJobDescription || '').trim() || !config.hasApiKey}
+              disabled={
+                loading ||
+                (!selectedFileMeta && !cloudFileUrl) ||
+                !(jobDescription || persistedJobDescription || '').trim() ||
+                (
+                  config.defaultModelType.toLowerCase() === 'gemini' || config.defaultModelType.toLowerCase() === 'gemnin'
+                    ? !config.hasGeminiApiKey
+                    : !config.hasApiKey
+                )
+              }
               className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 px-6 rounded-lg font-medium flex items-center justify-center gap-2 transition-all disabled:cursor-not-allowed"
             >
               {loading ? (

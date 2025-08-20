@@ -171,10 +171,29 @@ const getApiKey = (): string => {
     return apiKey;
 };
 
+// Add: Get Gemini API key from environment variables for browser compatibility
+const getGeminiApiKey = (): string => {
+    let apiKey = '';
+    if (typeof window !== 'undefined') {
+        apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
+        console.log('🔍 [DEBUG] Browser - NEXT_PUBLIC_GEMINI_API_KEY:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
+    } else {
+        apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
+        console.log('🔍 [DEBUG] Server - GEMINI_API_KEY:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
+    }
+    return apiKey;
+};
+
 export class AIEnhancementService {
     private static readonly API_KEY = getApiKey();
     private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'OpenAI';
     private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'gpt-4o';
+
+    // Helper: detect Gemini provider (supports typo "Gemnin")
+    private static isGeminiProvider(modelType?: string) {
+        const t = (modelType || this.DEFAULT_MODEL_TYPE || '').toLowerCase();
+        return t === 'gemini' || t === 'gemnin';
+    }
 
     // Create system prompt for AI enhancement (matching old repo pattern)
     private static createSystemPrompt(): string {
@@ -381,6 +400,11 @@ Make sure all content is:
         jobDescription: string,
         options: AIEnhancementOptions = {}
     ): Promise<AIEnhancementResponse> {
+        // Route to Gemini if requested (supports "Gemini" and "Gemnin")
+        if (this.isGeminiProvider(options.modelType)) {
+            return this.enhanceWithGemini(resumeText, jobDescription, options);
+        }
+
         try {
             console.log('Starting detailed OpenAI resume enhancement...');
 
@@ -474,6 +498,135 @@ Make sure all content is:
         }
     }
 
+    // New: Enhance resume using Google Gemini API
+    private static async enhanceWithGemini(
+        resumeText: string,
+        jobDescription: string,
+        options: AIEnhancementOptions = {}
+    ): Promise<AIEnhancementResponse> {
+        try {
+            console.log('Starting detailed Gemini resume enhancement...');
+
+            const apiKey = getGeminiApiKey();
+            if (!apiKey) {
+                throw new Error('Gemini API key is not configured. Please set NEXT_PUBLIC_GEMINI_API_KEY in your environment variables.');
+            }
+
+            const modelId = options.model || this.DEFAULT_MODEL || 'gemini-2.5-flash';
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelId)}:generateContent`;
+
+            // Combine system and user prompts into a single user message
+            const systemPrompt = this.createDetailedSystemPrompt();
+            const userPrompt = this.createDetailedUserPrompt(resumeText, jobDescription);
+            const payload = {
+                contents: [
+                    {
+                        parts: [
+                            { text: `${systemPrompt}\n\n${userPrompt}` }
+                        ]
+                    }
+                ]
+            };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': apiKey
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errText = await response.text().catch(() => '');
+                throw new Error(`Gemini API error ${response.status}: ${errText || response.statusText}`);
+            }
+
+            const data = await response.json();
+            const responseText =
+                data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+                data?.candidates?.[0]?.output_text ||
+                '';
+
+            if (!responseText) {
+                throw new Error('No response from Gemini');
+            }
+
+            console.log('Gemini detailed response received, parsing...');
+            let aiResults: any;
+            try {
+                aiResults = JSON.parse(responseText);
+            } catch (e) {
+                // Attempt to extract JSON substring as a fallback
+                const start = responseText.indexOf('{');
+                const end = responseText.lastIndexOf('}');
+                if (start !== -1 && end !== -1 && end > start) {
+                    aiResults = JSON.parse(responseText.slice(start, end + 1));
+                } else {
+                    throw new Error('Failed to parse AI response. Please try again.');
+                }
+            }
+
+            const enhancementResponse: AIEnhancementResponse = {
+                success: true,
+                analysis: {
+                    match_score: aiResults.match_score || 0,
+                    strengths: aiResults.analysis?.strengths || [],
+                    gaps: aiResults.analysis?.gaps || [],
+                    suggestions: aiResults.analysis?.suggestions || [],
+                    keyword_analysis: {
+                        missing_keywords: aiResults.analysis?.keyword_analysis?.missing_keywords || [],
+                        present_keywords: aiResults.analysis?.keyword_analysis?.present_keywords || [],
+                        keyword_density_score: aiResults.analysis?.keyword_analysis?.keyword_density_score || 0
+                    },
+                    section_recommendations: {
+                        skills: aiResults.analysis?.section_recommendations?.skills || '',
+                        experience: aiResults.analysis?.section_recommendations?.experience || '',
+                        education: aiResults.analysis?.section_recommendations?.education || ''
+                    }
+                },
+                enhancements: {
+                    enhanced_summary: aiResults.enhancements?.enhanced_summary || '',
+                    enhanced_skills: aiResults.enhancements?.enhanced_skills || [],
+                    enhanced_experience_bullets: aiResults.enhancements?.enhanced_experience_bullets || [],
+                    cover_letter_outline: {
+                        opening: aiResults.enhancements?.cover_letter_outline?.opening || '',
+                        body: aiResults.enhancements?.cover_letter_outline?.body || '',
+                        closing: aiResults.enhancements?.cover_letter_outline?.closing || ''
+                    },
+                    detailed_resume_sections: aiResults.enhancements?.detailed_resume_sections || {},
+                    detailed_cover_letter: aiResults.enhancements?.detailed_cover_letter || {}
+                },
+                metadata: {
+                    model_used: modelId,
+                    model_type: options.modelType || this.DEFAULT_MODEL_TYPE || 'Gemini',
+                    timestamp: new Date().toISOString(),
+                    resume_sections_analyzed: ['summary', 'experience', 'skills', 'education', 'projects', 'certifications', 'awards', 'volunteer', 'publications']
+                },
+                file_id: options.fileId || `enhance_${Date.now()}`
+            };
+
+            console.log('Gemini detailed enhancement completed successfully');
+            return enhancementResponse;
+        } catch (error: any) {
+            console.error('Gemini enhancement failed:', error);
+
+            if (error instanceof Error) {
+                if (error.message.includes('API key') || error.message.includes('401')) {
+                    throw new Error('Gemini API key is missing or invalid. Please check your configuration.');
+                } else if (error.message.includes('quota') || error.message.includes('429')) {
+                    throw new Error('Gemini API quota exceeded. Please check your usage limits.');
+                } else if (error.message.includes('JSON')) {
+                    throw new Error('Failed to parse AI response. Please try again.');
+                } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                    throw new Error('Network error. Please check your internet connection and try again.');
+                }
+            }
+
+            throw new Error(`AI enhancement failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+
     // Enhance resume with file upload (fallback to backend if needed)
     static async enhanceWithFile(
         file: File,
@@ -486,7 +639,8 @@ Make sure all content is:
             const extractionResult = await extractTextFromPDF(file);
 
             if (extractionResult.text && extractionResult.text.length > 50) {
-                console.log('Using extracted text with OpenAI directly...');
+                console.log('Using extracted text with AI directly...');
+                // Route via enhanceWithOpenAI, which now dispatches to Gemini when needed
                 return await this.enhanceWithOpenAI(extractionResult.text, jobDescription, options);
             } else {
                 throw new Error('Unable to extract sufficient text from file');
@@ -563,7 +717,8 @@ Make sure all content is:
                 }
             }
 
-            console.log('Using JSON resume data with OpenAI directly...');
+            console.log('Using JSON resume data with AI directly...');
+            // Route via enhanceWithOpenAI, which now dispatches to Gemini when needed
             return await this.enhanceWithOpenAI(resumeText, jobDescription, options);
 
         } catch (error: any) {
@@ -585,6 +740,7 @@ Make sure all content is:
     static getConfiguration() {
         return {
             hasApiKey: !!this.API_KEY,
+            hasGeminiApiKey: !!getGeminiApiKey(),
             defaultModelType: this.DEFAULT_MODEL_TYPE,
             defaultModel: this.DEFAULT_MODEL
         };
