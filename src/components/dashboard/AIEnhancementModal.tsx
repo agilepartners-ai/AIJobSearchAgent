@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain, Settings, Upload, HardDrive, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import OptimizationResults from './OptimizationResults';
 import { ResumeExtractionService } from '../../services/resumeExtractionService';
@@ -21,6 +21,7 @@ import {
 interface AIEnhancementModalProps {
   jobDescription: string;
   applicationData?: {
+    id: string;
     position: string;
     company_name: string;
     location?: string;
@@ -41,7 +42,7 @@ const generateUUID = (): string => {
 
 const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   jobDescription,
-  applicationData = { position: '', company_name: '' },
+  applicationData = {id: '', position: '', company_name: '' },
   detailedUserProfile,
   onSave,
   onClose
@@ -258,6 +259,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       dispatch(setError('Job description is required for AI enhancement'));
       return;
     }
+    
+    setUploadComplete(false);
 
     // Use the user-edited prompt instead of additionalPrompt logic
     const combinedJobDescription = aiPrompt;
@@ -339,8 +342,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
       // Generate mock URLs for the enhanced documents
       const timestamp = Date.now();
-      const enhancedResumeUrl = `https://example.com/ai-enhanced-resume-${documentId}.pdf`;
-      const enhancedCoverLetterUrl = `https://example.com/ai-enhanced-cover-letter-${documentId}.pdf`;
+      const enhancedResumeUrl = FinalResumeUrl;
+      const enhancedCoverLetterUrl = FinalCoverLetterUrl;
 
       // Structure results using the detailed AI analysis
       const optimizationResults = {
@@ -506,20 +509,91 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     onClose();
   };
 
-  // Add debug logging to see what's happening with the results
   React.useEffect(() => {
     console.log('🔍 showResults changed:', showResults);
     console.log('🔍 optimizationResults:', optimizationResults);
   }, [showResults, optimizationResults]);
 
+  const [uploadComplete, setUploadComplete] = useState(false);
+  const [FinalResumeUrl, setFinalResumeUrl] = useState<string | null>(null);
+  const [FinalCoverLetterUrl, setFinalCoverLetterUrl] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const shouldUpload =
+      showResults &&
+      optimizationResults &&
+      applicationData?.id &&
+      typeof window !== 'undefined' &&
+      !uploadComplete &&
+      (!FinalResumeUrl || !FinalCoverLetterUrl); // <-- key check
+
+    if (!shouldUpload) return;
+
+    const detailedResumeHtml = generateDetailedResumeHTML(optimizationResults);
+    const detailedCoverLetterHtml = generateDetailedCoverLetterHTML(optimizationResults);
+
+    const uploadPDFs = async () => {
+      try {
+        const response = await fetch('/api/save-generated-pdfs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user?.id,
+            jobApplicationId: applicationData.id,
+            resumeHtml: detailedResumeHtml,
+            coverLetterHtml: detailedCoverLetterHtml,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to upload PDFs');
+        }
+
+        console.log('✅ PDFs uploaded:', result);
+
+        setFinalResumeUrl(result.resumeUrl);
+        setFinalCoverLetterUrl(result.coverLetterUrl);
+        setUploadComplete(true); // ✅ prevent re-upload
+
+      } catch (error) {
+        console.error('❌ Error uploading PDFs:', error);
+      }
+    };
+
+    uploadPDFs();
+  }, [showResults, optimizationResults, applicationData?.id]);
+
+  React.useEffect(() => {
+    if (
+      !uploadComplete ||
+      !FinalResumeUrl ||
+      !FinalCoverLetterUrl ||
+      !optimizationResults
+    ) return;
+
+    const alreadyUpdated = optimizationResults.optimizedResumeUrl === FinalResumeUrl &&
+                          optimizationResults.optimizedCoverLetterUrl === FinalCoverLetterUrl;
+
+    if (alreadyUpdated) return; // ✅ Prevent unnecessary updates
+
+    const updatedResults = {
+      ...optimizationResults,
+      optimizedResumeUrl: FinalResumeUrl,
+      optimizedCoverLetterUrl: FinalCoverLetterUrl
+    };
+
+    dispatch(setOptimizationResults(updatedResults));
+    console.log('✅ optimizationResults updated with Final URLs');
+  }, [uploadComplete, FinalResumeUrl, FinalCoverLetterUrl, optimizationResults]);
+
+
   if (showResults && optimizationResults) {
     console.log('🎯 Rendering OptimizationResults component with detailed content');
     console.log('🎯 Results data:', optimizationResults);
 
-    // Generate detailed resume HTML content
     const detailedResumeHtml = generateDetailedResumeHTML(optimizationResults);
-
-    // Generate detailed cover letter HTML content
     const detailedCoverLetterHtml = generateDetailedCoverLetterHTML(optimizationResults);
 
     return (
@@ -542,13 +616,14 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           keywordAnalysis: optimizationResults.keywordAnalysis || {
             coverageScore: 75,
             coveredKeywords: [],
-            missingKeywords: []
-          }
+            missingKeywords: [],
+          },
         }}
         onBack={handleResultsClose}
       />
     );
   }
+
 
   console.log('🔍 Rendering main modal (not results screen)');
   console.log('🔍 showResults:', showResults, 'optimizationResults:', !!optimizationResults);
