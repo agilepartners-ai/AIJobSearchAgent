@@ -403,11 +403,14 @@ const Dashboard: React.FC = () => {
   };
 
   const handleLoadAIEnhanced = (application: JobApplication) => {
+    console.log('[handleLoadAIEnhanced] application:', application);
     dispatch(setSelectedJobDescription({
       title: application.position,
       company: application.company_name,
       description: application.job_description || ''
     }));
+    dispatch(setEditingApplication(application));
+    
     dispatch(setShowAIEnhancementModal(true));
   };
 
@@ -520,6 +523,7 @@ const Dashboard: React.FC = () => {
         <AIEnhancementModal
           jobDescription={selectedJobDescription?.description || ''}
           applicationData={{
+            id: editingApplication?.id || '',
             position: selectedJobDescription?.title || '',
             company_name: selectedJobDescription?.company || ''
           }}

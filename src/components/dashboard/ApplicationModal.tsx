@@ -307,6 +307,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
         <AIEnhancementModal
           jobDescription={formData.job_description}
           applicationData={{
+            id: application?.id || "",
             position: formData.position,
             company_name: formData.company_name,
             location: formData.location
