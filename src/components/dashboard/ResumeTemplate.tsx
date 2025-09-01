@@ -394,7 +394,7 @@ class ResumeContentParser {
   private isJobTitleLine(line: string): boolean {
     return /^[A-Z][a-zA-Z\s&,.-]*(?:Engineer|Developer|Manager|Analyst|Specialist|Coordinator|Director|Lead|Senior|Junior|Architect|Consultant|Associate|Executive|Administrator|Supervisor|Officer|Representative|Technician|Designer|Scientist|Researcher)/i.test(line) ||
            /^[A-Z][a-zA-Z\s&,.-]+\s+(?:at|@|\||–|—)\s+[A-Z]/i.test(line) ||
-           (line.match(/[A-Z][a-z]/) && line.length < 100 && !line.includes('•') && !line.includes('-') && !this.isDateLine(line));
+           (line.match(/[A-Z][a-z]/) !== null && line.length < 100 && !line.includes('•') && !line.includes('-') && !this.isDateLine(line));
   }
 
   private isCompanyLine(line: string): boolean {
@@ -537,7 +537,7 @@ class ResumeContentParser {
       .map(skill => skill.trim())
       .filter(skill => skill.length > 2 && skill.length < 30);
 
-    return [...new Set(allSkills)]; // Remove duplicates
+    return Array.from(new Set(allSkills)); // Remove duplicates
   }
 }
 
