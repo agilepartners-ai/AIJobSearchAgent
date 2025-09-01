@@ -42,7 +42,7 @@ const generateUUID = (): string => {
 
 const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   jobDescription,
-  applicationData = {id: '', position: '', company_name: '' },
+  applicationData = { id: '', position: '', company_name: '' },
   detailedUserProfile,
   onSave,
   onClose
@@ -71,8 +71,13 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   const [showManualInput, setShowManualInput] = React.useState(false);
   // NEW: additional instructions for AI
   const [additionalPrompt, setAdditionalPrompt] = React.useState<string>('');
-  // NEW: editable full AI prompt
+  // NEW: editable full AI prompt (user prompt)
   const [aiPrompt, setAiPrompt] = React.useState<string>('');
+  // NEW: editable AI system prompt
+  const [systemPrompt, setSystemPrompt] = React.useState<string>('');
+  // NEW: track if user edited prompts to avoid resetting them
+  const [aiPromptEdited, setAiPromptEdited] = React.useState<boolean>(false);
+  const [systemPromptEdited, setSystemPromptEdited] = React.useState<boolean>(false);
 
   const { user } = useAuth();
   const config = AIEnhancementService.getConfiguration();
@@ -100,17 +105,27 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     }
   }, [jobDescription, dispatch, persistedJobDescription]);
 
-  // Initialize aiPrompt with the default detailed prompt when resume/job changes
+  // Initialize prompts with defaults only if not edited
   useEffect(() => {
-    // Use extracted text or manual text or empty string
     const resumeText =
       extractedPDFData?.text ||
       manualText ||
       '';
-    // Use jobDescription or persistedJobDescription
     const jd = jobDescription || persistedJobDescription || '';
-    setAiPrompt(AIEnhancementService['createDetailedUserPrompt'](resumeText, jd));
-  }, [extractedPDFData?.text, manualText, jobDescription, persistedJobDescription]);
+
+    const defaultHeader = AIEnhancementService['createUserSystemPrompt'](resumeText, jd);
+    const defaultSystem = AIEnhancementService['createDetailedSystemPrompt']();
+
+    if (!aiPromptEdited) setAiPrompt(defaultHeader);
+    if (!systemPromptEdited) setSystemPrompt(defaultSystem);
+  }, [
+    extractedPDFData?.text,
+    manualText,
+    jobDescription,
+    persistedJobDescription,
+    aiPromptEdited,
+    systemPromptEdited
+  ]);
 
   // File select handler: reads file as base64 and stores meta/content in Redux, plus extracts text
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,22 +263,18 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   };
 
   const handleGenerateAI = async () => {
-    if (!selectedFileMeta && !cloudFileUrl && !extractedPDFData?.text) {
+    if (!selectedFileMeta && !cloudFileUrl && !extractedPDFData?.text && !manualText.trim()) {
       dispatch(setError('Please select a resume file or provide resume text'));
       return;
     }
 
-    // use either immediate prop or persisted value
-    const baseJD = (jobDescription || persistedJobDescription || '').trim();
-    if (!baseJD) {
-      dispatch(setError('Job description is required for AI enhancement'));
+    // Replace whole (header) prompt with text box value
+    if (!aiPrompt.trim()) {
+      dispatch(setError('AI prompt is required.'));
       return;
     }
-    
-    setUploadComplete(false);
 
-    // Use the user-edited prompt instead of additionalPrompt logic
-    const combinedJobDescription = aiPrompt;
+    setUploadComplete(false);
 
     // Check API configuration
     const isGemini = config.defaultModelType.toLowerCase() === 'gemini' || config.defaultModelType.toLowerCase() === 'gemnin';
@@ -276,12 +287,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       return;
     }
 
-    // Validate enhancement request (use combined prompt)
-    const validation = AIEnhancementService.validateEnhancementRequest(combinedJobDescription);
-    if (!validation.isValid) {
-      dispatch(setError(validation.error || 'Invalid request'));
-      return;
-    }
+    // Remove job description validation; the user header is authoritative
+    // (no validateEnhancementRequest call here)
 
     setLoading(true);
     dispatch(setError(''));
@@ -321,16 +328,18 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         throw new Error('Resume text is too short or empty. Please provide a more detailed resume.');
       }
 
-      // Step 2: Enhance resume using OpenAI
+      // Step 2: Enhance resume using AI with strict prompt overrides
       setExtractionProgress('Analyzing resume with AI...');
 
       const enhancementResult = await AIEnhancementService.enhanceWithOpenAI(
         resumeText,
-        combinedJobDescription, // now the full prompt
+        jobDescription || persistedJobDescription || '',
         {
           modelType: config.defaultModelType,
           model: config.defaultModel,
-          fileId: documentId
+          fileId: documentId,
+          userPromptOverride: aiPrompt,       // header only; service will append fixed context
+          systemPromptOverride: systemPrompt  // full replacement if edited
         }
       );
 
@@ -574,7 +583,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     ) return;
 
     const alreadyUpdated = optimizationResults.optimizedResumeUrl === FinalResumeUrl &&
-                          optimizationResults.optimizedCoverLetterUrl === FinalCoverLetterUrl;
+      optimizationResults.optimizedCoverLetterUrl === FinalCoverLetterUrl;
 
     if (alreadyUpdated) return; // ✅ Prevent unnecessary updates
 
@@ -812,19 +821,42 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
             </div>
           </div>
 
-          {/* Editable AI Prompt Section */}
+          {/* Editable AI System Prompt Section */}
           <div className="mt-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              AI Prompt (edit the full prompt sent to the AI)
+              AI System Prompt (replace the entire system prompt sent to the AI)
+            </label>
+            <textarea
+              value={systemPrompt}
+              onChange={(e) => {
+                setSystemPrompt(e.target.value);
+                setSystemPromptEdited(true);
+              }}
+              placeholder="Edit the full system prompt sent to the AI here..."
+              className="w-full h-28 p-3 border border-gray-300 dark:border-gray-600 rounded-lg resize-y text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              If edited, the system prompt will completely replace the default system instructions.
+            </p>
+          </div>
+
+          {/* Editable AI User Prompt Section */}
+          <div className="mt-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              AI User Prompt Header (only this part is editable; context is auto-appended)
             </label>
             <textarea
               value={aiPrompt}
-              onChange={(e) => setAiPrompt(e.target.value)}
-              placeholder="Edit the full prompt sent to the AI here..."
+              onChange={(e) => {
+                setAiPrompt(e.target.value);
+                setAiPromptEdited(true);
+              }}
+              placeholder="Edit the user prompt header. Job description and resume context will be appended automatically."
               className="w-full h-32 p-3 border border-gray-300 dark:border-gray-600 rounded-lg resize-y text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              You can fully customize the prompt sent to the AI. This will override any additional instructions.
+              The following is always appended and cannot be edited here:
+              "Use this for context: JOB DESCRIPTION: ${'{jobDescription}'} CURRENT RESUME: ${'{resumeText}'}"
             </p>
           </div>
 
@@ -933,8 +965,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
               onClick={handleGenerateAI}
               disabled={
                 loading ||
-                (!selectedFileMeta && !cloudFileUrl) ||
-                !(jobDescription || persistedJobDescription || '').trim() ||
+                // allow if we have a file OR extracted/manual text
+                (!selectedFileMeta && !cloudFileUrl && !extractedPDFData?.text && !manualText.trim()) ||
                 (
                   config.defaultModelType.toLowerCase() === 'gemini' || config.defaultModelType.toLowerCase() === 'gemnin'
                     ? !config.hasGeminiApiKey
