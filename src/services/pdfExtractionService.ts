@@ -1,7 +1,7 @@
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Set the worker source to a CDN-hosted version
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Set the worker source to use the local worker file
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs-dist/build/pdf.worker.min.mjs';
 
 interface ExtractionResult {
   text: string;

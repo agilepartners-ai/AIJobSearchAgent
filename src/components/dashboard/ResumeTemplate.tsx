@@ -1,686 +1,767 @@
 import React from 'react';
-import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
+import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/renderer';
 import { UserProfileData } from '../../services/profileService';
 
-interface ResumeTemplateProps {
-  profile: UserProfileData;
-  resumeHtml: string;
-}
+// Register fonts for better typography (optional - you can remove if fonts aren't available)
+// Font.register({
+//   family: 'Inter',
+//   src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2'
+// });
 
-// Enhanced styles for comprehensive resume
+// Enhanced styles for maximum ATS compatibility and professional appearance
 const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
     backgroundColor: '#FFFFFF',
-    padding: 15,
-    fontFamily: 'Helvetica',
-    fontSize: 9,
-    lineHeight: 1.3,
+    padding: 40, // Standard resume margins
+    fontFamily: 'Helvetica', // ATS-friendly font
+    fontSize: 11,
+    lineHeight: 1.4,
+    color: '#000000',
   },
+
+  // Header styles
   header: {
-    textAlign: 'center',
-    marginBottom: 12,
-    borderBottom: '1 solid #2563eb',
-    paddingBottom: 8,
+    marginBottom: 20,
+    borderBottom: '2 solid #2563EB',
+    paddingBottom: 15,
   },
   name: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: '#1F2937',
+    marginBottom: 8,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  contactInfo: {
+    fontSize: 11,
+    color: '#374151',
+    textAlign: 'center',
     marginBottom: 4,
-    lineHeight: 1.1,
   },
   contactLine: {
-    fontSize: 9,
-    color: '#4b5563',
-    marginBottom: 1,
-    lineHeight: 1.2,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 3,
   },
-  professionalSummary: {
-    marginBottom: 12,
+
+  // Section styles
+  section: {
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#2563eb',
-    borderLeft: '3 solid #2563eb',
-    paddingLeft: 5,
-    marginBottom: 5,
-    marginTop: 8,
-    lineHeight: 1.1,
+    color: '#2563EB',
+    marginBottom: 8,
     textTransform: 'uppercase',
+    borderLeft: '3 solid #2563EB',
+    paddingLeft: 8,
+    letterSpacing: 0.5,
+  },
+
+  // Professional Summary
+  summaryContainer: {
+    marginBottom: 16,
   },
   summaryText: {
-    fontSize: 9,
-    lineHeight: 1.4,
+    fontSize: 11,
+    lineHeight: 1.5,
     color: '#374151',
     textAlign: 'justify',
-    marginBottom: 3,
+    marginBottom: 6,
   },
-  section: {
-    marginBottom: 10,
-  },
-  compactSection: {
+
+  // Skills styles
+  skillsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     marginBottom: 8,
   },
+  skillItem: {
+    backgroundColor: '#F3F4F6',
+    border: '1 solid #E5E7EB',
+    borderRadius: 4,
+    padding: '4 8',
+    margin: '2 4 2 0',
+    fontSize: 10,
+    color: '#374151',
+  },
+  skillItemHighlight: {
+    backgroundColor: '#EBF8FF',
+    border: '1 solid #3B82F6',
+    borderRadius: 4,
+    padding: '4 8',
+    margin: '2 4 2 0',
+    fontSize: 10,
+    color: '#1E40AF',
+    fontWeight: 'bold',
+  },
+
+  // Experience styles
   experienceItem: {
-    marginBottom: 8,
+    marginBottom: 14,
+    pageBreakInside: false,
+  },
+  jobTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 4,
   },
   jobTitle: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 1,
+    color: '#1F2937',
   },
-  companyInfo: {
-    fontSize: 9,
-    color: '#6b7280',
+  jobDates: {
+    fontSize: 10,
+    color: '#6B7280',
+    fontWeight: 'bold',
+  },
+  companyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 6,
+  },
+  companyName: {
+    fontSize: 11,
+    color: '#374151',
+    fontWeight: 'bold',
+  },
+  jobLocation: {
+    fontSize: 10,
+    color: '#6B7280',
+  },
+
+  // Bullet points
+  bulletContainer: {
+    flexDirection: 'row',
     marginBottom: 3,
-    fontStyle: 'italic',
+    alignItems: 'flex-start',
   },
   bulletPoint: {
     fontSize: 8,
-    lineHeight: 1.3,
-    color: '#374151',
-    marginBottom: 1,
-    marginLeft: 10,
+    color: '#2563EB',
+    width: 12,
+    marginTop: 1,
   },
-  skillsGrid: {
+  bulletText: {
+    fontSize: 10,
+    lineHeight: 1.4,
+    color: '#374151',
+    flex: 1,
+  },
+
+  // Education styles
+  educationItem: {
+    marginBottom: 10,
+  },
+  degreeRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 2,
+  },
+  degree: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  graduationDate: {
+    fontSize: 10,
+    color: '#6B7280',
+  },
+  school: {
+    fontSize: 10,
+    color: '#374151',
+    marginBottom: 2,
+  },
+  educationDetails: {
+    fontSize: 9,
+    color: '#6B7280',
+    lineHeight: 1.3,
+  },
+
+  // Projects styles
+  projectItem: {
+    marginBottom: 10,
+  },
+  projectTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
     marginBottom: 3,
   },
-  skillItem: {
-    fontSize: 8,
-    backgroundColor: '#f3f4f6',
-    padding: 2,
-    margin: 1,
-    borderRadius: 2,
-    color: '#374151',
-  },
-  educationItem: {
-    marginBottom: 6,
-  },
-  degreeInfo: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 1,
-  },
-  schoolInfo: {
-    fontSize: 8,
-    color: '#6b7280',
-    marginBottom: 2,
-  },
-  projectItem: {
-    marginBottom: 6,
-  },
   projectTitle: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 1,
+    color: '#1F2937',
   },
-  projectDesc: {
-    fontSize: 8,
+  projectDuration: {
+    fontSize: 9,
+    color: '#6B7280',
+  },
+  projectDescription: {
+    fontSize: 10,
     lineHeight: 1.3,
     color: '#374151',
-    marginBottom: 2,
+    marginBottom: 4,
+    textAlign: 'justify',
   },
+  projectTech: {
+    fontSize: 9,
+    color: '#6B7280',
+    fontStyle: 'italic',
+  },
+
+  // Additional sections
+  listItem: {
+    flexDirection: 'row',
+    marginBottom: 3,
+    alignItems: 'flex-start',
+  },
+  listBullet: {
+    fontSize: 10,
+    color: '#2563EB',
+    width: 10,
+    marginTop: 1,
+  },
+  listText: {
+    fontSize: 10,
+    color: '#374151',
+    flex: 1,
+    lineHeight: 1.3,
+  },
+
+  // Certification styles
   certificationItem: {
-    fontSize: 8,
-    lineHeight: 1.3,
-    color: '#374151',
-    marginBottom: 2,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
   },
-  smallText: {
-    fontSize: 8,
-    lineHeight: 1.2,
-    color: '#6b7280',
+  certificationInfo: {
+    flex: 1,
+  },
+  certificationName: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#374151',
     marginBottom: 1,
-  }
+  },
+  certificationOrg: {
+    fontSize: 9,
+    color: '#6B7280',
+  },
+  certificationDates: {
+    fontSize: 9,
+    color: '#6B7280',
+    textAlign: 'right',
+  },
+
+  // Footer
+  footer: {
+    marginTop: 'auto',
+    paddingTop: 10,
+    borderTop: '1 solid #E5E7EB',
+    textAlign: 'center',
+  },
+  footerText: {
+    fontSize: 8,
+    color: '#9CA3AF',
+  },
 });
 
-const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) => {
-  // Enhanced parsing to extract and structure resume data more accurately
-  const parseResumeData = (htmlContent: string) => {
-    console.log('Parsing HTML content:', htmlContent.substring(0, 500)); // Debug log
+// Enhanced HTML content parser with better structure preservation
+class ResumeContentParser {
+  private content: string;
 
-    // Clean up HTML content more thoroughly
-    const textContent = htmlContent
-      .replace(/<[^>]*>/g, '\n') // Replace HTML tags with newlines
+  constructor(htmlContent: string) {
+    this.content = this.cleanHTML(htmlContent);
+  }
+
+  private cleanHTML(html: string): string {
+    return html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<\/h[1-6]>/gi, '\n\n')
+      .replace(/<\/li>/gi, '\n')
+      .replace(/<[^>]*>/g, ' ')
       .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
+      .replace(/&/g, '&')
+      .replace(/</g, '<')
+      .replace(/>/g, '>')
       .replace(/\s+/g, ' ')
       .replace(/\n\s*\n/g, '\n')
       .trim();
+  }
 
-    // More robust section extraction with better patterns
-    const sections = {
-      professionalSummary: extractSectionContent(textContent, ['PROFESSIONAL SUMMARY', 'SUMMARY', 'PROFILE']),
-      technicalSkills: extractSectionContent(textContent, ['TECHNICAL SKILLS', 'SKILLS', 'TECHNOLOGIES']),
-      coreCompetencies: extractSectionContent(textContent, ['CORE COMPETENCIES', 'COMPETENCIES', 'STRENGTHS']),
-      experience: extractAllExperience(textContent),
-      education: extractAllEducation(textContent),
-      projects: extractAllProjects(textContent),
-      certifications: extractSectionContent(textContent, ['CERTIFICATIONS', 'LICENSES']),
-      awards: extractSectionContent(textContent, ['AWARDS', 'RECOGNITION', 'HONORS']),
-      volunteer: extractSectionContent(textContent, ['VOLUNTEER EXPERIENCE', 'VOLUNTEER', 'COMMUNITY SERVICE']),
-      publications: extractSectionContent(textContent, ['PUBLICATIONS', 'RESEARCH', 'PAPERS'])
-    };
+  extractSection(sectionNames: string[]): string {
+    const content = this.content;
 
-    console.log('Parsed sections:', sections); // Debug log
-    return sections;
-  };
-
-  const extractSectionContent = (content: string, sectionNames: string[]) => {
     for (const sectionName of sectionNames) {
       const patterns = [
-        new RegExp(`${sectionName}[:\\s]*([\\s\\S]*?)(?=(?:PROFESSIONAL SUMMARY|TECHNICAL SKILLS|CORE COMPETENCIES|PROFESSIONAL EXPERIENCE|WORK EXPERIENCE|EDUCATION|KEY PROJECTS|PROJECTS|CERTIFICATIONS|AWARDS|VOLUNTEER EXPERIENCE|PUBLICATIONS)|$)`, 'i'),
-        new RegExp(`${sectionName}[:\\s]*([\\s\\S]*?)(?=\\n\\s*[A-Z][A-Z\\s]{10,}|$)`, 'i')
+        new RegExp(`${sectionName}[:\\s]*\\n([\\s\\S]*?)(?=\\n\\s*(?:PROFESSIONAL SUMMARY|TECHNICAL SKILLS|CORE COMPETENCIES|PROFESSIONAL EXPERIENCE|WORK EXPERIENCE|EDUCATION|PROJECTS|KEY PROJECTS|CERTIFICATIONS|AWARDS|VOLUNTEER|PUBLICATIONS|$))`, 'i'),
+        new RegExp(`${sectionName}[:\\s]*([\\s\\S]*?)(?=\\n[A-Z][A-Z\\s]{8,}|$)`, 'i')
       ];
 
       for (const pattern of patterns) {
         const match = content.match(pattern);
-        if (match && match[1]?.trim() && match[1].trim().length > 10) {
+        if (match && match[1]?.trim() && match[1].trim().length > 20) {
           return match[1].trim();
         }
       }
     }
     return '';
-  };
+  }
 
-  const extractAllExperience = (content: string) => {
-    const experienceText = extractSectionContent(content, ['PROFESSIONAL EXPERIENCE', 'WORK EXPERIENCE', 'EXPERIENCE', 'EMPLOYMENT']);
-    console.log('Full experience text:', experienceText); // Debug log
+  extractExperience(): any[] {
+    const experienceText = this.extractSection(['PROFESSIONAL EXPERIENCE', 'WORK EXPERIENCE', 'EXPERIENCE']);
+    if (!experienceText) return [];
 
-    if (!experienceText || experienceText.length < 20) return [];
+    // Enhanced experience parsing with multiple strategies
+    const experiences: any[] = [];
+    const lines = experienceText.split('\n').map(l => l.trim()).filter(Boolean);
 
-    // Enhanced parsing with multiple approaches
-    let allExperiences: any[] = [];
+    let currentExperience: any = null;
+    let collectingBullets = false;
 
-    // Method 1: Split by common job patterns
-    const jobPatterns = [
-      /(?=\n\s*(?:[A-Z][a-zA-Z\s&,.-]*(?:Engineer|Developer|Manager|Analyst|Specialist|Coordinator|Director|Lead|Senior|Junior|Intern|Consultant|Associate|Executive|Administrator|Supervisor|Officer|Representative)))/gm,
-      /(?=\n\s*[A-Z][a-zA-Z\s&,.-]+\s+(?:at|@|\|)\s+[A-Z])/gm,
-      /(?=\n\s*[A-Z][a-zA-Z\s&,.-]+\s+[-–—]\s+[A-Z])/gm,
-      /(?=\n\s*\d{1,2}\/\d{4}|\d{4}\s*[-–—]\s*(?:Present|Current|\d{4}))/gm,
-      /(?=\n\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4})/gm
-    ];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const nextLine = lines[i + 1] || '';
 
-    for (const pattern of jobPatterns) {
-      const entries = experienceText.split(pattern).filter(entry => entry.trim().length > 40);
-      if (entries.length > allExperiences.length) {
-        allExperiences = entries;
-      }
-    }
+      // Detect job titles (various patterns)
+      const isJobTitle = this.isJobTitleLine(line);
+      const isCompanyLine = this.isCompanyLine(line);
+      const isBulletPoint = this.isBulletPoint(line);
 
-    // Method 2: If still limited results, try aggressive splitting
-    if (allExperiences.length < 2) {
-      // Split by any line that looks like a job title or company
-      const aggressivePatterns = [
-        /(?=\n\s*[A-Z][a-zA-Z\s]+(?:\s+at\s+|\s+@\s+|\s+-\s+|\s+\|\s+)[A-Z])/gm,
-        /(?=\n\s*[A-Z][a-zA-Z\s,&.-]{10,}(?:\s+\d{4}|\s+Jan|\s+Feb|\s+Mar|\s+Apr|\s+May|\s+Jun|\s+Jul|\s+Aug|\s+Sep|\s+Oct|\s+Nov|\s+Dec))/gm,
-        /(?=\n\s*[A-Z][a-zA-Z\s,&.-]+\n[A-Z][a-zA-Z\s,&.-]+\s*(?:\d{4}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))/gm
-      ];
-
-      for (const pattern of aggressivePatterns) {
-        const entries = experienceText.split(pattern).filter(entry => entry.trim().length > 30);
-        if (entries.length > allExperiences.length) {
-          allExperiences = entries;
+      if (isJobTitle) {
+        // Save previous experience
+        if (currentExperience) {
+          experiences.push(currentExperience);
         }
+
+        // Start new experience
+        currentExperience = {
+          title: this.extractJobTitle(line),
+          company: '',
+          dates: '',
+          location: '',
+          responsibilities: []
+        };
+
+        // Try to extract additional info from the same line
+        const titleParts = this.parseJobTitleLine(line);
+        currentExperience = { ...currentExperience, ...titleParts };
+
+        collectingBullets = true;
+      } else if (currentExperience && isCompanyLine && !currentExperience.company) {
+        // Parse company information
+        const companyInfo = this.parseCompanyLine(line);
+        currentExperience = { ...currentExperience, ...companyInfo };
+      } else if (currentExperience && isBulletPoint) {
+        // Add responsibility
+        const responsibility = this.cleanBulletPoint(line);
+        if (responsibility.length > 10) {
+          currentExperience.responsibilities.push(responsibility);
+        }
+      } else if (currentExperience && collectingBullets && line.length > 20 && !this.isDateLine(line)) {
+        // Potential responsibility without bullet
+        currentExperience.responsibilities.push(line);
       }
     }
 
-    // Method 3: Split by paragraph breaks as last resort
-    if (allExperiences.length < 2) {
-      const paragraphs = experienceText.split(/\n\s*\n/).filter(p => p.trim().length > 30);
-      if (paragraphs.length > 1) {
-        allExperiences = paragraphs;
-      }
+    // Add final experience
+    if (currentExperience) {
+      experiences.push(currentExperience);
     }
 
-    // Method 4: Manual detection of experience blocks
-    if (allExperiences.length < 2) {
-      const lines = experienceText.split('\n');
-      let currentExp = '';
-      const experiences = [];
+    // Ensure all experiences have required fields
+    return experiences.map(exp => ({
+      title: exp.title || 'Professional Role',
+      company: exp.company || 'Company Name',
+      dates: exp.dates || '',
+      location: exp.location || '',
+      responsibilities: exp.responsibilities.slice(0, 6) // Limit bullets for space
+    }));
+  }
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
+  private isJobTitleLine(line: string): boolean {
+    return /^[A-Z][a-zA-Z\s&,.-]*(?:Engineer|Developer|Manager|Analyst|Specialist|Coordinator|Director|Lead|Senior|Junior|Architect|Consultant|Associate|Executive|Administrator|Supervisor|Officer|Representative|Technician|Designer|Scientist|Researcher)/i.test(line) ||
+           /^[A-Z][a-zA-Z\s&,.-]+\s+(?:at|@|\||–|—)\s+[A-Z]/i.test(line) ||
+           (line.match(/[A-Z][a-z]/) && line.length < 100 && !line.includes('•') && !line.includes('-') && !this.isDateLine(line));
+  }
 
-        // Check if this line looks like a new job title
-        const isJobTitle = /^[A-Z][a-zA-Z\s&,.-]*(?:Engineer|Developer|Manager|Analyst|Specialist|Coordinator|Director|Lead|Senior|Junior|Intern|Consultant|Associate|Executive|Administrator|Supervisor|Officer|Representative)/i.test(line) ||
-          /^[A-Z][a-zA-Z\s&,.-]+\s+(?:at|@|\|)\s+[A-Z]/i.test(line) ||
-          /^\d{1,2}\/\d{4}|\d{4}\s*[-–—]\s*(?:Present|Current|\d{4})/i.test(line);
+  private isCompanyLine(line: string): boolean {
+    return /^[A-Z][a-zA-Z\s&,.-]+(?:Inc|LLC|Corp|Company|Ltd|Technologies|Solutions|Systems|Group|Enterprises|Associates)/i.test(line) ||
+           /^\d{1,2}\/\d{4}|\d{4}\s*[-–—]\s*(?:Present|Current|\d{4})/i.test(line) ||
+           /^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}/i.test(line);
+  }
 
-        if (isJobTitle && currentExp.trim().length > 30) {
-          experiences.push(currentExp.trim());
-          currentExp = line;
+  private isBulletPoint(line: string): boolean {
+    return /^[•·\-*→▪▫◦‣⁃]\s/.test(line) || /^\d+\.\s/.test(line);
+  }
+
+  private isDateLine(line: string): boolean {
+    return /\d{4}/.test(line) && /(?:Present|Current|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/.test(line);
+  }
+
+  private parseJobTitleLine(line: string): any {
+    const result: any = { title: line };
+
+    // Extract company with various separators
+    const companyMatch = line.match(/^(.+?)\s+(?:at|@|\||–|—)\s+([^•|–—]+?)(?:\s+[•|–—]\s+(.+))?$/i);
+    if (companyMatch) {
+      result.title = companyMatch[1].trim();
+      result.company = companyMatch[2].trim();
+
+      if (companyMatch[3]) {
+        const remainder = companyMatch[3].trim();
+        if (this.isDateLine(remainder)) {
+          result.dates = remainder;
         } else {
-          currentExp += '\n' + line;
-        }
-      }
-
-      if (currentExp.trim().length > 30) {
-        experiences.push(currentExp.trim());
-      }
-
-      if (experiences.length > allExperiences.length) {
-        allExperiences = experiences;
-      }
-    }
-
-    // Parse each experience entry
-    const parsedExperiences = allExperiences
-      .filter(entry => entry.trim().length > 20)
-      .map(entry => parseExperienceEntry(entry))
-      .filter(exp => exp.title && exp.title.length > 0);
-
-    console.log('Final extracted experiences count:', parsedExperiences.length);
-    console.log('Experiences:', parsedExperiences);
-
-    return parsedExperiences;
-  };
-
-  const parseExperienceEntry = (entry: string) => {
-    const lines = entry.split('\n').filter(line => line.trim()).map(line => line.trim());
-    if (lines.length === 0) return { title: '', company: '', dates: '', location: '', responsibilities: [] };
-
-    let title = '';
-    let company = '';
-    let dates = '';
-    let location = '';
-    let responsibilities: string[] = [];
-
-    // Enhanced parsing for various formats
-    const firstLine = lines[0] || '';
-    const secondLine = lines[1] || '';
-    const thirdLine = lines[2] || '';
-
-    // Pattern matching for different resume formats
-    const titleCompanyPatterns = [
-      /^(.+?)\s+(?:at|@)\s+(.+?)(?:\s+[•·|]\s+(.+?))?(?:\s+[•·|]\s+(.+?))?$/i,
-      /^(.+?)\s+[-–—]\s+(.+?)(?:\s+[•·|(]\s*(.+?)[\)]*)?(?:\s+[•·|]\s+(.+?))?$/i,
-      /^(.+?)\s*\|\s*(.+?)(?:\s*\|\s*(.+?))?(?:\s*\|\s*(.+?))?$/i,
-      /^(.+?),\s+(.+?)(?:\s+[•·|]\s+(.+?))?(?:\s+[•·|]\s+(.+?))?$/i
-    ];
-
-    let parsed = false;
-
-    // Try to parse the first line
-    for (const pattern of titleCompanyPatterns) {
-      const match = firstLine.match(pattern);
-      if (match) {
-        title = match[1]?.trim() || '';
-        company = match[2]?.trim() || '';
-
-        // Determine which parts are location vs dates
-        const part3 = match[3]?.trim() || '';
-        const part4 = match[4]?.trim() || '';
-
-        // Check if parts contain dates
-        const datePattern = /\d{4}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Present|Current/i;
-
-        if (datePattern.test(part3)) {
-          dates = part3;
-          location = part4 || '';
-        } else {
-          location = part3;
-          dates = part4 || '';
-        }
-
-        parsed = true;
-        break;
-      }
-    }
-
-    // If first line parsing failed, try alternative approaches
-    if (!parsed) {
-      title = firstLine;
-
-      // Check second line for company info
-      if (secondLine) {
-        const companyPatterns = [
-          /^(.+?)(?:\s+[•·|]\s+(.+?))?(?:\s+[•·|]\s+(.+?))?$/,
-          /^(.+?),\s+(.+?)(?:\s+[•·|]\s+(.+?))?$/
-        ];
-
-        for (const pattern of companyPatterns) {
-          const match = secondLine.match(pattern);
-          if (match) {
-            company = match[1]?.trim() || '';
-            const part2 = match[2]?.trim() || '';
-            const part3 = match[3]?.trim() || '';
-
-            const datePattern = /\d{4}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Present|Current/i;
-
-            if (datePattern.test(part2)) {
-              dates = part2;
-              location = part3 || '';
-            } else {
-              location = part2;
-              dates = part3 || '';
-            }
-            break;
-          }
-        }
-      }
-
-      // Check third line for additional info
-      if (thirdLine && (!dates || !location)) {
-        const datePattern = /\d{4}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|Present|Current/i;
-        if (datePattern.test(thirdLine)) {
-          dates = dates || thirdLine;
-        } else {
-          location = location || thirdLine;
+          result.location = remainder;
         }
       }
     }
 
-    // Extract responsibilities from remaining lines
-    const startIndex = parsed ? 1 : (company ? 2 : 3);
-    responsibilities = lines.slice(startIndex)
-      .map(line => line.replace(/^[•·\-*→▪▫◦‣⁃]\s*/, '').trim())
-      .filter(line => {
-        // Filter out lines that are clearly not responsibilities
-        return line.length > 5 &&
-          !line.match(/^\d{4}/) &&
-          !line.match(/^[A-Z][a-z]+\s+\d{4}/) &&
-          !line.match(/^(?:at|@)\s+[A-Z]/) &&
-          !line.match(/^[A-Z][a-zA-Z\s&,.-]*(?:Engineer|Developer|Manager|Analyst)/)
-      })
-      .slice(0, 8);
+    return result;
+  }
 
-    // Clean up extracted data
-    title = title || 'Professional Role';
-    company = company || 'Company Name';
+  private parseCompanyLine(line: string): any {
+    const result: any = {};
 
-    return {
-      title,
-      company,
-      dates: dates || '',
-      location: location || '',
-      responsibilities: responsibilities.length > 0 ? responsibilities : [
-        'Key responsibilities and achievements in this role.',
-        'Delivered results that contributed to business objectives.',
-        'Collaborated effectively with team members and stakeholders.'
-      ]
-    };
-  };
+    // Split by common separators
+    const parts = line.split(/\s+[•|–—]\s+/).map(p => p.trim());
 
-  // Enhanced project extraction
-  const extractAllProjects = (content: string) => {
-    const projectsText = extractSectionContent(content, ['KEY PROJECTS', 'PROJECTS', 'NOTABLE PROJECTS', 'SELECTED PROJECTS']);
-    if (!projectsText) return [];
-
-    // Multiple splitting approaches for projects
-    const projectPatterns = [
-      /(?=\n\s*[A-Z][a-zA-Z\s&,.-]*(?:Project|System|Application|Platform|Tool|Solution|Website|App|Portal|Dashboard))/gi,
-      /(?=\n\s*[A-Z][a-zA-Z\s&,.-]+\s+[-–—]\s+)/gm,
-      /(?=\n\s*\d+\.\s*[A-Z])/gm,
-      /(?=\n\s*•\s*[A-Z])/gm
-    ];
-
-    let allProjects: any[] = [];
-
-    for (const pattern of projectPatterns) {
-      const entries = projectsText.split(pattern).filter(entry => entry.trim().length > 15);
-      if (entries.length > allProjects.length) {
-        allProjects = entries;
+    if (parts.length >= 1) {
+      result.company = parts[0];
+    }
+    if (parts.length >= 2) {
+      if (this.isDateLine(parts[1])) {
+        result.dates = parts[1];
+        if (parts[2]) result.location = parts[2];
+      } else {
+        result.location = parts[1];
+        if (parts[2]) result.dates = parts[2];
       }
     }
 
-    // If still no results, split by paragraphs
-    if (allProjects.length === 0) {
-      allProjects = projectsText.split(/\n\s*\n/).filter(p => p.trim().length > 15);
-    }
+    return result;
+  }
 
-    return allProjects.map(project => {
-      const lines = project.split('\n').filter((line: string) => line.trim());
-      const title = lines[0]?.replace(/^[•\d.\s-]+/, '').trim() || 'Project';
-      const description = lines.slice(1).join(' ').trim() || 'Project description and key achievements.';
+  private extractJobTitle(line: string): string {
+    return line.replace(/\s+(?:at|@|\||–|—)\s+.*$/i, '').trim();
+  }
 
-      return { title, description };
-    });
-  };
+  private cleanBulletPoint(line: string): string {
+    return line.replace(/^[•·\-*→▪▫◦‣⁃]\s*/, '').replace(/^\d+\.\s*/, '').trim();
+  }
 
-  // Enhanced education extraction
-  const extractAllEducation = (content: string) => {
-    const educationText = extractSectionContent(content, ['EDUCATION', 'ACADEMIC BACKGROUND', 'ACADEMIC QUALIFICATIONS']);
+  extractEducation(): any[] {
+    const educationText = this.extractSection(['EDUCATION', 'ACADEMIC BACKGROUND']);
     if (!educationText) return [];
 
-    // Split by common education patterns
-    const educationPatterns = [
-      /(?=\n\s*(?:Bachelor|Master|PhD|Associate|Diploma|Certificate|B\.S\.|M\.S\.|B\.A\.|M\.A\.|B\.Sc\.|M\.Sc\.))/gi,
-      /(?=\n\s*[A-Z][a-zA-Z\s&,.-]+(?:University|College|Institute|School))/gi,
-      /(?=\n\s*\d{4}\s*[-–—]\s*\d{4})/gm
-    ];
+    const education: any[] = [];
+    const lines = educationText.split('\n').map(l => l.trim()).filter(Boolean);
 
-    let allEducation: any[] = [];
+    let currentEdu: any = null;
 
-    for (const pattern of educationPatterns) {
-      const entries = educationText.split(pattern).filter(entry => entry.trim().length > 10);
-      if (entries.length > allEducation.length) {
-        allEducation = entries;
+    for (const line of lines) {
+      if (this.isDegreeeLine(line)) {
+        if (currentEdu) education.push(currentEdu);
+
+        const degreeInfo = this.parseDegree(line);
+        currentEdu = degreeInfo;
+      } else if (currentEdu && this.isSchoolLine(line)) {
+        currentEdu.school = line;
+      } else if (currentEdu && line.length > 5) {
+        currentEdu.details = (currentEdu.details || '') + ' ' + line;
       }
     }
 
-    // Fallback to line-by-line parsing
-    if (allEducation.length === 0) {
-      allEducation = educationText.split(/\n/).filter(line => line.trim().length > 10);
-    }
+    if (currentEdu) education.push(currentEdu);
 
-    return allEducation.map(entry => {
-      const lines = entry.split('\n').filter((line: string) => line.trim());
-      return {
-        degree: lines[0]?.trim() || 'Degree',
-        school: lines[1]?.trim() || '',
-        details: lines.slice(2).join(' • ').trim()
-      };
-    });
-  };
+    return education;
+  }
 
-  const resumeData = parseResumeData(resumeHtml);
+  private isDegreeeLine(line: string): boolean {
+    return /(?:Bachelor|Master|PhD|Associate|Diploma|Certificate|B\.S\.|M\.S\.|B\.A\.|M\.A\.|B\.Sc\.|M\.Sc\.|Doctorate)/i.test(line);
+  }
 
-  // Ensure no section is completely empty by providing defaults
-  const ensureContent = (data: any) => {
+  private isSchoolLine(line: string): boolean {
+    return /(?:University|College|Institute|School|Academy)/i.test(line);
+  }
+
+  private parseDegree(line: string): any {
+    const dateMatch = line.match(/(\d{4})/);
+    const degree = line.replace(/\s*\d{4}\s*/, '').trim();
+
     return {
-      ...data,
-      experience: data.experience.length > 0 ? data.experience : [
-        {
-          title: 'Senior Professional Role',
-          company: 'Technology Company',
-          dates: '2020 - Present',
-          location: 'City, State',
-          responsibilities: [
-            'Led cross-functional teams to deliver high-impact projects',
-            'Implemented innovative solutions improving efficiency by 30%',
-            'Collaborated with stakeholders to define strategic requirements',
-            'Mentored team members and contributed to knowledge sharing'
-          ]
-        },
-        {
-          title: 'Professional Role',
-          company: 'Previous Company',
-          dates: '2018 - 2020',
-          location: 'City, State',
-          responsibilities: [
-            'Developed and maintained complex applications',
-            'Participated in code reviews and best practices',
-            'Collaborated with design and product teams',
-            'Achieved high customer satisfaction ratings'
-          ]
-        }
-      ],
-      education: data.education.length > 0 ? data.education : [
-        {
-          degree: 'Bachelor\'s/Master\'s Degree in Relevant Field',
-          school: 'University Name',
-          details: 'Relevant coursework • Academic achievements'
-        }
-      ],
-      projects: data.projects.length > 0 ? data.projects : [
-        {
-          title: 'Key Professional Project',
-          description: 'Comprehensive project showcasing technical skills and business impact.'
-        }
-      ]
+      degree,
+      school: '',
+      graduationDate: dateMatch ? dateMatch[1] : '',
+      details: ''
     };
+  }
+
+  extractProjects(): any[] {
+    const projectsText = this.extractSection(['KEY PROJECTS', 'PROJECTS', 'NOTABLE PROJECTS']);
+    if (!projectsText) return [];
+
+    const projects = projectsText
+      .split(/\n\s*\n/)
+      .filter(p => p.trim().length > 20)
+      .map(project => {
+        const lines = project.split('\n').map(l => l.trim()).filter(Boolean);
+        const title = lines[0]?.replace(/^[•\d.\s-]+/, '').trim() || 'Project';
+        const description = lines.slice(1).join(' ').trim() || 'Project description and achievements.';
+
+        return { title, description };
+      });
+
+    return projects;
+  }
+
+  extractSkills(): string[] {
+    const techSkills = this.extractSection(['TECHNICAL SKILLS', 'SKILLS', 'TECHNOLOGIES']);
+    const coreComp = this.extractSection(['CORE COMPETENCIES', 'COMPETENCIES', 'SOFT SKILLS']);
+
+    const allSkills = (techSkills + ' ' + coreComp)
+      .split(/[,•\n|]/)
+      .map(skill => skill.trim())
+      .filter(skill => skill.length > 2 && skill.length < 30);
+
+    return [...new Set(allSkills)]; // Remove duplicates
+  }
+}
+
+// Enhanced PDF Resume Component
+const PerfectHTMLToPDF: React.FC<{
+  htmlContent: string;
+  profile: UserProfileData;
+  jobKeywords?: string[];
+}> = ({ htmlContent, profile, jobKeywords = [] }) => {
+
+  const parser = new ResumeContentParser(htmlContent);
+
+  // Extract structured data
+  const professionalSummary = parser.extractSection(['PROFESSIONAL SUMMARY', 'SUMMARY', 'PROFILE']);
+  const experience = parser.extractExperience();
+  const education = parser.extractEducation();
+  const projects = parser.extractProjects();
+  const skills = parser.extractSkills();
+  const certifications = parser.extractSection(['CERTIFICATIONS', 'LICENSES']);
+  const awards = parser.extractSection(['AWARDS', 'RECOGNITION', 'HONORS']);
+
+  // Prioritize skills based on job keywords
+  const prioritizeSkills = (skillsList: string[]): { priority: string[], regular: string[] } => {
+    const priority: string[] = [];
+    const regular: string[] = [];
+
+    skillsList.forEach(skill => {
+      const isHighPriority = jobKeywords.some(keyword =>
+        skill.toLowerCase().includes(keyword.toLowerCase()) ||
+        keyword.toLowerCase().includes(skill.toLowerCase())
+      );
+
+      if (isHighPriority) {
+        priority.push(skill);
+      } else {
+        regular.push(skill);
+      }
+    });
+
+    return { priority, regular };
   };
 
-  const finalResumeData = ensureContent(resumeData);
+  const { priority: prioritySkills, regular: regularSkills } = prioritizeSkills(skills);
+
+  // Fallback content for empty sections
+  const fallbackExperience = [
+    {
+      title: 'Senior Professional Role',
+      company: 'Technology Company',
+      dates: '2020 - Present',
+      location: 'City, State',
+      responsibilities: [
+        'Led cross-functional teams to deliver high-impact projects ahead of schedule',
+        'Implemented innovative solutions that improved operational efficiency by 35%',
+        'Managed stakeholder relationships and facilitated strategic decision-making processes',
+        'Mentored junior team members and established best practices for knowledge sharing'
+      ]
+    }
+  ];
+
+  const fallbackEducation = [
+    {
+      degree: 'Relevant Degree in Professional Field',
+      school: 'Accredited University',
+      graduationDate: '2018',
+      details: 'Relevant coursework and academic achievements'
+    }
+  ];
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Header Section - Cleaner formatting */}
+        {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.name}>{profile.fullName || 'Professional Name'}</Text>
-          <Text style={styles.contactLine}>
-            {profile.email || 'email@example.com'} • {profile.phone || '+1 (555) 123-4567'}
+          <Text style={styles.name}>
+            {profile.fullName || 'Professional Name'}
           </Text>
-          <Text style={styles.contactLine}>
-            {profile.location || 'City, State, ZIP'}
+          <Text style={styles.contactInfo}>
+            {profile.email || 'email@example.com'}
+            {profile.phone && ` • ${profile.phone}`}
           </Text>
+          {profile.location && (
+            <Text style={styles.contactInfo}>
+              {profile.location}
+            </Text>
+          )}
           {(profile.linkedin || profile.github || profile.portfolio) && (
-            <Text style={styles.contactLine}>
-              {profile.linkedin && `LinkedIn: ${profile.linkedin}`}
-              {profile.linkedin && (profile.github || profile.portfolio) && ' • '}
-              {profile.github && `GitHub: ${profile.github}`}
-              {profile.github && profile.portfolio && ' • '}
+            <Text style={styles.contactInfo}>
+              {profile.linkedin && `LinkedIn: ${profile.linkedin.replace('https://www.linkedin.com/in/', '')}`}
+              {profile.linkedin && profile.github && ' • '}
+              {profile.github && `GitHub: ${profile.github.replace('https://github.com/', '')}`}
+              {(profile.linkedin || profile.github) && profile.portfolio && ' • '}
               {profile.portfolio && `Portfolio: ${profile.portfolio}`}
             </Text>
           )}
         </View>
 
-        {/* Professional Summary - Always present */}
-        <View style={styles.professionalSummary}>
+        {/* Professional Summary */}
+        <View style={styles.summaryContainer}>
           <Text style={styles.sectionTitle}>Professional Summary</Text>
-          {finalResumeData.professionalSummary ? (
-            finalResumeData.professionalSummary.split(/\.\s+/).filter((sentence: string) => sentence.trim().length > 10).map((sentence: string, index: number) => (
-              <Text key={index} style={styles.summaryText}>
-                {sentence.trim()}{sentence.trim().endsWith('.') ? '' : '.'}
-              </Text>
-            ))
+          {professionalSummary ? (
+            professionalSummary.split(/\.\s+/)
+              .filter(sentence => sentence.trim().length > 15)
+              .slice(0, 3)
+              .map((sentence, index) => (
+                <Text key={index} style={styles.summaryText}>
+                  {sentence.trim()}{!sentence.trim().endsWith('.') ? '.' : ''}
+                </Text>
+              ))
           ) : (
-            <>
-              <Text style={styles.summaryText}>
-                Experienced professional with a proven track record of delivering exceptional results in dynamic environments.
-                Demonstrated expertise in leveraging cutting-edge technologies and methodologies to drive business growth.
-              </Text>
-              <Text style={styles.summaryText}>
-                Strong analytical and problem-solving skills with excellent communication and leadership capabilities.
-                Proven ability to manage cross-functional teams and deliver high-quality solutions on time and within budget.
-              </Text>
-            </>
+            <Text style={styles.summaryText}>
+              Results-driven professional with proven expertise in delivering exceptional outcomes in dynamic, fast-paced environments.
+              Demonstrated ability to leverage cutting-edge technologies and innovative methodologies to drive business growth and
+              operational excellence while maintaining the highest standards of quality and efficiency.
+            </Text>
           )}
         </View>
 
-        {/* Technical Skills - Always present */}
-        <View style={styles.compactSection}>
-          <Text style={styles.sectionTitle}>Technical Skills & Core Competencies</Text>
-          <View style={styles.skillsGrid}>
-            {{
-              ...(finalResumeData.technicalSkills?.split(/[,•\n|]/) || []),
-              ...(finalResumeData.coreCompetencies?.split(/[,•\n|]/) || []),
-              // Default skills if none extracted
-              ...(!finalResumeData.technicalSkills && !finalResumeData.coreCompetencies ? [
-                'Project Management', 'Team Leadership', 'Strategic Planning', 'Problem Solving',
-                'Communication', 'Analysis', 'Process Improvement', 'Stakeholder Management'
-              ] : [])
-            }
-              .filter((skill: string) => skill.trim())
-              .slice(0, 20)
-              .map((skill: string, index: number) => (
-                <Text key={index} style={styles.skillItem}>
-                  {skill.trim()}
+        {/* Technical Skills */}
+        {(prioritySkills.length > 0 || regularSkills.length > 0) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Technical Skills & Core Competencies</Text>
+            <View style={styles.skillsContainer}>
+              {prioritySkills.slice(0, 8).map((skill, index) => (
+                <Text key={`priority-${index}`} style={styles.skillItemHighlight}>
+                  {skill}
                 </Text>
               ))}
+              {regularSkills.slice(0, 12).map((skill, index) => (
+                <Text key={`regular-${index}`} style={styles.skillItem}>
+                  {skill}
+                </Text>
+              ))}
+            </View>
           </View>
-        </View>
+        )}
 
-        {/* Professional Experience - Enhanced to extract ALL experiences */}
+        {/* Professional Experience */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Professional Experience</Text>
-          {finalResumeData.experience.map((exp: { title: string; company: string; location: string; dates: string; responsibilities: string[] }, index: number) => (
+          {(experience.length > 0 ? experience : fallbackExperience).map((exp, index) => (
             <View key={index} style={styles.experienceItem}>
-              <Text style={styles.jobTitle}>{exp.title}</Text>
-              <Text style={styles.companyInfo}>
-                {[exp.company, exp.location, exp.dates].filter(Boolean).join(' • ')}
-              </Text>
-              {exp.responsibilities.slice(0, 5).map((responsibility: string, respIndex: number) => (
-                <Text key={respIndex} style={styles.bulletPoint}>
-                  • {responsibility}
-                </Text>
+              <View style={styles.jobTitleRow}>
+                <Text style={styles.jobTitle}>{exp.title}</Text>
+                <Text style={styles.jobDates}>{exp.dates}</Text>
+              </View>
+              <View style={styles.companyRow}>
+                <Text style={styles.companyName}>{exp.company}</Text>
+                {exp.location && <Text style={styles.jobLocation}>{exp.location}</Text>}
+              </View>
+              {exp.responsibilities.slice(0, 5).map((resp: string, respIndex: number) => (
+                <View key={respIndex} style={styles.bulletContainer}>
+                  <Text style={styles.bulletPoint}>•</Text>
+                  <Text style={styles.bulletText}>{resp}</Text>
+                </View>
               ))}
             </View>
           ))}
         </View>
 
-        {/* Education - Always present */}
-        <View style={styles.compactSection}>
+        {/* Education */}
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Education</Text>
-          {finalResumeData.education.map((edu: { degree: string; school: string; details: string }, index: number) => (
+          {(education.length > 0 ? education : fallbackEducation).map((edu, index) => (
             <View key={index} style={styles.educationItem}>
-              <Text style={styles.degreeInfo}>{edu.degree}</Text>
-              {edu.school && <Text style={styles.schoolInfo}>{edu.school}</Text>}
-              {edu.details && <Text style={styles.schoolInfo}>{edu.details}</Text>}
+              <View style={styles.degreeRow}>
+                <Text style={styles.degree}>{edu.degree}</Text>
+                {edu.graduationDate && <Text style={styles.graduationDate}>{edu.graduationDate}</Text>}
+              </View>
+              {edu.school && <Text style={styles.school}>{edu.school}</Text>}
+              {edu.details && <Text style={styles.educationDetails}>{edu.details}</Text>}
             </View>
           ))}
         </View>
 
-        {/* Projects - Always present */}
-        <View style={styles.compactSection}>
-          <Text style={styles.sectionTitle}>Key Projects</Text>
-          {finalResumeData.projects.slice(0, 3).map((project: { title: string; description: string }, index: number) => (
-            <View key={index} style={styles.projectItem}>
-              <Text style={styles.projectTitle}>{project.title}</Text>
-              <Text style={styles.projectDesc}>{project.description}</Text>
-            </View>
-          ))}
-        </View>
+        {/* Projects */}
+        {projects.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Key Projects</Text>
+            {projects.slice(0, 3).map((project, index) => (
+              <View key={index} style={styles.projectItem}>
+                <Text style={styles.projectTitle}>{project.title}</Text>
+                <Text style={styles.projectDescription}>{project.description}</Text>
+              </View>
+            ))}
+          </View>
+        )}
 
-        {/* Optional sections - Only if content exists */}
-        {finalResumeData.certifications && (
-          <View style={styles.compactSection}>
+        {/* Certifications */}
+        {certifications && (
+          <View style={styles.section}>
             <Text style={styles.sectionTitle}>Certifications</Text>
-            {finalResumeData.certifications.split(/[,\n|]/).filter((cert: string) => cert.trim()).slice(0, 5).map((cert: string, index: number) => (
-              <Text key={index} style={styles.certificationItem}>
-                • {cert.trim()}
-              </Text>
-            ))}
+            {certifications.split(/[,\n|]/)
+              .filter(cert => cert.trim().length > 5)
+              .slice(0, 5)
+              .map((cert, index) => (
+                <View key={index} style={styles.listItem}>
+                  <Text style={styles.listBullet}>•</Text>
+                  <Text style={styles.listText}>{cert.trim()}</Text>
+                </View>
+              ))}
           </View>
         )}
 
-        {finalResumeData.awards && (
-          <View style={styles.compactSection}>
+        {/* Awards */}
+        {awards && (
+          <View style={styles.section}>
             <Text style={styles.sectionTitle}>Awards & Recognition</Text>
-            {finalResumeData.awards.split(/[,\n|]/).filter((award: string) => award.trim()).slice(0, 4).map((award: string, index: number) => (
-              <Text key={index} style={styles.certificationItem}>
-                • {award.trim()}
-              </Text>
-            ))}
-          </View>
-        )}
-
-        {finalResumeData.volunteer && (
-          <View style={styles.compactSection}>
-            <Text style={styles.sectionTitle}>Volunteer Experience</Text>
-            {finalResumeData.volunteer.split(/\n/).filter((vol: string) => vol.trim()).slice(0, 3).map((vol: string, index: number) => (
-              <Text key={index} style={styles.certificationItem}>
-                • {vol.trim()}
-              </Text>
-            ))}
+            {awards.split(/[,\n|]/)
+              .filter(award => award.trim().length > 5)
+              .slice(0, 4)
+              .map((award, index) => (
+                <View key={index} style={styles.listItem}>
+                  <Text style={styles.listBullet}>•</Text>
+                  <Text style={styles.listText}>{award.trim()}</Text>
+                </View>
+              ))}
           </View>
         )}
 
         {/* Footer */}
-        <View style={{ marginTop: 'auto', paddingTop: 6, borderTop: '0.5 solid #e5e7eb' }}>
-          <Text style={styles.smallText}>
-            AI-Enhanced Resume • ATS Optimized • Job-Specific Tailoring
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            ATS-Optimized Resume • Tailored for Professional Excellence • {new Date().toLocaleDateString()}
           </Text>
         </View>
       </Page>
@@ -688,4 +769,20 @@ const ResumeTemplate: React.FC<ResumeTemplateProps> = ({ profile, resumeHtml }) 
   );
 };
 
+// Original ResumeTemplate component (keeping for backward compatibility)
+const ResumeTemplate: React.FC<{
+  profile: UserProfileData;
+  resumeHtml: string;
+  jobKeywords?: string[];
+}> = ({ profile, resumeHtml, jobKeywords }) => {
+  return (
+    <PerfectHTMLToPDF
+      htmlContent={resumeHtml}
+      profile={profile}
+      jobKeywords={jobKeywords}
+    />
+  );
+};
+
 export default ResumeTemplate;
+export { PerfectHTMLToPDF };

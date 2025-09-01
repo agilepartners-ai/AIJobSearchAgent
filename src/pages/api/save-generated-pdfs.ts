@@ -60,8 +60,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('🧾 Puppeteer ready. Generating PDFs...');
 
     const generatePdfBuffer = async (html: string) => {
-      await page.setContent(html, { waitUntil: 'domcontentloaded' });
-      return await page.pdf({ format: 'A4' });
+      await page.setContent(html, { waitUntil: 'load', timeout: 10000 });
+      return await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        waitForFonts: true,
+        margin: {
+          top: '20px',
+          right: '20px',
+          bottom: '20px',
+          left: '20px'
+        },
+        preferCSSPageSize: false,
+        scale: 1,
+        timeout: 45000
+      });
     };
 
     const resumeBuffer = Buffer.from(await generatePdfBuffer(resumeHtml));
