@@ -239,7 +239,7 @@ const OptimizedResultsPage: React.FC<OptimizedResultsPageProps> = ({
                     {results.keywordAnalysis.coveredKeywords.map((keyword, index) => (
                       <span
                         key={index}
-                        className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full text-sm font-medium"
+                        className="px-3 py-1 bg-[rgb(22,163,74)] text-white rounded-full text-sm font-medium"
                       >
                         {keyword}
                       </span>
@@ -255,7 +255,7 @@ const OptimizedResultsPage: React.FC<OptimizedResultsPageProps> = ({
                     {results.keywordAnalysis.missingKeywords.map((keyword, index) => (
                       <span
                         key={index}
-                        className="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 rounded-full text-sm font-medium"
+                        className="px-3 py-1 bg-[rgb(185,28,28)] text-white rounded-full text-sm font-medium"
                       >
                         {keyword}
                       </span>

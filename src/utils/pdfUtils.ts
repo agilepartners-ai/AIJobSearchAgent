@@ -6,6 +6,7 @@ export interface PDFExtractionResult {
     pages: number;
     metadata?: any;
     error?: string;
+    structuredSections?: any[]; // Add structured sections for better DOCX conversion
 }
 
 // Use the same worker setup pattern as AiJobSearch-old
@@ -123,11 +124,15 @@ export const extractTextFromPDF = async (file: File): Promise<PDFExtractionResul
             await pdf.destroy();
         }
 
+        // Extract structured sections for better DOCX conversion
+        const structuredSections = await extractStructuredSections(pdf);
+
         const finalText = fullText.trim();
         const result = {
             text: finalText,
             pages: totalPages,
-            metadata
+            metadata,
+            structuredSections
         };
 
         console.log('PDF text extraction completed:', {
@@ -303,4 +308,206 @@ export const validatePDFFile = (file: File): { isValid: boolean; error?: string 
 
 export const extractTextFallback = async (file: File): Promise<PDFExtractionResult> => {
     return await extractTextWithFileReader(file);
+};
+
+/**
+ * Extract structured sections from PDF for better DOCX conversion
+ * @param pdf PDF document
+ * @returns Array of structured sections
+ */
+const extractStructuredSections = async (pdf: any): Promise<any[]> => {
+    const sections: any[] = [];
+
+    try {
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+
+            // Group text items into lines based on Y position
+            const textItems = textContent.items.map((item: any) => ({
+                text: item.str || '',
+                x: item.transform[4] || 0,
+                y: item.transform[5] || 0,
+                width: item.width || 0,
+                height: item.height || 0,
+                fontSize: item.transform[0] || 12
+            })).filter((item: any) => item.text.trim().length > 0);
+
+            const lines = groupTextItemsIntoLines(textItems);
+
+            // Process each line with enhanced context
+            for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                const line = lines[lineIndex];
+                const lineText = line.text.trim();
+
+                if (lineText.length === 0) continue;
+
+                // Enhanced header detection with font size and position
+                if (isResumeHeader(lineText, line.fontSize, lineIndex, lines)) {
+                    sections.push({ type: 'header', content: lineText });
+                }
+                // Enhanced bullet point detection
+                else if (isBulletPoint(lineText, line.x, lineIndex, lines)) {
+                    sections.push({ type: 'bullet', content: cleanBulletText(lineText) });
+                }
+                // Enhanced subsection detection
+                else if (isSubsection(lineText, lineIndex, lines)) {
+                    sections.push({ type: 'subsection', content: lineText });
+                }
+                // Regular text with better paragraph grouping
+                else if (lineText.length > 0) {
+                    sections.push({ type: 'text', content: lineText });
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('Failed to extract structured sections:', error);
+    }
+
+    return sections;
+};
+
+/**
+ * Group text items into lines based on Y position and proximity
+ */
+const groupTextItemsIntoLines = (textItems: any[]): any[] => {
+    if (textItems.length === 0) return [];
+
+    // Sort by Y position (top to bottom), then by X position (left to right)
+    textItems.sort((a, b) => {
+        if (Math.abs(a.y - b.y) < 5) { // Same line if Y difference < 5
+            return a.x - b.x;
+        }
+        return b.y - a.y; // Higher Y first (PDF coordinate system)
+    });
+
+    const lines: any[] = [];
+    let currentLine = {
+        text: textItems[0].text,
+        x: textItems[0].x,
+        y: textItems[0].y,
+        fontSize: textItems[0].fontSize,
+        items: [textItems[0]]
+    };
+
+    for (let i = 1; i < textItems.length; i++) {
+        const item = textItems[i];
+        const yDiff = Math.abs(item.y - currentLine.y);
+
+        if (yDiff < 5) { // Same line
+            currentLine.text += ' ' + item.text;
+            currentLine.items.push(item);
+        } else { // New line
+            lines.push(currentLine);
+            currentLine = {
+                text: item.text,
+                x: item.x,
+                y: item.y,
+                fontSize: item.fontSize,
+                items: [item]
+            };
+        }
+    }
+    lines.push(currentLine);
+
+    return lines;
+};
+
+/**
+ * Enhanced header detection with context and font size
+ */
+const isResumeHeader = (text: string, fontSize: number, lineIndex: number, allLines: any[]): boolean => {
+    const upperText = text.toUpperCase();
+
+    // Check for common resume headers
+    const headers = [
+        'PROFESSIONAL SUMMARY', 'TECHNICAL SKILLS', 'CORE COMPETENCIES',
+        'PROFESSIONAL EXPERIENCE', 'EDUCATION', 'KEY PROJECTS',
+        'CERTIFICATIONS', 'AWARDS', 'RECOGNITION', 'CONTACT INFORMATION',
+        'PERSONAL DETAILS', 'OBJECTIVE', 'SUMMARY', 'EXPERIENCE',
+        'SKILLS', 'PROJECTS', 'EDUCATION', 'CERTIFICATIONS'
+    ];
+
+    if (headers.some(header => upperText.includes(header))) {
+        return true;
+    }
+
+    // Check for all caps with larger font size
+    if (text === upperText && text.length > 3 && fontSize > 12) {
+        return true;
+    }
+
+    // Check for standalone short lines that look like headers
+    if (text.length < 50 && text === upperText && lineIndex < allLines.length - 1) {
+        const nextLine = allLines[lineIndex + 1];
+        // If next line starts with bullet or is indented, this might be a header
+        if (nextLine && (isBulletPoint(nextLine.text, nextLine.x, lineIndex + 1, allLines) || nextLine.x > 100)) {
+            return true;
+        }
+    }
+
+    return false;
+};
+
+/**
+ * Enhanced bullet point detection
+ */
+const isBulletPoint = (text: string, x: number, lineIndex: number, allLines: any[]): boolean => {
+    // Direct bullet markers
+    if (text.startsWith('•') || text.startsWith('●') || text.startsWith('○')) {
+        return true;
+    }
+
+    // Dash bullets
+    if (text.startsWith('- ') || text.startsWith('– ')) {
+        return true;
+    }
+
+    // Numbered lists
+    if (/^\d+[\.\)]\s/.test(text)) {
+        return true;
+    }
+
+    // Indented text that might be continuation of bullet
+    if (x > 50 && lineIndex > 0) {
+        const prevLine = allLines[lineIndex - 1];
+        if (prevLine && isBulletPoint(prevLine.text, prevLine.x, lineIndex - 1, allLines)) {
+            return true;
+        }
+    }
+
+    return false;
+};
+
+/**
+ * Clean bullet point text
+ */
+const cleanBulletText = (text: string): string => {
+    return text
+        .replace(/^[•●○]\s*/, '')
+        .replace(/^[-–]\s*/, '')
+        .replace(/^\d+[\.\)]\s*/, '')
+        .trim();
+};
+
+/**
+ * Enhanced subsection detection
+ */
+const isSubsection = (text: string, lineIndex: number, allLines: any[]): boolean => {
+    // Date patterns
+    if (/\d{4}\s*-\s*\d{4}|\d{4}\s*-\s*Present|January|February|March|April|May|June|July|August|September|October|November|December/i.test(text)) {
+        return true;
+    }
+
+    // Company names or job titles (capitalized, moderate length)
+    if (text.length > 3 && text.length < 60 && text === text.toUpperCase() && !text.includes(' ')) {
+        return true;
+    }
+
+    // Location patterns
+    if (/\b[A-Z][a-z]+,\s*[A-Z]{2}\b|\b[A-Z][a-z]+,\s*[A-Z][a-z]+\b/.test(text)) {
+        return true;
+    }
+
+    return false;
 };

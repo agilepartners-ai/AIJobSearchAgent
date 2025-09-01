@@ -1,6 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, Download, FileText, CheckCircle, Target, TrendingUp, Award, Brain, Copy, Check, ChevronDown, ChevronUp, AlertCircle, Eye } from 'lucide-react';
 import { PDFViewer, PDFDownloadLink, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document as DocxDocument, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Indent } from 'docx';
+import ResumeTemplate, { PerfectHTMLToPDF } from './ResumeTemplate';
+import { PDFToDocxService } from '../../services/pdfToDocxService';
+import { ProfileService } from '../../services/profileService';
+import { AuthService } from '../../services/authService';
 
 interface OptimizationResultsProps {
   results: {
@@ -82,11 +87,11 @@ const styles = StyleSheet.create({
     marginBottom: 2, // Reduced from 5
   },
   bulletPoint: {
-    fontSize: 9, // Reduced from 10
-    lineHeight: 1.3, // Tighter line height
-    color: '#374151',
-    marginBottom: 1, // Reduced from 3
-    marginLeft: 8, // Reduced from 10
+    fontSize: 10,
+    lineHeight: 1.4,
+    color: '#000000',
+    marginLeft: 12,
+    marginBottom: 2,
   },
   compactSection: {
     marginBottom: 8, // Even more compact for certain sections
@@ -96,76 +101,189 @@ const styles = StyleSheet.create({
     lineHeight: 1.2,
     color: '#6b7280',
     marginBottom: 1,
+  },
+  skillBox: {
+    backgroundColor: '#f3f4f6',
+    padding: '4 8',
+    borderRadius: 4,
+    fontSize: 10,
+    color: '#000000',
+    border: '1 solid #e5e7eb',
+    margin: '2 2 2 0',
+  },
+  competencyBox: {
+    backgroundColor: '#e0f2fe',
+    padding: '4 8',
+    borderRadius: 4,
+    fontSize: 10,
+    color: '#000000',
+    border: '1 solid #b3e5fc',
+    margin: '2 2 2 0',
+  },
+  sectionItem: {
+    marginBottom: 8,
+  },
+  flexRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+  },
+  flexWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   }
 });
 
-// Resume PDF Document Component with better content parsing
-const ResumePDFDocument: React.FC<{ content: string; jobDetails: any }> = ({ content, jobDetails }) => {
-  // Enhanced parsing for better PDF formatting
-  const parseHTMLContent = (htmlContent: string) => {
-    // Remove HTML tags and extract text with basic structure
-    let text = htmlContent.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
-
-    // Split content into sections based on common patterns
-    const sections = text.split(/(?=PROFESSIONAL SUMMARY|TECHNICAL SKILLS|CORE COMPETENCIES|PROFESSIONAL EXPERIENCE|EDUCATION|KEY PROJECTS|CERTIFICATIONS|AWARDS|VOLUNTEER EXPERIENCE|PUBLICATIONS)/i);
-
-    // Parse each section for better structure
-    const parsedSections = sections.filter(section => section.trim().length > 0).map(section => {
-      const lines = section.split('\n').filter(line => line.trim().length > 0);
-      const title = lines[0]?.trim() || '';
-      const content = lines.slice(1).join('\n').trim();
-
+// Resume PDF Document Component with structured data from results
+const ResumePDFDocument: React.FC<{ content: string; jobDetails: any; resultsData?: any }> = ({ content, jobDetails, resultsData }) => {
+  // Extract data from the results object instead of parsing HTML
+  const extractStructuredData = () => {
+    if (!resultsData) {
       return {
-        title,
-        content,
-        type: getSectionType(title)
+        name: 'Professional Name',
+        contactInfo: 'email@example.com',
+        sections: []
       };
-    });
+    }
+
+    // Get profile and user data
+    const profile = resultsData.detailedUserProfile || {};
+    const authUser = resultsData.user || {};
+    const parsedPersonal = resultsData.parsedResume?.personal || {};
+
+    const name =
+      (profile.fullName && profile.fullName.trim()) ||
+      authUser.displayName ||
+      (parsedPersonal.name && parsedPersonal.name.trim()) ||
+      'Professional Name';
+
+    const email =
+      (profile.email && profile.email.trim()) ||
+      authUser.email ||
+      (parsedPersonal.email && parsedPersonal.email.trim()) ||
+      'email@example.com';
+
+    const phone =
+      (profile.phone && profile.phone.trim()) ||
+      (parsedPersonal.phone && parsedPersonal.phone.trim()) ||
+      '';
+
+    const location =
+      (profile.location && profile.location.trim()) ||
+      (parsedPersonal.location && parsedPersonal.location.trim()) ||
+      '';
+
+    const contactInfo = [email, phone, location].filter(Boolean).join(' • ');
+
+    // Get structured sections data
+    const sections = resultsData.aiEnhancements?.detailedResumeSections || {};
+
+    const structuredSections = [];
+
+    // Professional Summary
+    if (sections.professional_summary || resultsData.aiEnhancements?.enhancedSummary) {
+      structuredSections.push({
+        title: 'PROFESSIONAL SUMMARY',
+        type: 'paragraph',
+        data: sections.professional_summary || resultsData.aiEnhancements?.enhancedSummary || ''
+      });
+    }
+
+    // Technical Skills
+    if (sections.technical_skills || resultsData.skillsOptimization?.technicalSkills) {
+      structuredSections.push({
+        title: 'TECHNICAL SKILLS',
+        type: 'skills',
+        data: sections.technical_skills || resultsData.skillsOptimization?.technicalSkills || []
+      });
+    }
+
+    // Core Competencies
+    if (sections.soft_skills || resultsData.skillsOptimization?.softSkills) {
+      structuredSections.push({
+        title: 'CORE COMPETENCIES',
+        type: 'competencies',
+        data: sections.soft_skills || resultsData.skillsOptimization?.softSkills || []
+      });
+    }
+
+    // Professional Experience
+    if (sections.experience) {
+      structuredSections.push({
+        title: 'PROFESSIONAL EXPERIENCE',
+        type: 'experience',
+        data: sections.experience
+      });
+    }
+
+    // Education
+    if (sections.education) {
+      structuredSections.push({
+        title: 'EDUCATION',
+        type: 'education',
+        data: sections.education
+      });
+    }
+
+    // Projects
+    if (sections.projects) {
+      structuredSections.push({
+        title: 'KEY PROJECTS',
+        type: 'projects',
+        data: sections.projects
+      });
+    }
+
+    // Certifications
+    if (sections.certifications) {
+      structuredSections.push({
+        title: 'CERTIFICATIONS',
+        type: 'certifications',
+        data: sections.certifications
+      });
+    }
+
+    // Awards
+    if (sections.awards) {
+      structuredSections.push({
+        title: 'AWARDS & RECOGNITION',
+        type: 'awards',
+        data: sections.awards
+      });
+    }
+
+    // Volunteer Work
+    if (sections.volunteer_work) {
+      structuredSections.push({
+        title: 'VOLUNTEER EXPERIENCE',
+        type: 'volunteer',
+        data: sections.volunteer_work
+      });
+    }
 
     return {
-      fullText: text,
-      sections: parsedSections
+      name,
+      contactInfo,
+      sections: structuredSections
     };
   };
 
-  const getSectionType = (title: string): 'header' | 'list' | 'paragraph' => {
-    const listSections = ['TECHNICAL SKILLS', 'CORE COMPETENCIES', 'CERTIFICATIONS', 'AWARDS'];
-    if (listSections.some(section => title.toUpperCase().includes(section))) {
-      return 'list';
-    }
-    return 'paragraph';
-  };
-
-  const parsedContent = parseHTMLContent(content);
+  const structuredData = extractStructuredData();
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* <View style={styles.header}>
-          {<Text style={styles.name}>AI-Enhanced Professional Resume</Text>}
-          <Text style={styles.title}>Optimized for {jobDetails.title} at {jobDetails.company}</Text>
-          <View style={styles.contactInfo}>
-            <Text>Enhanced with AI • ATS Optimized • Multiple Sections</Text>
-          </View>
-        </View> */}
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.name}>{structuredData.name}</Text>
+          <Text style={styles.contactInfo}>{structuredData.contactInfo}</Text>
+        </View>
 
-        {/* Render sections with appropriate spacing */}
-        {parsedContent.sections.slice(0, 6).map((section, index) => (
-          <View key={index} style={index < 2 ? styles.section : styles.compactSection}>
+        {/* Render sections with proper formatting */}
+        {structuredData.sections.map((section: any, index: number) => (
+          <View key={index} style={styles.section}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
-            {section.type === 'list' ? (
-              // Render as compact list
-              section.content.split(/[,•\n]/).filter(item => item.trim()).map((item, itemIndex) => (
-                <Text key={itemIndex} style={styles.bulletPoint}>• {item.trim()}</Text>
-              ))
-            ) : (
-              // Render as paragraph with line breaks
-              section.content.split('\n').filter(line => line.trim()).map((line, lineIndex) => (
-                <Text key={lineIndex} style={lineIndex === 0 ? styles.text : styles.smallText}>
-                  {line.trim()}
-                </Text>
-              ))
-            )}
+            {renderSectionContent(section)}
           </View>
         ))}
 
@@ -176,92 +294,244 @@ const ResumePDFDocument: React.FC<{ content: string; jobDetails: any }> = ({ con
           <Text style={styles.smallText}>Company: {jobDetails.company}</Text>
         </View>
       </Page>
-
-      {/* Second page for remaining content with even tighter spacing */}
-      {parsedContent.sections.length > 6 && (
-        <Page size="A4" style={styles.page}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Professional Resume - Page 2</Text>
-          </View>
-
-          {parsedContent.sections.slice(6).map((section, index) => (
-            <View key={index + 6} style={styles.compactSection}>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
-              {section.type === 'list' ? (
-                section.content.split(/[,•\n]/).filter(item => item.trim()).map((item, itemIndex) => (
-                  <Text key={itemIndex} style={styles.bulletPoint}>• {item.trim()}</Text>
-                ))
-              ) : (
-                section.content.split('\n').filter(line => line.trim()).map((line, lineIndex) => (
-                  <Text key={lineIndex} style={styles.smallText}>
-                    {line.trim()}
-                  </Text>
-                ))
-              )}
-            </View>
-          ))}
-
-          <View style={styles.compactSection}>
-            <Text style={styles.sectionTitle}>Content Summary</Text>
-            <Text style={styles.smallText}>
-              This comprehensive resume includes detailed sections covering professional experience, technical skills, projects, certifications, and other relevant qualifications specifically tailored for the {jobDetails.title} position.
-            </Text>
-          </View>
-        </Page>
-      )}
     </Document>
   );
 };
 
-// Cover Letter PDF Document Component with better spacing
-const CoverLetterPDFDocument: React.FC<{ content: string; jobDetails: any }> = ({ content, jobDetails }) => {
-  // Extract meaningful content from HTML with better parsing
-  const extractCoverLetterContent = (htmlContent: string) => {
-    const text = htmlContent.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+// Helper function to render different section types
+const renderSectionContent = (section: any) => {
+  switch (section.type) {
+    case 'skills':
+      return (
+        <View style={styles.flexWrap}>
+          {section.data.map((skill: string, index: number) => (
+            <Text key={index} style={styles.skillBox}>
+              {skill}
+            </Text>
+          ))}
+        </View>
+      );
 
-    // Split into meaningful paragraphs
-    const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 50); // Only substantial paragraphs
+    case 'competencies':
+      return (
+        <View style={styles.flexWrap}>
+          {section.data.map((skill: string, index: number) => (
+            <Text key={index} style={styles.competencyBox}>
+              {skill}
+            </Text>
+          ))}
+        </View>
+      );
+
+    case 'experience':
+      return section.data.map((exp: any, expIndex: number) => (
+        <View key={expIndex} style={styles.sectionItem}>
+          <View style={styles.flexRow}>
+            <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#2563eb' }}>{exp.position}</Text>
+            <Text style={{ fontSize: 10, color: '#000000' }}>{exp.duration}</Text>
+          </View>
+          <View style={styles.flexRow}>
+            <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#000000' }}>{exp.company}</Text>
+            <Text style={{ fontSize: 10, color: '#000000' }}>{exp.location}</Text>
+          </View>
+          {exp.responsibilities.map((resp: string, respIndex: number) => (
+            <Text key={respIndex} style={styles.bulletPoint}>
+              • {resp}
+            </Text>
+          ))}
+        </View>
+      ));
+
+    case 'education':
+      return section.data.map((edu: any, eduIndex: number) => (
+        <View key={eduIndex} style={styles.sectionItem}>
+          <View style={styles.flexRow}>
+            <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#2563eb' }}>{edu.degree}</Text>
+            <Text style={{ fontSize: 10, color: '#000000' }}>{edu.graduationDate}</Text>
+          </View>
+          <Text style={{ fontSize: 10, color: '#000000', marginBottom: 2 }}>{edu.institution}</Text>
+          {edu.gpa && <Text style={{ fontSize: 9, color: '#000000' }}>GPA: {edu.gpa}</Text>}
+        </View>
+      ));
+
+    case 'projects':
+      return section.data.map((project: any, projectIndex: number) => (
+        <View key={projectIndex} style={styles.sectionItem}>
+          <View style={styles.flexRow}>
+            <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#2563eb' }}>{project.name}</Text>
+            <Text style={{ fontSize: 9, color: '#000000' }}>{project.duration}</Text>
+          </View>
+          <Text style={{ fontSize: 10, lineHeight: 1.4, color: '#000000', marginBottom: 4 }}>{project.description}</Text>
+          {project.achievements.map((achievement: string, achIndex: number) => (
+            <Text key={achIndex} style={styles.bulletPoint}>
+              • {achievement}
+            </Text>
+          ))}
+          {project.technologies && (
+            <Text style={{ fontSize: 9, color: '#000000', marginTop: 2 }}>
+              Technologies: {project.technologies}
+            </Text>
+          )}
+        </View>
+      ));
+
+    case 'certifications':
+      return section.data.map((cert: any, certIndex: number) => (
+        <View key={certIndex} style={{ marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#000000' }}>{cert.name}</Text>
+            <Text style={{ fontSize: 9, color: '#000000' }}>{cert.organization}</Text>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={{ fontSize: 9, color: '#000000' }}>Issued: {cert.issueDate}</Text>
+            {cert.expirationDate && <Text style={{ fontSize: 9, color: '#000000' }}>Expires: {cert.expirationDate}</Text>}
+          </View>
+        </View>
+      ));
+
+    case 'awards':
+      return section.data.map((award: any, awardIndex: number) => (
+        <View key={awardIndex} style={styles.sectionItem}>
+          <View style={styles.flexRow}>
+            <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#000000' }}>{award.title}</Text>
+            <Text style={{ fontSize: 9, color: '#000000' }}>{award.date}</Text>
+          </View>
+          <Text style={{ fontSize: 9, color: '#000000', marginBottom: 2 }}>{award.organization}</Text>
+          {award.description && <Text style={{ fontSize: 9, lineHeight: 1.3, color: '#000000' }}>{award.description}</Text>}
+        </View>
+      ));
+
+    case 'volunteer':
+      return section.data.map((vol: any, volIndex: number) => (
+        <View key={volIndex} style={styles.sectionItem}>
+          <View style={styles.flexRow}>
+            <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#000000' }}>{vol.role}</Text>
+            <Text style={{ fontSize: 9, color: '#000000' }}>{vol.duration}</Text>
+          </View>
+          <Text style={{ fontSize: 9, color: '#000000', marginBottom: 2 }}>{vol.organization}</Text>
+          <Text style={{ fontSize: 9, lineHeight: 1.3, color: '#000000', marginBottom: 2 }}>{vol.description}</Text>
+          {vol.achievements.map((achievement: string, achIndex: number) => (
+            <Text key={achIndex} style={styles.bulletPoint}>
+              • {achievement}
+            </Text>
+          ))}
+        </View>
+      ));
+
+    default:
+      return <Text style={styles.text}>{section.data}</Text>;
+  }
+};
+
+// Cover Letter PDF Document Component with reliable HTML parsing
+const CoverLetterPDFDocument: React.FC<{ content: string; jobDetails: any; resultsData?: any }> = ({ content, jobDetails, resultsData }) => {
+  // Parse HTML content to extract cover letter data
+  const parseCoverLetterData = (htmlContent: string) => {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+
+    // Extract name from h1 tag
+    const nameElement = tempDiv.querySelector('h1');
+    const name = nameElement?.textContent?.trim() || 'Your Name';
+
+    // Extract contact info from the content
+    const text = tempDiv.textContent || '';
+    const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+    const phoneMatch = text.match(/(\+?\d[\d\-\s]{6,}\d)/);
+    const locationMatch = text.match(/\b[A-Z][a-z]+,\s*[A-Z]{2,}|\b(?:(City|State|India|USA|United Kingdom))\b/i);
+
+    const email = emailMatch?.[0] || 'email@example.com';
+    const phone = phoneMatch?.[0] || '';
+    const location = locationMatch?.[0] || '';
+
+    const contactInfo = [email, phone, location].filter(Boolean).join(' • ');
+
+    // Extract paragraphs - look for div elements with substantial content
+    const allDivs = Array.from(tempDiv.querySelectorAll('div'));
+    const paragraphs = allDivs
+      .filter(div => {
+        const text = div.textContent?.trim() || '';
+        return text.length > 20 && // Substantial content
+               !div.querySelector('h1') && // Not the header
+               !text.includes('Hiring Manager') && // Not employer info
+               !text.includes('Re:') && // Not subject line
+               !text.includes('Dear') && // Not salutation
+               !text.includes('Sincerely'); // Not closing
+      })
+      .map(div => div.textContent?.trim())
+      .filter(Boolean) as string[];
 
     return {
-      fullText: text,
-      paragraphs: paragraphs.length > 0 ? paragraphs : [text] // Fallback to full text if no good splits
+      name,
+      contactInfo,
+      paragraphs
     };
   };
 
-  const parsedContent = extractCoverLetterContent(content);
+  const coverLetterData = parseCoverLetterData(content);
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.name}>Cover Letter</Text>
-          <Text style={styles.title}>For {jobDetails.title} at {jobDetails.company}</Text>
-          <View style={styles.contactInfo}>
-            <Text>{new Date().toLocaleDateString()}</Text>
-          </View>
+          <Text style={styles.name}>{coverLetterData.name}</Text>
+          <Text style={styles.contactInfo}>{coverLetterData.contactInfo}</Text>
         </View>
 
-        <View style={styles.compactSection}>
-          <Text style={styles.text}>Dear Hiring Manager,</Text>
+        {/* Date */}
+        <View style={{ marginBottom: 20, alignItems: 'flex-end' }}>
+          <Text style={{ fontSize: 11, color: '#000000' }}>{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</Text>
         </View>
 
-        {/* Render each paragraph with proper spacing */}
-        {parsedContent.paragraphs.map((paragraph, index) => (
-          <View key={index} style={styles.section}>
-            <Text style={styles.text}>{paragraph.trim()}</Text>
+        {/* Employer Information */}
+        <View style={{ marginBottom: 20 }}>
+          <Text style={{ fontSize: 11, lineHeight: 1.4, color: '#000000' }}>
+            Hiring Manager
+          </Text>
+          <Text style={{ fontSize: 11, lineHeight: 1.4, color: '#000000' }}>
+            {jobDetails.company_name || 'Company Name'}
+          </Text>
+          <Text style={{ fontSize: 11, lineHeight: 1.4, color: '#000000' }}>
+            {jobDetails.location || 'Company Location'}
+          </Text>
+        </View>
+
+        {/* Subject Line */}
+        <View style={{ marginBottom: 15 }}>
+          <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#000000' }}>
+            Re: Application for {jobDetails.position || 'Position Title'}
+          </Text>
+        </View>
+
+        {/* Salutation */}
+        <View style={{ marginBottom: 15 }}>
+          <Text style={{ fontSize: 11, color: '#000000' }}>Dear Hiring Manager,</Text>
+        </View>
+
+        {/* Body Paragraphs */}
+        {coverLetterData.paragraphs.map((paragraph: string, index: number) => (
+          <View key={index} style={{ marginBottom: 15 }}>
+            <Text style={{ fontSize: 11, lineHeight: 1.6, textAlign: 'justify', color: '#000000' }}>
+              {paragraph}
+            </Text>
           </View>
         ))}
 
-        <View style={styles.compactSection}>
-          <Text style={styles.text}>Sincerely,</Text>
-          <Text style={styles.text}>Your Name</Text>
+        {/* Closing */}
+        <View style={{ marginBottom: 15 }}>
+          <Text style={{ fontSize: 11, color: '#000000' }}>Sincerely,</Text>
         </View>
 
-        <View style={styles.compactSection}>
-          <Text style={styles.sectionTitle}>Letter Details</Text>
-          <Text style={styles.smallText}>Position: {jobDetails.title}</Text>
-          <Text style={styles.smallText}>Company: {jobDetails.company}</Text>
-          <Text style={styles.smallText}>Type: AI-Enhanced, Personalized</Text>
+        <View style={{ marginBottom: 15 }}>
+          <Text style={{ fontSize: 11, color: '#000000' }}>{coverLetterData.name}</Text>
+        </View>
+
+        {/* Footer */}
+        <View style={{ marginTop: 30, paddingTop: 15, borderTop: '1 solid #e5e7eb', alignItems: 'center' }}>
+          <Text style={{ fontSize: 9, color: '#000000' }}>
+            This cover letter was AI-enhanced and personalized for the {jobDetails.position || 'target position'} at {jobDetails.company_name || 'the company'}.
+          </Text>
         </View>
       </Page>
     </Document>
@@ -273,6 +543,42 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
   const [copiedCoverLetter, setCopiedCoverLetter] = useState(false);
   const [activeDocument, setActiveDocument] = useState<'resume' | 'cover-letter'>('resume');
   const [showPDFPreview, setShowPDFPreview] = useState(true);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
+  // Fetch user profile data on component mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const currentUser = await AuthService.getCurrentUser();
+        if (currentUser) {
+          const profile = await ProfileService.getUserProfile(currentUser.id);
+          if (profile) {
+            setUserProfile(profile);
+          } else {
+            // If no profile exists, create a basic one from auth data
+            setUserProfile({
+              fullName: currentUser.displayName || 'Professional Name',
+              email: currentUser.email || '',
+              phone: '',
+              location: '',
+              linkedin: '',
+              github: '',
+              portfolio: ''
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        // Fallback to extracted profile if service fails
+        setUserProfile(extractProfileFromHtml(results.resume_html));
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [results.resume_html]);
 
   // Use real analysis data if provided, otherwise fall back to mock data
   const analysisResults = analysisData || {
@@ -333,20 +639,255 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
     URL.revokeObjectURL(url);
   };
 
-  const downloadAsDocx = (content: string, filename: string) => {
-    // Simple DOCX generation - create RTF format which can be opened by Word
-    const plainText = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-    const rtfContent = `{\\rtf1\\ansi\\deff0 {\\fonttbl {\\f0 Times New Roman;}} \\f0\\fs24 ${plainText.replace(/\n/g, '\\par ')}}`;
+  const downloadAsDocx = async (content: string, filename: string) => {
+    try {
+      // Parse HTML content and create document sections
+      const sections = parseHtmlContent(content);
 
-    const blob = new Blob([rtfContent], { type: 'application/rtf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename.replace('.docx', '.rtf');
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      // Extract user name from HTML for better metadata
+      const nameMatch = content.match(/<h1[^>]*>(.*?)<\/h1>/i);
+      const userName = nameMatch ? nameMatch[1].replace(/<[^>]*>/g, '').trim() : 'Professional Resume';
+
+      // Create document with proper properties and metadata
+      const doc = new DocxDocument({
+        creator: 'AI Resume Enhancement System',
+        title: userName,
+        description: `Professional resume for ${userName} - AI-enhanced with optimal formatting for ATS systems`,
+        subject: 'Resume/CV Document',
+        keywords: 'resume, cv, professional, career, employment',
+        sections: [{
+          properties: {},
+          children: sections
+        }]
+      });
+
+      // Generate and download the document
+      const buffer = await Packer.toBuffer(doc);
+      const blob = new Blob([new Uint8Array(buffer)], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename.endsWith('.docx') ? filename : filename + '.docx';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error creating DOCX file:', error);
+      // Fallback to text download if DOCX creation fails
+      const plainText = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+      const blob = new Blob([plainText], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename.replace('.docx', '.txt');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  // Helper function to parse HTML content into docx elements
+  const parseHtmlContent = (htmlContent: string) => {
+    const sections: any[] = [];
+
+    // Extract user name from HTML content for the title
+    const nameMatch = htmlContent.match(/<h1[^>]*>(.*?)<\/h1>/i);
+    const userName = nameMatch ? nameMatch[1].replace(/<[^>]*>/g, '').trim() : 'Professional Resume';
+
+    // Add user name as document title
+    sections.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: userName,
+            bold: true,
+            size: 32,
+          })
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 }
+      })
+    );
+
+    // Parse HTML content with better structure preservation
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+
+    // Get top-level sections first (main content areas)
+    const topLevelElements = tempDiv.children;
+
+    for (let i = 0; i < topLevelElements.length; i++) {
+      const element = topLevelElements[i];
+
+      // Skip the h1 we already used as title
+      if (element.tagName === 'H1' && i === 0) continue;
+
+      if (element.tagName === 'H1') {
+        sections.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: element.textContent || '',
+                bold: true,
+                size: 32,
+                color: '2563EB' // Blue color
+              })
+            ],
+            heading: HeadingLevel.TITLE,
+            spacing: { before: 400, after: 200 }
+          })
+        );
+      } else if (element.tagName === 'H2') {
+        sections.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: element.textContent || '',
+                bold: true,
+                size: 26,
+                color: '2563EB' // Blue color
+              })
+            ],
+            heading: HeadingLevel.HEADING_1,
+            spacing: { before: 300, after: 150 }
+          })
+        );
+      } else if (element.tagName === 'SECTION') {
+        // Handle sections which contain structured content
+        const sectionChildren = element.children;
+        for (let j = 0; j < sectionChildren.length; j++) {
+          const child = sectionChildren[j];
+
+          if (child.tagName === 'H2') {
+            sections.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: child.textContent || '',
+                    bold: true,
+                    size: 26,
+                    color: '2563EB' // Blue color
+                  })
+                ],
+                heading: HeadingLevel.HEADING_1,
+                spacing: { before: 300, after: 150 }
+              })
+            );
+          } else if (child.tagName === 'P') {
+            const textContent = child.textContent?.trim();
+            if (textContent) {
+              sections.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: textContent,
+                      size: 20,
+                    })
+                  ],
+                  spacing: { after: 120 }
+                })
+              );
+            }
+          } else if (child.tagName === 'DIV') {
+            // Handle div content within sections
+            const divChildren = child.children;
+            for (let k = 0; k < divChildren.length; k++) {
+              const divChild = divChildren[k];
+
+              if (divChild.tagName === 'P') {
+                const textContent = divChild.textContent?.trim();
+                if (textContent) {
+                  sections.push(
+                    new Paragraph({
+                      children: [
+                        new TextRun({
+                          text: textContent,
+                          size: 20,
+                        })
+                      ],
+                      spacing: { after: 120 }
+                    })
+                  );
+                }
+              } else if (divChild.tagName === 'UL') {
+                const listItems = divChild.querySelectorAll('li');
+                listItems.forEach((li) => {
+                  const textContent = li.textContent?.trim();
+                  if (textContent) {
+                    sections.push(
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: '• ' + textContent,
+                            size: 20,
+                          })
+                        ],
+                        indent: { left: 720 },
+                        spacing: { after: 80 }
+                      })
+                    );
+                  }
+                });
+              }
+            }
+          }
+        }
+      } else if (element.tagName === 'P') {
+        const textContent = element.textContent?.trim();
+        if (textContent) {
+          sections.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: textContent,
+                  size: 20,
+                })
+              ],
+              spacing: { after: 120 }
+            })
+          );
+        }
+      } else if (element.tagName === 'DIV' && element.textContent?.trim()) {
+        // Handle standalone div content
+        const textContent = element.textContent?.trim();
+        if (textContent && textContent.length > 2) {
+          sections.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: textContent,
+                  size: 20,
+                })
+              ],
+              spacing: { after: 120 }
+            })
+          );
+        }
+      }
+    }
+
+    // Add minimal footer with generation info
+    sections.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: `Generated by AI Resume Enhancement System on ${new Date().toLocaleDateString()}`,
+            size: 16,
+            italics: true,
+          })
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 300, after: 100 }
+      })
+    );
+
+    return sections;
   };
 
   const getScoreBadge = (score: number) => {
@@ -382,6 +923,95 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
   };
 
   const scoreBadge = getScoreBadge(analysisResults.matchScore);
+// Helper: extract minimal profile info from the rendered HTML so ResumeTemplate gets real values
+const extractProfileFromHtml = (html: string) => {
+  try {
+    const temp = document.createElement('div');
+    temp.innerHTML = html || '';
+    const text = (temp.textContent || temp.innerText || '').replace(/\r/g, '');
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+    const name = lines[0] || '';
+    const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+    const phoneMatch = text.match(/(\+?\d[\d\-\s]{6,}\d)/);
+    const linkedinMatch = text.match(/(https?:\/\/)?(www\.)?linkedin\.com\/[^\s)]+/i);
+    const locationLine = lines.find(l => /\b[A-Z][a-z]+,\s*[A-Z]{2,}|\b(?:(City|State|India|USA|United Kingdom))\b/i) || '';
+
+    return {
+      fullName: name,
+      email: emailMatch?.[0] || '',
+      phone: phoneMatch?.[0] || '',
+      location: locationLine,
+      linkedin: linkedinMatch?.[0] || '',
+      github: '',
+      portfolio: ''
+    };
+  } catch (e) {
+    return {
+      fullName: '',
+      email: '',
+      phone: '',
+      location: '',
+      linkedin: '',
+      github: '',
+      portfolio: ''
+    };
+  }
+};
+
+// Use actual user profile data if available, otherwise fall back to extracted data
+const resumeProfile = userProfile || extractProfileFromHtml(results.resume_html);
+
+// Function to modify HTML content to include user's name
+const modifyHtmlWithProfile = (htmlContent: string, profile: any) => {
+  if (!profile?.fullName) return htmlContent;
+
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlContent;
+
+  // Replace any placeholder names in h1 tags
+  const h1Elements = tempDiv.querySelectorAll('h1');
+  h1Elements.forEach(h1 => {
+    const text = h1.textContent?.trim();
+    if (text && (text === 'Professional Name' || text === 'Your Name' || text.length < 3)) {
+      h1.textContent = profile.fullName;
+    }
+  });
+
+  // Also check for any divs that might contain name information
+  const allDivs = tempDiv.querySelectorAll('div');
+  allDivs.forEach(div => {
+    const text = div.textContent?.trim();
+    if (text && text.length < 50) { // Likely a header/name section
+      if (text.includes('Professional Name') || text.includes('Your Name') || (text.split(' ').length <= 3 && !text.includes('@'))) {
+        // Replace the entire content if it looks like a name placeholder
+        if (text === 'Professional Name' || text === 'Your Name') {
+          div.textContent = profile.fullName;
+        }
+      }
+    }
+  });
+
+  return tempDiv.innerHTML;
+};
+
+// Modify HTML content with user's profile data
+const modifiedResumeHtml = modifyHtmlWithProfile(results.resume_html, resumeProfile);
+const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html, resumeProfile);
+
+  // Show loading state while fetching profile
+  if (loadingProfile) {
+    return (
+      <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 z-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <Brain className="text-white animate-pulse" size={20} />
+          </div>
+          <p className="text-gray-600 dark:text-gray-300">Loading your profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 z-50 overflow-y-auto">
@@ -437,7 +1067,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowPDFPreview(!showPDFPreview)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-700 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-00 dark:hover:bg-gray-600 transition-colors"
                 >
                   <Eye size={16} />
                   {showPDFPreview ? 'Hide Preview' : 'Show Preview'}
@@ -446,7 +1076,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
             </div>
 
             {/* Document Tabs */}
-            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+            <div className="flex bg-gray-700 dark:bg-gray-700 rounded-lg p-1">
               <button
                 onClick={() => setActiveDocument('resume')}
                 className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${activeDocument === 'resume'
@@ -481,7 +1111,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => copyToClipboard(
-                      activeDocument === 'resume' ? results.resume_html : results.cover_letter_html,
+                      activeDocument === 'resume' ? modifiedResumeHtml : modifiedCoverLetterHtml,
                       activeDocument === 'resume' ? 'resume' : 'cover'
                     )}
                     className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -495,9 +1125,9 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
 
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-600">
                 <div
-                  className="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-gray-200 leading-relaxed"
+                  className={`prose prose-sm dark:prose-invert max-w-none leading-relaxed ${activeDocument === 'resume' ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}
                   dangerouslySetInnerHTML={{
-                    __html: activeDocument === 'resume' ? results.resume_html : results.cover_letter_html
+                    __html: activeDocument === 'resume' ? modifiedResumeHtml : modifiedCoverLetterHtml
                   }}
                 />
               </div>
@@ -507,7 +1137,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
                 <div className="flex gap-3">
                   <button
                     onClick={() => downloadAsText(
-                      activeDocument === 'resume' ? results.resume_html : results.cover_letter_html,
+                      activeDocument === 'resume' ? modifiedResumeHtml : modifiedCoverLetterHtml,
                       activeDocument === 'resume' ? 'ai-enhanced-resume.txt' : 'ai-enhanced-cover-letter.txt'
                     )}
                     className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
@@ -517,13 +1147,13 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
                   </button>
                   <button
                     onClick={() => downloadAsDocx(
-                      activeDocument === 'resume' ? results.resume_html : results.cover_letter_html,
+                      activeDocument === 'resume' ? modifiedResumeHtml : modifiedCoverLetterHtml,
                       activeDocument === 'resume' ? 'ai-enhanced-resume.docx' : 'ai-enhanced-cover-letter.docx'
                     )}
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
                   >
                     <FileText size={16} />
-                    Download RTF/Word
+                    Download Word DOC
                   </button>
                 </div>
 
@@ -532,8 +1162,12 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
                   <PDFDownloadLink
                     document={
                       activeDocument === 'resume' ?
-                        <ResumePDFDocument content={results.resume_html} jobDetails={jobDetails} /> :
-                        <CoverLetterPDFDocument content={results.cover_letter_html} jobDetails={jobDetails} />
+                        <PerfectHTMLToPDF
+                          htmlContent={modifiedResumeHtml}
+                          profile={resumeProfile as any}
+                          jobKeywords={analysisData?.keywordAnalysis?.coveredKeywords || []}
+                        /> :
+                        <CoverLetterPDFDocument content={modifiedCoverLetterHtml} jobDetails={jobDetails} resultsData={results} />
                     }
                     fileName={activeDocument === 'resume' ?
                       `ai-enhanced-resume-${jobDetails.company.replace(/\s+/g, '-')}.pdf` :
@@ -544,7 +1178,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
                     {({ blob, url, loading, error }) => (
                       <>
                         <Download size={16} />
-                        {loading ? 'Generating PDF...' : 'Download PDF'}
+                        {loading ? 'Generating Professional PDF...' : 'Download Professional PDF'}
                       </>
                     )}
                   </PDFDownloadLink>
@@ -560,8 +1194,12 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
                   <div className="h-96 bg-white rounded border">
                     <PDFViewer width="100%" height="100%" style={{ border: 'none' }}>
                       {activeDocument === 'resume' ?
-                        <ResumePDFDocument content={results.resume_html} jobDetails={jobDetails} /> :
-                        <CoverLetterPDFDocument content={results.cover_letter_html} jobDetails={jobDetails} />
+                        <PerfectHTMLToPDF
+                          htmlContent={modifiedResumeHtml}
+                          profile={resumeProfile as any}
+                          jobKeywords={analysisData?.keywordAnalysis?.coveredKeywords || []}
+                        /> :
+                        <CoverLetterPDFDocument content={modifiedCoverLetterHtml} jobDetails={jobDetails} resultsData={results} />
                       }
                     </PDFViewer>
                   </div>
@@ -572,7 +1210,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
         </div>
 
         {/* Keyword Analysis */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-700">
+        <div className="bg-[#1f2937] rounded-xl p-6 border border-[#1f2937]">
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             🔍 Keyword Analysis
           </h3>
@@ -590,7 +1228,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
                   {analysisResults.keywordAnalysis.coveredKeywords.map((keyword, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full text-sm font-medium"
+                      className="px-3 py-1 bg-[rgb(22,163,74)] text-white rounded-full text-sm font-medium"
                     >
                       {keyword}
                     </span>
@@ -606,7 +1244,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
                   {analysisResults.keywordAnalysis.missingKeywords.map((keyword, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 rounded-full text-sm font-medium"
+                      className="px-3 py-1 bg-[rgb(185,28,28)] text-white rounded-full text-sm font-medium"
                     >
                       {keyword}
                     </span>
@@ -663,7 +1301,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
         </div>
 
         {/* Action Buttons */}
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl p-6 text-center">
+        <div className="bg-[#1f2937] rounded-xl p-6 text-center border border-[#1f2937]">
           <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">🚀 Next Steps</h4>
           <p className="text-gray-600 dark:text-gray-300 mb-6">
             Your AI-optimized documents are ready! Download them in your preferred format and use them for your job applications.
@@ -677,13 +1315,13 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
             </button>
             <button
               onClick={() => {
-                downloadAsText(results.resume_html, 'ai-enhanced-resume.txt');
-                downloadAsText(results.cover_letter_html, 'ai-enhanced-cover-letter.txt');
+                downloadAsDocx(modifiedResumeHtml, 'ai-enhanced-resume.docx');
+                downloadAsDocx(modifiedCoverLetterHtml, 'ai-enhanced-cover-letter.docx');
               }}
               className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-6 py-3 rounded-lg font-medium transition-all hover:shadow-lg flex items-center gap-2"
             >
               <Download size={16} />
-              Download Both Documents
+              Download Both as Word DOC
             </button>
           </div>
         </div>

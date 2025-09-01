@@ -73,6 +73,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   const [additionalPrompt, setAdditionalPrompt] = React.useState<string>('');
   // NEW: editable full AI prompt
   const [aiPrompt, setAiPrompt] = React.useState<string>('');
+  // NEW: debug mode state
+  const [showDebugOptions, setShowDebugOptions] = React.useState(false);
 
   const { user } = useAuth();
   const config = AIEnhancementService.getConfiguration();
@@ -631,9 +633,34 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="relative bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Loader Overlay */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+              <Brain className="text-white" size={20} />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                AI Enhanced Resume & Cover Letter Generator
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Document ID: {documentId.slice(0, 8)}...
+                {applicationData && (
+                  <span className="ml-2">• {applicationData.position} at {applicationData.company_name}</span>
+                )}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* Loading Screen - positioned below header and above content */}
         {loading && (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm transition-all rounded-lg animate-fade-in">
+          <div className="flex flex-col items-center justify-center py-16 px-6 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
             <div className="flex flex-col items-center gap-6">
               {/* Animated Brain Icon with Pulse */}
               <div className="relative flex items-center justify-center">
@@ -689,32 +716,10 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
             `}</style>
           </div>
         )}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <Brain className="text-white" size={20} />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                AI Enhanced Resume & Cover Letter Generator
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Document ID: {documentId.slice(0, 8)}...
-                {applicationData && (
-                  <span className="ml-2">• {applicationData.position} at {applicationData.company_name}</span>
-                )}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            <X size={24} />
-          </button>
-        </div>
 
-        <div className="p-6 space-y-6">
+        {/* Main Content - hidden during loading */}
+        {!loading && (
+          <div className="p-6 space-y-6">
           {error && (
             <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-lg text-sm flex items-start gap-3">
               <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
@@ -812,21 +817,35 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
             </div>
           </div>
 
-          {/* Editable AI Prompt Section */}
-          <div className="mt-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              AI Prompt (edit the full prompt sent to the AI)
-            </label>
-            <textarea
-              value={aiPrompt}
-              onChange={(e) => setAiPrompt(e.target.value)}
-              placeholder="Edit the full prompt sent to the AI here..."
-              className="w-full h-32 p-3 border border-gray-300 dark:border-gray-600 rounded-lg resize-y text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              You can fully customize the prompt sent to the AI. This will override any additional instructions.
-            </p>
+          {/* Debug Button */}
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => setShowDebugOptions(!showDebugOptions)}
+              className="flex items-center gap-2 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors"
+            >
+              <Settings size={16} />
+              Debug
+              {showDebugOptions ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
           </div>
+
+          {/* Editable AI Prompt Section */}
+          {showDebugOptions && (
+            <div className="mt-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                AI Prompt (edit the full prompt sent to the AI)
+              </label>
+              <textarea
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                placeholder="Edit the full prompt sent to the AI here..."
+                className="w-full h-32 p-3 border border-gray-300 dark:border-gray-600 rounded-lg resize-y text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                You can fully customize the prompt sent to the AI. This will override any additional instructions.
+              </p>
+            </div>
+          )}
 
           {/* Manual Text Input Section */}
           {showManualInput && (
@@ -860,7 +879,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           )}
 
           {/* Extracted Text Debug Section */}
-          {extractedPDFData && (
+          {showDebugOptions && extractedPDFData && (
             <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
               <button
                 onClick={() => setShowExtractedText(!showExtractedText)}
@@ -926,44 +945,6 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
             </div>
           )}
 
-          {/* Generate Button */}
-          <div className="flex gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <button
-              type="button"
-              onClick={handleGenerateAI}
-              disabled={
-                loading ||
-                (!selectedFileMeta && !cloudFileUrl) ||
-                !(jobDescription || persistedJobDescription || '').trim() ||
-                (
-                  config.defaultModelType.toLowerCase() === 'gemini' || config.defaultModelType.toLowerCase() === 'gemnin'
-                    ? !config.hasGeminiApiKey
-                    : !config.hasApiKey
-                )
-              }
-              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 px-6 rounded-lg font-medium flex items-center justify-center gap-2 transition-all disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  {extractionProgress || 'Processing...'}
-                </>
-              ) : (
-                <>
-                  <Brain size={20} />
-                  Generate using AI - Resume & Cover Letter
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-3 bg-red-600 dark:bg-red-700 text-white rounded-lg font-medium hover:bg-red-700 dark:hover:bg-red-800 transition-all"
-            >
-              Cancel
-            </button>
-          </div>
-
           {!extractedPDFData?.text && !showManualInput && selectedFileMeta && (
             <div className="text-center">
               <p className="text-sm text-amber-600 dark:text-amber-400">
@@ -977,6 +958,45 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
               </button>
             </div>
           )}
+          </div>
+        )}
+
+        {/* Action Buttons - Always visible */}
+        <div className="flex gap-4 p-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <button
+            type="button"
+            onClick={handleGenerateAI}
+            disabled={
+              loading ||
+              (!selectedFileMeta && !cloudFileUrl) ||
+              !(jobDescription || persistedJobDescription || '').trim() ||
+              (
+                config.defaultModelType.toLowerCase() === 'gemini' || config.defaultModelType.toLowerCase() === 'gemnin'
+                  ? !config.hasGeminiApiKey
+                  : !config.hasApiKey
+              )
+            }
+            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 px-6 rounded-lg font-medium flex items-center justify-center gap-2 transition-all disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                {extractionProgress || 'Processing...'}
+              </>
+            ) : (
+              <>
+                <Brain size={20} />
+                Generate using AI - Resume & Cover Letter
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-6 py-3 bg-red-600 dark:bg-red-700 text-white rounded-lg font-medium hover:bg-red-700 dark:hover:bg-red-800 transition-all"
+          >
+            Cancel
+          </button>
         </div>
       </div>
     </div>
@@ -1016,79 +1036,79 @@ const generateDetailedResumeHTML = (results: any): string => {
     '';
 
   return `
-    <div style="font-family: 'Arial', sans-serif; line-height: 1.4; color: #333; max-width: 800px;">
+    <div style="font-family: 'Arial', sans-serif; line-height: 1.4; color: #000000; background-color: #ffffff; max-width: 800px; margin: 20px auto; padding: 20px;">
       <!-- Header Section -->
-      <header style="text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 15px; margin-bottom: 20px;">
-        <h1 style="font-size: 26px; margin-bottom: 8px; color: #1f2937; font-weight: 700;">${name}</h1>
-        <div style="font-size: 13px; color: #6b7280; margin-bottom: 5px;">
+      <header style="text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 15px; margin-bottom: 20px; background-color: #ffffff;">
+        <h1 style="font-size: 26px; margin-bottom: 8px; color: #2563eb; font-weight: 700;">${name}</h1>
+        <div style="font-size: 13px; color: #000000; margin-bottom: 5px;">
           <span>${email}</span>${phone ? ` • <span>${phone}</span>` : ''}${location ? ` • <span>${location}</span>` : ''}
         </div>
       </header>
 
       <!-- Professional Summary -->
-      <section style="margin-bottom: 20px;">
-        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PROFESSIONAL SUMMARY</h2>
-        <p style="text-align: justify; line-height: 1.6; font-size: 13px; margin: 0;">
+      <section style="margin-bottom: 20px; background-color: #ffffff;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600; background-color: #ffffff;">PROFESSIONAL SUMMARY</h2>
+        <p style="text-align: justify; line-height: 1.6; font-size: 13px; margin: 0; color: #000000; background-color: #ffffff;">
           ${sections.professional_summary || results.aiEnhancements?.enhancedSummary || 'AI-enhanced professional summary highlighting relevant experience, key skills, and value proposition tailored to the target position. This comprehensive summary demonstrates alignment with job requirements and showcases unique qualifications that make the candidate an ideal fit for the role.'}
         </p>
       </section>
 
       <!-- Technical Skills -->
-      <section style="margin-bottom: 20px;">
-        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">TECHNICAL SKILLS</h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 6px; margin-bottom: 8px;">
+      <section style="margin-bottom: 20px; background-color: #ffffff;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600; background-color: #ffffff;">TECHNICAL SKILLS</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 6px; margin-bottom: 8px; background-color: #ffffff;">
           ${(sections.technical_skills || results.skillsOptimization?.technicalSkills || []).map((skill: string) =>
-    `<span style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-size: 12px; border: 1px solid #e5e7eb;">${skill}</span>`
+    `<span style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #000000; border: 1px solid #e5e7eb;">${skill}</span>`
   ).join('')}
         </div>
       </section>
 
       <!-- Core Competencies -->
-      <section style="margin-bottom: 20px;">
-        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">CORE COMPETENCIES</h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 6px;">
+      <section style="margin-bottom: 20px; background-color: #ffffff;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600; background-color: #ffffff;">CORE COMPETENCIES</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 6px; background-color: #ffffff;">
           ${(sections.soft_skills || results.skillsOptimization?.softSkills || []).map((skill: string) =>
-    `<span style="background: #e0f2fe; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #0277bd; border: 1px solid #b3e5fc;">${skill}</span>`
+    `<span style="background: #e0f2fe; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #000000; border: 1px solid #b3e5fc;">${skill}</span>`
   ).join('')}
         </div>
       </section>
 
       <!-- Professional Experience -->
-      <section style="margin-bottom: 20px;">
-        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PROFESSIONAL EXPERIENCE</h2>
+      <section style="margin-bottom: 20px; background-color: #ffffff;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600; background-color: #ffffff;">PROFESSIONAL EXPERIENCE</h2>
         ${(sections.experience || []).map((exp: any) => `
-          <div style="margin-bottom: 18px; page-break-inside: avoid;">
-            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;">
-              <h3 style="font-size: 14px; font-weight: 600; margin: 0; color: #1f2937;">${exp.position || 'Job Title'}</h3>
-              <span style="font-size: 12px; color: #6b7280; font-weight: 500;">${exp.duration || 'Start - End'}</span>
+          <div style="margin-bottom: 18px; page-break-inside: avoid; background-color: #ffffff;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; background-color: #ffffff;">
+              <h3 style="font-size: 14px; font-weight: 600; margin: 0; color: #2563eb;">${exp.position || 'Job Title'}</h3>
+              <span style="font-size: 12px; color: #000000; font-weight: 500;">${exp.duration || 'Start - End'}</span>
             </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-              <span style="font-size: 13px; color: #4b5563; font-weight: 500;">${exp.company || 'Company Name'}</span>
-              <span style="font-size: 12px; color: #6b7280;">${exp.location || 'City, State'}</span>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; background-color: #ffffff;">
+              <span style="font-size: 13px; color: #000000; font-weight: 500;">${exp.company || 'Company Name'}</span>
+              <span style="font-size: 12px; color: #000000;">${exp.location || 'City, State'}</span>
             </div>
-            
+
             ${exp.key_responsibilities?.length ? `
-              <div style="margin-bottom: 8px;">
-                <strong style="font-size: 12px; color: #374151;">Key Responsibilities:</strong>
+              <div style="margin-bottom: 8px; background-color: #ffffff;">
+                <strong style="font-size: 12px; color: #000000;">Key Responsibilities:</strong>
                 <ul style="margin: 3px 0 0 15px; padding: 0;">
-                  ${exp.key_responsibilities.map((resp: string) => `<li style="margin-bottom: 3px; font-size: 12px; line-height: 1.4;">${resp}</li>`).join('')}
+                  ${exp.key_responsibilities.map((resp: string) => `<li style="margin-bottom: 3px; font-size: 12px; line-height: 1.4; color: #000000;">${resp}</li>`).join('')}
                 </ul>
               </div>
             ` : ''}
-            
+
             ${exp.achievements?.length ? `
-              <div style="margin-bottom: 8px;">
-                <strong style="font-size: 12px; color: #374151;">Key Achievements:</strong>
+              <div style="margin-bottom: 8px; background-color: #ffffff;">
+                <strong style="font-size: 12px; color: #000000;">Key Achievements:</strong>
                 <ul style="margin: 3px 0 0 15px; padding: 0;">
-                  ${exp.achievements.map((achievement: string) => `<li style="margin-bottom: 3px; font-size: 12px; line-height: 1.4; color: #059669;">${achievement}</li>`).join('')}
+                  ${exp.achievements.map((achievement: string) => `<li style="margin-bottom: 3px; font-size: 12px; line-height: 1.4; color: #000000;">${achievement}</li>`).join('')}
                 </ul>
               </div>
             ` : ''}
-            
+
             ${exp.technologies_used?.length ? `
-              <div style="margin-top: 5px;">
-                <strong style="font-size: 11px; color: #6b7280;">Technologies:</strong>
-                <span style="font-size: 11px; color: #6b7280;"> ${exp.technologies_used.join(', ')}</span>
+              <div style="margin-top: 5px; background-color: #ffffff;">
+                <strong style="font-size: 11px; color: #000000;">Technologies:</strong>
+                <span style="font-size: 11px; color: #000000;"> ${exp.technologies_used.join(', ')}</span>
               </div>
             ` : ''}
           </div>
@@ -1097,26 +1117,26 @@ const generateDetailedResumeHTML = (results: any): string => {
 
       <!-- Education -->
       ${sections.education?.length ? `
-        <section style="margin-bottom: 20px;">
-          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">EDUCATION</h2>
+        <section style="margin-bottom: 20px; background-color: #ffffff;">
+          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600; background-color: #ffffff;">EDUCATION</h2>
           ${sections.education.map((edu: any) => `
-            <div style="margin-bottom: 12px;">
-              <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                <h3 style="font-size: 13px; font-weight: 600; margin: 0; color: #1f2937;">${edu.degree || 'Degree'} in ${edu.field_of_study || 'Field'}</h3>
-                <span style="font-size: 12px; color: #6b7280;">${edu.graduation_date || 'Year'}</span>
+            <div style="margin-bottom: 12px; background-color: #ffffff;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; background-color: #ffffff;">
+                <h3 style="font-size: 13px; font-weight: 600; margin: 0; color: #2563eb;">${edu.degree || 'Degree'} in ${edu.field_of_study || 'Field'}</h3>
+                <span style="font-size: 12px; color: #000000;">${edu.graduation_date || 'Year'}</span>
               </div>
-              <div style="font-size: 12px; color: #4b5563; margin-bottom: 3px;">${edu.institution || 'Institution Name'}</div>
-              ${edu.gpa ? `<div style="font-size: 11px; color: #6b7280;">GPA: ${edu.gpa}</div>` : ''}
+              <div style="font-size: 12px; color: #000000; margin-bottom: 3px;">${edu.institution || 'Institution Name'}</div>
+              ${edu.gpa ? `<div style="font-size: 11px; color: #000000;">GPA: ${edu.gpa}</div>` : ''}
               ${edu.relevant_coursework?.length ? `
-                <div style="margin-top: 3px;">
-                  <strong style="font-size: 11px;">Relevant Coursework:</strong>
-                  <span style="font-size: 11px; color: #6b7280;"> ${edu.relevant_coursework.join(', ')}</span>
+                <div style="margin-top: 3px; background-color: #ffffff;">
+                  <strong style="font-size: 11px; color: #000000;">Relevant Coursework:</strong>
+                  <span style="font-size: 11px; color: #000000;"> ${edu.relevant_coursework.join(', ')}</span>
                 </div>
               ` : ''}
               ${edu.honors?.length ? `
-                <div style="margin-top: 3px;">
-                  <strong style="font-size: 11px;">Honors:</strong>
-                  <span style="font-size: 11px; color: #059669;"> ${edu.honors.join(', ')}</span>
+                <div style="margin-top: 3px; background-color: #ffffff;">
+                  <strong style="font-size: 11px; color: #000000;">Honors:</strong>
+                  <span style="font-size: 11px; color: #000000;"> ${edu.honors.join(', ')}</span>
                 </div>
               ` : ''}
             </div>
@@ -1126,24 +1146,24 @@ const generateDetailedResumeHTML = (results: any): string => {
 
       <!-- Projects -->
       ${sections.projects?.length ? `
-        <section style="margin-bottom: 20px;">
-          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">KEY PROJECTS</h2>
+        <section style="margin-bottom: 20px; background-color: #ffffff;">
+          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600; background-color: #ffffff;">KEY PROJECTS</h2>
           ${sections.projects.map((project: any) => `
-            <div style="margin-bottom: 15px; page-break-inside: avoid;">
-              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px;">
-                <h3 style="font-size: 13px; font-weight: 600; margin: 0; color: #1f2937;">${project.name || 'Project Name'}</h3>
-                <span style="font-size: 11px; color: #6b7280;">${project.duration || 'Duration'}</span>
+            <div style="margin-bottom: 15px; page-break-inside: avoid; background-color: #ffffff;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px; background-color: #ffffff;">
+                <h3 style="font-size: 13px; font-weight: 600; margin: 0; color: #2563eb;">${project.name || 'Project Name'}</h3>
+                <span style="font-size: 11px; color: #000000;">${project.duration || 'Duration'}</span>
               </div>
-              <p style="font-size: 12px; margin-bottom: 5px; line-height: 1.4;">${project.description || 'Project description'}</p>
+              <p style="font-size: 12px; margin-bottom: 5px; line-height: 1.4; color: #000000;">${project.description || 'Project description'}</p>
               ${project.achievements?.length ? `
                 <ul style="margin: 5px 0 0 15px; padding: 0;">
-                  ${project.achievements.map((achievement: string) => `<li style="margin-bottom: 2px; font-size: 12px; color: #059669;">${achievement}</li>`).join('')}
+                  ${project.achievements.map((achievement: string) => `<li style="margin-bottom: 2px; font-size: 12px; color: #000000;">${achievement}</li>`).join('')}
                 </ul>
               ` : ''}
               ${project.technologies?.length ? `
-                <div style="margin-top: 5px;">
-                  <strong style="font-size: 11px; color: #6b7280;">Technologies:</strong>
-                  <span style="font-size: 11px; color: #6b7280;"> ${project.technologies.join(', ')}</span>
+                <div style="margin-top: 5px; background-color: #ffffff;">
+                  <strong style="font-size: 11px; color: #000000;">Technologies:</strong>
+                  <span style="font-size: 11px; color: #000000;"> ${project.technologies.join(', ')}</span>
                 </div>
               ` : ''}
             </div>
@@ -1153,15 +1173,15 @@ const generateDetailedResumeHTML = (results: any): string => {
 
       <!-- Certifications -->
       ${sections.certifications?.length ? `
-        <section style="margin-bottom: 20px;">
-          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">CERTIFICATIONS</h2>
+        <section style="margin-bottom: 20px; background-color: #ffffff;">
+          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600; background-color: #ffffff;">CERTIFICATIONS</h2>
           ${sections.certifications.map((cert: any) => `
-            <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; background-color: #ffffff;">
               <div>
-                <strong style="font-size: 12px; color: #1f2937;">${cert.name || 'Certification Name'}</strong>
-                <div style="font-size: 11px; color: #6b7280;">${cert.issuing_organization || 'Issuing Organization'}</div>
+                <strong style="font-size: 12px; color: #000000;">${cert.name || 'Certification Name'}</strong>
+                <div style="font-size: 11px; color: #000000;">${cert.issuing_organization || 'Issuing Organization'}</div>
               </div>
-              <div style="text-align: right; font-size: 11px; color: #6b7280;">
+              <div style="text-align: right; font-size: 11px; color: #000000;">
                 <div>Issued: ${cert.issue_date || 'Date'}</div>
                 ${cert.expiration_date ? `<div>Expires: ${cert.expiration_date}</div>` : ''}
               </div>
@@ -1172,16 +1192,16 @@ const generateDetailedResumeHTML = (results: any): string => {
 
       <!-- Awards -->
       ${sections.awards?.length ? `
-        <section style="margin-bottom: 20px;">
-          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">AWARDS & RECOGNITION</h2>
+        <section style="margin-bottom: 20px; background-color: #ffffff;">
+          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600; background-color: #ffffff;">AWARDS & RECOGNITION</h2>
           ${sections.awards.map((award: any) => `
-            <div style="margin-bottom: 8px;">
+            <div style="margin-bottom: 8px; background-color: #ffffff;">
               <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                <strong style="font-size: 12px; color: #1f2937;">${award.title || 'Award Title'}</strong>
-                <span style="font-size: 11px; color: #6b7280;">${award.date || 'Date'}</span>
+                <strong style="font-size: 12px; color: #000000;">${award.title || 'Award Title'}</strong>
+                <span style="font-size: 11px; color: #000000;">${award.date || 'Date'}</span>
               </div>
-              <div style="font-size: 11px; color: #6b7280;">${award.issuing_organization || 'Organization'}</div>
-              ${award.description ? `<p style="font-size: 11px; margin-top: 2px; line-height: 1.3;">${award.description}</p>` : ''}
+              <div style="font-size: 11px; color: #000000;">${award.issuing_organization || 'Organization'}</div>
+              ${award.description ? `<p style="font-size: 11px; margin-top: 2px; line-height: 1.3; color: #000000;">${award.description}</p>` : ''}
             </div>
           `).join('')}
         </section>
@@ -1189,19 +1209,19 @@ const generateDetailedResumeHTML = (results: any): string => {
 
       <!-- Volunteer Work -->
       ${sections.volunteer_work?.length ? `
-        <section style="margin-bottom: 20px;">
-          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">VOLUNTEER EXPERIENCE</h2>
+        <section style="margin-bottom: 20px; background-color: #ffffff;">
+          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600; background-color: #ffffff;">VOLUNTEER EXPERIENCE</h2>
           ${sections.volunteer_work.map((vol: any) => `
-            <div style="margin-bottom: 12px;">
+            <div style="margin-bottom: 12px; background-color: #ffffff;">
               <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px;">
-                <strong style="font-size: 12px; color: #1f2937;">${vol.role || 'Volunteer Role'}</strong>
-                <span style="font-size: 11px; color: #6b7280;">${vol.duration || 'Duration'}</span>
+                <strong style="font-size: 12px; color: #000000;">${vol.role || 'Volunteer Role'}</strong>
+                <span style="font-size: 11px; color: #000000;">${vol.duration || 'Duration'}</span>
               </div>
-              <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">${vol.organization || 'Organization Name'}</div>
-              <p style="font-size: 11px; line-height: 1.3; margin-bottom: 3px;">${vol.description || 'Description of volunteer work'}</p>
+              <div style="font-size: 11px; color: #000000; margin-bottom: 3px;">${vol.organization || 'Organization Name'}</div>
+              <p style="font-size: 11px; line-height: 1.3; margin-bottom: 3px; color: #000000;">${vol.description || 'Description of volunteer work'}</p>
               ${vol.achievements?.length ? `
                 <ul style="margin: 3px 0 0 15px; padding: 0;">
-                  ${vol.achievements.map((achievement: string) => `<li style="margin-bottom: 2px; font-size: 11px; color: #059669;">${achievement}</li>`).join('')}
+                  ${vol.achievements.map((achievement: string) => `<li style="margin-bottom: 2px; font-size: 11px; color: #000000;">${achievement}</li>`).join('')}
                 </ul>
               ` : ''}
             </div>
@@ -1211,17 +1231,17 @@ const generateDetailedResumeHTML = (results: any): string => {
 
       <!-- Publications -->
       ${sections.publications?.length ? `
-        <section style="margin-bottom: 20px;">
-          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PUBLICATIONS</h2>
+        <section style="margin-bottom: 20px; background-color: #ffffff;">
+          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600; background-color: #ffffff;">PUBLICATIONS</h2>
           ${sections.publications.map((pub: any) => `
-            <div style="margin-bottom: 10px;">
+            <div style="margin-bottom: 10px; background-color: #ffffff;">
               <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px;">
-                <strong style="font-size: 12px; color: #1f2937;">${pub.title || 'Publication Title'}</strong>
-                <span style="font-size: 11px; color: #6b7280;">${pub.date || 'Date'}</span>
+                <strong style="font-size: 12px; color: #000000;">${pub.title || 'Publication Title'}</strong>
+                <span style="font-size: 11px; color: #000000;">${pub.date || 'Date'}</span>
               </div>
-              <div style="font-size: 11px; color: #6b7280; font-style: italic; margin-bottom: 2px;">${pub.publication || 'Publication Name'}</div>
-              ${pub.authors?.length ? `<div style="font-size: 10px; color: #6b7280;">Authors: ${pub.authors.join(', ')}</div>` : ''}
-              ${pub.description ? `<p style="font-size: 11px; margin-top: 3px; line-height: 1.3;">${pub.description}</p>` : ''}
+              <div style="font-size: 11px; color: #000000; font-style: italic; margin-bottom: 2px;">${pub.publication || 'Publication Name'}</div>
+              ${pub.authors?.length ? `<div style="font-size: 10px; color: #000000;">Authors: ${pub.authors.join(', ')}</div>` : ''}
+              ${pub.description ? `<p style="font-size: 11px; margin-top: 3px; line-height: 1.3; color: #000000;">${pub.description}</p>` : ''}
             </div>
           `).join('')}
         </section>
@@ -1261,24 +1281,24 @@ const generateDetailedCoverLetterHTML = (results: any): string => {
     '';
 
   return `
-    <div style="font-family: 'Arial', sans-serif; line-height: 1.5; color: #333; max-width: 700px; margin: 0 auto;">
+    <div style="font-family: 'Arial', sans-serif; line-height: 1.5; color: #000000; background-color: #ffffff; max-width: 700px; margin: 20px auto; padding: 20px;">
       <!-- Header -->
-      <header style="text-align: center; margin-bottom: 30px;">
-        <h1 style="font-size: 22px; margin-bottom: 8px; color: #1f2937; font-weight: 600;">${name}</h1>
-        <div style="font-size: 13px; color: #6b7280;">
+      <header style="text-align: center; margin-bottom: 30px; background-color: #ffffff;">
+        <h1 style="font-size: 22px; margin-bottom: 8px; color: #2563eb; font-weight: 600;">${name}</h1>
+        <div style="font-size: 13px; color: #000000;">
           <div>${email}${phone ? ` • ${phone}` : ''}</div>
           ${location ? `<div>${location}</div>` : ''}
         </div>
       </header>
 
       <!-- Date -->
-      <div style="margin-bottom: 25px; text-align: right;">
-        <p style="font-size: 13px; color: #6b7280; margin: 0;">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      <div style="margin-bottom: 25px; text-align: right; background-color: #ffffff;">
+        <p style="font-size: 13px; color: #000000; margin: 0;">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
       </div>
 
       <!-- Employer Info -->
-      <div style="margin-bottom: 25px;">
-        <p style="font-size: 13px; color: #374151; margin: 0; line-height: 1.4;">
+      <div style="margin-bottom: 25px; background-color: #ffffff;">
+        <p style="font-size: 13px; color: #000000; margin: 0; line-height: 1.4;">
           Hiring Manager<br>
           ${jobDetails.company_name || 'Company Name'}<br>
           ${jobDetails.location || 'Company Location'}
@@ -1286,20 +1306,20 @@ const generateDetailedCoverLetterHTML = (results: any): string => {
       </div>
 
       <!-- Subject Line -->
-      <div style="margin-bottom: 20px;">
-        <p style="font-size: 13px; color: #374151; margin: 0;">
+      <div style="margin-bottom: 20px; background-color: #ffffff;">
+        <p style="font-size: 13px; color: #000000; margin: 0;">
           <strong>Re: Application for ${jobDetails.position || 'Position Title'}</strong>
         </p>
       </div>
 
       <!-- Salutation -->
-      <div style="margin-bottom: 15px;">
-        <p style="font-size: 13px; color: #374151; margin: 0;">Dear Hiring Manager,</p>
+      <div style="margin-bottom: 15px; background-color: #ffffff;">
+        <p style="font-size: 13px; color: #000000; margin: 0;">Dear Hiring Manager,</p>
       </div>
 
       <!-- Opening Paragraph -->
-      <div style="margin-bottom: 20px;">
-        <p style="font-size: 13px; line-height: 1.6; text-align: justify; color: #374151; margin: 0;">
+      <div style="margin-bottom: 20px; background-color: #ffffff;">
+        <p style="font-size: 13px; line-height: 1.6; text-align: justify; color: #000000; margin: 0;">
           ${coverLetter.opening_paragraph ||
     `I am writing to express my strong interest in the ${jobDetails.position || 'Position Title'} role at ${jobDetails.company_name || 'Company Name'}. With my comprehensive background in relevant technologies and proven track record of delivering exceptional results, I am excited about the opportunity to contribute to your team's continued success. My experience aligns perfectly with your requirements, and I am particularly drawn to this position because of its potential for professional growth and the company's reputation for innovation. Having researched your organization extensively, I am confident that my skills and passion make me an ideal candidate for this role.`
     }
@@ -1307,8 +1327,8 @@ const generateDetailedCoverLetterHTML = (results: any): string => {
       </div>
 
       <!-- Body Paragraph -->
-      <div style="margin-bottom: 20px;">
-        <p style="font-size: 13px; line-height: 1.6; text-align: justify; color: #374151; margin: 0;">
+      <div style="margin-bottom: 20px; background-color: #ffffff;">
+        <p style="font-size: 13px; line-height: 1.6; text-align: justify; color: #000000; margin: 0;">
           ${coverLetter.body_paragraph ||
     `Throughout my career, I have developed extensive expertise in key areas that directly align with your job requirements. In my previous roles, I have successfully led cross-functional teams, implemented innovative solutions that improved efficiency by significant percentages, and consistently delivered projects on time and within budget. My technical skills encompass the full range of technologies mentioned in your job posting, and I have applied these in real-world scenarios to drive measurable business outcomes. For example, I spearheaded initiatives that resulted in substantial cost savings, improved user satisfaction scores, and enhanced system performance metrics. I am particularly excited about the opportunity to bring my passion for problem-solving and my collaborative approach to your dynamic team, where I can contribute to achieving your organization's strategic objectives while continuing to grow professionally. My experience in stakeholder management, agile methodologies, and continuous improvement positions me well to make an immediate impact in this role.`
     }
@@ -1316,8 +1336,8 @@ const generateDetailedCoverLetterHTML = (results: any): string => {
       </div>
 
       <!-- Closing Paragraph -->
-      <div style="margin-bottom: 25px;">
-        <p style="font-size: 13px; line-height: 1.6; text-align: justify; color: #374151; margin: 0;">
+      <div style="margin-bottom: 25px; background-color: #ffffff;">
+        <p style="font-size: 13px; line-height: 1.6; text-align: justify; color: #000000; margin: 0;">
           ${coverLetter.closing_paragraph ||
     `I am eager to discuss how my background, skills, and enthusiasm can contribute to ${jobDetails.company_name || 'your company'}'s continued success. I would welcome the opportunity to speak with you about how I can add value to your team and help achieve your business goals. Thank you for your time and consideration. I look forward to hearing from you soon and am available at your convenience for an interview.`
     }
@@ -1325,16 +1345,16 @@ const generateDetailedCoverLetterHTML = (results: any): string => {
       </div>
 
       <!-- Sign-off -->
-      <div style="margin-bottom: 15px;">
-        <p style="font-size: 13px; color: #374151; margin: 0;">
+      <div style="margin-bottom: 15px; background-color: #ffffff;">
+        <p style="font-size: 13px; color: #000000; margin: 0;">
           Sincerely,<br><br>
           ${name}
         </p>
       </div>
 
       <!-- Footer -->
-      <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: center;">
-        <p style="font-size: 11px; color: #9ca3af; margin: 0;">
+      <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: center; background-color: #ffffff;">
+        <p style="font-size: 11px; color: #000000; margin: 0;">
           This cover letter was AI-enhanced and personalized for the ${jobDetails.position || 'target position'} at ${jobDetails.company_name || 'the company'}.
         </p>
       </div>
