@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, Download, FileText, CheckCircle, Target, TrendingUp, Award, Brain, Copy, Check, ChevronDown, ChevronUp, AlertCircle, Eye } from 'lucide-react';
 import { PDFViewer, PDFDownloadLink, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-import { Document as DocxDocument, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Indent } from 'docx';
+
 import ResumeTemplate, { PerfectHTMLToPDF } from './ResumeTemplate';
 import { PDFToDocxService } from '../../services/pdfToDocxService';
 import { ProfileService } from '../../services/profileService';
@@ -640,45 +640,37 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
   };
 
   const downloadAsDocx = async (content: string, filename: string) => {
+    console.log('[OptimizationResults] downloadAsDocx called, filename=', filename);
     try {
-      // Parse HTML content and create document sections
-      const sections = parseHtmlContent(content);
-
-      // Extract user name from HTML for better metadata
-      const nameMatch = content.match(/<h1[^>]*>(.*?)<\/h1>/i);
-      const userName = nameMatch ? nameMatch[1].replace(/<[^>]*>/g, '').trim() : 'Professional Resume';
-
-      // Create document with proper properties and metadata
-      const doc = new DocxDocument({
-        creator: 'AI Resume Enhancement System',
-        title: userName,
-        description: `Professional resume for ${userName} - AI-enhanced with optimal formatting for ATS systems`,
-        subject: 'Resume/CV Document',
-        keywords: 'resume, cv, professional, career, employment',
-        sections: [{
-          properties: {},
-          children: sections
-        }]
+      const payload = { html: content, filename };
+      console.log('[OptimizationResults] sending conversion request to /api/convert-html-to-docx');
+      const resp = await fetch('/api/convert-html-to-docx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
 
-      // Generate and download the document
-      const buffer = await Packer.toBuffer(doc);
-      const blob = new Blob([new Uint8Array(buffer)], {
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      });
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        console.error('[OptimizationResults] conversion API failed', resp.status, txt);
+        throw new Error('Conversion API failed');
+      }
 
+      console.log('[OptimizationResults] conversion API succeeded, reading blob');
+      const arrayBuffer = await resp.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename.endsWith('.docx') ? filename : filename + '.docx';
-      a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      console.log('[OptimizationResults] download started for', filename);
     } catch (error) {
-      console.error('Error creating DOCX file:', error);
-      // Fallback to text download if DOCX creation fails
+      console.error('[OptimizationResults] Error creating DOCX via server:', error);
+      // Fallback to text download
       const plainText = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
       const blob = new Blob([plainText], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
@@ -693,202 +685,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
   };
 
   // Helper function to parse HTML content into docx elements
-  const parseHtmlContent = (htmlContent: string) => {
-    const sections: any[] = [];
-
-    // Extract user name from HTML content for the title
-    const nameMatch = htmlContent.match(/<h1[^>]*>(.*?)<\/h1>/i);
-    const userName = nameMatch ? nameMatch[1].replace(/<[^>]*>/g, '').trim() : 'Professional Resume';
-
-    // Add user name as document title
-    sections.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: userName,
-            bold: true,
-            size: 32,
-          })
-        ],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 200 }
-      })
-    );
-
-    // Parse HTML content with better structure preservation
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlContent;
-
-    // Get top-level sections first (main content areas)
-    const topLevelElements = tempDiv.children;
-
-    for (let i = 0; i < topLevelElements.length; i++) {
-      const element = topLevelElements[i];
-
-      // Skip the h1 we already used as title
-      if (element.tagName === 'H1' && i === 0) continue;
-
-      if (element.tagName === 'H1') {
-        sections.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: element.textContent || '',
-                bold: true,
-                size: 32,
-                color: '2563EB' // Blue color
-              })
-            ],
-            heading: HeadingLevel.TITLE,
-            spacing: { before: 400, after: 200 }
-          })
-        );
-      } else if (element.tagName === 'H2') {
-        sections.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: element.textContent || '',
-                bold: true,
-                size: 26,
-                color: '2563EB' // Blue color
-              })
-            ],
-            heading: HeadingLevel.HEADING_1,
-            spacing: { before: 300, after: 150 }
-          })
-        );
-      } else if (element.tagName === 'SECTION') {
-        // Handle sections which contain structured content
-        const sectionChildren = element.children;
-        for (let j = 0; j < sectionChildren.length; j++) {
-          const child = sectionChildren[j];
-
-          if (child.tagName === 'H2') {
-            sections.push(
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: child.textContent || '',
-                    bold: true,
-                    size: 26,
-                    color: '2563EB' // Blue color
-                  })
-                ],
-                heading: HeadingLevel.HEADING_1,
-                spacing: { before: 300, after: 150 }
-              })
-            );
-          } else if (child.tagName === 'P') {
-            const textContent = child.textContent?.trim();
-            if (textContent) {
-              sections.push(
-                new Paragraph({
-                  children: [
-                    new TextRun({
-                      text: textContent,
-                      size: 20,
-                    })
-                  ],
-                  spacing: { after: 120 }
-                })
-              );
-            }
-          } else if (child.tagName === 'DIV') {
-            // Handle div content within sections
-            const divChildren = child.children;
-            for (let k = 0; k < divChildren.length; k++) {
-              const divChild = divChildren[k];
-
-              if (divChild.tagName === 'P') {
-                const textContent = divChild.textContent?.trim();
-                if (textContent) {
-                  sections.push(
-                    new Paragraph({
-                      children: [
-                        new TextRun({
-                          text: textContent,
-                          size: 20,
-                        })
-                      ],
-                      spacing: { after: 120 }
-                    })
-                  );
-                }
-              } else if (divChild.tagName === 'UL') {
-                const listItems = divChild.querySelectorAll('li');
-                listItems.forEach((li) => {
-                  const textContent = li.textContent?.trim();
-                  if (textContent) {
-                    sections.push(
-                      new Paragraph({
-                        children: [
-                          new TextRun({
-                            text: '• ' + textContent,
-                            size: 20,
-                          })
-                        ],
-                        indent: { left: 720 },
-                        spacing: { after: 80 }
-                      })
-                    );
-                  }
-                });
-              }
-            }
-          }
-        }
-      } else if (element.tagName === 'P') {
-        const textContent = element.textContent?.trim();
-        if (textContent) {
-          sections.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: textContent,
-                  size: 20,
-                })
-              ],
-              spacing: { after: 120 }
-            })
-          );
-        }
-      } else if (element.tagName === 'DIV' && element.textContent?.trim()) {
-        // Handle standalone div content
-        const textContent = element.textContent?.trim();
-        if (textContent && textContent.length > 2) {
-          sections.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: textContent,
-                  size: 20,
-                })
-              ],
-              spacing: { after: 120 }
-            })
-          );
-        }
-      }
-    }
-
-    // Add minimal footer with generation info
-    sections.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: `Generated by AI Resume Enhancement System on ${new Date().toLocaleDateString()}`,
-            size: 16,
-            italics: true,
-          })
-        ],
-        alignment: AlignmentType.CENTER,
-        spacing: { before: 300, after: 100 }
-      })
-    );
-
-    return sections;
-  };
+  // parseHtmlContent removed — server-side conversion now used via /api/convert-html-to-docx\n// Client no longer builds DOCX locally; server handles HTML rendering and DOCX generation.\n
 
   const getScoreBadge = (score: number) => {
     if (score >= 85) {
