@@ -1,5 +1,5 @@
 [build]
-  command = "npx puppeteer@latest install --product=chrome && npm run build"
+  command = "npx --yes puppeteer@latest install --product=chrome && npm run build"
   publish = ".next"
   base = "/"
 [build.environment]
