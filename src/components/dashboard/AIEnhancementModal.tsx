@@ -30,6 +30,38 @@ interface AIEnhancementModalProps {
   onSave: (resumeUrl: string, coverLetterUrl: string) => void;
   onClose: () => void;
 }
+/** Minimal focused types to reduce `any` usage in this file */
+type AIKeywordAnalysis = {
+  coverageScore?: number;
+  present_keywords?: string[];
+  missing_keywords?: string[];
+};
+
+type AIEnhancements = {
+  detailed_resume_sections?: Record<string, any>;
+  detailed_cover_letter?: Record<string, any>;
+  enhanced_summary?: string;
+  enhanced_experience_bullets?: any[];
+};
+
+type AIOptimizationResults = {
+  aiEnhancements?: AIEnhancements;
+  skillsOptimization?: { technicalSkills?: string[]; softSkills?: string[] };
+  strengths?: string[];
+  gaps?: string[];
+  suggestions?: string[];
+  keywordAnalysis?: AIKeywordAnalysis;
+  parsedResume?: { personal?: { name?: string; email?: string; phone?: string; location?: string } };
+  detailedUserProfile?: UserProfileData | null;
+  user?: { email?: string; displayName?: string };
+  extractedText?: string;
+  optimizedResumeUrl?: string;
+  optimizedCoverLetterUrl?: string;
+  matchScore?: number;
+  analysis?: Record<string, any>;
+  enhancements?: Record<string, any>;
+  rawAIResponse?: any;
+};
 
 // Generate a random UUID v4
 const generateUUID = (): string => {
