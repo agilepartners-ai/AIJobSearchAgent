@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // Initialize Firebase Admin SDK on first request (avoid module-load failures)
     if (!admin.apps.length) {
-      const projectId = process.env.FIREBASE_PROJECT_ID;
+      const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
       const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
       const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
       const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
