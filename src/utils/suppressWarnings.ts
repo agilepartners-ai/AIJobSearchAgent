@@ -6,9 +6,9 @@ const originalWarn = console.warn;
 const originalError = console.error;
 const originalLog = console.log;
 
-console.warn = (...args: any[]) => {
-  const message = args.join(' ');
-  
+console.warn = (...args: unknown[]): void => {
+  const message = args.map(String).join(' ');
+
   // Filter out SES deprecation warnings
   if (message.includes("The 'dateTaming' option is deprecated") ||
       message.includes("The 'mathTaming' option is deprecated") ||
@@ -19,14 +19,14 @@ console.warn = (...args: any[]) => {
       message.includes("lockdown-install.js")) {
     return;
   }
-  
+
   // Allow other warnings through
-  originalWarn.apply(console, args);
+  (originalWarn as (...a: unknown[]) => void).apply(console, args);
 };
 
-console.error = (...args: any[]) => {
-  const message = args.join(' ');
-  
+console.error = (...args: unknown[]): void => {
+  const message = args.map(String).join(' ');
+
   // Filter out SES-related errors
   if (message.includes("SES_UNCAUGHT_EXCEPTION") ||
       message.includes("lockdown-install.js") ||
@@ -35,14 +35,14 @@ console.error = (...args: any[]) => {
       message.includes("SES Removing unpermitted")) {
     return;
   }
-  
+
   // Allow other errors through
-  originalError.apply(console, args);
+  (originalError as (...a: unknown[]) => void).apply(console, args);
 };
 
-console.log = (...args: any[]) => {
-  const message = args.join(' ');
-  
+console.log = (...args: unknown[]): void => {
+  const message = args.map(String).join(' ');
+
   // Filter out SES-related logs
   if (message.includes("SES The 'dateTaming'") ||
       message.includes("SES The 'mathTaming'") ||
@@ -50,13 +50,13 @@ console.log = (...args: any[]) => {
       message.includes("lockdown-install.js")) {
     return;
   }
-  
+
   // Allow other logs through
-  originalLog.apply(console, args);
+  (originalLog as (...a: unknown[]) => void).apply(console, args);
 };
 
 // Global error handler to catch SES errors
-window.addEventListener('error', (event) => {
+window.addEventListener('error', (event: ErrorEvent) => {
   if (event.message && (
     event.message.includes('SES_UNCAUGHT_EXCEPTION') ||
     event.message.includes('lockdown-install.js') ||
@@ -64,15 +64,20 @@ window.addEventListener('error', (event) => {
     event.message.includes("mathTaming")
   )) {
     event.preventDefault();
-    return false;
+    // Returning false in modern browsers is unnecessary; preventDefault suffices
   }
 });
 
 // Handle unhandled promise rejections
-window.addEventListener('unhandledrejection', (event) => {
-  if (event.reason && event.reason.message && (
-    event.reason.message.includes('SES_UNCAUGHT_EXCEPTION') ||
-    event.reason.message.includes('lockdown-install.js')
+window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+  const reason = (event as PromiseRejectionEvent).reason;
+  const reasonMessage = (typeof reason === 'object' && reason !== null && 'message' in reason)
+    ? String((reason as { message?: unknown }).message)
+    : String(reason);
+
+  if (reasonMessage && (
+    reasonMessage.includes('SES_UNCAUGHT_EXCEPTION') ||
+    reasonMessage.includes('lockdown-install.js')
   )) {
     event.preventDefault();
   }

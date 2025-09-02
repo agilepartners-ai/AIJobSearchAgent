@@ -1,11 +1,13 @@
 [build]
-  command = "npx --yes puppeteer@latest install --product=chrome && npm run build"
+  command = "npx --yes @puppeteer/browsers install chrome@stable --cache-dir=./.cache/puppeteer && npm run build"
   publish = ".next"
   base = "/"
+
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
   CI = "false"
+  PUPPETEER_CACHE_DIR = ".cache/puppeteer"
 
 # Optional: Custom headers for security
 [[headers]]

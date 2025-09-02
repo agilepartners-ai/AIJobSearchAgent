@@ -111,6 +111,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   // NEW: track if user edited prompts to avoid resetting them
   const [aiPromptEdited, setAiPromptEdited] = React.useState<boolean>(false);
   const [systemPromptEdited, setSystemPromptEdited] = React.useState<boolean>(false);
+  // DEBUG toggle for advanced options (used by several conditional sections)
+  const [showDebugOptions, setShowDebugOptions] = React.useState<boolean>(false);
 
 
   const { user } = useAuth();
