@@ -1,7 +1,7 @@
 [build]
-  command = "npm run build"
-  publish=".next"
-  base="/"
+  command = "npx puppeteer@latest install --product=chrome && npm run build"
+  publish = ".next"
+  base = "/"
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
@@ -20,7 +20,8 @@
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
 [[redirects]]
-from ="/*"
-to ="/index.html"
-status= 200
+  from = "/*"
+  to = "/index.html"
+  status = 200
