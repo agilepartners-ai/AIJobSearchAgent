@@ -16,6 +16,7 @@ import {
 } from '../../store/dashboardSlice';
 import { useRouter } from 'next/navigation';
 import DashboardHeader from './DashboardHeader';
+import LeftSidebar from './LeftSidebar';
 import StatsCards from './StatsCards';
 import ApplicationsTable from './ApplicationsTable';
 import JobDescriptionModal from './JobDescriptionModal';
@@ -24,6 +25,7 @@ import JobPreferencesModal from './JobPreferencesModal';
 import JobSearchModal from './JobSearchModal';
 import ProfileModal from './ProfileModal';
 import AIEnhancementModal from './AIEnhancementModal';
+import SavedResumePage from './SavedResumePage';
 import { JobApplication, ApplicationStats, FirebaseJobApplicationService } from '../../services/firebaseJobApplicationService';
 import { JobSearchService } from '../../services/jobSearchService';
 import { useAuth } from '../../hooks/useAuth';
@@ -66,6 +68,7 @@ const Dashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showSavedResumePage, setShowSavedResumePage] = useState(false);
   const [stats, setStats] = useState<ApplicationStats>({
     total: 0,
     interviews: 0,
@@ -175,8 +178,18 @@ const Dashboard: React.FC = () => {
 
 
   const handleAddApplication = () => {
-    dispatch(setEditingApplication(null));
-    dispatch(setShowModal(true));
+    // If we're on SavedResumePage, navigate back to dashboard first
+    if (showSavedResumePage) {
+      setShowSavedResumePage(false);
+      // Use setTimeout to ensure navigation completes before opening modal
+      setTimeout(() => {
+        dispatch(setEditingApplication(null));
+        dispatch(setShowModal(true));
+      }, 100);
+    } else {
+      dispatch(setEditingApplication(null));
+      dispatch(setShowModal(true));
+    }
   };
 
   const handleJobPreferences = () => {
@@ -394,7 +407,34 @@ const Dashboard: React.FC = () => {
   };
 
   const handleFindMoreJobs = () => {
-    dispatch(setShowJobSearchModal(true));
+    // If we're on SavedResumePage, navigate back to dashboard first
+    if (showSavedResumePage) {
+      setShowSavedResumePage(false);
+      // Use setTimeout to ensure navigation completes before opening modal
+      setTimeout(() => {
+        dispatch(setShowJobSearchModal(true));
+      }, 100);
+    } else {
+      dispatch(setShowJobSearchModal(true));
+    }
+  };
+
+  const handleUpgrade = () => {
+    // Open upgrade URL in same tab for better user experience
+    const paymentUrl = `https://pay.rev.cat/sandbox/evfhfhevsehbykku/${user?.id}`;
+    window.location.href = paymentUrl;
+  };
+
+  const handleDashboard = () => {
+    setShowSavedResumePage(false);
+  };
+
+  const handleSavedResume = () => {
+    setShowSavedResumePage(true);
+  };
+
+  const handleBackFromSavedResume = () => {
+    setShowSavedResumePage(false);
   };
 
   const handleViewJobDescription = (job: { title: string; company: string; description: string }) => {
@@ -425,6 +465,21 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  // Show Saved Resume Page if active
+  if (showSavedResumePage) {
+    return (
+      <SavedResumePage
+        onBack={handleBackFromSavedResume}
+        onAddApplication={handleAddApplication}
+        onJobPreferences={handleJobPreferences}
+        onUpdateProfile={handleUpdateProfile}
+        onFindMoreJobs={handleFindMoreJobs}
+        onUpgrade={handleUpgrade}
+        userProfile={userProfile}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <DashboardHeader
@@ -432,10 +487,19 @@ const Dashboard: React.FC = () => {
         onAddApplication={handleAddApplication}
         onJobPreferences={handleJobPreferences}
         onUpdateProfile={handleUpdateProfile}
-        onFindMoreJobs={handleFindMoreJobs}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 dashboard-main">
+
+
+      <LeftSidebar
+        onDashboard={handleDashboard}
+        onFindMoreJobs={handleFindMoreJobs}
+        onAddApplication={handleAddApplication}
+        onSavedResume={handleSavedResume}
+        onUpgrade={handleUpgrade}
+      />
+
+      <main className="ml-64 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 dashboard-main">
         {loading && (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>

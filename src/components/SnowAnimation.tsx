@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from "react";
 import "./SnowAnimation.css";
 
-const SnowAnimation: React.FC = memo(() => {
+const SnowAnimationComponent: React.FC = () => {
   // Generate random properties for each snowflake
   const snowflakes = useMemo(() => {
     return Array.from({ length: 200 }, (_, i) => ({
@@ -21,6 +21,10 @@ const SnowAnimation: React.FC = memo(() => {
       ))}
     </div>
   );
-});
+};
+
+SnowAnimationComponent.displayName = 'SnowAnimation';
+
+const SnowAnimation = memo(SnowAnimationComponent);
 
 export default SnowAnimation;
