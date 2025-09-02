@@ -30,22 +30,40 @@ const SavedResumePage: React.FC<SavedResumePageProps> = ({
   const [error, setError] = useState('');
   const [activeDocumentType, setActiveDocumentType] = useState<'resume' | 'cover_letter'>('resume');
   const [previewStates, setPreviewStates] = useState<{ [key: string]: boolean }>({});
+  const [resolvedUrls, setResolvedUrls] = useState<{ [appId: string]: string | null }>({});
+  const [resolving, setResolving] = useState<{ [appId: string]: boolean }>({});
 
   const { user, loading: authLoading } = useAuth();
   const { showError } = useToastContext();
 
   useEffect(() => {
+    console.log('[SavedResumePage] Effect: authLoading=', authLoading, 'user=', !!user);
     if (!authLoading) {
       loadSavedResumes();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading]);
 
+  const logAppInspection = (app: JobApplication) => {
+    console.log(`[SavedResumePage] Inspecting app ${app.id}:`, {
+      resume_url: (app as any).resume_url,
+      cover_letter_url: (app as any).cover_letter_url,
+      resumeUrl: (app as any).resumeUrl,
+      coverLetterUrl: (app as any).coverLetterUrl,
+      optimizedResumeUrl: (app as any).optimizedResumeUrl,
+      optimized_cover_letter_url: (app as any).optimized_cover_letter_url,
+    });
+  };
+
   const loadSavedResumes = async () => {
+    console.log('[SavedResumePage] loadSavedResumes: start');
     if (authLoading) {
+      console.log('[SavedResumePage] loadSavedResumes: auth still loading, abort');
       return; // Still loading authentication
     }
 
     if (!user) {
+      console.warn('[SavedResumePage] loadSavedResumes: no user');
       setError('Please log in to view your saved resumes');
       setLoading(false);
       return;
@@ -53,13 +71,27 @@ const SavedResumePage: React.FC<SavedResumePageProps> = ({
 
     try {
       setLoading(true);
+      console.log('[SavedResumePage] Fetching applications for user:', user.id);
       const allApplications = await FirebaseJobApplicationService.getUserApplications(user.id);
+      console.log('[SavedResumePage] Fetched applications count:', allApplications.length);
 
-      // Filter applications that have either resume_url or cover_letter_url
-      const savedResumes = allApplications.filter(app =>
-        app.resume_url || app.cover_letter_url
-      );
+      // Filter applications that have either resume_url or cover_letter_url (accept camelCase too)
+      const savedResumes = allApplications.filter(app => {
+        const present = !!(
+          (app as any).resume_url ||
+          (app as any).cover_letter_url ||
+          (app as any).resumeUrl ||
+          (app as any).coverLetterUrl ||
+          (app as any).optimizedResumeUrl ||
+          (app as any).optimized_resume_url ||
+          (app as any).optimizedCoverLetterUrl ||
+          (app as any).optimized_cover_letter_url
+        );
+        if (present) logAppInspection(app);
+        return present;
+      });
 
+      console.log('[SavedResumePage] Applications with documents:', savedResumes.map(a => a.id));
       setApplications(savedResumes);
 
       // Set all previews to show by default
@@ -68,12 +100,16 @@ const SavedResumePage: React.FC<SavedResumePageProps> = ({
         defaultPreviewStates[app.id] = true;
       });
       setPreviewStates(defaultPreviewStates);
+
+      // Kick off URL resolution (non-blocking)
+      resolveAllUrls(savedResumes);
     } catch (err: any) {
-      console.error('Error loading saved resumes:', err);
+      console.error('[SavedResumePage] Error loading saved resumes:', err);
       setError(err.message || 'Failed to load saved resumes');
       showError('Error', 'Failed to load saved resumes');
     } finally {
       setLoading(false);
+      console.log('[SavedResumePage] loadSavedResumes: finished');
     }
   };
 
@@ -84,26 +120,206 @@ const SavedResumePage: React.FC<SavedResumePageProps> = ({
     }));
   };
 
-  const getDocumentUrl = (application: JobApplication) => {
-    if (activeDocumentType === 'resume') {
-      return application.resume_url;
-    } else {
-      return application.cover_letter_url;
+  const getDocumentCandidates = (application: JobApplication): string[] => {
+    // Order of preference: explicit saved, optimized, camelCase, snake_case
+    const candidates: (string | null | undefined)[] = [
+      (application as any).resume_url,
+      (application as any).resumeUrl,
+      (application as any).optimizedResumeUrl,
+      (application as any).optimized_resume_url,
+      (application as any).cover_letter_url,
+      (application as any).coverLetterUrl,
+      (application as any).optimizedCoverLetterUrl,
+      (application as any).optimized_cover_letter_url,
+    ];
+
+    // Normalize and filter empties
+    return candidates
+      .filter(Boolean)
+      .map(c => String(c))
+      .filter(Boolean);
+  };
+
+  const tryNormalizeToHttp = (raw: string): string => {
+    // eslint-disable-next-line no-useless-escape
+    try {
+      // If already looks like full http(s) URL, return decoded
+      if (/^https?:\/\//i.test(raw)) return decodeIfNeeded(raw);
+
+      // If gs://bucket/path -> https://storage.googleapis.com/bucket/path
+      if (raw.startsWith('gs://')) {
+        const without = raw.replace(/^gs:\/\//, '');
+        const [bucket, ...rest] = without.split('/');
+        const path = rest.join('/');
+        return `https://storage.googleapis.com/${bucket}/${decodeIfNeeded(path)}`;
+      }
+
+      // If percent-encoded path like ApplicationDocuments%2Fxxx, decode and treat as object path
+      const decoded = decodeIfNeeded(raw);
+
+      // If decoded looks like an object path (contains '/'), and a bucket env exists, use it
+      const bucket = (process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || process.env.NEXT_PUBLIC_STORAGE_BUCKET || '');
+      if (decoded && decoded.includes('/') && bucket) {
+        return `https://storage.googleapis.com/${bucket.replace(/^gs:\/\/|\/$/g, '')}/${decoded}`;
+      }
+
+      // If it's just a filename or folder path and bucket exists, prefix
+      if (bucket && decoded) {
+        return `https://storage.googleapis.com/${bucket.replace(/^gs:\/\/|\/$/g, '')}/${decoded}`;
+      }
+
+      // As a last resort, return decoded string (may be a URL missing protocol)
+      if (/^[\w\-_.]+\/.+/.test(decoded)) {
+        // Looks like path/object -> try storage.googleapis.com with no bucket
+        return `https://storage.googleapis.com/${decoded}`;
+      }
+
+      return decoded;
+    } catch (err) {
+      console.warn('[SavedResumePage] tryNormalizeToHttp error for raw:', raw, err);
+      return raw;
+    }
+  }
+
+  const decodeIfNeeded = (s: string) => {
+    try {
+      // Try decode once, if it fails return original
+      return decodeURIComponent(s);
+    } catch {
+      return s;
+    }
+  };
+
+  const checkUrlReachable = async (url: string) => {
+    try {
+      console.log('[SavedResumePage] checkUrlReachable HEAD', url);
+      const resp = await fetch(url, { method: 'HEAD' });
+      console.log('[SavedResumePage] HEAD response', url, resp.status);
+      return resp.ok;
+    } catch (err) {
+      console.warn('[SavedResumePage] HEAD fetch failed for', url, err);
+      // Some hosts may reject HEAD; fallback to GET with range or small timeout
+      try {
+        const r2 = await fetch(url, { method: 'GET' });
+        console.log('[SavedResumePage] GET fallback response', url, r2.status);
+        return r2.ok;
+      } catch (err2) {
+        console.warn('[SavedResumePage] GET fallback also failed for', url, err2);
+        return false;
+      }
+    }
+  };
+
+  const resolveUrlForApplication = async (app: JobApplication) => {
+    const id = app.id;
+    console.log('[SavedResumePage] resolveUrlForApplication start:', id);
+    setResolving(prev => ({ ...prev, [id]: true }));
+
+    const candidates = getDocumentCandidates(app);
+    console.log('[SavedResumePage] candidates for', id, candidates);
+
+    for (const raw of candidates) {
+      try {
+        // Normalize candidate to HTTP URL
+        const normalized = tryNormalizeToHttp(raw);
+        console.log(`[SavedResumePage] trying normalized url for app ${id}:`, normalized);
+
+        // Quick reachability check
+        const ok = await checkUrlReachable(normalized);
+        if (ok) {
+          console.log(`[SavedResumePage] resolved URL for ${id}:`, normalized);
+          setResolvedUrls(prev => ({ ...prev, [id]: normalized }));
+          setResolving(prev => ({ ...prev, [id]: false }));
+          return normalized;
+        } else {
+          console.warn(`[SavedResumePage] candidate not reachable for ${id}:`, normalized);
+        }
+
+        // Try decoded raw
+        const decoded = decodeIfNeeded(raw);
+        if (decoded !== normalized) {
+          const ok2 = await checkUrlReachable(decoded);
+          if (ok2) {
+            console.log(`[SavedResumePage] resolved decoded URL for ${id}:`, decoded);
+            setResolvedUrls(prev => ({ ...prev, [id]: decoded }));
+            setResolving(prev => ({ ...prev, [id]: false }));
+            return decoded;
+          }
+        }
+      } catch (err) {
+        console.error('[SavedResumePage] error while checking candidate', raw, err);
+      }
+    }
+
+    // If none reachable, still store a best-effort URL (first candidate decoded) so iframe has something to try
+    if (candidates.length > 0) {
+      const best = decodeIfNeeded(candidates[0]);
+      console.warn(`[SavedResumePage] No reachable candidate found for ${id}, using best-effort:`, best);
+      setResolvedUrls(prev => ({ ...prev, [id]: best }));
+      setResolving(prev => ({ ...prev, [id]: false }));
+      return best;
+    }
+
+    console.log('[SavedResumePage] No candidates available for', id);
+    setResolvedUrls(prev => ({ ...prev, [id]: null }));
+    setResolving(prev => ({ ...prev, [id]: false }));
+    return null;
+  };
+
+  const resolveAllUrls = async (apps: JobApplication[]) => {
+    console.log('[SavedResumePage] resolveAllUrls for', apps.map(a => a.id));
+    // Limit concurrency to avoid too many HEAD requests at once
+    const concurrency = 4;
+    let index = 0;
+
+    const worker = async () => {
+      while (index < apps.length) {
+        const i = index++;
+        const app = apps[i];
+        await resolveUrlForApplication(app);
+      }
+    };
+
+    const workers = Array.from({ length: concurrency }).map(() => worker());
+    await Promise.all(workers);
+    console.log('[SavedResumePage] resolveAllUrls: done', resolvedUrls);
+  };
+
+  const getDocumentUrlToUse = (application: JobApplication) => {
+    // If a resolved URL exists, prefer it
+    if (resolvedUrls[application.id]) {
+      return resolvedUrls[application.id];
+    }
+
+    // Otherwise, fall back to candidate normalization (non-prefixed)
+    const candidates = getDocumentCandidates(application);
+    if (candidates.length === 0) return null;
+    const first = candidates[0];
+    try {
+      return tryNormalizeToHttp(first);
+    } catch {
+      return decodeIfNeeded(first);
     }
   };
 
   const hasDocument = (application: JobApplication) => {
-    return getDocumentUrl(application) !== null;
+    const url = getDocumentUrlToUse(application);
+    return !!url && url !== 'null' && url !== 'undefined';
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return dateString;
+    }
   };
 
+  // Render loading or UI
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -191,7 +407,10 @@ const SavedResumePage: React.FC<SavedResumePageProps> = ({
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {applications.map((application) => (
+            {applications.map((application) => {
+              const docUrl = getDocumentUrlToUse(application);
+              const isResolving = resolving[application.id];
+              return (
               <div
                 key={application.id}
                 className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
@@ -254,6 +473,7 @@ const SavedResumePage: React.FC<SavedResumePageProps> = ({
                           <FileText size={16} className="text-gray-500" />
                           <span className="text-sm font-medium text-gray-900 dark:text-white">
                             {activeDocumentType === 'resume' ? 'Resume' : 'Cover Letter'}
+                            {isResolving && <span className="ml-2 text-xs text-gray-500"> (resolving...)</span>}
                           </span>
                         </div>
                         <div className="flex gap-2">
@@ -265,7 +485,7 @@ const SavedResumePage: React.FC<SavedResumePageProps> = ({
                             {previewStates[application.id] ? 'Hide Preview' : 'Show Preview'}
                           </button>
                           <a
-                            href={getDocumentUrl(application)!}
+                            href={docUrl || '#'}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 px-3 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800/30 transition-colors"
@@ -278,11 +498,17 @@ const SavedResumePage: React.FC<SavedResumePageProps> = ({
 
                       {previewStates[application.id] && (
                         <div className="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
-                          <iframe
-                            src={getDocumentUrl(application)!}
-                            className="w-full h-64 bg-white"
-                            title={`${activeDocumentType === 'resume' ? 'Resume' : 'Cover Letter'} Preview`}
-                          />
+                          {docUrl ? (
+                            <iframe
+                              src={docUrl}
+                              className="w-full h-64 bg-white"
+                              title={`${activeDocumentType === 'resume' ? 'Resume' : 'Cover Letter'} Preview`}
+                            />
+                          ) : (
+                            <div className="p-6 text-center text-sm text-gray-500">
+                              Unable to preview document. Stored URL is not reachable.
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -296,7 +522,7 @@ const SavedResumePage: React.FC<SavedResumePageProps> = ({
                   )}
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         )}
         </div>
