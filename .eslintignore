@@ -1,0 +1,6 @@
+# Ignore third-party, build, and static files
+public/
+node_modules/
+*.min.js
+*.min.mjs
+*.bundle.js

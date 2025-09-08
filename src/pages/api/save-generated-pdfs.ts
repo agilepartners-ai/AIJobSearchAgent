@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import admin from 'firebase-admin';
 
+
 // Handler lazily initializes Firebase Admin and Puppeteer to avoid module-load failures
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log('\n--- 📩 Incoming request to /api/save-generated-pdfs ---');
