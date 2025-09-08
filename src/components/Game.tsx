@@ -148,7 +148,7 @@ const Typewriter = ({
   );
 };
 
-export const Game: React.FC = memo(() => {
+const GameComponent: React.FC = () => {
   const [niceScore, setNiceScore] = useAtom(niceScoreAtom);
   const [naughtyScore, setNaughtyScore] = useAtom(naughtyScoreAtom);
   const [showNice, setShowNice] = useState(false);
@@ -328,4 +328,8 @@ export const Game: React.FC = memo(() => {
       </div>
     </div>
   );
-});
+};
+
+GameComponent.displayName = 'Game';
+
+export const Game = memo(GameComponent);

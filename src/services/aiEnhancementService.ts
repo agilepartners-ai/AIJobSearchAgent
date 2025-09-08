@@ -2,6 +2,9 @@ export interface AIEnhancementOptions {
     modelType?: string;
     model?: string;
     fileId?: string;
+    // NEW: full prompt overrides (replace whole prompt if provided)
+    userPromptOverride?: string;
+    systemPromptOverride?: string;
 }
 
 export interface AIEnhancementRequest {
@@ -373,16 +376,30 @@ ${resumeText}
 Provide a comprehensive analysis and optimization following the JSON structure specified in the system prompt. Make sure all recommendations are specific, actionable, and tailored to this exact job posting.`;
     }
 
-    // If you'd like to completely change the prompt entirely then you have to change the entire createDetailedUserPrompt 
-    // Create detailed user prompt
     private static createDetailedUserPrompt(resumeText: string, jobDescription: string): string {
         return `Please analyze and create detailed, comprehensive enhanced content for this resume and a personalized cover letter for the given job description.
 
+        Create a comprehensive analysis and detailed enhanced content following the JSON structure. The enhanced resume should be suitable for a multi-page document with detailed sections. The cover letter should have two substantial paragraphs that create a compelling narrative connecting the candidate's experience to the job requirements.
+
+Make sure all content is:
+1. Highly detailed and professional
+2. Tailored specifically to the job posting
+3. Includes quantified achievements where possible
+4. Uses industry-specific terminology
+5. Optimized for ATS systems
+6. Creates a compelling narrative for the candidate
+
+Use this for context:
 JOB DESCRIPTION:
 ${jobDescription}
 
 CURRENT RESUME:
-${resumeText}
+${resumeText}`;
+    }
+
+    // NEW: header-only template (editable part in UI)
+    private static createDetailedUserPromptHeader(): string {
+        return `Please analyze and create detailed, comprehensive enhanced content for this resume and a personalized cover letter for the given job description.
 
 Create a comprehensive analysis and detailed enhanced content following the JSON structure. The enhanced resume should be suitable for a multi-page document with detailed sections. The cover letter should have two substantial paragraphs that create a compelling narrative connecting the candidate's experience to the job requirements.
 
@@ -393,6 +410,24 @@ Make sure all content is:
 4. Uses industry-specific terminology
 5. Optimized for ATS systems
 6. Creates a compelling narrative for the candidate`;
+    }
+
+    // NEW: public alias used by UI to get the default "user" prompt header (no context block)
+    static createUserSystemPrompt(_resumeText: string, _jobDescription: string): string {
+        return this.createDetailedUserPromptHeader();
+    }
+
+    // Helper to compose final user prompt (header + fixed context)
+    private static buildFinalUserPrompt(header: string, resumeText: string, jobDescription: string): string {
+        const hdr = (header || '').trim();
+        return `${hdr}
+
+Use this for context:
+JOB DESCRIPTION:
+${jobDescription}
+
+CURRENT RESUME:
+${resumeText}`;
     }
 
     // Enhanced resume analysis using OpenAI directly (like AiJobSearch-old)
@@ -411,20 +446,21 @@ Make sure all content is:
 
             const openai = await getOpenAIInstance();
 
+            // Use strict overrides when provided, and ALWAYS append fixed context
+            const systemContent =
+                options.systemPromptOverride ?? this.createDetailedSystemPrompt();
+            const userHeader =
+                options.userPromptOverride ?? this.createDetailedUserPromptHeader();
+            const userContent = this.buildFinalUserPrompt(userHeader, resumeText, jobDescription);
+
             const completion = await openai.chat.completions.create({
                 model: options.model || this.DEFAULT_MODEL,
                 messages: [
-                    {
-                        role: 'system',
-                        content: this.createDetailedSystemPrompt()
-                    },
-                    {
-                        role: 'user',
-                        content: this.createDetailedUserPrompt(resumeText, jobDescription)
-                    }
+                    { role: 'system', content: systemContent },
+                    { role: 'user', content: userContent }
                 ],
                 temperature: 0.7,
-                max_tokens: 6000, // Increased for detailed content
+                max_tokens: 6000,
                 response_format: { type: 'json_object' }
             });
 
@@ -516,14 +552,19 @@ Make sure all content is:
             const modelId = options.model || this.DEFAULT_MODEL || 'gemini-2.5-flash';
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelId)}:generateContent`;
 
-            // Combine system and user prompts into a single user message
-            const systemPrompt = this.createDetailedSystemPrompt();
-            const userPrompt = this.createDetailedUserPrompt(resumeText, jobDescription);
+            // Use strict overrides when provided, and ALWAYS append fixed context
+            const systemContent =
+                options.systemPromptOverride ?? this.createDetailedSystemPrompt();
+            const userHeader =
+                options.userPromptOverride ?? this.createDetailedUserPromptHeader();
+            const userContent = this.buildFinalUserPrompt(userHeader, resumeText, jobDescription);
+
+            // Combine system and user prompts into a single user message for Gemini
             const payload = {
                 contents: [
                     {
                         parts: [
-                            { text: `${systemPrompt}\n\n${userPrompt}` }
+                            { text: `${systemContent}\n\n${userContent}` }
                         ]
                     }
                 ]
