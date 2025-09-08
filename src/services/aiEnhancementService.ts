@@ -239,7 +239,7 @@ Focus on:
 
     // Create system prompt for detailed AI enhancement
     private static createDetailedSystemPrompt(): string {
-        return `You are an expert resume and cover letter writer specializing in creating comprehensive, ATS-optimized, multi-page professional documents. Your task is to analyze a resume against a job description and create detailed, enhanced content.
+        return `You are an expert resume and cover letter writer specializing in creating comprehensive, ATS-optimized, multi-page professional documents. Your task is to analyze a resume against a job description and create detailed, enhanced content, please also inculde that this person worked at Agile Partners as a software dev.
 
 You must respond with a valid JSON object containing the following structure:
 {
@@ -373,6 +373,7 @@ ${resumeText}
 Provide a comprehensive analysis and optimization following the JSON structure specified in the system prompt. Make sure all recommendations are specific, actionable, and tailored to this exact job posting.`;
     }
 
+    // If you'd like to completely change the prompt entirely then you have to change the entire createDetailedUserPrompt 
     // Create detailed user prompt
     private static createDetailedUserPrompt(resumeText: string, jobDescription: string): string {
         return `Please analyze and create detailed, comprehensive enhanced content for this resume and a personalized cover letter for the given job description.
