@@ -1,0 +1,29 @@
+[build]
+  command = "npx --yes @puppeteer/browsers install chrome@stable --cache-dir=./.cache/puppeteer && npm run build"
+  publish = ".next"
+  base = "/"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"
+  CI = "false"
+  PUPPETEER_CACHE_DIR = ".cache/puppeteer"
+
+# Optional: Custom headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+
+# Cache static assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

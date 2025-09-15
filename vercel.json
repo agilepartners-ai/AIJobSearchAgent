@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "src/pages/api/save-generated-pdfs.ts": {
+      "maxDuration": 90
+    }
+  },
+  "regions": ["iad1"]
+}
