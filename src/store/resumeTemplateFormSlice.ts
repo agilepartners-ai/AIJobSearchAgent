@@ -10,7 +10,7 @@ interface ResumeTemplateFormState {
 const initialState: ResumeTemplateFormState = {
   formData: {},
   expandedSections: ['personal', 'education', 'experience', 'skills', 'template'],
-  formatChoice: 'html',
+  formatChoice: 'docs',
   selectedTemplate: 'modern',
 };
 

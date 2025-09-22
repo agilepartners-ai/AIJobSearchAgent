@@ -1,5 +1,4 @@
-import { configureStore } from '@reduxjs/toolkit';
-import { combineReducers } from 'redux';
+import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import applicationModalReducer from './applicationModalSlice';
 import dashboardReducer from './dashboardSlice';
 import resumeTemplateFormReducer from './resumeTemplateFormSlice';
@@ -48,5 +47,6 @@ export const store = configureStore({
 
 export const persistor = persistStore(store);
 
-export type RootState = ReturnType<typeof store.getState>;
+// Use the root reducer return type for RootState so selector hooks see persisted slices
+export type RootState = ReturnType<typeof rootReducer>;
 export type AppDispatch = typeof store.dispatch;

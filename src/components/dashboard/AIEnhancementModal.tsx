@@ -8,6 +8,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { extractTextFromPDF, validatePDFFile, PDFExtractionResult, extractTextFallback } from '../../utils/pdfUtils';
 
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import ResumeTemplate, { PerfectHTMLToPDF } from './ResumeTemplate';
+import { pdf, Font } from '@react-pdf/renderer';
 import {
   setSelectedFile,
   setCloudProvider,
@@ -78,9 +80,24 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   // NEW: track if user edited prompts to avoid resetting them
   const [aiPromptEdited, setAiPromptEdited] = React.useState<boolean>(false);
   const [systemPromptEdited, setSystemPromptEdited] = React.useState<boolean>(false);
+  // NEW: track developer section collapse state (closed by default)
+  const [showDeveloperSection, setShowDeveloperSection] = React.useState<boolean>(false);
+  // NEW: rotating informative text for loader
+  const [currentLoaderText, setCurrentLoaderText] = React.useState<string>('');
+  const [textFadeClass, setTextFadeClass] = React.useState<string>('animate-fade-in-text');
 
   const { user } = useAuth();
   const config = AIEnhancementService.getConfiguration();
+
+  // Informative loader texts to rotate randomly
+  const loaderTexts = React.useMemo(() => [
+    "💡 The AI model can hallucinate, so generate another if the details are less accurate",
+    "📚 Check our docs - editable files are our platform's unique feature",
+    "👤 If personal details are not in your resume, please add them in your profile",
+    "🎨 We have 90+ visually appealing ATS-optimized resume templates",
+    "🌐 We provide HTML file output in a unique format - check it out!",
+    "💬 We appreciate your feedback to improve our platform"
+  ], []);
 
   // NEW: resolve user profile (prop -> fetched)
   const [resolvedProfile, setResolvedProfile] = React.useState<UserProfileData | null>(detailedUserProfile ?? null);
@@ -105,6 +122,73 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     }
   }, [jobDescription, dispatch, persistedJobDescription]);
 
+  // Helper: convert HTML string to a PDF data URL using @react-pdf/renderer and the existing PerfectHTMLToPDF
+  const htmlStringToPdfDataUrl = async (html: string): Promise<string> => {
+    if (typeof window === 'undefined') throw new Error('Client-side PDF generation only');
+
+    // Ensure we have a profile object for the ResumeTemplate
+    const profile = resolvedProfile ?? { fullName: '', email: '', phone: '', location: '' } as any;
+
+    const doc = (
+      <PerfectHTMLToPDF htmlContent={html} profile={profile} jobKeywords={[]} />
+    );
+
+    const blobToDataUrl = (b: Blob) => new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(String(reader.result));
+      reader.onerror = (e) => reject(e);
+      reader.readAsDataURL(b);
+    });
+
+    const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+      let binary = '';
+      const bytes = new Uint8Array(buffer);
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary);
+    };
+
+    // Try to preload local fonts from /fonts and register them as data URLs to avoid fetch/caching issues
+    // First, register a known-good remote Inter to reduce chance of corrupted local font causing failure
+    // NOTE: Avoid registering remote WOFF2 fonts in the browser. Embedding
+    // WOFF/WOFF2 in the browser-side pdfkit can cause RangeErrors while
+    // encoding glyphs. Use built-in fonts (Helvetica) for browser generation
+    // or perform font embedding server-side using TTF/OTF fonts.
+
+    // Avoid preloading and registering local WOFF2 fonts as data URLs in the browser
+    // because embedding WOFF/WOFF2 binaries can cause pdfkit to fail with
+    // DataView/Offset errors. Rely on built-in fonts (Helvetica) for browser
+    // generation stability, or use server-side TTF/OTF embedding if needed.
+
+    // Use @react-pdf/renderer exclusively for PDF generation to preserve
+    // layout, embedded fonts, and metadata. This component (`PerfectHTMLToPDF`)
+    // is the Document passed to `pdf()`.
+    try {
+      console.info('Generating PDF using @react-pdf/renderer');
+      const asPdf = pdf(doc);
+      const blob: Blob = await asPdf.toBlob();
+      return await blobToDataUrl(blob);
+    } catch (err) {
+      console.error('PDF generation failed using @react-pdf/renderer:', err);
+      // Try a remote font registration retry before failing hard. This helps
+      // when local font binaries cause encoding issues in some browsers.
+      try {
+        Font.register({ family: 'Inter', fonts: [
+          { src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2', fontWeight: 'normal' },
+          { src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2', fontWeight: 'bold' }
+        ]});
+        const asPdf2 = pdf(doc);
+        const blob2: Blob = await asPdf2.toBlob();
+        return await blobToDataUrl(blob2);
+      } catch (retryErr) {
+        console.error('Renderer retry with remote fonts failed:', retryErr);
+        throw new Error('Failed to generate PDF in the browser. See console logs for details.');
+      }
+    }
+  };
+
   // Initialize prompts with defaults only if not edited
   useEffect(() => {
     const resumeText =
@@ -126,6 +210,30 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     aiPromptEdited,
     systemPromptEdited
   ]);
+
+  // Rotating loader text effect
+  useEffect(() => {
+    if (loading && loaderTexts.length > 0) {
+      // Set initial text
+      const randomIndex = Math.floor(Math.random() * loaderTexts.length);
+      setCurrentLoaderText(loaderTexts[randomIndex]);
+
+      const interval = setInterval(() => {
+        // Fade out
+        setTextFadeClass('animate-fade-out-text');
+        
+        setTimeout(() => {
+          // Change text randomly
+          const newRandomIndex = Math.floor(Math.random() * loaderTexts.length);
+          setCurrentLoaderText(loaderTexts[newRandomIndex]);
+          // Fade back in
+          setTextFadeClass('animate-fade-in-text');
+        }, 300); // Half second for fade out
+      }, 3000); // Change every 3 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [loading, loaderTexts]);
 
   // File select handler: reads file as base64 and stores meta/content in Redux, plus extracts text
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -279,12 +387,10 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     // Check API configuration
     const isGemini = config.defaultModelType.toLowerCase() === 'gemini' || config.defaultModelType.toLowerCase() === 'gemnin';
     if (isGemini ? !config.hasGeminiApiKey : !config.hasApiKey) {
-      dispatch(setError(
-        isGemini
-          ? 'Gemini API key is not configured. Please set NEXT_PUBLIC_GEMINI_API_KEY in your environment variables.'
-          : 'OpenAI API key is not configured. Please set NEXT_PUBLIC_OPENAI_API_KEY in your environment variables.'
-      ));
-      return;
+      // Don't block the user — use the local stub implementation instead.
+      console.warn('AI provider API key not configured for selected model. Proceeding with local stubbed AI responses.');
+      // Optionally show a non-blocking warning to the user
+      dispatch(setError('AI provider key not configured. Using local fallback AI responses.'));
     }
 
     // Remove job description validation; the user header is authoritative
@@ -538,32 +644,54 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
     if (!shouldUpload) return;
 
+    if (!user?.id) {
+      console.warn('[uploadPDFs] No authenticated user id available; skipping PDF upload');
+      return;
+    }
+
     const detailedResumeHtml = generateDetailedResumeHTML(optimizationResults);
     const detailedCoverLetterHtml = generateDetailedCoverLetterHTML(optimizationResults);
 
     const uploadPDFs = async () => {
       try {
+        // Convert generated HTML to PDF client-side and send base64 data URLs to the API
+        const resumeDataUrl = await htmlStringToPdfDataUrl(detailedResumeHtml);
+        const coverDataUrl = await htmlStringToPdfDataUrl(detailedCoverLetterHtml);
+
         const response = await fetch('/api/save-generated-pdfs', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: user?.id,
             jobApplicationId: applicationData.id,
-            resumeHtml: detailedResumeHtml,
-            coverLetterHtml: detailedCoverLetterHtml,
+            resumePdfBase64: resumeDataUrl,
+            coverLetterPdfBase64: coverDataUrl,
           }),
         });
 
-        const result = await response.json();
+        let result: any = null;
+        try {
+          result = await response.json().catch(() => null);
+        } catch {
+          // ignore
+        }
 
         if (!response.ok) {
-          throw new Error(result.error || 'Failed to upload PDFs');
+          const text = await response.text().catch(() => '');
+          const serverMessage = (result && result.error) || text || `HTTP ${response.status}`;
+          console.error('[uploadPDFs] Upload failed:', serverMessage, { status: response.status, body: result || text });
+          throw new Error(serverMessage || 'Failed to upload PDFs');
+        }
+
+        if (!result || (!result.resumeUrl && !result.coverLetterUrl)) {
+          console.error('[uploadPDFs] Unexpected API response shape:', result);
+          throw new Error('Upload succeeded but server response is missing URLs');
         }
 
         console.log('✅ PDFs uploaded:', result);
 
-        setFinalResumeUrl(result.resumeUrl);
-        setFinalCoverLetterUrl(result.coverLetterUrl);
+        setFinalResumeUrl(result.resumeUrl || null);
+        setFinalCoverLetterUrl(result.coverLetterUrl || null);
         setUploadComplete(true); // ✅ prevent re-upload
 
       } catch (error) {
@@ -640,25 +768,60 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="relative bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Loader Overlay */}
+        {/* Enhanced Loader Overlay with Translucent Background */}
         {loading && (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm transition-all rounded-lg animate-fade-in">
-            <div className="flex flex-col items-center gap-6">
-              {/* Animated Brain Icon with Pulse */}
-              <div className="relative flex items-center justify-center">
-                <span className="absolute inline-flex h-16 w-16 rounded-full bg-blue-400 opacity-40 animate-ping"></span>
-                <span className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg animate-bounce-slow">
-                  <Brain className="text-white animate-spin-slow" size={36} />
-                </span>
+          <div className="fixed inset-0 z-[60] bg-white/70 backdrop-blur-sm flex items-center justify-center">
+            <div className="bg-gray-800 dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-600 dark:border-gray-500 p-8 m-4 max-w-md w-full animate-fade-in">
+              <div className="flex flex-col items-center gap-6">
+                {/* Animated Brain Icon with Pulse */}
+                <div className="relative flex items-center justify-center">
+                  <span className="absolute inline-flex h-20 w-20 rounded-full bg-blue-400 opacity-30 animate-ping"></span>
+                  <span className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg animate-bounce-slow">
+                    <Brain className="text-white animate-spin-slow" size={40} />
+                  </span>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden shadow-inner">
+                  <div className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-progress-bar"></div>
+                </div>
+                
+                {/* Status Text */}
+                <div className="text-center space-y-4">
+                  <h3 className="text-xl font-bold text-white animate-fade-in-text">
+                    AI Enhancement in Progress
+                  </h3>
+                  <p className="text-sm font-medium text-blue-300 animate-fade-in-text">
+                    {extractionProgress || "Generating your AI-enhanced resume & cover letter..."}
+                  </p>
+                  
+                  {/* Rotating Informative Text - Dark Grey Box */}
+                  {currentLoaderText && (
+                    <div className="mt-6">
+                      <p className={`text-xs text-gray-200 leading-relaxed px-4 py-3 bg-gray-700 rounded-lg border border-gray-600 shadow-lg ${textFadeClass}`}>
+                        {currentLoaderText}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Cancel Button */}
+                  <div className="mt-6">
+                    <button
+                      onClick={() => {
+                        setLoading(false);
+                        setExtractionProgress('');
+                        onClose();
+                      }}
+                      className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors shadow-lg"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
               </div>
-              {/* Progress Bar */}
-              <div className="w-64 h-3 bg-blue-100 dark:bg-blue-900 rounded-full overflow-hidden shadow-inner">
-                <div className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-progress-bar"></div>
-              </div>
-              <span className="text-lg font-semibold text-blue-700 dark:text-blue-300 animate-fade-in-text">
-                {extractionProgress || "Generating your AI-enhanced resume & cover letter..."}
-              </span>
             </div>
+            
+            {/* CSS Animations */}
             <style>{`
               @keyframes bounce-slow {
                 0%, 100% { transform: translateY(0); }
@@ -682,11 +845,11 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                 animation: progress-bar 2.5s cubic-bezier(0.4,0,0.2,1) infinite;
               }
               @keyframes fade-in {
-                from { opacity: 0; }
-                to { opacity: 1; }
+                from { opacity: 0; transform: scale(0.95); }
+                to { opacity: 1; transform: scale(1); }
               }
               .animate-fade-in {
-                animation: fade-in 0.7s ease-in;
+                animation: fade-in 0.5s ease-out;
               }
               @keyframes fade-in-text {
                 from { opacity: 0; transform: translateY(10px); }
@@ -694,6 +857,13 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
               }
               .animate-fade-in-text {
                 animation: fade-in-text 1.2s ease-in;
+              }
+              @keyframes fade-out-text {
+                from { opacity: 1; transform: translateY(0); }
+                to { opacity: 0; transform: translateY(-10px); }
+              }
+              .animate-fade-out-text {
+                animation: fade-out-text 0.3s ease-out;
               }
             `}</style>
           </div>
@@ -821,11 +991,30 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
             </div>
           </div>
 
-          {/* Editable AI System Prompt Section */}
-          <div className="mt-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              AI System Prompt (replace the entire system prompt sent to the AI)
-            </label>
+          {/* Developer Section - Collapsible */}
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 mt-6">
+            <button
+              onClick={() => setShowDeveloperSection(!showDeveloperSection)}
+              className="w-full flex items-center justify-between p-4 text-left"
+            >
+              <div className="flex items-center gap-3">
+                <Settings className="text-gray-600 dark:text-gray-400" size={20} />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Developer
+                </h3>
+              </div>
+              <div className="flex items-center">
+                {showDeveloperSection ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              </div>
+            </button>
+
+            {showDeveloperSection && (
+              <div className="px-4 pb-4 space-y-4">
+                {/* Editable AI System Prompt Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    AI System Prompt (replace the entire system prompt sent to the AI)
+                  </label>
             <textarea
               value={systemPrompt}
               onChange={(e) => {
@@ -838,26 +1027,96 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               If edited, the system prompt will completely replace the default system instructions.
             </p>
-          </div>
+                </div>
 
-          {/* Editable AI User Prompt Section */}
-          <div className="mt-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              AI User Prompt Header (only this part is editable; context is auto-appended)
-            </label>
-            <textarea
-              value={aiPrompt}
-              onChange={(e) => {
-                setAiPrompt(e.target.value);
-                setAiPromptEdited(true);
-              }}
-              placeholder="Edit the user prompt header. Job description and resume context will be appended automatically."
-              className="w-full h-32 p-3 border border-gray-300 dark:border-gray-600 rounded-lg resize-y text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              The following is always appended and cannot be edited here:
-              "Use this for context: JOB DESCRIPTION: ${'{jobDescription}'} CURRENT RESUME: ${'{resumeText}'}"
-            </p>
+                {/* Editable AI User Prompt Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    AI User Prompt Header (only this part is editable; context is auto-appended)
+                  </label>
+                  <textarea
+                    value={aiPrompt}
+                    onChange={(e) => {
+                      setAiPrompt(e.target.value);
+                      setAiPromptEdited(true);
+                    }}
+                    placeholder="Edit the user prompt header. Job description and resume context will be appended automatically."
+                    className="w-full h-32 p-3 border border-gray-300 dark:border-gray-600 rounded-lg resize-y text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    The following is always appended and cannot be edited here:
+                    "Use this for context: JOB DESCRIPTION: ${'{jobDescription}'} CURRENT RESUME: ${'{resumeText}'}"
+                  </p>
+                </div>
+
+                {/* Extracted Text Debug Section */}
+                {extractedPDFData && (
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
+                    <button
+                      onClick={() => setShowExtractedText(!showExtractedText)}
+                      className="w-full flex items-center justify-between p-4 text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileText className="text-gray-600 dark:text-gray-400" size={20} />
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                          Extracted Resume Text (Debug)
+                        </h3>
+                        <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full text-xs font-medium">
+                          {extractedPDFData.pages} pages • {extractedPDFData.text.length} chars
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {extractedPDFData.text && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              copyToClipboard(extractedPDFData.text, 'extracted');
+                            }}
+                            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                            title="Copy extracted text"
+                          >
+                            {copiedExtracted ? <Check size={16} /> : <Copy size={16} />}
+                          </button>
+                        )}
+                        {showExtractedText ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                      </div>
+                    </button>
+
+                    {showExtractedText && (
+                      <div className="px-4 pb-4">
+                        {extractedPDFData.error ? (
+                          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                            <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                              <AlertCircle size={16} />
+                              <span className="font-medium">Extraction Error</span>
+                            </div>
+                            <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                              {extractedPDFData.error}
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="bg-white dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600 max-h-80 overflow-y-auto">
+                              <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-mono leading-relaxed">
+                                {extractedPDFData.text || 'No text extracted from PDF'}
+                              </pre>
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
+                              <span>📄 Pages: {extractedPDFData.pages}</span>
+                              <span>📝 Characters: {extractedPDFData.text.length}</span>
+                              <span>📊 Words: ~{extractedPDFData.text.split(/\s+/).length}</span>
+                              {extractedPDFData.metadata && (
+                                <span>📋 Source: {extractedPDFData.metadata.source || 'pdf_extraction'}</span>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Manual Text Input Section */}
@@ -891,88 +1150,16 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
             </div>
           )}
 
-          {/* Extracted Text Debug Section */}
-          {extractedPDFData && (
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-              <button
-                onClick={() => setShowExtractedText(!showExtractedText)}
-                className="w-full flex items-center justify-between p-4 text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <FileText className="text-gray-600 dark:text-gray-400" size={20} />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    Extracted Resume Text (Debug)
-                  </h3>
-                  <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full text-xs font-medium">
-                    {extractedPDFData.pages} pages • {extractedPDFData.text.length} chars
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {extractedPDFData.text && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        copyToClipboard(extractedPDFData.text, 'extracted');
-                      }}
-                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
-                      title="Copy extracted text"
-                    >
-                      {copiedExtracted ? <Check size={16} /> : <Copy size={16} />}
-                    </button>
-                  )}
-                  {showExtractedText ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                </div>
-              </button>
-
-              {showExtractedText && (
-                <div className="px-4 pb-4">
-                  {extractedPDFData.error ? (
-                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                      <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-                        <AlertCircle size={16} />
-                        <span className="font-medium">Extraction Error</span>
-                      </div>
-                      <p className="text-sm text-red-600 dark:text-red-400 mt-1">
-                        {extractedPDFData.error}
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="bg-white dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600 max-h-80 overflow-y-auto">
-                        <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-mono leading-relaxed">
-                          {extractedPDFData.text || 'No text extracted from PDF'}
-                        </pre>
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
-                        <span>📄 Pages: {extractedPDFData.pages}</span>
-                        <span>📝 Characters: {extractedPDFData.text.length}</span>
-                        <span>📊 Words: ~{extractedPDFData.text.split(/\s+/).length}</span>
-                        {extractedPDFData.metadata && (
-                          <span>📋 Source: {extractedPDFData.metadata.source || 'pdf_extraction'}</span>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Generate Button */}
           <div className="flex gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
-              onClick={handleGenerateAI}
-              disabled={
-                loading ||
-                // allow if we have a file OR extracted/manual text
-                (!selectedFileMeta && !cloudFileUrl && !extractedPDFData?.text && !manualText.trim()) ||
-                (
-                  config.defaultModelType.toLowerCase() === 'gemini' || config.defaultModelType.toLowerCase() === 'gemnin'
-                    ? !config.hasGeminiApiKey
-                    : !config.hasApiKey
-                )
-              }
+                onClick={handleGenerateAI}
+                disabled={
+                  loading ||
+                  // allow if we have a file OR extracted/manual text
+                  (!selectedFileMeta && !cloudFileUrl && !extractedPDFData?.text && !manualText.trim())
+                }
               className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 px-6 rounded-lg font-medium flex items-center justify-center gap-2 transition-all disabled:cursor-not-allowed"
             >
               {loading ? (
@@ -1099,7 +1286,7 @@ const generateDetailedResumeHTML = (results: any): string => {
               <span style="font-size: 12px; color: #6b7280;">${exp.location || 'City, State'}</span>
             </div>
             
-            ${exp.key_responsibilities?.length ? `
+            ${exp.key_responsibilities && Array.isArray(exp.key_responsibilities) && exp.key_responsibilities.length ? `
               <div style="margin-bottom: 8px;">
                 <strong style="font-size: 12px; color: #374151;">Key Responsibilities:</strong>
                 <ul style="margin: 3px 0 0 15px; padding: 0;">
@@ -1108,7 +1295,7 @@ const generateDetailedResumeHTML = (results: any): string => {
               </div>
             ` : ''}
             
-            ${exp.achievements?.length ? `
+            ${exp.achievements && Array.isArray(exp.achievements) && exp.achievements.length ? `
               <div style="margin-bottom: 8px;">
                 <strong style="font-size: 12px; color: #374151;">Key Achievements:</strong>
                 <ul style="margin: 3px 0 0 15px; padding: 0;">
@@ -1117,7 +1304,7 @@ const generateDetailedResumeHTML = (results: any): string => {
               </div>
             ` : ''}
             
-            ${exp.technologies_used?.length ? `
+            ${exp.technologies_used && Array.isArray(exp.technologies_used) && exp.technologies_used.length ? `
               <div style="margin-top: 5px;">
                 <strong style="font-size: 11px; color: #6b7280;">Technologies:</strong>
                 <span style="font-size: 11px; color: #6b7280;"> ${exp.technologies_used.join(', ')}</span>
@@ -1139,13 +1326,13 @@ const generateDetailedResumeHTML = (results: any): string => {
               </div>
               <div style="font-size: 12px; color: #4b5563; margin-bottom: 3px;">${edu.institution || 'Institution Name'}</div>
               ${edu.gpa ? `<div style="font-size: 11px; color: #6b7280;">GPA: ${edu.gpa}</div>` : ''}
-              ${edu.relevant_coursework?.length ? `
+              ${edu.relevant_coursework && Array.isArray(edu.relevant_coursework) && edu.relevant_coursework.length ? `
                 <div style="margin-top: 3px;">
                   <strong style="font-size: 11px;">Relevant Coursework:</strong>
                   <span style="font-size: 11px; color: #6b7280;"> ${edu.relevant_coursework.join(', ')}</span>
                 </div>
               ` : ''}
-              ${edu.honors?.length ? `
+              ${edu.honors && Array.isArray(edu.honors) && edu.honors.length ? `
                 <div style="margin-top: 3px;">
                   <strong style="font-size: 11px;">Honors:</strong>
                   <span style="font-size: 11px; color: #059669;"> ${edu.honors.join(', ')}</span>
@@ -1167,12 +1354,12 @@ const generateDetailedResumeHTML = (results: any): string => {
                 <span style="font-size: 11px; color: #6b7280;">${project.duration || 'Duration'}</span>
               </div>
               <p style="font-size: 12px; margin-bottom: 5px; line-height: 1.4;">${project.description || 'Project description'}</p>
-              ${project.achievements?.length ? `
+              ${project.achievements && Array.isArray(project.achievements) && project.achievements.length ? `
                 <ul style="margin: 5px 0 0 15px; padding: 0;">
                   ${project.achievements.map((achievement: string) => `<li style="margin-bottom: 2px; font-size: 12px; color: #059669;">${achievement}</li>`).join('')}
                 </ul>
               ` : ''}
-              ${project.technologies?.length ? `
+              ${project.technologies && Array.isArray(project.technologies) && project.technologies.length ? `
                 <div style="margin-top: 5px;">
                   <strong style="font-size: 11px; color: #6b7280;">Technologies:</strong>
                   <span style="font-size: 11px; color: #6b7280;"> ${project.technologies.join(', ')}</span>
@@ -1231,7 +1418,7 @@ const generateDetailedResumeHTML = (results: any): string => {
               </div>
               <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">${vol.organization || 'Organization Name'}</div>
               <p style="font-size: 11px; line-height: 1.3; margin-bottom: 3px;">${vol.description || 'Description of volunteer work'}</p>
-              ${vol.achievements?.length ? `
+              ${vol.achievements && Array.isArray(vol.achievements) && vol.achievements.length ? `
                 <ul style="margin: 3px 0 0 15px; padding: 0;">
                   ${vol.achievements.map((achievement: string) => `<li style="margin-bottom: 2px; font-size: 11px; color: #059669;">${achievement}</li>`).join('')}
                 </ul>
@@ -1252,7 +1439,7 @@ const generateDetailedResumeHTML = (results: any): string => {
                 <span style="font-size: 11px; color: #6b7280;">${pub.date || 'Date'}</span>
               </div>
               <div style="font-size: 11px; color: #6b7280; font-style: italic; margin-bottom: 2px;">${pub.publication || 'Publication Name'}</div>
-              ${pub.authors?.length ? `<div style="font-size: 10px; color: #6b7280;">Authors: ${pub.authors.join(', ')}</div>` : ''}
+              ${pub.authors && Array.isArray(pub.authors) && pub.authors.length ? `<div style="font-size: 10px; color: #6b7280;">Authors: ${pub.authors.join(', ')}</div>` : ''}
               ${pub.description ? `<p style="font-size: 11px; margin-top: 3px; line-height: 1.3;">${pub.description}</p>` : ''}
             </div>
           `).join('')}

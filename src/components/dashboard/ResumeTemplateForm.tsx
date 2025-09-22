@@ -7,7 +7,7 @@ import {
   setSelectedTemplate,
   resetResumeTemplateForm
 } from '../../store/resumeTemplateFormSlice';
-import { X, Plus, Minus, User, GraduationCap, Briefcase, Wrench, Rocket, Award, Trophy, Globe, Palette, FileText, Edit, Download } from 'lucide-react';
+import { X, Plus, Minus, User, GraduationCap, Briefcase, Wrench, Rocket, Award, Globe, Star, Palette, FileText, Download } from 'lucide-react';
 
 interface ParsedResume {
   personal: {
@@ -668,6 +668,190 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
             )}
           </div>
 
+          {/* Certifications */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <SectionHeader
+              id="certifications"
+              icon={<Award size={20} />}
+              title="Certifications"
+              status="optional"
+              onAdd={() => addEntry('certifications')}
+            />
+            {expandedSections.includes('certifications') && (
+              <div className="p-6 space-y-6">
+                {formData.certifications?.map((cert: any, index: number) => (
+                  <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-semibold text-gray-900 dark:text-white">Certification {index + 1}</h4>
+                      {index > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => removeEntry('certifications', index)}
+                          className="text-red-500 hover:text-red-700 p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                    <FormGrid>
+                      <FormField label="Certification Name" required>
+                        <Input
+                          value={cert.name}
+                          onChange={(value) => updateField('certifications', 'name', value, index)}
+                          placeholder="AWS Certified Solutions Architect"
+                          required
+                        />
+                      </FormField>
+                      <FormField label="Issuing Organization" required>
+                        <Input
+                          value={cert.issuing_organization}
+                          onChange={(value) => updateField('certifications', 'issuing_organization', value, index)}
+                          placeholder="Amazon Web Services"
+                          required
+                        />
+                      </FormField>
+                      <FormField label="Issue Date">
+                        <Input
+                          value={cert.issue_date}
+                          onChange={(value) => updateField('certifications', 'issue_date', value, index)}
+                          placeholder="YYYY-MM"
+                        />
+                      </FormField>
+                      <FormField label="Expiration Date">
+                        <Input
+                          value={cert.expiration_date}
+                          onChange={(value) => updateField('certifications', 'expiration_date', value, index)}
+                          placeholder="YYYY-MM (or 'Never expires')"
+                        />
+                      </FormField>
+                    </FormGrid>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Awards & Recognition */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <SectionHeader
+              id="awards"
+              icon={<Star size={20} />}
+              title="Awards & Recognition"
+              status="optional"
+              onAdd={() => addEntry('awards')}
+            />
+            {expandedSections.includes('awards') && (
+              <div className="p-6 space-y-6">
+                {formData.awards?.map((award: any, index: number) => (
+                  <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-semibold text-gray-900 dark:text-white">Award {index + 1}</h4>
+                      {index > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => removeEntry('awards', index)}
+                          className="text-red-500 hover:text-red-700 p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                    <FormGrid>
+                      <FormField label="Award Title" required>
+                        <Input
+                          value={award.title}
+                          onChange={(value) => updateField('awards', 'title', value, index)}
+                          placeholder="Employee of the Year"
+                          required
+                        />
+                      </FormField>
+                      <FormField label="Issuer/Organization" required>
+                        <Input
+                          value={award.issuer}
+                          onChange={(value) => updateField('awards', 'issuer', value, index)}
+                          placeholder="Company Name / Organization"
+                          required
+                        />
+                      </FormField>
+                      <FormField label="Date Received">
+                        <Input
+                          value={award.date_received}
+                          onChange={(value) => updateField('awards', 'date_received', value, index)}
+                          placeholder="YYYY-MM"
+                        />
+                      </FormField>
+                    </FormGrid>
+                    <div className="mt-4">
+                      <FormField label="Description">
+                        <TextArea
+                          value={award.description}
+                          onChange={(value) => updateField('awards', 'description', value, index)}
+                          placeholder="Brief description of the award and its significance..."
+                          rows={2}
+                        />
+                      </FormField>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Languages */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <SectionHeader
+              id="languages"
+              icon={<Globe size={20} />}
+              title="Languages"
+              status="optional"
+              onAdd={() => addEntry('languages')}
+            />
+            {expandedSections.includes('languages') && (
+              <div className="p-6 space-y-6">
+                {formData.languages?.map((lang: any, index: number) => (
+                  <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-semibold text-gray-900 dark:text-white">Language {index + 1}</h4>
+                      {index > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => removeEntry('languages', index)}
+                          className="text-red-500 hover:text-red-700 p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                    <FormGrid>
+                      <FormField label="Language" required>
+                        <Input
+                          value={lang.name}
+                          onChange={(value) => updateField('languages', 'name', value, index)}
+                          placeholder="Spanish, French, Mandarin, etc."
+                          required
+                        />
+                      </FormField>
+                      <FormField label="Proficiency Level" required>
+                        <Select
+                          value={lang.proficiency}
+                          onChange={(value) => updateField('languages', 'proficiency', value, index)}
+                          options={[
+                            { value: 'Native', label: 'Native' },
+                            { value: 'Fluent', label: 'Fluent' },
+                            { value: 'Proficient', label: 'Proficient' },
+                            { value: 'Intermediate', label: 'Intermediate' },
+                            { value: 'Basic', label: 'Basic' }
+                          ]}
+                          placeholder="Select proficiency level"
+                        />
+                      </FormField>
+                    </FormGrid>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Template Selection */}
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <SectionHeader
@@ -681,7 +865,7 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
                 {/* Format Selection */}
                 <div>
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">📄 Output Format</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <label className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
                       formatChoice === 'html' 
                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
@@ -697,8 +881,27 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
                       />
                       <div className="text-2xl">📋</div>
                       <div>
-                        <h5 className="font-medium text-gray-900 dark:text-white">Structured Templates</h5>
+                        <h5 className="font-medium text-gray-900 dark:text-white">PDF Templates</h5>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Professional PDF templates with predefined layouts</p>
+                      </div>
+                    </label>
+                    <label className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
+                      formatChoice === 'docs' 
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                        : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="format_choice"
+                        value="docs"
+                        checked={formatChoice === 'docs'}
+                        onChange={(e) => dispatch(setFormatChoice(e.target.value))}
+                        className="text-blue-600"
+                      />
+                      <div className="text-2xl">📄</div>
+                      <div>
+                        <h5 className="font-medium text-gray-900 dark:text-white">Word Documents</h5>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Microsoft Word compatible documents (.docx)</p>
                       </div>
                     </label>
                     <label className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
@@ -724,9 +927,11 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
                 </div>
 
                 {/* Template Selection */}
-                {formatChoice === 'html' && (
+                {(formatChoice === 'html' || formatChoice === 'docs') && (
                   <div>
-                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">🎨 Choose Template Style</h4>
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                      🎨 Choose Template Style {formatChoice === 'docs' ? '(for Word Documents)' : '(for PDF)'}
+                    </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       {templates.map((template) => (
                         <label
@@ -752,7 +957,9 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
                               className="mr-2"
                             />
                             <span className="font-medium text-gray-900 dark:text-white">{template.name}</span>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Professional layout</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Professional layout {formatChoice === 'docs' ? '(Word compatible)' : '(PDF format)'}
+                            </p>
                           </div>
                         </label>
                       ))}
@@ -769,7 +976,11 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
               🚀 Ready to Generate?
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Review your information above and click generate to create your professional PDF resume.
+              Review your information above and click generate to create your professional {
+                formatChoice === 'html' ? 'PDF' : 
+                formatChoice === 'docs' ? 'Word document' : 
+                'resume'
+              }.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <button
@@ -784,7 +995,11 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
                 className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium flex items-center gap-2 transition-all hover:shadow-lg"
               >
                 <Download size={20} />
-                Generate PDF Resume
+                Generate {
+                  formatChoice === 'html' ? 'PDF Resume' : 
+                  formatChoice === 'docs' ? 'Word Document' : 
+                  'Resume'
+                }
               </button>
             </div>
           </div>

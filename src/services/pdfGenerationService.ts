@@ -52,9 +52,9 @@ export interface GenerateCoverLetterRequest {
 
 export class PDFGenerationService {
     private static readonly API_BASE_URL = process.env.NEXT_PUBLIC_RESUME_API_BASE_URL || 'https://resumebuilder-arfb.onrender.com';
-    private static readonly API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
-    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'OpenAI';
-    private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'gpt-4o';
+    private static readonly API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
+    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'Stub';
+    private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'stub-model';
 
     // Available LaTeX templates - Updated to match your backend
     static readonly AVAILABLE_TEMPLATES = [
@@ -76,18 +76,8 @@ export class PDFGenerationService {
         const endpoint = `${this.API_BASE_URL}/api/optimize-resume`;
         
         try {
-            // Validate API key
-            console.log(' [DEBUG] PDFGenerationService - API_KEY value:', this.API_KEY ? `${this.API_KEY.substring(0, 20)}...` : 'NOT FOUND');
-            console.log(' [DEBUG] PDFGenerationService - API_KEY length:', this.API_KEY ? this.API_KEY.length : 0);
-            if (!this.API_KEY) {
-                throw createApiError(
-                    endpoint,
-                    'POST',
-                    { fileId, hasJobDescription: !!jobDescription, options },
-                    null,
-                    'OpenAI API key is not configured or invalid. Please check your environment variables.'
-                );
-            }
+            // Client-side API key is optional; backend should handle server-side keys when necessary
+            console.log(' [DEBUG] PDFGenerationService - API_KEY present:', !!this.API_KEY);
 
             // Validate inputs
             if (!fileId || !jobDescription.trim()) {
@@ -116,7 +106,7 @@ export class PDFGenerationService {
                 file_id: fileId,
                 job_description: jobDescription,
                 template: template,
-                api_key: this.API_KEY,
+                api_key: this.API_KEY || '',
                 model_type: options.modelType || this.DEFAULT_MODEL_TYPE,
                 model: options.model || this.DEFAULT_MODEL,
                 section_ordering: options.sectionOrdering || ['education', 'work', 'skills'],

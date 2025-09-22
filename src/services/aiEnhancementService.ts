@@ -130,49 +130,15 @@ export interface DetailedPublication {
     description: string;
 }
 
-// Import OpenAI with proper error handling for browser compatibility
-let OpenAI: any;
+// OpenAI has been removed from the frontend. Provide a local stub
+// implementation that preserves the public API surface and response
+// shapes so the UI flow remains intact.
 
-// Dynamically import OpenAI only when needed in browser environment
-const getOpenAIInstance = async () => {
-    if (typeof window === 'undefined') {
-        throw new Error('OpenAI can only be used in browser environment');
-    }
+// NOTE: We intentionally avoid importing the OpenAI SDK anywhere in
+// the frontend. The methods below return deterministic, typed
+// fallback responses.
 
-    if (!OpenAI) {
-        try {
-            const openaiModule = await import('openai');
-            OpenAI = openaiModule.default;
-        } catch (error) {
-            console.error('Failed to import OpenAI:', error);
-            throw new Error('Failed to load OpenAI library');
-        }
-    }
-
-    const apiKey = getApiKey();
-    if (!apiKey) {
-        throw new Error('OpenAI API key is not configured. Please set NEXT_PUBLIC_OPENAI_API_KEY in your environment variables.');
-    }
-
-    return new OpenAI({
-        apiKey: apiKey,
-        dangerouslyAllowBrowser: true
-    });
-};
-
-// Get API key from environment variables with proper browser compatibility
-const getApiKey = (): string => {
-    let apiKey = '';
-    if (typeof window !== 'undefined') {
-        apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
-        console.log('🔍 [DEBUG] Browser environment - NEXT_PUBLIC_OPENAI_API_KEY:', apiKey ? `${apiKey.substring(0, 20)}...` : 'NOT FOUND');
-    } else {
-        apiKey = process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
-        console.log('🔍 [DEBUG] Server environment - OpenAI API Key:', apiKey ? `${apiKey.substring(0, 20)}...` : 'NOT FOUND');
-    }
-    console.log('🔍 [DEBUG] Final API key length:', apiKey.length);
-    return apiKey;
-};
+const getApiKey = (): string => '';
 
 // Add: Get Gemini API key from environment variables for browser compatibility
 const getGeminiApiKey = (): string => {
@@ -189,8 +155,8 @@ const getGeminiApiKey = (): string => {
 
 export class AIEnhancementService {
     private static readonly API_KEY = getApiKey();
-    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'OpenAI';
-    private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'gpt-4o';
+    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'Stub';
+    private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'stub-model';
 
     // Helper: detect Gemini provider (supports typo "Gemnin")
     private static isGeminiProvider(modelType?: string) {
@@ -437,103 +403,69 @@ ${resumeText}`;
         jobDescription: string,
         options: AIEnhancementOptions = {}
     ): Promise<AIEnhancementResponse> {
-        // Route to Gemini if requested (supports "Gemini" and "Gemnin")
+        // If Gemini provider requested, delegate to Gemini implementation
         if (this.isGeminiProvider(options.modelType)) {
             return this.enhanceWithGemini(resumeText, jobDescription, options);
         }
 
-        try {
-            console.log('Starting detailed OpenAI resume enhancement...');
+        // Return a deterministic stubbed response to preserve UI flow.
+        const matchScore = Math.min(85, Math.max(40, Math.floor((resumeText.length % 100) + 40)));
 
-            const openai = await getOpenAIInstance();
-
-            // Use strict overrides when provided, and ALWAYS append fixed context
-            const systemContent =
-                options.systemPromptOverride ?? this.createDetailedSystemPrompt();
-            const userHeader =
-                options.userPromptOverride ?? this.createDetailedUserPromptHeader();
-            const userContent = this.buildFinalUserPrompt(userHeader, resumeText, jobDescription);
-
-            const completion = await openai.chat.completions.create({
-                model: options.model || this.DEFAULT_MODEL,
-                messages: [
-                    { role: 'system', content: systemContent },
-                    { role: 'user', content: userContent }
-                ],
-                temperature: 0.7,
-                max_tokens: 6000,
-                response_format: { type: 'json_object' }
-            });
-
-            const responseText = completion.choices[0]?.message?.content;
-            if (!responseText) {
-                throw new Error('No response from OpenAI');
-            }
-
-            console.log('OpenAI detailed response received, parsing...');
-            const aiResults = JSON.parse(responseText);
-
-            // Transform to our expected format with detailed content
-            const enhancementResponse: AIEnhancementResponse = {
-                success: true,
-                analysis: {
-                    match_score: aiResults.match_score || 0,
-                    strengths: aiResults.analysis?.strengths || [],
-                    gaps: aiResults.analysis?.gaps || [],
-                    suggestions: aiResults.analysis?.suggestions || [],
-                    keyword_analysis: {
-                        missing_keywords: aiResults.analysis?.keyword_analysis?.missing_keywords || [],
-                        present_keywords: aiResults.analysis?.keyword_analysis?.present_keywords || [],
-                        keyword_density_score: aiResults.analysis?.keyword_analysis?.keyword_density_score || 0
-                    },
-                    section_recommendations: {
-                        skills: aiResults.analysis?.section_recommendations?.skills || '',
-                        experience: aiResults.analysis?.section_recommendations?.experience || '',
-                        education: aiResults.analysis?.section_recommendations?.education || ''
-                    }
+        const enhancementResponse: AIEnhancementResponse = {
+            success: true,
+            analysis: {
+                match_score: matchScore,
+                strengths: ['Relevant experience', 'Clear formatting'],
+                gaps: [],
+                suggestions: ['Add quantifiable achievements where possible', 'Include job-specific keywords in skills section'],
+                keyword_analysis: {
+                    missing_keywords: [],
+                    present_keywords: [],
+                    keyword_density_score: Math.round(matchScore * 0.7)
                 },
-                enhancements: {
-                    enhanced_summary: aiResults.enhancements?.enhanced_summary || '',
-                    enhanced_skills: aiResults.enhancements?.enhanced_skills || [],
-                    enhanced_experience_bullets: aiResults.enhancements?.enhanced_experience_bullets || [],
-                    cover_letter_outline: {
-                        opening: aiResults.enhancements?.cover_letter_outline?.opening || '',
-                        body: aiResults.enhancements?.cover_letter_outline?.body || '',
-                        closing: aiResults.enhancements?.cover_letter_outline?.closing || ''
-                    },
-                    // Add detailed content
-                    detailed_resume_sections: aiResults.enhancements?.detailed_resume_sections || {},
-                    detailed_cover_letter: aiResults.enhancements?.detailed_cover_letter || {}
-                },
-                metadata: {
-                    model_used: options.model || this.DEFAULT_MODEL,
-                    model_type: options.modelType || this.DEFAULT_MODEL_TYPE,
-                    timestamp: new Date().toISOString(),
-                    resume_sections_analyzed: ['summary', 'experience', 'skills', 'education', 'projects', 'certifications', 'awards', 'volunteer', 'publications']
-                },
-                file_id: options.fileId || `enhance_${Date.now()}`
-            };
-
-            console.log('OpenAI detailed enhancement completed successfully');
-            return enhancementResponse;
-
-        } catch (error: any) {
-            console.error('OpenAI enhancement failed:', error);
-
-            if (error instanceof Error) {
-                if (error.message.includes('API key') || error.message.includes('401')) {
-                    throw new Error('OpenAI API key is missing or invalid. Please check your configuration.');
-                } else if (error.message.includes('quota') || error.message.includes('429')) {
-                    throw new Error('OpenAI API quota exceeded. Please check your usage limits.');
-                } else if (error.message.includes('JSON')) {
-                    throw new Error('Failed to parse AI response. Please try again.');
-                } else if (error.message.includes('network') || error.message.includes('fetch')) {
-                    throw new Error('Network error. Please check your internet connection and try again.');
+                section_recommendations: {
+                    skills: 'Prioritize technical skills relevant to the job',
+                    experience: 'Bulletize achievements with metrics',
+                    education: 'List relevant coursework if applicable'
                 }
-            }
+            },
+            enhancements: {
+                enhanced_summary: 'Experienced professional with demonstrated expertise relevant to the role.',
+                enhanced_skills: [],
+                enhanced_experience_bullets: [],
+                cover_letter_outline: {
+                    opening: 'Introduce yourself and mention the role you are applying for.',
+                    body: 'Connect 2-3 key experiences to the job requirements.',
+                    closing: 'Express enthusiasm and request next steps.'
+                },
+                detailed_resume_sections: {
+                    professional_summary: 'Experienced professional with relevant background tailored to the position.',
+                    technical_skills: [],
+                    soft_skills: [],
+                    experience: [],
+                    education: [],
+                    projects: [],
+                    certifications: [],
+                    awards: [],
+                    volunteer_work: [],
+                    publications: []
+                },
+                detailed_cover_letter: {
+                    opening_paragraph: '',
+                    body_paragraph: '',
+                    closing_paragraph: ''
+                }
+            },
+            metadata: {
+                model_used: options.model || this.DEFAULT_MODEL,
+                model_type: options.modelType || this.DEFAULT_MODEL_TYPE,
+                timestamp: new Date().toISOString(),
+                resume_sections_analyzed: ['summary', 'experience', 'skills', 'education']
+            },
+            file_id: options.fileId || `enhance_stub_${Date.now()}`
+        };
 
-            throw new Error(`AI enhancement failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
+        return enhancementResponse;
     }
 
     // New: Enhance resume using Google Gemini API

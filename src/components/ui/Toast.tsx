@@ -10,14 +10,14 @@ export interface ToastProps {
   onClose: (id: string) => void;
 }
 
-const Toast: React.FC<ToastProps> = ({ id, type, title, message, duration = 5000, onClose }) => {
+const Toast: React.FC<ToastProps> = ({ id, type, title, message, duration = 2500, onClose }) => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
     const timer = setTimeout(() => {
       setIsVisible(false);
-      setTimeout(() => onClose(id), 300);
+      setTimeout(() => onClose(id), 150);
     }, duration);
 
     return () => clearTimeout(timer);
@@ -26,13 +26,13 @@ const Toast: React.FC<ToastProps> = ({ id, type, title, message, duration = 5000
   const getIcon = () => {
     switch (type) {
       case 'success':
-        return <CheckCircle className="text-green-500" size={20} />;
+        return <CheckCircle className="text-green-500 flex-shrink-0" size={14} />;
       case 'error':
-        return <AlertCircle className="text-red-500" size={20} />;
+        return <AlertCircle className="text-red-500 flex-shrink-0" size={14} />;
       case 'warning':
-        return <AlertCircle className="text-yellow-500" size={20} />;
+        return <AlertCircle className="text-yellow-500 flex-shrink-0" size={14} />;
       default:
-        return <Info className="text-blue-500" size={20} />;
+        return <Info className="text-blue-500 flex-shrink-0" size={14} />;
     }
   };
 
@@ -52,20 +52,20 @@ const Toast: React.FC<ToastProps> = ({ id, type, title, message, duration = 5000
   return (
     <div
       className={`
-        transform transition-all duration-300 ease-in-out
+        transform transition-all duration-150 ease-in-out
         ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
         ${getBackgroundColor()}
-        border-2 rounded-lg shadow-xl backdrop-blur-sm p-4 max-w-sm w-full
+        border-2 rounded-lg shadow-lg backdrop-blur-sm p-2 max-w-[240px] w-auto min-w-[180px]
       `}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-1.5">
         {getIcon()}
         <div className="flex-1 min-w-0">
-          <h4 className={`text-sm font-bold ${type === 'success' ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
+          <h4 className={`text-xs font-semibold leading-tight ${type === 'success' ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
             {title}
           </h4>
           {message && (
-            <p className={`text-sm mt-1 ${type === 'success' ? 'text-gray-200' : 'text-gray-700 dark:text-gray-200'}`}>
+            <p className={`text-xs mt-1 leading-tight ${type === 'success' ? 'text-gray-200' : 'text-gray-700 dark:text-gray-200'}`}>
               {message}
             </p>
           )}
@@ -73,11 +73,11 @@ const Toast: React.FC<ToastProps> = ({ id, type, title, message, duration = 5000
         <button
           onClick={() => {
             setIsVisible(false);
-            setTimeout(() => onClose(id), 300);
+            setTimeout(() => onClose(id), 150);
           }}
-          className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100 transition-colors p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+          className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100 transition-colors p-0.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded flex-shrink-0"
         >
-          <X size={16} />
+          <X size={12} />
         </button>
       </div>
     </div>
@@ -92,7 +92,7 @@ export interface ToastContainerProps {
 
 export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onRemoveToast }) => {
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-3">
+    <div className="fixed top-4 right-4 z-50 space-y-2">
       {toasts.map((toast) => (
         <Toast
           key={toast.id}

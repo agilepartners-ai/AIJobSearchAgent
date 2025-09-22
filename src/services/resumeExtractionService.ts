@@ -14,30 +14,23 @@ export interface ResumeExtractionResponse {
 
 export class ResumeExtractionService {
     private static readonly API_BASE_URL = process.env.NEXT_PUBLIC_RESUME_API_BASE_URL || 'https://resumebuilder-arfb.onrender.com';
-    private static readonly API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
-    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'OpenAI';
-    private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'gpt-4o';
+    private static readonly API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
+    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'Stub';
+    private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'stub-model';
 
     static async extractResumeJson(
         file: File,
         options: ResumeExtractionOptions = {}
     ): Promise<ResumeExtractionResponse> {
         try {
-            // Validate API key
-            console.log(' [DEBUG] ResumeExtractionService - API_KEY value:', this.API_KEY ? `${this.API_KEY.substring(0, 20)}...` : 'NOT FOUND');
-            console.log(' [DEBUG] ResumeExtractionService - API_KEY length:', this.API_KEY ? this.API_KEY.length : 0);
-            if (!this.API_KEY) {
-                throw new Error('OpenAI API key is not configured or invalid. Please check your environment variables.');
-            }
-
             // Create form data
             const formData = new FormData();
 
             // Add the resume file
             formData.append('file', file);
 
-            // Add required API key
-            formData.append('api_key', this.API_KEY);
+            // Add API key only if present; backend should handle server-side keys when necessary
+            if (this.API_KEY) formData.append('api_key', this.API_KEY);
 
             // Add optional parameters with environment defaults
             formData.append('model_type', options.modelType || this.DEFAULT_MODEL_TYPE);

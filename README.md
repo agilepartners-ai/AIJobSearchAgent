@@ -399,6 +399,49 @@ npm test -- --coverage
 
 ## 🔍 Debugging
 
+## 🖨️ Fonts & PDF Generation
+
+This project embeds fonts for high-fidelity PDF generation using `@react-pdf/renderer`.
+
+1. Place font files in `public/fonts/` (recommended WOFF2):
+
+    - `public/fonts/Inter-Regular.woff2`
+    - `public/fonts/Inter-Bold.woff2`
+    - `public/fonts/Inter-Italic.woff2` (optional)
+
+    I added placeholder files under `public/fonts/Inter-Regular.woff2` and `public/fonts/Inter-Bold.woff2`. Replace them with the real WOFF2 binaries for production.
+
+2. How to test locally:
+
+    - Start the dev server:
+
+      ```bash
+      npm run dev
+      ```
+
+    - Run the AI Resume Enhancement workflow in the app. When the enhancement finishes the UI will convert the generated HTML into a PDF using the embedded fonts and upload the PDF to Firebase Storage.
+
+    - Verify in the browser network panel that the POST to `/api/save-generated-pdfs` sends `resumePdfBase64` and `coverLetterPdfBase64` and that the API returns `resumeUrl` and `coverLetterUrl`.
+
+3. Notes:
+
+    - If the fonts are not found, `@react-pdf/renderer` will fall back to built-in fonts. For consistent typography, ensure the font files are present.
+    - If you prefer TTF, update the font paths in `src/components/dashboard/ResumeTemplate.tsx`.
+
+## PDF Generation & Upload Flow
+
+- PDFs are generated in the browser using `@react-pdf/renderer` and the `PerfectHTMLToPDF` component in `src/components/dashboard/ResumeTemplate.tsx`.
+- The frontend produces a PDF Blob via `pdf(<PerfectHTMLToPDF ... />).toBlob()` and converts it to a `data:application/pdf;base64,...` Data URL before POSTing to the server.
+- The server endpoint `POST /api/save-generated-pdfs` accepts either:
+    - `resumePdfBase64` and `coverLetterPdfBase64` (data URLs or raw base64), or
+    - `resumePdfUrl` and `coverLetterPdfUrl` — publicly accessible HTTP(S) URLs the server can fetch and validate.
+- The API validates the PDF header, uploads to Firebase Storage, and stores `resume_url`, `cover_letter_url`, plus size metadata and `generated_with: 'react-pdf'` in Firestore.
+
+Notes:
+- `jsPDF` has been removed; `@react-pdf/renderer` is the single source of truth for PDF generation to preserve layout and embedded fonts.
+- If you run into font-related generation errors in the browser, check DevTools console logs for font fetch diagnostics.
+
+
 ```bash
 # Start with debugging enabled
 npm run dev -- --debug

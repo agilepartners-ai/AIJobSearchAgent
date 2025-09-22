@@ -1,9 +1,13 @@
-import React, { useState, useMemo, useEffect } from 'react';
+"use client";
+// eslint-disable-next-line
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Download, FileText, CheckCircle, Target, TrendingUp, Award, Brain, Copy, Check, ChevronDown, ChevronUp, AlertCircle, Eye } from 'lucide-react';
 import { PDFViewer, PDFDownloadLink, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
-import ResumeTemplate, { PerfectHTMLToPDF } from './ResumeTemplate';
-import { PDFToDocxService } from '../../services/pdfToDocxService';
+import { PerfectHTMLToPDF } from './ResumeTemplate';
+import ResumePDFPreview from './ResumePDFPreview';
+import { getCleanHTMLForDocs } from './HTMLResumeTemplate';
+import { UserProfileData } from '../../services/profileService';
 import { ProfileService } from '../../services/profileService';
 import { AuthService } from '../../services/authService';
 
@@ -134,294 +138,6 @@ const styles = StyleSheet.create({
   }
 });
 
-// Resume PDF Document Component with structured data from results
-const ResumePDFDocument: React.FC<{ content: string; jobDetails: any; resultsData?: any }> = ({ content, jobDetails, resultsData }) => {
-  // Extract data from the results object instead of parsing HTML
-  const extractStructuredData = () => {
-    if (!resultsData) {
-      return {
-        name: 'Professional Name',
-        contactInfo: 'email@example.com',
-        sections: []
-      };
-    }
-
-    // Get profile and user data
-    const profile = resultsData.detailedUserProfile || {};
-    const authUser = resultsData.user || {};
-    const parsedPersonal = resultsData.parsedResume?.personal || {};
-
-    const name =
-      (profile.fullName && profile.fullName.trim()) ||
-      authUser.displayName ||
-      (parsedPersonal.name && parsedPersonal.name.trim()) ||
-      'Professional Name';
-
-    const email =
-      (profile.email && profile.email.trim()) ||
-      authUser.email ||
-      (parsedPersonal.email && parsedPersonal.email.trim()) ||
-      'email@example.com';
-
-    const phone =
-      (profile.phone && profile.phone.trim()) ||
-      (parsedPersonal.phone && parsedPersonal.phone.trim()) ||
-      '';
-
-    const location =
-      (profile.location && profile.location.trim()) ||
-      (parsedPersonal.location && parsedPersonal.location.trim()) ||
-      '';
-
-    const contactInfo = [email, phone, location].filter(Boolean).join(' • ');
-
-    // Get structured sections data
-    const sections = resultsData.aiEnhancements?.detailedResumeSections || {};
-
-    const structuredSections = [];
-
-    // Professional Summary
-    if (sections.professional_summary || resultsData.aiEnhancements?.enhancedSummary) {
-      structuredSections.push({
-        title: 'PROFESSIONAL SUMMARY',
-        type: 'paragraph',
-        data: sections.professional_summary || resultsData.aiEnhancements?.enhancedSummary || ''
-      });
-    }
-
-    // Technical Skills
-    if (sections.technical_skills || resultsData.skillsOptimization?.technicalSkills) {
-      structuredSections.push({
-        title: 'TECHNICAL SKILLS',
-        type: 'skills',
-        data: sections.technical_skills || resultsData.skillsOptimization?.technicalSkills || []
-      });
-    }
-
-    // Core Competencies
-    if (sections.soft_skills || resultsData.skillsOptimization?.softSkills) {
-      structuredSections.push({
-        title: 'CORE COMPETENCIES',
-        type: 'competencies',
-        data: sections.soft_skills || resultsData.skillsOptimization?.softSkills || []
-      });
-    }
-
-    // Professional Experience
-    if (sections.experience) {
-      structuredSections.push({
-        title: 'PROFESSIONAL EXPERIENCE',
-        type: 'experience',
-        data: sections.experience
-      });
-    }
-
-    // Education
-    if (sections.education) {
-      structuredSections.push({
-        title: 'EDUCATION',
-        type: 'education',
-        data: sections.education
-      });
-    }
-
-    // Projects
-    if (sections.projects) {
-      structuredSections.push({
-        title: 'KEY PROJECTS',
-        type: 'projects',
-        data: sections.projects
-      });
-    }
-
-    // Certifications
-    if (sections.certifications) {
-      structuredSections.push({
-        title: 'CERTIFICATIONS',
-        type: 'certifications',
-        data: sections.certifications
-      });
-    }
-
-    // Awards
-    if (sections.awards) {
-      structuredSections.push({
-        title: 'AWARDS & RECOGNITION',
-        type: 'awards',
-        data: sections.awards
-      });
-    }
-
-    // Volunteer Work
-    if (sections.volunteer_work) {
-      structuredSections.push({
-        title: 'VOLUNTEER EXPERIENCE',
-        type: 'volunteer',
-        data: sections.volunteer_work
-      });
-    }
-
-    return {
-      name,
-      contactInfo,
-      sections: structuredSections
-    };
-  };
-
-  const structuredData = extractStructuredData();
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.name}>{structuredData.name}</Text>
-          <Text style={styles.contactInfo}>{structuredData.contactInfo}</Text>
-        </View>
-
-        {/* Render sections with proper formatting */}
-        {structuredData.sections.map((section: any, index: number) => (
-          <View key={index} style={styles.section}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            {renderSectionContent(section)}
-          </View>
-        ))}
-
-        <View style={styles.compactSection}>
-          <Text style={styles.sectionTitle}>Document Information</Text>
-          <Text style={styles.smallText}>Generated: {new Date().toLocaleDateString()}</Text>
-          <Text style={styles.smallText}>Position: {jobDetails.title}</Text>
-          <Text style={styles.smallText}>Company: {jobDetails.company}</Text>
-        </View>
-      </Page>
-    </Document>
-  );
-};
-
-// Helper function to render different section types
-const renderSectionContent = (section: any) => {
-  switch (section.type) {
-    case 'skills':
-      return (
-        <View style={styles.flexWrap}>
-          {section.data.map((skill: string, index: number) => (
-            <Text key={index} style={styles.skillBox}>
-              {skill}
-            </Text>
-          ))}
-        </View>
-      );
-
-    case 'competencies':
-      return (
-        <View style={styles.flexWrap}>
-          {section.data.map((skill: string, index: number) => (
-            <Text key={index} style={styles.competencyBox}>
-              {skill}
-            </Text>
-          ))}
-        </View>
-      );
-
-    case 'experience':
-      return section.data.map((exp: any, expIndex: number) => (
-        <View key={expIndex} style={styles.sectionItem}>
-          <View style={styles.flexRow}>
-            <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#2563eb' }}>{exp.position}</Text>
-            <Text style={{ fontSize: 10, color: '#000000' }}>{exp.duration}</Text>
-          </View>
-          <View style={styles.flexRow}>
-            <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#000000' }}>{exp.company}</Text>
-            <Text style={{ fontSize: 10, color: '#000000' }}>{exp.location}</Text>
-          </View>
-          {exp.responsibilities.map((resp: string, respIndex: number) => (
-            <Text key={respIndex} style={styles.bulletPoint}>
-              • {resp}
-            </Text>
-          ))}
-        </View>
-      ));
-
-    case 'education':
-      return section.data.map((edu: any, eduIndex: number) => (
-        <View key={eduIndex} style={styles.sectionItem}>
-          <View style={styles.flexRow}>
-            <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#2563eb' }}>{edu.degree}</Text>
-            <Text style={{ fontSize: 10, color: '#000000' }}>{edu.graduationDate}</Text>
-          </View>
-          <Text style={{ fontSize: 10, color: '#000000', marginBottom: 2 }}>{edu.institution}</Text>
-          {edu.gpa && <Text style={{ fontSize: 9, color: '#000000' }}>GPA: {edu.gpa}</Text>}
-        </View>
-      ));
-
-    case 'projects':
-      return section.data.map((project: any, projectIndex: number) => (
-        <View key={projectIndex} style={styles.sectionItem}>
-          <View style={styles.flexRow}>
-            <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#2563eb' }}>{project.name}</Text>
-            <Text style={{ fontSize: 9, color: '#000000' }}>{project.duration}</Text>
-          </View>
-          <Text style={{ fontSize: 10, lineHeight: 1.4, color: '#000000', marginBottom: 4 }}>{project.description}</Text>
-          {project.achievements.map((achievement: string, achIndex: number) => (
-            <Text key={achIndex} style={styles.bulletPoint}>
-              • {achievement}
-            </Text>
-          ))}
-          {project.technologies && (
-            <Text style={{ fontSize: 9, color: '#000000', marginTop: 2 }}>
-              Technologies: {project.technologies}
-            </Text>
-          )}
-        </View>
-      ));
-
-    case 'certifications':
-      return section.data.map((cert: any, certIndex: number) => (
-        <View key={certIndex} style={{ marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#000000' }}>{cert.name}</Text>
-            <Text style={{ fontSize: 9, color: '#000000' }}>{cert.organization}</Text>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={{ fontSize: 9, color: '#000000' }}>Issued: {cert.issueDate}</Text>
-            {cert.expirationDate && <Text style={{ fontSize: 9, color: '#000000' }}>Expires: {cert.expirationDate}</Text>}
-          </View>
-        </View>
-      ));
-
-    case 'awards':
-      return section.data.map((award: any, awardIndex: number) => (
-        <View key={awardIndex} style={styles.sectionItem}>
-          <View style={styles.flexRow}>
-            <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#000000' }}>{award.title}</Text>
-            <Text style={{ fontSize: 9, color: '#000000' }}>{award.date}</Text>
-          </View>
-          <Text style={{ fontSize: 9, color: '#000000', marginBottom: 2 }}>{award.organization}</Text>
-          {award.description && <Text style={{ fontSize: 9, lineHeight: 1.3, color: '#000000' }}>{award.description}</Text>}
-        </View>
-      ));
-
-    case 'volunteer':
-      return section.data.map((vol: any, volIndex: number) => (
-        <View key={volIndex} style={styles.sectionItem}>
-          <View style={styles.flexRow}>
-            <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#000000' }}>{vol.role}</Text>
-            <Text style={{ fontSize: 9, color: '#000000' }}>{vol.duration}</Text>
-          </View>
-          <Text style={{ fontSize: 9, color: '#000000', marginBottom: 2 }}>{vol.organization}</Text>
-          <Text style={{ fontSize: 9, lineHeight: 1.3, color: '#000000', marginBottom: 2 }}>{vol.description}</Text>
-          {vol.achievements.map((achievement: string, achIndex: number) => (
-            <Text key={achIndex} style={styles.bulletPoint}>
-              • {achievement}
-            </Text>
-          ))}
-        </View>
-      ));
-
-    default:
-      return <Text style={styles.text}>{section.data}</Text>;
-  }
-};
 
 // Cover Letter PDF Document Component with reliable HTML parsing
 const CoverLetterPDFDocument: React.FC<{ content: string; jobDetails: any; resultsData?: any }> = ({ content, jobDetails, resultsData }) => {
@@ -538,6 +254,7 @@ const CoverLetterPDFDocument: React.FC<{ content: string; jobDetails: any; resul
   );
 };
 
+// eslint-disable-next-line max-lines-per-function
 const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobDetails, analysisData, onBack }) => {
   const [copiedResume, setCopiedResume] = useState(false);
   const [copiedCoverLetter, setCopiedCoverLetter] = useState(false);
@@ -626,17 +343,79 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
     }
   };
 
-  const downloadAsText = (content: string, filename: string) => {
-    const plainText = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-    const blob = new Blob([plainText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const downloadAsHtml = (content: string, filename: string) => {
+    try {
+      const html = content || '';
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename.endsWith('.html') ? filename : filename + '.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download HTML file:', error);
+    }
+  };
+
+  // 🚀 NEW: Powerful DOCX generation using PDF-style parsing approach
+  const downloadAsDocxPowerful = async (profile: UserProfileData | any, jobKeywords: string[] = [], filename: string) => {
+    console.log('[OptimizationResults] downloadAsDocxPowerful called (PDF-style), filename=', filename);
+    console.log('[OptimizationResults] Profile data received:', profile);
+    
+    try {
+      // Use the same HTML content that PDF uses
+      const htmlContent = activeDocument === 'resume' ? modifiedResumeHtml : modifiedCoverLetterHtml;
+      console.log('[OptimizationResults] Using HTML content length:', htmlContent.length);
+      console.log('[OptimizationResults] Using profile data:', profile);
+      console.log('[OptimizationResults] Job keywords:', jobKeywords);
+
+      // Call API with the same structure as PDF generation
+      const payload = { 
+        htmlContent,
+        profile,
+        jobKeywords,
+        twoColumnSkills: true,
+        emphasizeMetrics: true,
+        filename 
+      };
+      
+      console.log('[OptimizationResults] Sending PDF-style payload to API:', payload);
+      
+      console.log('[OptimizationResults] sending PDF-style conversion request to /api/convert-html-to-docx');
+      const resp = await fetch('/api/convert-html-to-docx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        console.error('[OptimizationResults] PDF-style conversion API failed', resp.status, txt);
+        throw new Error('PDF-style DOCX generation failed');
+      }
+
+      console.log('[OptimizationResults] PDF-style conversion API succeeded, reading blob');
+      const arrayBuffer = await resp.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename.endsWith('.docx') ? filename : filename + '.docx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      console.log('[OptimizationResults] powerful DOCX download started for', filename);
+    } catch (error) {
+      console.error('[OptimizationResults] Error creating powerful DOCX:', error);
+      // Fallback to the old method
+      console.log('[OptimizationResults] Falling back to HTML conversion...');
+      const htmlContent = getCleanHTMLForDocs(results.resume_html, profile, jobKeywords);
+      await downloadAsDocx(htmlContent, filename);
+    }
   };
 
   const downloadAsDocx = async (content: string, filename: string) => {
@@ -684,6 +463,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
     }
   };
 
+  // 🚀 ENHANCED: Generate and download resume as Word document using powerful DocxResumeGenerator
   // Helper function to parse HTML content into docx elements
   // parseHtmlContent removed — server-side conversion now used via /api/convert-html-to-docx\n// Client no longer builds DOCX locally; server handles HTML rendering and DOCX generation.\n
 
@@ -720,30 +500,153 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
   };
 
   const scoreBadge = getScoreBadge(analysisResults.matchScore);
-// Helper: extract minimal profile info from the rendered HTML so ResumeTemplate gets real values
+// 🚀 Enhanced: extract comprehensive profile info from the rendered HTML for complete DOCX generation
 const extractProfileFromHtml = (html: string) => {
+  console.log('[DEBUG] extractProfileFromHtml called with HTML length:', html?.length);
+  console.log('[DEBUG] HTML content preview:', html?.substring(0, 500));
+  
   try {
     const temp = document.createElement('div');
     temp.innerHTML = html || '';
     const text = (temp.textContent || temp.innerText || '').replace(/\r/g, '');
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
 
+    console.log('[DEBUG] Extracted text lines:', lines);
+
+    // Basic contact info
     const name = lines[0] || '';
     const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
     const phoneMatch = text.match(/(\+?\d[\d\-\s]{6,}\d)/);
     const linkedinMatch = text.match(/(https?:\/\/)?(www\.)?linkedin\.com\/[^\s)]+/i);
-    const locationLine = lines.find(l => /\b[A-Z][a-z]+,\s*[A-Z]{2,}|\b(?:(City|State|India|USA|United Kingdom))\b/i) || '';
+    const locationLine = lines.find(l => /\b[A-Z][a-z]+,\s*[A-Z]{2,}|\b(?:(City|State|India|USA|United Kingdom))\b/i.test(l)) || '';
 
-    return {
+    console.log('[DEBUG] Basic info extracted:', { name, email: emailMatch?.[0], phone: phoneMatch?.[0], location: locationLine });
+
+    // Extract sections by looking for common resume section headers
+    const extractSection = (sectionName: string) => {
+      const regex = new RegExp(`(?:^|\\n)\\s*${sectionName}\\s*(?:\\n|$)`, 'im');
+      const match = text.match(regex);
+      if (!match) {
+        console.log(`[DEBUG] Section "${sectionName}" not found in text`);
+        return [];
+      }
+      
+      const startIndex = match.index! + match[0].length;
+      const nextSectionRegex = /(?:^|\n)\s*(?:PROFESSIONAL EXPERIENCE|WORK EXPERIENCE|EXPERIENCE|EDUCATION|SKILLS|TECHNICAL SKILLS|PROJECTS|CERTIFICATIONS|AWARDS|ACHIEVEMENTS|SUMMARY|OBJECTIVE)\s*(?:\n|$)/gim;
+      nextSectionRegex.lastIndex = startIndex;
+      const nextMatch = nextSectionRegex.exec(text);
+      const endIndex = nextMatch ? nextMatch.index : text.length;
+      
+      const sectionContent = text.substring(startIndex, endIndex).trim().split('\n').map(l => l.trim()).filter(Boolean);
+      console.log(`[DEBUG] Section "${sectionName}" content:`, sectionContent);
+      return sectionContent;
+    };
+
+    // Parse work experience
+    const experienceLines = extractSection('(?:PROFESSIONAL EXPERIENCE|WORK EXPERIENCE|EXPERIENCE)');
+    const workExperience = [];
+    let currentJob: { jobTitle?: string; company?: string; duration?: string; responsibilities?: string[] } = {};
+    
+    for (const line of experienceLines) {
+      if (line.match(/^\d{4}-\d{4}|^\w+\s+\d{4}/)) {
+        // Date line - likely start of new job
+        if (currentJob.jobTitle) workExperience.push(currentJob);
+        currentJob = { duration: line };
+      } else if (line.match(/^[A-Z][^•\-\n]{10,}/) && !currentJob.jobTitle) {
+        // Job title (typically first long line in caps/title case)
+        currentJob.jobTitle = line;
+      } else if (line.match(/^[A-Z][^•\-\n]{5,}/) && currentJob.jobTitle && !currentJob.company) {
+        // Company name
+        currentJob.company = line;
+      } else if (line.startsWith('•') || line.startsWith('-') || line.startsWith('*')) {
+        // Responsibility bullet point
+        if (!currentJob.responsibilities) currentJob.responsibilities = [];
+        currentJob.responsibilities.push(line.replace(/^[•\-*]\s*/, ''));
+      }
+    }
+    if (currentJob.jobTitle) workExperience.push(currentJob);
+
+    // Parse education
+    const educationLines = extractSection('EDUCATION');
+    const education = [];
+    let currentEdu: { degree?: string; institution?: string; graduationYear?: string } = {};
+    
+    for (const line of educationLines) {
+      if (line.match(/^\d{4}|Bachelor|Master|PhD|Degree|B\.?S\.?|M\.?S\.?|B\.?A\.?|M\.?A\.?/i)) {
+        if (currentEdu.degree || currentEdu.institution) education.push(currentEdu);
+        currentEdu = {};
+        
+        if (line.match(/Bachelor|Master|PhD|Degree|B\.?S\.?|M\.?S\.?|B\.?A\.?|M\.?A\.?/i)) {
+          currentEdu.degree = line;
+        } else {
+          currentEdu.graduationYear = line;
+        }
+      } else if (line.match(/University|College|Institute|School/i) && !currentEdu.institution) {
+        currentEdu.institution = line;
+      } else if (!currentEdu.degree && line.length > 10) {
+        currentEdu.degree = line;
+      }
+    }
+    if (currentEdu.degree || currentEdu.institution) education.push(currentEdu);
+
+    // Parse skills
+    const skillsLines = extractSection('(?:TECHNICAL SKILLS|SKILLS)');
+    const skills = [];
+    for (const line of skillsLines) {
+      if (line.includes(',')) {
+        // Comma-separated skills
+        skills.push(...line.split(',').map(s => s.trim()));
+      } else if (line.match(/^[A-Za-z]/)) {
+        // Single skill line
+        skills.push(line);
+      }
+    }
+
+    // Parse projects
+    const projectLines = extractSection('PROJECTS');
+    const projects = [];
+    let currentProject: { title?: string; description?: string; technologies?: string[] } = {};
+    
+    for (const line of projectLines) {
+      if (line.match(/^[A-Z][^•\-\n]{5,}/) && !line.startsWith('•') && !currentProject.title) {
+        if (currentProject.title) projects.push(currentProject);
+        currentProject = { title: line };
+      } else if (line.startsWith('•') || line.startsWith('-')) {
+        if (!currentProject.description) currentProject.description = '';
+        currentProject.description += (currentProject.description ? ' ' : '') + line.replace(/^[•\-]\s*/, '');
+      } else if (line.match(/Technologies?:|Tech:|Stack:/i)) {
+        currentProject.technologies = line.replace(/Technologies?:|Tech:|Stack:/i, '').trim().split(/[,;]/);
+      }
+    }
+    if (currentProject.title) projects.push(currentProject);
+
+    // Extract summary from the beginning or look for summary section
+    const summaryLines = extractSection('(?:SUMMARY|OBJECTIVE|PROFILE)');
+    const summary = summaryLines.length > 0 ? summaryLines.join(' ') : 
+      lines.slice(2, 5).filter(l => l.length > 30).join(' '); // Fallback to lines after name/contact
+
+    console.log('[DEBUG] Final extracted data:', { workExperience, education, skills, projects, summary });
+
+    const result = {
       fullName: name,
       email: emailMatch?.[0] || '',
       phone: phoneMatch?.[0] || '',
       location: locationLine,
       linkedin: linkedinMatch?.[0] || '',
       github: '',
-      portfolio: ''
+      portfolio: '',
+      summary: summary,
+      workExperience: workExperience,
+      experience: workExperience, // Provide both formats
+      education: education,
+      skills: skills,
+      projects: projects
     };
+
+    console.log('[DEBUG] extractProfileFromHtml final result:', result);
+    return result;
   } catch (e) {
+    console.error('Error extracting profile from HTML:', e);
     return {
       fullName: '',
       email: '',
@@ -760,7 +663,7 @@ const extractProfileFromHtml = (html: string) => {
 const resumeProfile = userProfile || extractProfileFromHtml(results.resume_html);
 
 // Function to modify HTML content to include user's name
-const modifyHtmlWithProfile = (htmlContent: string, profile: any) => {
+const modifyHtmlWithProfile = (htmlContent: string, profile: { fullName?: string }) => {
   if (!profile?.fullName) return htmlContent;
 
   const tempDiv = document.createElement('div');
@@ -771,7 +674,7 @@ const modifyHtmlWithProfile = (htmlContent: string, profile: any) => {
   h1Elements.forEach(h1 => {
     const text = h1.textContent?.trim();
     if (text && (text === 'Professional Name' || text === 'Your Name' || text.length < 3)) {
-      h1.textContent = profile.fullName;
+      h1.textContent = profile.fullName || '';
     }
   });
 
@@ -783,7 +686,7 @@ const modifyHtmlWithProfile = (htmlContent: string, profile: any) => {
       if (text.includes('Professional Name') || text.includes('Your Name') || (text.split(' ').length <= 3 && !text.includes('@'))) {
         // Replace the entire content if it looks like a name placeholder
         if (text === 'Professional Name' || text === 'Your Name') {
-          div.textContent = profile.fullName;
+          div.textContent = profile.fullName || '';
         }
       }
     }
@@ -933,24 +836,36 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
               <div className="mt-4 space-y-3">
                 <div className="flex gap-3">
                   <button
-                    onClick={() => downloadAsText(
+                    onClick={() => downloadAsHtml(
                       activeDocument === 'resume' ? modifiedResumeHtml : modifiedCoverLetterHtml,
-                      activeDocument === 'resume' ? 'ai-enhanced-resume.txt' : 'ai-enhanced-cover-letter.txt'
+                      activeDocument === 'resume' ? 'ai-enhanced-resume.html' : 'ai-enhanced-cover-letter.html'
                     )}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
                   >
-                    <Download size={16} />
-                    Download TXT
+                    <FileText size={16} />
+                    Download HTML
                   </button>
                   <button
-                    onClick={() => downloadAsDocx(
-                      activeDocument === 'resume' ? modifiedResumeHtml : modifiedCoverLetterHtml,
-                      activeDocument === 'resume' ? 'ai-enhanced-resume.docx' : 'ai-enhanced-cover-letter.docx'
-                    )}
+                    onClick={() => {
+                      // 🚀 Use powerful DOCX generation instead of weak HTML conversion
+                      const profile = userProfile || extractProfileFromHtml(results.resume_html);
+                      const jobKeywords = analysisData?.keywordAnalysis?.coveredKeywords || [];
+                      const filename = activeDocument === 'resume' ? 'ai-enhanced-resume.docx' : 'ai-enhanced-cover-letter.docx';
+                      
+                      if (activeDocument === 'resume' && profile) {
+                        downloadAsDocxPowerful(profile, jobKeywords, filename);
+                      } else {
+                        // Fallback to HTML conversion for cover letters or when no profile
+                        downloadAsDocx(
+                          activeDocument === 'resume' ? modifiedResumeHtml : modifiedCoverLetterHtml,
+                          filename
+                        );
+                      }
+                    }}
                     className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
                   >
                     <FileText size={16} />
-                    Download Word DOC
+                    Download Professional Word DOC
                   </button>
                 </div>
 
@@ -961,8 +876,10 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
                       activeDocument === 'resume' ?
                         <PerfectHTMLToPDF
                           htmlContent={modifiedResumeHtml}
-                          profile={resumeProfile as any}
+                          profile={resumeProfile}
                           jobKeywords={analysisData?.keywordAnalysis?.coveredKeywords || []}
+                          twoColumnSkills
+                          emphasizeMetrics
                         /> :
                         <CoverLetterPDFDocument content={modifiedCoverLetterHtml} jobDetails={jobDetails} resultsData={results} />
                     }
@@ -972,7 +889,7 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
                     }
                     className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
                   >
-                    {({ blob, url, loading, error }) => (
+                    {({ loading }) => (
                       <>
                         <Download size={16} />
                         {loading ? 'Generating Professional PDF...' : 'Download Professional PDF'}
@@ -989,16 +906,21 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-4">PDF Preview</h4>
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
                   <div className="h-96 bg-white rounded border">
-                    <PDFViewer width="100%" height="100%" style={{ border: 'none' }}>
-                      {activeDocument === 'resume' ?
-                        <PerfectHTMLToPDF
-                          htmlContent={modifiedResumeHtml}
-                          profile={resumeProfile as any}
-                          jobKeywords={analysisData?.keywordAnalysis?.coveredKeywords || []}
-                        /> :
+                    {activeDocument === 'resume' ? (
+                      <ResumePDFPreview
+                        resumeHtml={modifiedResumeHtml}
+                        profile={resumeProfile}
+                        jobKeywords={analysisData?.keywordAnalysis?.coveredKeywords || []}
+                        twoColumnSkills
+                        emphasizeMetrics
+                        fallbackPdfUrl={"https://storage.googleapis.com/myjobsearchagent.firebasestorage.app/ApplicationDocuments/i4HJIfYJLZWweXDtKtA5_resume.pdf?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=firebase-adminsdk-fbsvc%40myjobsearchagent.iam.gserviceaccount.com%2F20250920%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20250920T133421Z&X-Goog-Expires=604800&X-Goog-SignedHeaders=host&X-Goog-Signature=1f1fe16a6e27a8e972a70e6ee2a9089d86b27f445d45e74c6fc44db8dc7aa03f2574a58d2717c6a394e1bd77ebf1890cbdb032ed852f01c59eaf2101a9e36fd876bd4ec77bb27c0d9d27ec43d7e58373852dc993c0f01dd14527cec50aedb22bd3db4b50e63caf6cdbd4124e5da225370452db78e4fa950b632b1d346bf78d2d1218bb92b24e3381f4b09d7888961b3647403822fbf4c590e169d96711ea57a8ff82bdb04e441c956b4d2165e93fc40bdda1d3694c2ad8101f9e5b51039d7dd23c2092eeb54568125e01b23c1db4d87849cfc91fdf64ce9318b23b876ebf5e312c2b6f9c614b6d5845bc70aa48bbd7042461423b141ce0c95ed09c09b92dfbf3"}
+                        height="100%"
+                      />
+                    ) : (
+                      <PDFViewer width="100%" height="100%" style={{ border: 'none' }}>
                         <CoverLetterPDFDocument content={modifiedCoverLetterHtml} jobDetails={jobDetails} resultsData={results} />
-                      }
-                    </PDFViewer>
+                      </PDFViewer>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1112,13 +1034,33 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
             </button>
             <button
               onClick={() => {
-                downloadAsDocx(modifiedResumeHtml, 'ai-enhanced-resume.docx');
+                // 🚀 Use powerful DOCX generation for both documents
+                console.log('[DEBUG] Download button clicked');
+                console.log('[DEBUG] userProfile:', userProfile);
+                console.log('[DEBUG] results.resume_html length:', results.resume_html?.length);
+                
+                const profile = userProfile || extractProfileFromHtml(results.resume_html);
+                console.log('[DEBUG] Profile to use for DOCX:', profile);
+                
+                const jobKeywords = analysisData?.keywordAnalysis?.coveredKeywords || [];
+                console.log('[DEBUG] Job keywords:', jobKeywords);
+                
+                if (profile) {
+                  // Use powerful generator for resume
+                  downloadAsDocxPowerful(profile, jobKeywords, 'ai-enhanced-resume-professional.docx');
+                } else {
+                  console.warn('[DEBUG] No profile available, falling back to HTML conversion');
+                  // Fallback for resume
+                  downloadAsDocx(modifiedResumeHtml, 'ai-enhanced-resume.docx');
+                }
+                
+                // Always use HTML conversion for cover letter (for now)
                 downloadAsDocx(modifiedCoverLetterHtml, 'ai-enhanced-cover-letter.docx');
               }}
               className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-6 py-3 rounded-lg font-medium transition-all hover:shadow-lg flex items-center gap-2"
             >
               <Download size={16} />
-              Download Both as Word DOC
+              Download Both as Professional Word DOC
             </button>
           </div>
         </div>

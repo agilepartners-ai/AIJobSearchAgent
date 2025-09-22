@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { 
-  Search, Filter, Edit3, Eye, Trash2, ExternalLink, ChevronLeft, ChevronRight, Briefcase, Calendar, Clock, Video, Sparkles, LayoutGrid, LayoutList 
+  Search, Filter, Edit3, Eye, Trash2, ExternalLink, ChevronLeft, ChevronRight, Briefcase, Calendar, Clock, Sparkles, LayoutGrid, LayoutList 
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { JobApplication } from '../../services/firebaseJobApplicationService';
@@ -15,7 +15,6 @@ interface ApplicationsTableProps {
   onViewJobDescription: (job: { title: string; company: string; description: string }) => void;
   onDeleteApplication: (id: string) => void;
   onUpdateApplicationStatus?: (id: string, status: string) => void;
-  onStartInterview?: (application: JobApplication) => void;
   onLoadAIEnhanced?: (application: JobApplication) => void;
 }
 
@@ -29,7 +28,6 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   onViewJobDescription,
   onDeleteApplication,
   onUpdateApplicationStatus,
-  onStartInterview,
   onLoadAIEnhanced,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -94,7 +92,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
         return 'Invalid date';
       }
       return format(date, 'MMM d, yyyy');
-    } catch (error) {
+    } catch {
       return 'Invalid date';
     }
   };
@@ -189,7 +187,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                 {filteredApplications.map((application) => (
                   <div
                     key={application.id}
-                    className="relative flex-shrink-0 w-80 bg-white dark:bg-gray-700 rounded-xl shadow-lg transition-all duration-300 border border-gray-200 dark:border-gray-600 cursor-pointer"
+                    className="relative flex-shrink-0 w-80 bg-white dark:bg-gray-700 rounded-xl shadow-lg transition-all duration-300 border border-gray-200 dark:border-gray-600 cursor-pointer flex flex-col h-[500px]"
                   >
                     {application.status === 'applied' && (
                       <div className="absolute top-0 right-0 h-8 w-8 bg-gradient-to-bl from-green-400 to-transparent rounded-tr-xl"></div>
@@ -197,16 +195,17 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                     {application.status === 'not_applied' && (
                       <div className="absolute top-0 right-0 h-8 w-8 bg-gradient-to-bl from-red-400 to-transparent rounded-tr-xl"></div>
                     )}
-                    {/* Card Header */}
+                    
+                    {/* Card Header - Fixed Height */}
                     <div className="p-6 border-b border-gray-200 dark:border-gray-600">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1 line-clamp-2 h-14 overflow-hidden">
                             {application.position}
                           </h3>
                           <div className="flex items-center text-gray-600 dark:text-gray-400 mb-3">
                             <Briefcase size={16} className="mr-2" />
-                            <span className="text-sm">{application.company_name}</span>
+                            <span className="text-sm truncate">{application.company_name}</span>
                           </div>
                         </div>
                         {application.status !== 'applied' && application.status !== 'not_applied' && (
@@ -217,8 +216,8 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                       </div>
                     </div>
 
-                    {/* Card Body */}
-                    <div className="p-6 space-y-4">
+                    {/* Card Body - Flexible Content Area */}
+                    <div className="p-6 space-y-4 flex-1">
                       {/* Dates */}
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center text-gray-600 dark:text-gray-400">
@@ -256,8 +255,8 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                       )}
                     </div>
 
-                    {/* Card Footer - Actions */}
-                    <div className="p-6 pt-0">
+                    {/* Card Footer - Fixed at Bottom */}
+                    <div className="p-6 pt-0 mt-auto">
                       <div className="space-y-3">
                         {/* Main Action Buttons - Grouped with visual distinction */}
                         <div className="flex flex-col rounded-lg overflow-hidden">
@@ -282,17 +281,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                             </button>
                           )}
 
-                          {/* Feature Buttons - Connected with distinction */}
-                          {application.job_description && onStartInterview && (
-                            <button
-                              onClick={() => onStartInterview(application)}
-                              className="w-full bg-gradient-to-r from-fuchsia-500 to-pink-500 hover:from-fuchsia-600 hover:to-pink-600 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md mt-2"
-                            >
-                              <Video size={14} className="mr-2" />
-                              Practice Interview
-                            </button>
-                          )}
-
+                          {/* AI Enhance Button - Always show */}
                           {onLoadAIEnhanced && (
                             <button
                               onClick={() => onLoadAIEnhanced(application)}
@@ -304,7 +293,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                           )}
                         </div>
 
-                        {/* Secondary Action Buttons */}
+                        {/* Secondary Action Buttons - Fixed at Bottom */}
                         <div className="flex justify-center space-x-2 pt-2">
                           <button
                             onClick={() => onEditApplication(application)}
@@ -452,16 +441,6 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                             title="View job description"
                           >
                             <Eye size={16} />
-                          </button>
-                        )}
-                        
-                        {onStartInterview && application.job_description && (
-                          <button
-                            onClick={() => onStartInterview(application)}
-                            className="text-fuchsia-600 dark:text-fuchsia-400 hover:text-fuchsia-800 dark:hover:text-fuchsia-300 p-1 rounded hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-colors"
-                            title="Practice interview"
-                          >
-                            <Video size={16} />
                           </button>
                         )}
                         
