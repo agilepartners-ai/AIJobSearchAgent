@@ -13,50 +13,184 @@ export interface ResumeExtractionResponse {
 }
 
 export class ResumeExtractionService {
-    private static readonly API_BASE_URL = process.env.NEXT_PUBLIC_RESUME_API_BASE_URL || 'https://resumebuilder-arfb.onrender.com';
+    // Remove hardcoded Render default. Use env only; if not set, fallback to local extraction.
+    private static readonly API_BASE_URL = process.env.NEXT_PUBLIC_RESUME_API_BASE_URL || '';
     private static readonly API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
     private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'Stub';
     private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'stub-model';
+
+    // Local: extract raw text from PDF or other files
+    private static async extractRawText(file: File): Promise<string> {
+        try {
+            if (file.type === 'application/pdf') {
+                const { extractTextFromPDF } = await import('../utils/pdfUtils');
+                const { text } = await extractTextFromPDF(file);
+                return text || '';
+            }
+            // Fallback for docx/txt; may return binary for .doc
+            return await file.text();
+        } catch {
+            return '';
+        }
+    }
+
+    // Local: naive section detection and shaping into a simple resume_json
+    private static toResumeJsonFromText(text: string): any {
+        const lines = (text || '').split(/\r?\n/).map(l => l.trim());
+        const nonEmpty = (s: string) => s && s.trim().length > 0;
+
+        const headerPatterns: Record<string, RegExp[]> = {
+            summary: [/^\s*(summary|professional summary|profile|about me)\s*[:\-]?$/i],
+            skills: [/^\s*(skills|technical skills|core competencies|competencies|skills & abilities|key skills)\s*[:\-]?$/i],
+            experience: [/^\s*(experience|professional experience|work experience|employment history|career history)\s*[:\-]?$/i],
+            education: [/^\s*(education|academic background|education & training|academics)\s*[:\-]?$/i],
+            projects: [/^\s*(projects|selected projects|academic projects|personal projects)\s*[:\-]?$/i],
+            certifications: [/^\s*(certifications?|licenses?|certifications? & licenses?)\s*[:\-]?$/i],
+            awards: [/^\s*(awards?|honors|honors & awards|achievements)\s*[:\-]?$/i],
+            volunteer: [/^\s*(volunteer( work)?|community service|volunteering|extracurricular)\s*[:\-]?$/i],
+            publications: [/^\s*(publications?|papers|research|research publications)\s*[:\-]?$/i]
+        };
+
+        type SectionKey = keyof typeof headerPatterns;
+        const sectionBlocks: Record<SectionKey, string[]> = {
+            summary: [], skills: [], experience: [], education: [], projects: [],
+            certifications: [], awards: [], volunteer: [], publications: []
+        };
+
+        // Find the first index per section and segment content until the next header
+        const indices: Partial<Record<SectionKey, number>> = {};
+        for (let i = 0; i < lines.length; i++) {
+            for (const key of Object.keys(headerPatterns) as SectionKey[]) {
+                if (indices[key] !== undefined) continue;
+                if (headerPatterns[key].some(r => r.test(lines[i]))) {
+                    indices[key] = i;
+                }
+            }
+        }
+
+        const ordered = (Object.keys(indices) as SectionKey[]).sort((a, b) => (indices[a]! - indices[b]!));
+
+        // Map each section to its content slice
+        for (let s = 0; s < ordered.length; s++) {
+            const key = ordered[s];
+            const start = indices[key]!;
+            const end = s + 1 < ordered.length ? indices[ordered[s + 1]]! : lines.length;
+            const body = lines.slice(start + 1, end).filter(nonEmpty);
+            sectionBlocks[key] = body;
+        }
+
+        // Simple contact extraction
+        const emailMatch = text.match(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i);
+        const phoneMatch = text.match(/(\+?\d[\d\s().-]{7,}\d)/);
+
+        // Transform sections into a simple shape the UI can use
+        const summaryText = sectionBlocks.summary.slice(0, 6).join(' ');
+        const skillsArray = sectionBlocks.skills.length
+            ? sectionBlocks.skills.join(', ').split(/[,;•|]/).map(s => s.trim()).filter(nonEmpty)
+            : [];
+
+        // Split experience/projects/education lines into coarse items by blank lines or bullets
+        const splitByBullets = (arr: string[]) => {
+            const items: string[] = [];
+            let buf: string[] = [];
+            const flush = () => {
+                const v = buf.join(' ').trim();
+                if (v) items.push(v);
+                buf = [];
+            };
+            for (const l of arr) {
+                if (/^(\*|-|•)\s+/.test(l) || l === '') {
+                    flush();
+                    if (l.replace(/^(\*|-|•)\s+/, '').trim()) items.push(l.replace(/^(\*|-|•)\s+/, '').trim());
+                } else {
+                    buf.push(l);
+                }
+            }
+            flush();
+            return items.filter(nonEmpty);
+        };
+
+        const experienceItems = splitByBullets(sectionBlocks.experience).map(d => ({ description: d }));
+        const educationItems = splitByBullets(sectionBlocks.education).map(d => ({ description: d }));
+        const projectItems = splitByBullets(sectionBlocks.projects).map(d => ({ title: d }));
+        const certificationItems = splitByBullets(sectionBlocks.certifications).map(d => ({ title: d }));
+        const awardItems = splitByBullets(sectionBlocks.awards).map(d => ({ title: d }));
+        const volunteerItems = splitByBullets(sectionBlocks.volunteer).map(d => ({ description: d }));
+        const publicationItems = splitByBullets(sectionBlocks.publications).map(d => ({ title: d }));
+
+        return {
+            full_name: '',
+            email: emailMatch?.[0] || '',
+            phone: phoneMatch?.[0] || '',
+            professional_summary: summaryText || '',
+            skills: skillsArray,
+            experience: experienceItems,
+            education: educationItems,
+            projects: projectItems,
+            certifications: certificationItems,
+            awards: awardItems,
+            volunteer: volunteerItems,
+            publications: publicationItems,
+            raw_text: text
+        };
+    }
 
     static async extractResumeJson(
         file: File,
         options: ResumeExtractionOptions = {}
     ): Promise<ResumeExtractionResponse> {
         try {
-            // Create form data
-            const formData = new FormData();
+            // If a custom API base URL is configured, use it; otherwise do local extraction
+            if (this.API_BASE_URL) {
+                // Create form data
+                const formData = new FormData();
 
-            // Add the resume file
-            formData.append('file', file);
+                // Add the resume file
+                formData.append('file', file);
 
-            // Add API key only if present; backend should handle server-side keys when necessary
-            if (this.API_KEY) formData.append('api_key', this.API_KEY);
+                // Add API key only if present; backend should handle server-side keys when necessary
+                if (this.API_KEY) formData.append('api_key', this.API_KEY);
 
-            // Add optional parameters with environment defaults
-            formData.append('model_type', options.modelType || this.DEFAULT_MODEL_TYPE);
-            formData.append('model', options.model || this.DEFAULT_MODEL);
-            formData.append('file_id', options.fileId || `req_${Date.now()}`);
+                // Add optional parameters with environment defaults
+                formData.append('model_type', options.modelType || this.DEFAULT_MODEL_TYPE);
+                formData.append('model', options.model || this.DEFAULT_MODEL);
+                formData.append('file_id', options.fileId || `req_${Date.now()}`);
 
-            // Make the request
-            const response = await fetch(`${this.API_BASE_URL}/api/extract-resume-json`, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    // Add ngrok headers if needed
-                    'ngrok-skip-browser-warning': 'true'
-                },
-                // 60 second timeout for AI processing
-                signal: AbortSignal.timeout(600000) // 10 minutes
-            });
+                // Make the request
+                const response = await fetch(`${this.API_BASE_URL}/api/extract-resume-json`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        // Add ngrok headers if needed
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    // 60 second timeout for AI processing
+                    signal: AbortSignal.timeout(600000) // 10 minutes
+                });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                return data;
             }
 
-            const data = await response.json();
+            // Local extraction path (no backend)
+            const text = await this.extractRawText(file);
+            if (!text || text.trim().length < 20) {
+                throw new Error('Failed to extract readable text from the file.');
+            }
 
-            return data;
+            const resumeJson = this.toResumeJsonFromText(text);
+            return {
+                success: true,
+                resume_json: resumeJson,
+                extracted_text_length: text.length,
+                message: 'Local extraction completed'
+            };
         } catch (error: any) {
             console.error('Error extracting resume JSON:', error);
 

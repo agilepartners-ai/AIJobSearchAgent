@@ -130,6 +130,17 @@ export interface DetailedPublication {
     description: string;
 }
 
+// Add: canonical section type for dynamic prompting
+type CanonicalSection =
+    | 'skills'
+    | 'experience'
+    | 'education'
+    | 'projects'
+    | 'certifications'
+    | 'awards'
+    | 'volunteer_work'
+    | 'publications';
+
 // OpenAI has been removed from the frontend. Provide a local stub
 // implementation that preserves the public API surface and response
 // shapes so the UI flow remains intact.
@@ -397,6 +408,85 @@ CURRENT RESUME:
 ${resumeText}`;
     }
 
+    // Add: Section labels and patterns for detection
+    private static readonly SECTION_LABELS: Record<CanonicalSection, string> = {
+        skills: 'Skills',
+        experience: 'Experience',
+        education: 'Education',
+        projects: 'Projects',
+        certifications: 'Certifications',
+        awards: 'Awards',
+        volunteer_work: 'Volunteer Work',
+        publications: 'Publications'
+    };
+
+    private static readonly SECTION_PATTERNS: Record<CanonicalSection, RegExp[]> = {
+        skills: [
+            /^\s*(skills|technical skills|core competencies|competencies|skills & abilities|key skills)\s*[:\-]?$/i
+        ],
+        experience: [
+            /^\s*(experience|professional experience|work experience|employment history|career history)\s*[:\-]?$/i
+        ],
+        education: [
+            /^\s*(education|academic background|education & training|academics)\s*[:\-]?$/i
+        ],
+        projects: [
+            /^\s*(projects|selected projects|academic projects|personal projects)\s*[:\-]?$/i
+        ],
+        certifications: [
+            /^\s*(certifications?|licenses?|certifications? & licenses?)\s*[:\-]?$/i
+        ],
+        awards: [
+            /^\s*(awards?|honors|honors & awards|achievements)\s*[:\-]?$/i
+        ],
+        volunteer_work: [
+            /^\s*(volunteer( work)?|community service|volunteering|extracurricular)\s*[:\-]?$/i
+        ],
+        publications: [
+            /^\s*(publications?|papers|research|research publications)\s*[:\-]?$/i
+        ]
+    };
+
+    // Add: Detect sections and their order from resume text
+    private static detectResumeSections(resumeText: string): { orderedSections: CanonicalSection[]; indices: Record<CanonicalSection, number> } {
+        if (!resumeText) return { orderedSections: [], indices: {} as Record<CanonicalSection, number> };
+
+        const lines = resumeText.split(/\r?\n/).map(l => l.trim());
+        const firstIndex: Partial<Record<CanonicalSection, number>> = {};
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            for (const key of Object.keys(this.SECTION_PATTERNS) as CanonicalSection[]) {
+                if (firstIndex[key] !== undefined) continue;
+                const patterns = this.SECTION_PATTERNS[key];
+                if (patterns.some(r => r.test(line))) {
+                    firstIndex[key] = i;
+                }
+            }
+        }
+
+        const orderedSections = (Object.keys(firstIndex) as CanonicalSection[])
+            .sort((a, b) => (firstIndex[a]! - firstIndex[b]!));
+
+        return { orderedSections, indices: firstIndex as Record<CanonicalSection, number> };
+    }
+
+    // Add: Build dynamic directive to control which sections the AI should output
+    private static createDynamicSectionDirective(orderedSections: CanonicalSection[]): string {
+        const list = orderedSections.map((k, idx) => `${idx + 1}) ${this.SECTION_LABELS[k]}`).join('\n');
+
+        return [
+            'Dynamic section directive:',
+            '- Mandatory: Include a Professional Summary at the top.',
+            '- After the Professional Summary, include ONLY the following sections, in this exact order:',
+            list.length ? list : '(No additional sections detected. Do not invent new sections.)',
+            '- Do NOT add or invent sections that are not present in the original resume.',
+            '- In the JSON output under enhancements.detailed_resume_sections:',
+            '  - If Skills is present, populate technical_skills and soft_skills as appropriate (leave empty if unclear).',
+            '  - For sections not listed above, leave them empty and do not fabricate content.'
+        ].join('\n');
+    }
+
     // Enhanced resume analysis using OpenAI directly (like AiJobSearch-old)
     static async enhanceWithOpenAI(
         resumeText: string,
@@ -407,6 +497,10 @@ ${resumeText}`;
         if (this.isGeminiProvider(options.modelType)) {
             return this.enhanceWithGemini(resumeText, jobDescription, options);
         }
+
+        // Add: detect sections for stub path too (used in metadata/UI)
+        const { orderedSections } = this.detectResumeSections(resumeText);
+        const includedLabels = orderedSections.map(s => this.SECTION_LABELS[s]);
 
         // Return a deterministic stubbed response to preserve UI flow.
         const matchScore = Math.min(85, Math.max(40, Math.floor((resumeText.length % 100) + 40)));
@@ -460,7 +554,11 @@ ${resumeText}`;
                 model_used: options.model || this.DEFAULT_MODEL,
                 model_type: options.modelType || this.DEFAULT_MODEL_TYPE,
                 timestamp: new Date().toISOString(),
-                resume_sections_analyzed: ['summary', 'experience', 'skills', 'education']
+                resume_sections_analyzed: ['summary', 'experience', 'skills', 'education'],
+                // Add: dynamic section metadata
+                included_sections: includedLabels,
+                section_order: orderedSections,
+                directive_applied: false
             },
             file_id: options.fileId || `enhance_stub_${Date.now()}`
         };
@@ -490,7 +588,13 @@ ${resumeText}`;
                 options.systemPromptOverride ?? this.createDetailedSystemPrompt();
             const userHeader =
                 options.userPromptOverride ?? this.createDetailedUserPromptHeader();
-            const userContent = this.buildFinalUserPrompt(userHeader, resumeText, jobDescription);
+
+            // Add: dynamic directive injection based on detected sections/order
+            const { orderedSections } = this.detectResumeSections(resumeText);
+            const dynamicDirective = this.createDynamicSectionDirective(orderedSections);
+            const userHeaderWithDirective = `${userHeader}\n\n${dynamicDirective}`;
+
+            const userContent = this.buildFinalUserPrompt(userHeaderWithDirective, resumeText, jobDescription);
 
             // Combine system and user prompts into a single user message for Gemini
             const payload = {
@@ -576,7 +680,11 @@ ${resumeText}`;
                     model_used: modelId,
                     model_type: options.modelType || this.DEFAULT_MODEL_TYPE || 'Gemini',
                     timestamp: new Date().toISOString(),
-                    resume_sections_analyzed: ['summary', 'experience', 'skills', 'education', 'projects', 'certifications', 'awards', 'volunteer', 'publications']
+                    resume_sections_analyzed: ['summary', 'experience', 'skills', 'education', 'projects', 'certifications', 'awards', 'volunteer', 'publications'],
+                    // Add: dynamic section metadata
+                    included_sections: orderedSections.map(s => this.SECTION_LABELS[s]),
+                    section_order: orderedSections,
+                    directive_applied: true
                 },
                 file_id: options.fileId || `enhance_${Date.now()}`
             };
@@ -808,6 +916,10 @@ export interface AIEnhancementMetadata {
     model_type: string;
     timestamp: string;
     resume_sections_analyzed: string[];
+    // Add: optional metadata to aid UI/debugging for dynamic prompting
+    included_sections?: string[];  // Human-friendly labels in order
+    section_order?: CanonicalSection[]; // Canonical keys in order
+    directive_applied?: boolean; // Whether dynamic directive was injected
 }
 
 export interface AIEnhancementResponse {
