@@ -152,14 +152,23 @@ type CanonicalSection =
 const getApiKey = (): string => '';
 
 // Add: Get Gemini API key from environment variables for browser compatibility
+// Log API key only once to avoid console spam
+let _hasLoggedGeminiApiKey = false;
+
 const getGeminiApiKey = (): string => {
     let apiKey = '';
     if (typeof window !== 'undefined') {
         apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
-        console.log('🔍 [DEBUG] Browser - NEXT_PUBLIC_GEMINI_API_KEY:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
+        if (!_hasLoggedGeminiApiKey) {
+            console.log('🔍 [DEBUG] Browser - NEXT_PUBLIC_GEMINI_API_KEY:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
+            _hasLoggedGeminiApiKey = true;
+        }
     } else {
         apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
-        console.log('🔍 [DEBUG] Server - GEMINI_API_KEY:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
+        if (!_hasLoggedGeminiApiKey) {
+            console.log('🔍 [DEBUG] Server - GEMINI_API_KEY:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
+            _hasLoggedGeminiApiKey = true;
+        }
     }
     return apiKey;
 };
@@ -177,7 +186,9 @@ export class AIEnhancementService {
 
     // Create system prompt for AI enhancement (matching old repo pattern)
     private static createSystemPrompt(): string {
-        return `You are an expert resume optimization AI assistant specializing in ATS optimization and job matching. Your task is to analyze a resume against a job description and provide comprehensive optimization recommendations.
+    return `You are an expert resume optimization AI assistant specializing in ATS optimization and job matching. Your task is to analyze a resume against a job description and provide comprehensive optimization recommendations.
+
+Always include a compact, crisp, professional summary suitable for use at the top of a resume (2-3 sentences maximum). Keep this summary short, precise, and professional. For other sections prefer concise, actionable items rather than long paragraphs.
 
 You must respond with a valid JSON object containing the following structure:
 {
@@ -219,7 +230,9 @@ Focus on:
 
     // Create system prompt for detailed AI enhancement
     private static createDetailedSystemPrompt(): string {
-        return `You are an expert resume and cover letter writer specializing in creating comprehensive, ATS-optimized, multi-page professional documents. Your task is to analyze a resume against a job description and create detailed, enhanced content.
+    return `You are an expert resume and cover letter writer specializing in creating comprehensive, ATS-optimized, multi-page professional documents. Your task is to analyze a resume against a job description and create detailed, enhanced content.
+
+Always include a compact, crisp, professional summary suitable for use at the top of a resume (2-3 sentences maximum). Even when producing long-form detailed sections, ensure the enhanced_summary field contains a short, professional blurb that can be used directly on a one-page resume. For the rest of the detailed content, prefer concise, structured paragraphs and bullet lists.
 
 You must respond with a valid JSON object containing the following structure:
 {
@@ -353,14 +366,41 @@ ${resumeText}
 Provide a comprehensive analysis and optimization following the JSON structure specified in the system prompt. Make sure all recommendations are specific, actionable, and tailored to this exact job posting.`;
     }
 
+    // Helper: ensure a compact professional summary (2-3 sentences)
+    private static ensureCompactSummary(text: string, maxSentences = 3): string {
+        if (!text || typeof text !== 'string') return '';
+        const cleaned = text.replace(/\s+/g, ' ').trim();
+        const sentences = cleaned.match(/[^.!?]+[.!?]?/g) || [cleaned];
+        if (sentences.length <= maxSentences) return sentences.join(' ').trim();
+        return sentences.slice(0, maxSentences).map(s => s.trim()).join(' ').trim();
+    }
+
+    // Compact summary with optional character cap (default 300 chars)
+    private static formatCompactSummary(text: string, maxSentences = 3, charCap = 300): string {
+        const s = this.ensureCompactSummary(text, maxSentences);
+        if (!s) return '';
+        if (s.length <= charCap) return s;
+        // truncate at nearest sentence boundary under charCap if possible
+        const sentences = s.match(/[^.!?]+[.!?]?/g) || [s.slice(0, charCap)];
+        let out = '';
+        for (const sent of sentences) {
+            if ((out + ' ' + sent).trim().length > charCap) break;
+            out = (out + ' ' + sent).trim();
+        }
+        if (!out) return s.slice(0, charCap).trim();
+        return out;
+    }
+
     // Create detailed user prompt (kept for reference/compat)
     private static createDetailedUserPrompt(resumeText: string, jobDescription: string): string {
-        return `Please analyze and create detailed, comprehensive enhanced content for this resume and a personalized cover letter for the given job description.
+    return `Please analyze and create detailed, comprehensive enhanced content for this resume and a personalized cover letter for the given job description.
 
-        Create a comprehensive analysis and detailed enhanced content following the JSON structure. The enhanced resume should be suitable for a multi-page document with detailed sections. The cover letter should have two substantial paragraphs that create a compelling narrative connecting the candidate's experience to the job requirements.
+Always include a compact, crisp, professional summary suitable for the top of a resume (2-3 sentences maximum). Place this short summary in the enhancements.enhanced_summary field so it can be used on a one-page resume. When producing the longer detailed sections, keep language concise and use bullet lists where possible.
+
+    Create a comprehensive analysis and detailed enhanced content following the JSON structure. The enhanced resume should be suitable for a multi-page document with detailed sections. The cover letter should have two substantial paragraphs that create a compelling narrative connecting the candidate's experience to the job requirements.
 
 Make sure all content is:
-1. Highly detailed and professional
+1. Highly detailed and professional (but keep the top summary compact)
 2. Tailored specifically to the job posting
 3. Includes quantified achievements where possible
 4. Uses industry-specific terminology
@@ -505,7 +545,7 @@ ${resumeText}`;
         // Return a deterministic stubbed response to preserve UI flow.
         const matchScore = Math.min(85, Math.max(40, Math.floor((resumeText.length % 100) + 40)));
 
-        const enhancementResponse: AIEnhancementResponse = {
+    const enhancementResponse: AIEnhancementResponse = {
             success: true,
             analysis: {
                 match_score: matchScore,
@@ -524,7 +564,7 @@ ${resumeText}`;
                 }
             },
             enhancements: {
-                enhanced_summary: 'Experienced professional with demonstrated expertise relevant to the role.',
+                    enhanced_summary: this.formatCompactSummary('Experienced professional with demonstrated expertise relevant to the role.'),
                 enhanced_skills: [],
                 enhanced_experience_bullets: [],
                 cover_letter_outline: {
@@ -646,6 +686,47 @@ ${resumeText}`;
                 }
             }
 
+            // Ensure the enhanced_summary is compact (2-3 sentences max)
+            const ensureCompactSummary = (text: string, maxSentences = 3): string => {
+                if (!text || typeof text !== 'string') return '';
+                // Normalize whitespace
+                const cleaned = text.replace(/\s+/g, ' ').trim();
+                // Split into sentences using a simple regex
+                const sentences = cleaned.match(/[^.!?]+[.!?]?/g) || [cleaned];
+                if (sentences.length <= maxSentences) return sentences.join(' ').trim();
+                // Return first maxSentences sentences joined
+                return sentences.slice(0, maxSentences).map(s => s.trim()).join(' ').trim();
+            };
+
+            // Fallback: try to extract a professional summary from AI detailed sections or the original resume text
+            const extractSummaryFromResumeText = (text: string): string => {
+                if (!text || typeof text !== 'string') return '';
+                const normalized = text.replace(/\r/g, '');
+                // Look for headings like PROFESSIONAL SUMMARY, PROFESSIONAL SUMMARY:, SUMMARY, SUMMARY:\n
+                const headingRegex = /(^|\n)\s*(PROFESSIONAL SUMMARY|PROFESSIONAL SUMMARY:|PROFESSIONAL SUMMARY\n|PROFESSIONAL SUMMARY\s*-|SUMMARY|SUMMARY:)\s*\n?/i;
+                const match = normalized.match(headingRegex);
+                if (match && match.index !== undefined) {
+                    const start = match.index + match[0].length;
+                    // Take up to next double newline or 300 characters
+                    const rest = normalized.slice(start);
+                    const endIdx = rest.search(/\n\s*\n/);
+                    const snippet = endIdx === -1 ? rest.slice(0, 500) : rest.slice(0, endIdx);
+                    return snippet.replace(/\n+/g, ' ').trim();
+                }
+
+                // If no heading, try to take the first 200-300 chars as a fallback
+                return normalized.split('\n').slice(0, 4).join(' ').slice(0, 500).trim();
+            };
+
+            const aiProvidedSummary = aiResults.enhancements?.enhanced_summary || aiResults.enhancements?.detailed_resume_sections?.professional_summary || '';
+            let compactSummary = ensureCompactSummary(aiProvidedSummary || '');
+
+            if (!compactSummary) {
+                // Try extracting from the original resume text passed to this function
+                const extracted = extractSummaryFromResumeText(resumeText || '');
+                compactSummary = ensureCompactSummary(extracted || '');
+            }
+
             const enhancementResponse: AIEnhancementResponse = {
                 success: true,
                 analysis: {
@@ -665,7 +746,7 @@ ${resumeText}`;
                     }
                 },
                 enhancements: {
-                    enhanced_summary: aiResults.enhancements?.enhanced_summary || '',
+                    enhanced_summary: compactSummary || aiResults.enhancements?.enhanced_summary || '',
                     enhanced_skills: aiResults.enhancements?.enhanced_skills || [],
                     enhanced_experience_bullets: aiResults.enhancements?.enhanced_experience_bullets || [],
                     cover_letter_outline: {
@@ -880,7 +961,7 @@ ${resumeText}`;
                     }
                 },
                 enhancements: {
-                    enhanced_summary: response.enhancements?.enhanced_summary || '',
+                    enhanced_summary: this.ensureCompactSummary(response.enhancements?.enhanced_summary || ''),
                     enhanced_skills: Array.isArray(response.enhancements?.enhanced_skills)
                         ? response.enhancements.enhanced_skills : [],
                     enhanced_experience_bullets: Array.isArray(response.enhancements?.enhanced_experience_bullets)

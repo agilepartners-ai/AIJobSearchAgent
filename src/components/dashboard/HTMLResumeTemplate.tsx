@@ -828,6 +828,19 @@ export const getCleanHTMLForDocs = (
     </div>
     ` : ''}
 
+    ${htmlContent.includes('CORE COMPETENC') ? `
+    <div class="section">
+        <h2 class="section-title">CORE COMPETENCIES</h2>
+        <div class="skills-container">
+            <div class="skills-list">
+                ${htmlContent.match(/CORE COMPETENC[IES]*[:\\s]*([\\s\\S]*?)(?=\\n\\s*[A-Z]{4,}|$)/i)?.[1]?.trim().split(/[\\n•|,]/).filter(c => c.trim().length > 2).map(comp => 
+                    `<span class="skill-item">${comp.trim()}</span>`
+                ).join('') || ''}
+            </div>
+        </div>
+    </div>
+    ` : ''}
+
     <div class="section">
         <h2 class="section-title">Professional Experience</h2>
         <div class="experience-content">
@@ -873,6 +886,55 @@ export const getCleanHTMLForDocs = (
         </div>
     </div>
     ` : ''}
+
+    ${htmlContent.includes('AWARDS') || htmlContent.includes('RECOGNITION') ? `
+    <div class="section">
+        <h2 class="section-title">AWARDS & RECOGNITION</h2>
+        <div class="awards-content">
+            ${htmlContent.match(/AWARDS?\s*(?:&|AND)?\s*RECOGNITION[\\s\\S]*?(?=\\n\\s*[A-Z]{4,}|$)/i)?.[0]?.replace(/AWARDS?\s*(?:&|AND)?\s*RECOGNITION/i, '').trim().split('\n').map(line => 
+                line.trim().length > 5 ? `<div class="responsibility-item">${line.trim()}</div>` : ''
+            ).join('') || ''}
+        </div>
+    </div>
+    ` : ''}
+
+    ${(() => {
+        // Only include LANGUAGES section if it contains SPOKEN languages (not programming languages)
+        if (!htmlContent.includes('LANGUAGE')) return '';
+        
+        const langMatch = htmlContent.match(/LANGUAGE[S]*[:\\s]*([\\s\\S]*?)(?=\\n\\s*[A-Z]{4,}|$)/i);
+        const langContent = langMatch?.[1]?.trim() || '';
+        
+        // Check if content contains programming/technical terms (indicates it's technical skills, not spoken languages)
+        const technicalKeywords = /\\b(Python|Java|JavaScript|SQL|C\\+\\+|Ruby|PHP|Swift|Kotlin|Go|Rust|TypeScript|Pandas|NumPy|TensorFlow|React|Angular|Vue|Django|Flask|Node\\.js|AWS|Azure|Docker|Git|Programming|Framework|Library|Database|Cloud)\\b/i;
+        
+        if (technicalKeywords.test(langContent)) {
+            console.log('[HTML Template] LANGUAGES section contains technical skills, skipping');
+            return '';
+        }
+        
+        // Check if contains actual spoken language names
+        const spokenLanguagePattern = /\\b(English|Hindi|Spanish|French|German|Chinese|Japanese|Korean|Arabic|Portuguese|Russian|Italian|Dutch|Polish|Turkish|Swedish|Norwegian|Danish|Finnish|Greek|Hebrew|Thai|Vietnamese|Indonesian|Bengali|Tamil|Telugu|Marathi|Gujarati|Urdu|Punjabi)\\b/i;
+        
+        if (!spokenLanguagePattern.test(langContent)) {
+            console.log('[HTML Template] No spoken languages found in LANGUAGES section');
+            return '';
+        }
+        
+        return `
+    <div class="section">
+        <h2 class="section-title">LANGUAGES</h2>
+        <div class="languages-content">
+            ${langContent.split(/[\\n•,]/).filter(l => {
+                const trimmed = l.trim();
+                return trimmed.length > 2 && spokenLanguagePattern.test(trimmed);
+            }).map(lang => 
+                `<div class="responsibility-item">${lang.trim()}</div>`
+            ).join('')}
+        </div>
+    </div>
+        `;
+    })()}
 
 </body>
 </html>`;

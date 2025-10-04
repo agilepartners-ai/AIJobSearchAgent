@@ -9,6 +9,9 @@ export interface PDFExtractionResult {
     structuredSections?: any[]; // Add structured sections for better DOCX conversion
 }
 
+// Guard to ensure worker is only initialized once
+let _pdfWorkerInitialized = false;
+
 // Use the same worker setup pattern as AiJobSearch-old
 const setupPDFWorker = () => {
     if (!isBrowser) {
@@ -18,9 +21,13 @@ const setupPDFWorker = () => {
     try {
         // Import pdfjs-dist dynamically to avoid SSR issues
         return import('pdfjs-dist').then((pdfjsLib) => {
-            // Use a local worker to avoid CDN issues
-            pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdfjs-dist/build/pdf.worker.min.mjs`;
-            console.log('PDF.js worker configured successfully, version:', pdfjsLib.version);
+            // Only initialize worker once to prevent "sendWithPromise" errors
+            if (!_pdfWorkerInitialized) {
+                // Use a local worker to avoid CDN issues
+                pdfjsLib.GlobalWorkerOptions.workerSrc = `/pdfjs-dist/build/pdf.worker.min.mjs`;
+                _pdfWorkerInitialized = true;
+                console.log('PDF.js worker configured successfully, version:', pdfjsLib.version);
+            }
             return pdfjsLib;
         });
     } catch (error) {
@@ -319,49 +326,68 @@ const extractStructuredSections = async (pdf: any): Promise<any[]> => {
     const sections: any[] = [];
 
     try {
+        // Guard against null/undefined PDF or missing getPage method
+        if (!pdf || typeof pdf.getPage !== 'function' || !pdf.numPages) {
+            console.warn('Invalid PDF document for structured extraction');
+            return sections;
+        }
+
         for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-
-            // Group text items into lines based on Y position
-            const textItems = textContent.items.map((item: any) => ({
-                text: item.str || '',
-                x: item.transform[4] || 0,
-                y: item.transform[5] || 0,
-                width: item.width || 0,
-                height: item.height || 0,
-                fontSize: item.transform[0] || 12
-            })).filter((item: any) => item.text.trim().length > 0);
-
-            const lines = groupTextItemsIntoLines(textItems);
-
-            // Process each line with enhanced context
-            for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-                const line = lines[lineIndex];
-                const lineText = line.text.trim();
-
-                if (lineText.length === 0) continue;
-
-                // Enhanced header detection with font size and position
-                if (isResumeHeader(lineText, line.fontSize, lineIndex, lines)) {
-                    sections.push({ type: 'header', content: lineText });
+            try {
+                const page = await pdf.getPage(i);
+                
+                // Guard against worker transport errors
+                if (!page || typeof page.getTextContent !== 'function') {
+                    console.warn(`Page ${i} missing getTextContent method, skipping`);
+                    continue;
                 }
-                // Enhanced bullet point detection
-                else if (isBulletPoint(lineText, line.x, lineIndex, lines)) {
-                    sections.push({ type: 'bullet', content: cleanBulletText(lineText) });
+                
+                const textContent = await page.getTextContent();
+
+                // Group text items into lines based on Y position
+                const textItems = textContent.items.map((item: any) => ({
+                    text: item.str || '',
+                    x: item.transform[4] || 0,
+                    y: item.transform[5] || 0,
+                    width: item.width || 0,
+                    height: item.height || 0,
+                    fontSize: item.transform[0] || 12
+                })).filter((item: any) => item.text.trim().length > 0);
+
+                const lines = groupTextItemsIntoLines(textItems);
+
+                // Process each line with enhanced context
+                for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+                    const line = lines[lineIndex];
+                    const lineText = line.text.trim();
+
+                    if (lineText.length === 0) continue;
+
+                    // Enhanced header detection with font size and position
+                    if (isResumeHeader(lineText, line.fontSize, lineIndex, lines)) {
+                        sections.push({ type: 'header', content: lineText });
+                    }
+                    // Enhanced bullet point detection
+                    else if (isBulletPoint(lineText, line.x, lineIndex, lines)) {
+                        sections.push({ type: 'bullet', content: cleanBulletText(lineText) });
+                    }
+                    // Enhanced subsection detection
+                    else if (isSubsection(lineText, lineIndex, lines)) {
+                        sections.push({ type: 'subsection', content: lineText });
+                    }
+                    // Regular text with better paragraph grouping
+                    else if (lineText.length > 0) {
+                        sections.push({ type: 'text', content: lineText });
+                    }
                 }
-                // Enhanced subsection detection
-                else if (isSubsection(lineText, lineIndex, lines)) {
-                    sections.push({ type: 'subsection', content: lineText });
-                }
-                // Regular text with better paragraph grouping
-                else if (lineText.length > 0) {
-                    sections.push({ type: 'text', content: lineText });
-                }
+            } catch (pageError) {
+                console.warn(`Failed to extract structured content from page ${i}:`, pageError);
+                // Continue with next page instead of failing entirely
+                continue;
             }
         }
     } catch (error) {
-        console.warn('Failed to extract structured sections:', error);
+        console.warn('Failed to extract structured sections (worker transport error). Falling back to text-only extraction:', error);
     }
 
     return sections;
