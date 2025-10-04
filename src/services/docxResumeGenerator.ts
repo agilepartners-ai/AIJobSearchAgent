@@ -30,6 +30,7 @@ interface ResumeProfileData {
   // Skills
   skills?: string[];
   technicalSkills?: string[];
+  coreCompetencies?: string[];
 
   // Experience - flexible structure to handle various formats
   experience?: Array<{
@@ -291,6 +292,7 @@ export class DocxResumeGenerator {
             ...this.createHeader(),
             ...this.createProfessionalSummary(),
             ...this.createSkillsSection(),
+            ...this.createCoreCompetenciesSection(),
             ...this.createExperienceSection(),
             ...this.createEducationSection(),
             ...this.createProjectsSection(),
@@ -469,6 +471,60 @@ export class DocxResumeGenerator {
             }),
           ],
           spacing: { after: 120 },
+        })
+      );
+    }
+
+    paragraphs.push(new Paragraph({ children: [new TextRun("")], spacing: { after: 120 } }));
+
+    return paragraphs;
+  }
+
+  private createCoreCompetenciesSection(): Paragraph[] {
+    if (!this.profile.coreCompetencies?.length) {
+      return [];
+    }
+
+    const paragraphs: Paragraph[] = [];
+
+    paragraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: "CORE COMPETENCIES",
+            size: 28,
+            bold: true,
+            color: "1F2937",
+            allCaps: true,
+          }),
+        ],
+        spacing: { before: 240, after: 120 },
+        border: {
+          bottom: {
+            color: "E5E7EB",
+            space: 1,
+            style: BorderStyle.SINGLE,
+            size: 6,
+          },
+        },
+      })
+    );
+
+    // Display competencies in a grid-like format using multiple short paragraphs
+    const competenciesPerRow = 3;
+    for (let i = 0; i < this.profile.coreCompetencies.length; i += competenciesPerRow) {
+      const rowCompetencies = this.profile.coreCompetencies.slice(i, i + competenciesPerRow);
+      
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: rowCompetencies.join(" • "),
+              size: 20,
+              color: "374151",
+            }),
+          ],
+          spacing: { after: 100 },
         })
       );
     }
@@ -926,6 +982,7 @@ export class DocxResumeGenerator {
     );
 
     for (const award of this.profile.awards) {
+      // Award title and date on same line (title left, date right)
       paragraphs.push(
         new Paragraph({
           children: [
@@ -941,7 +998,7 @@ export class DocxResumeGenerator {
               color: "6B7280",
             }),
           ],
-          spacing: { after: 80 },
+          spacing: { after: 60 },
           tabStops: [
             {
               type: "right",
@@ -951,20 +1008,43 @@ export class DocxResumeGenerator {
         })
       );
 
-      if (award.issuer || award.organization || award.description) {
-        const details = [award.issuer || award.organization, award.description].filter(Boolean).join(" • ");
+      // Issuer/Organization on separate line
+      if (award.issuer || award.organization) {
         paragraphs.push(
           new Paragraph({
             children: [
               new TextRun({
-                text: details,
+                text: award.issuer || award.organization || "",
+                size: 20,
+                color: "4B5563",
+                italics: true,
+              }),
+            ],
+            spacing: { after: 80 },
+          })
+        );
+      }
+
+      // Description on separate line(s)
+      if (award.description) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: award.description,
                 size: 20,
                 color: "374151",
               }),
             ],
-            spacing: { after: 120 },
+            spacing: { after: 160 },
           })
         );
+      } else {
+        // Add extra spacing if no description
+        paragraphs[paragraphs.length - 1] = new Paragraph({
+          ...paragraphs[paragraphs.length - 1],
+          spacing: { after: 160 },
+        });
       }
     }
 

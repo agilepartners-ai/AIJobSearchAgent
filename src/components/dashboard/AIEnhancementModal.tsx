@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain, Settings, Upload, HardDrive, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import OptimizationResults from './OptimizationResults';
 import { ResumeExtractionService } from '../../services/resumeExtractionService';
@@ -506,7 +506,14 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
         // Include detailed AI enhancements
         aiEnhancements: {
-          enhancedSummary: enhancementResult.enhancements.enhanced_summary,
+          enhancedSummary: ((): string => {
+            const s = enhancementResult.enhancements.enhanced_summary || '';
+            if (!s) return '';
+            const cleaned = s.replace(/\s+/g, ' ').trim();
+            const sentences = cleaned.match(/[^.!?]+[.!?]?/g) || [cleaned];
+            const out = sentences.slice(0, 3).map(x => x.trim()).join(' ').trim();
+            return out.length > 300 ? out.slice(0, 300).trim() : out;
+          })(),
           enhancedExperienceBullets: enhancementResult.enhancements.enhanced_experience_bullets,
           coverLetterOutline: enhancementResult.enhancements.cover_letter_outline,
           sectionRecommendations: enhancementResult.analysis.section_recommendations,
@@ -624,14 +631,14 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     onClose();
   };
 
-  React.useEffect(() => {
-    console.log('🔍 showResults changed:', showResults);
-    console.log('🔍 optimizationResults:', optimizationResults);
-  }, [showResults, optimizationResults]);
+  // Removed excessive debug logging
 
   const [uploadComplete, setUploadComplete] = useState(false);
   const [FinalResumeUrl, setFinalResumeUrl] = useState<string | null>(null);
   const [FinalCoverLetterUrl, setFinalCoverLetterUrl] = useState<string | null>(null);
+  
+  // Guard to prevent repeated PDF generation and uploads
+  const pdfUploadAttemptedRef = useRef(false);
 
   React.useEffect(() => {
     const shouldUpload =
@@ -640,6 +647,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       applicationData?.id &&
       typeof window !== 'undefined' &&
       !uploadComplete &&
+      !pdfUploadAttemptedRef.current && // Prevent duplicate attempts
       (!FinalResumeUrl || !FinalCoverLetterUrl); // <-- key check
 
     if (!shouldUpload) return;
@@ -648,6 +656,9 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       console.warn('[uploadPDFs] No authenticated user id available; skipping PDF upload');
       return;
     }
+
+    // Mark that we've attempted upload to prevent re-entry
+    pdfUploadAttemptedRef.current = true;
 
     const detailedResumeHtml = generateDetailedResumeHTML(optimizationResults);
     const detailedCoverLetterHtml = generateDetailedCoverLetterHTML(optimizationResults);
@@ -680,11 +691,14 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           const text = await response.text().catch(() => '');
           const serverMessage = (result && result.error) || text || `HTTP ${response.status}`;
           console.error('[uploadPDFs] Upload failed:', serverMessage, { status: response.status, body: result || text });
+          // Reset flag on failure to allow retry
+          pdfUploadAttemptedRef.current = false;
           throw new Error(serverMessage || 'Failed to upload PDFs');
         }
 
         if (!result || (!result.resumeUrl && !result.coverLetterUrl)) {
           console.error('[uploadPDFs] Unexpected API response shape:', result);
+          pdfUploadAttemptedRef.current = false;
           throw new Error('Upload succeeded but server response is missing URLs');
         }
 
@@ -696,11 +710,15 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
       } catch (error) {
         console.error('❌ Error uploading PDFs:', error);
+        // Flag is reset above on known errors; keep it set for unknown errors to avoid infinite loops
       }
     };
 
     uploadPDFs();
-  }, [showResults, optimizationResults, applicationData?.id]);
+  }, [showResults, optimizationResults, applicationData?.id, user?.id, uploadComplete, FinalResumeUrl, FinalCoverLetterUrl]);
+
+  // ✅ FIX: Use ref to track last updated URLs to prevent infinite loop
+  const lastUpdatedUrlsRef = useRef<{resume: string | null, cover: string | null}>({ resume: null, cover: null });
 
   React.useEffect(() => {
     if (
@@ -710,10 +728,20 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       !optimizationResults
     ) return;
 
+    // ✅ Check if we already updated with these exact URLs
+    if (lastUpdatedUrlsRef.current.resume === FinalResumeUrl &&
+        lastUpdatedUrlsRef.current.cover === FinalCoverLetterUrl) {
+      return; // Already updated, skip
+    }
+
     const alreadyUpdated = optimizationResults.optimizedResumeUrl === FinalResumeUrl &&
       optimizationResults.optimizedCoverLetterUrl === FinalCoverLetterUrl;
 
-    if (alreadyUpdated) return; // ✅ Prevent unnecessary updates
+    if (alreadyUpdated) {
+      // Mark as updated even if already in state
+      lastUpdatedUrlsRef.current = { resume: FinalResumeUrl, cover: FinalCoverLetterUrl };
+      return;
+    }
 
     const updatedResults = {
       ...optimizationResults,
@@ -722,13 +750,14 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     };
 
     dispatch(setOptimizationResults(updatedResults));
+    lastUpdatedUrlsRef.current = { resume: FinalResumeUrl, cover: FinalCoverLetterUrl };
     console.log('✅ optimizationResults updated with Final URLs');
-  }, [uploadComplete, FinalResumeUrl, FinalCoverLetterUrl, optimizationResults]);
+  }, [uploadComplete, FinalResumeUrl, FinalCoverLetterUrl, optimizationResults, dispatch]);
 
 
   if (showResults && optimizationResults) {
-    console.log('🎯 Rendering OptimizationResults component with detailed content');
-    console.log('🎯 Results data:', optimizationResults);
+    // Removed excessive debug logs
+
 
     const detailedResumeHtml = generateDetailedResumeHTML(optimizationResults);
     const detailedCoverLetterHtml = generateDetailedCoverLetterHTML(optimizationResults);
@@ -762,8 +791,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   }
 
 
-  console.log('🔍 Rendering main modal (not results screen)');
-  console.log('🔍 showResults:', showResults, 'optimizationResults:', !!optimizationResults);
+  // Minimal logging for debugging (removed excessive logs)
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -1248,7 +1276,7 @@ const generateDetailedResumeHTML = (results: any): string => {
       <section style="margin-bottom: 20px;">
         <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PROFESSIONAL SUMMARY</h2>
         <p style="text-align: justify; line-height: 1.6; font-size: 13px; margin: 0;">
-          ${sections.professional_summary || results.aiEnhancements?.enhancedSummary || 'AI-enhanced professional summary highlighting relevant experience, key skills, and value proposition tailored to the target position. This comprehensive summary demonstrates alignment with job requirements and showcases unique qualifications that make the candidate an ideal fit for the role.'}
+          ${results.aiEnhancements?.enhancedSummary || sections.professional_summary || 'AI-enhanced professional summary highlighting relevant experience, key skills, and value proposition tailored to the target position. This comprehensive summary demonstrates alignment with job requirements and showcases unique qualifications that make the candidate an ideal fit for the role.'}
         </p>
       </section>
 
