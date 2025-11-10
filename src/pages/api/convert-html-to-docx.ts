@@ -373,181 +373,234 @@ class ResumeContentParser {
   }
 
   extractAwards(): Array<{name: string, issuer: string, date: string, description: string}> {
-    // First try structured HTML extraction
-    const awardSectionMatch = this.rawHtml.match(/<h[1-6][^>]*>\s*AWARDS?\s*&?\s*RECOGNITION\s*<\/h[1-6]>([\s\S]*?)(?=<h[1-6]|<section|$)/i);
+    // First try structured HTML extraction - match standard HTML structure
+    const awardSectionMatch = this.rawHtml.match(/<h2[^>]*>\s*AWARDS?\s*(?:&\s*|AND\s+)?RECOGNITION\s*<\/h2>([\s\S]*?)(?=<h2|<\/section>|<\/div>\s*<\/div>\s*$|$)/i);
     
     if (awardSectionMatch) {
       const awardHtml = awardSectionMatch[1];
       const awardEntries = [];
       
-      // Try structured div blocks
-      const awardBlocks = awardHtml.split(/<div[^>]*margin-bottom:\s*8px[^>]*>/i).slice(1);
+      console.log('[DOCX Parser] Found AWARDS & RECOGNITION section, length:', awardHtml.length);
       
-      for (const block of awardBlocks) {
-        const nameMatch = block.match(/<strong[^>]*>([^<]+)<\/strong>/i);
-        const dateMatch = block.match(/<span[^>]*>([^<]+)<\/span>/i);
-        const issuerMatch = block.match(/<div[^>]*>([^<]+)<\/div>/i);
-        const descMatch = block.match(/<p[^>]*>([^<]+)<\/p>/i);
-        
-        if (nameMatch) {
-          awardEntries.push({
-            name: this.cleanHTML(nameMatch[1]).trim(),
-            date: dateMatch ? this.cleanHTML(dateMatch[1]).trim() : '',
-            issuer: issuerMatch ? this.cleanHTML(issuerMatch[1]).trim() : '',
-            description: descMatch ? this.cleanHTML(descMatch[1]).trim() : ''
-          });
-        }
-      }
+      // Try to extract structured award items - each in a div with specific classes
+      const awardDivMatches = awardHtml.match(/<div[^>]*class="[^"]*award[^"]*"[^>]*>([\s\S]*?)<\/div>/gi);
       
-      if (awardEntries.length > 0) {
-        return awardEntries.slice(0, 5);
-      }
-      
-      // Fallback: Try list items
-      const awardItems = awardHtml.match(/<li[^>]*>(.*?)<\/li>/gi) || [];
-      
-      for (const item of awardItems) {
-        const text = this.cleanHTML(item).trim();
-        const parts = text.split(/[-–—]|\s+\|\s+/);
-        awardEntries.push({
-          name: parts[0]?.trim() || '',
-          date: parts[1]?.trim() || '',
-          issuer: parts[2]?.trim() || '',
-          description: parts[3]?.trim() || ''
-        });
-      }
-      
-      if (awardEntries.length > 0) {
-        return awardEntries.slice(0, 5);
-      }
-    }
-
-    // Fallback to text-based extraction
-    const awardsText = this.extractSection(['AWARDS', 'RECOGNITION', 'HONORS', 'AWARDS & RECOGNITION']);
-    if (!awardsText) {
-      return [{
-        name: 'FedEx SMART Hackathon Finalist',
-        date: 'January 2025',
-        issuer: 'Shastra, IIT Madras',
-        description: 'Recognized as a finalist for developing a real-time project utilizing advanced algorithms.'
-      }];
-    }
-
-    const entries: Array<{name: string, issuer: string, date: string, description: string}> = [];
-    const awardBlocks = awardsText.split(/\n\s*\n/).filter(block => block.trim().length > 10);
-
-    for (const block of awardBlocks) {
-      const lines = block.split('\n').filter(l => l.trim());
-      if (lines.length === 0) continue;
-      
-      const awardName = lines[0]?.trim() || '';
-      let issuer = '';
-      let date = '';
-      let description = '';
-      
-      // Parse additional lines for issuer, date, and description
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (line.toLowerCase().includes('issuer') || line.toLowerCase().includes('organization')) {
-          issuer = line.replace(/^[^:]*:\s*/, '');
-        } else if (line.toLowerCase().includes('date') || line.match(/\d{4}/)) {
-          date = line.replace(/^[^:]*:\s*/, '');
-        } else if (line.toLowerCase().includes('description')) {
-          description = line.replace(/^[^:]*:\s*/, '');
-        } else if (!issuer && line.length > 5) {
-          if (line.match(/\d{4}/)) {
-            date = line;
-          } else {
-            issuer = line; // Assume second line is issuer if not labeled
+      if (awardDivMatches && awardDivMatches.length > 0) {
+        for (const awardDiv of awardDivMatches) {
+          const nameMatch = awardDiv.match(/<(?:strong|h3|div)[^>]*class="[^"]*(?:award-)?name[^"]*"[^>]*>([^<]+)</i);
+          const dateMatch = awardDiv.match(/<(?:span|div)[^>]*class="[^"]*(?:award-)?date[^"]*"[^>]*>([^<]+)</i);
+          const issuerMatch = awardDiv.match(/<(?:span|div)[^>]*class="[^"]*(?:award-)?issuer[^"]*"[^>]*>([^<]+)</i);
+          const descMatch = awardDiv.match(/<(?:p|div)[^>]*class="[^"]*(?:award-)?desc[^"]*"[^>]*>([^<]+)</i);
+          
+          if (nameMatch) {
+            awardEntries.push({
+              name: this.cleanHTML(nameMatch[1]).trim(),
+              date: dateMatch ? this.cleanHTML(dateMatch[1]).trim() : '',
+              issuer: issuerMatch ? this.cleanHTML(issuerMatch[1]).trim() : '',
+              description: descMatch ? this.cleanHTML(descMatch[1]).trim() : ''
+            });
           }
-        } else if (!description && line.length > 10) {
-          description = line;
         }
       }
       
-      if (awardName) {
-        entries.push({ name: awardName, issuer, date, description });
+      // If no structured divs found, try list items
+      if (awardEntries.length === 0) {
+        const listItems = awardHtml.match(/<li[^>]*>([\s\S]*?)<\/li>/gi);
+        if (listItems) {
+          for (const item of listItems) {
+            const text = this.cleanHTML(item).trim();
+            if (text.length > 10) {
+              // Try to parse award info from text
+              const lines = text.split('\n').filter(l => l.trim());
+              awardEntries.push({
+                name: lines[0] || text,
+                issuer: lines[1] || '',
+                date: lines[2] || '',
+                description: lines[3] || ''
+              });
+            }
+          }
+        }
+      }
+      
+      if (awardEntries.length > 0) {
+        console.log(`[DOCX Parser] Extracted ${awardEntries.length} awards from HTML structure`);
+        return awardEntries.slice(0, 5);
       }
     }
 
-    if (entries.length === 0) {
-      return [{
-        name: 'FedEx SMART Hackathon Finalist',
-        date: 'January 2025',
-        issuer: 'Shastra, IIT Madras',
-        description: 'Recognized as a finalist for developing a real-time project utilizing advanced algorithms.'
-      }];
+    
+    // Fallback to text-based extraction
+    const awardsText = this.extractSection(['AWARDS & RECOGNITION', 'AWARDS', 'RECOGNITION', 'HONORS']);
+    if (!awardsText || awardsText.trim().length < 10) {
+      console.log('[DOCX Parser] No awards section found in text');
+      return [];
     }
 
+    console.log('[DOCX Parser] Using text parsing for awards');
+    const entries: Array<{name: string, issuer: string, date: string, description: string}> = [];
+    
+    // Split by bullet points or lines that look like award titles (not by double newlines)
+    // Award titles typically start with capital letter and don't have dates/years at the beginning
+    const lines = awardsText.split('\n').filter(l => l.trim());
+    let currentAward: {name: string, issuer: string, date: string, description: string} | null = null;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      
+      // Check if this line is a new award title (starts with bullet or looks like a title)
+      // Award titles are typically capitalized and don't start with lowercase or dates
+      const isNewAward = (
+        line.match(/^[•\-*]\s*[A-Z]/) || // Starts with bullet + capital letter
+        (line.match(/^[A-Z][a-zA-Z\s&]+$/) && !line.match(/\d{4}/) && line.length > 10 && line.length < 80) || // Title-like (no year, reasonable length)
+        (currentAward === null && line.match(/^[A-Z]/)) // First line should be a title
+      );
+      
+      if (isNewAward) {
+        // Save previous award if exists
+        if (currentAward && currentAward.name) {
+          entries.push(currentAward);
+        }
+        
+        // Start new award
+        currentAward = {
+          name: line.replace(/^[•\-*]\s*/, '').trim(),
+          issuer: '',
+          date: '',
+          description: ''
+        };
+      } else if (currentAward) {
+        // Parse additional lines for current award
+        
+        // Check if line contains a date (month + year or just year)
+        const datePattern = /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}|\b\d{4}\b/i;
+        const dateMatch = line.match(datePattern);
+        
+        if (dateMatch && !currentAward.date) {
+          currentAward.date = line.trim();
+        }
+        // Check if line looks like an organization/issuer (often comes after date)
+        else if (!currentAward.issuer && currentAward.date && !line.toLowerCase().includes('recognized') && !line.toLowerCase().includes('acknowledged') && line.length > 5 && line.length < 100) {
+          currentAward.issuer = line.trim();
+        }
+        // Everything else is likely part of the description
+        else if (line.length > 10) {
+          if (currentAward.description) {
+            currentAward.description += ' ' + line.trim();
+          } else {
+            currentAward.description = line.trim();
+          }
+        }
+      }
+    }
+    
+    // Don't forget the last award
+    if (currentAward && currentAward.name) {
+      entries.push(currentAward);
+    }
+
+    console.log(`[DOCX Parser] Extracted ${entries.length} awards from text parsing:`, entries);
     return entries.slice(0, 5);
   }
 
   extractLanguages(): Array<{name: string, proficiency: string}> {
-    // First try structured HTML extraction
-    const languageSectionMatch = this.rawHtml.match(/<h[1-6][^>]*>\s*LANGUAGES?\s*(?:SKILLS?)?\s*(?:PROFICIENCY)?\s*<\/h[1-6]>([\s\S]*?)(?=<h[1-6]|<section|$)/i);
+    // NOTE: This extracts SPOKEN LANGUAGES (e.g., English, Hindi, Spanish), 
+    // NOT programming languages (Python, Java, etc.)
+    // Programming languages belong in TECHNICAL SKILLS section
+    
+    // First try structured HTML extraction - standard HTML with h2 tags
+    // Only look for section titled exactly "LANGUAGES" (not appearing in TECHNICAL SKILLS)
+    const languageSectionMatch = this.rawHtml.match(/<h2[^>]*>\s*LANGUAGES?\s*<\/h2>([\s\S]*?)(?=<h2|<\/section>|<\/div>\s*<\/div>\s*$|$)/i);
     
     if (languageSectionMatch) {
       const languageHtml = languageSectionMatch[1];
       const languageEntries = [];
       
-      // Try list items first
-      const languageItems = languageHtml.match(/<li[^>]*>(.*?)<\/li>/gi) || [];
+      console.log('[DOCX Parser] Found LANGUAGES section, checking if it contains spoken languages...');
       
-      for (const item of languageItems) {
-        const text = this.cleanHTML(item).trim();
-        const patterns = [
-          /^([^(]+)\s*\(\s*([^)]+)\s*\)/,  // Language (Proficiency)
-          /^([^-]+)\s*-\s*(.+)/,           // Language - Proficiency
-          /^([^:]+)\s*:\s*(.+)/,           // Language: Proficiency
-        ];
-        
-        let matched = false;
-        for (const pattern of patterns) {
-          const match = text.match(pattern);
-          if (match) {
-            const [, name, proficiency] = match;
-            languageEntries.push({ 
-              name: name.trim(), 
-              proficiency: proficiency.trim() 
-            });
-            matched = true;
-            break;
+      // Check if this section contains programming languages (technical skills) instead of spoken languages
+      // If it contains Python, Java, SQL, etc., skip it - it's mislabeled technical skills
+      const technicalKeywords = /\b(Python|Java|JavaScript|SQL|C\+\+|Ruby|PHP|Swift|Kotlin|Go|Rust|TypeScript|Scala|Perl|MATLAB|Julia|Pandas|NumPy|TensorFlow|React|Angular|Vue|Django|Flask|Spring|Node\.js|\.NET|AWS|Azure|Docker|Kubernetes|Git|Linux|Windows|MacOS|Programming|Framework|Library|Database|Cloud|DevOps)\b/i;
+      
+      if (technicalKeywords.test(languageHtml)) {
+        console.log('[DOCX Parser] LANGUAGES section contains technical skills, not spoken languages - skipping');
+        return [];
+      }
+      
+      // Try list items first
+      const listItems = languageHtml.match(/<li[^>]*>([\s\S]*?)<\/li>/gi);
+      if (listItems && listItems.length > 0) {
+        for (const item of listItems) {
+          const text = this.cleanHTML(item).trim();
+          
+          // Skip if contains technical terms
+          if (technicalKeywords.test(text)) continue;
+          
+          // Skip empty or very short text
+          if (!text || text.length < 2) continue;
+          
+          // Try different patterns for spoken languages
+          const patterns = [
+            /^(English|Hindi|Spanish|French|German|Chinese|Japanese|Korean|Arabic|Portuguese|Russian|Italian|Dutch|Polish|Turkish|Swedish|Norwegian|Danish|Finnish|Greek|Hebrew|Thai|Vietnamese|Indonesian|Malay|Bengali|Tamil|Telugu|Marathi|Gujarati|Urdu|Punjabi|Swahili)\s*\(\s*([^)]+)\s*\)$/i,
+            /^(English|Hindi|Spanish|French|German|Chinese|Japanese|Korean|Arabic|Portuguese|Russian|Italian|Dutch|Polish|Turkish|Swedish|Norwegian|Danish|Finnish|Greek|Hebrew|Thai|Vietnamese|Indonesian|Malay|Bengali|Tamil|Telugu|Marathi|Gujarati|Urdu|Punjabi|Swahili)\s*[-:]\s*(.+)$/i,
+          ];
+          
+          let matched = false;
+          for (const pattern of patterns) {
+            const match = text.match(pattern);
+            if (match) {
+              const [, name, proficiency] = match;
+              languageEntries.push({ 
+                name: name.trim(), 
+                proficiency: proficiency.trim() 
+              });
+              matched = true;
+              break;
+            }
           }
-        }
-        
-        if (!matched && text.length > 1) {
-          languageEntries.push({ name: text, proficiency: 'Native' });
+          
+          // If no pattern matched but text looks like a spoken language name
+          if (!matched && /^(English|Hindi|Spanish|French|German|Chinese|Japanese|Korean|Arabic|Portuguese|Russian|Italian|Dutch|Polish|Turkish|Swedish|Norwegian|Danish|Finnish|Greek|Hebrew|Thai|Vietnamese|Indonesian|Malay|Bengali|Tamil|Telugu|Marathi|Gujarati|Urdu|Punjabi|Swahili)$/i.test(text)) {
+            languageEntries.push({ name: text, proficiency: 'Proficient' });
+          }
         }
       }
       
       if (languageEntries.length > 0) {
+        console.log(`[DOCX Parser] Extracted ${languageEntries.length} spoken languages from HTML structure`);
         return languageEntries.slice(0, 6);
       }
     }
 
     // Fallback to text-based extraction
-    const languagesText = this.extractSection(['LANGUAGES', 'LANGUAGE SKILLS', 'LANGUAGE PROFICIENCY']);
+    const languagesText = this.extractSection(['LANGUAGES', 'SPOKEN LANGUAGES', 'LANGUAGE PROFICIENCY']);
     if (!languagesText) {
-      return [
-        { name: 'English', proficiency: 'Native' },
-        { name: 'Spanish', proficiency: 'Conversational' },
-        { name: 'French', proficiency: 'Basic' }
-      ];
+      console.log('[DOCX Parser] No spoken languages section found');
+      return [];
     }
 
+    // Check if this is actually technical content
+    const technicalKeywords = /\b(Python|Java|JavaScript|SQL|C\+\+|Ruby|PHP|Programming|Framework|Library|Database)\b/i;
+    if (technicalKeywords.test(languagesText)) {
+      console.log('[DOCX Parser] Text contains technical skills, not spoken languages - skipping');
+      return [];
+    }
+
+    console.log('[DOCX Parser] Using text parsing for spoken languages');
     const entries: Array<{name: string, proficiency: string}> = [];
-    
-    // Try to parse languages with proficiency levels
     const lines = languagesText.split('\n').filter(l => l.trim());
     
     for (const line of lines) {
       const cleanLine = line.trim().replace(/^[•\-*]\s*/, '');
       
-      // Look for patterns like "Spanish (Fluent)", "French - Intermediate", etc.
+      // Skip lines with technical keywords
+      if (technicalKeywords.test(cleanLine)) continue;
+      
+      // Look for spoken language patterns
       const patterns = [
-        /^([^(]+)\s*\(\s*([^)]+)\s*\)/,  // Language (Proficiency)
-        /^([^-]+)\s*-\s*(.+)/,           // Language - Proficiency
-        /^([^:]+)\s*:\s*(.+)/,           // Language: Proficiency
+        /^(English|Hindi|Spanish|French|German|Chinese|Japanese|Korean|Arabic|Portuguese|Russian|Italian|Dutch|Polish|Turkish|Swedish|Norwegian|Danish|Finnish|Greek|Hebrew|Thai|Vietnamese|Indonesian|Malay|Bengali|Tamil|Telugu|Marathi|Gujarati|Urdu|Punjabi|Swahili)\s*\(\s*([^)]+)\s*\)$/i,
+        /^(English|Hindi|Spanish|French|German|Chinese|Japanese|Korean|Arabic|Portuguese|Russian|Italian|Dutch|Polish|Turkish|Swedish|Norwegian|Danish|Finnish|Greek|Hebrew|Thai|Vietnamese|Indonesian|Malay|Bengali|Tamil|Telugu|Marathi|Gujarati|Urdu|Punjabi|Swahili)\s*[-:]\s*(.+)$/i,
       ];
       
       let matched = false;
@@ -564,21 +617,103 @@ class ResumeContentParser {
         }
       }
       
-      // If no pattern matched but line contains text, assume it's just a language name
-      if (!matched && cleanLine.length > 1) {
-        entries.push({ name: cleanLine, proficiency: 'Native' });
+      // If no pattern matched but line is a known spoken language
+      if (!matched && /^(English|Hindi|Spanish|French|German|Chinese|Japanese|Korean|Arabic|Portuguese|Russian|Italian|Dutch|Polish|Turkish|Swedish|Norwegian|Danish|Finnish|Greek|Hebrew|Thai|Vietnamese|Indonesian|Malay|Bengali|Tamil|Telugu|Marathi|Gujarati|Urdu|Punjabi|Swahili)$/i.test(cleanLine)) {
+        entries.push({ name: cleanLine, proficiency: 'Proficient' });
       }
     }
 
-    if (entries.length === 0) {
-      return [
-        { name: 'English', proficiency: 'Native' },
-        { name: 'Spanish', proficiency: 'Conversational' },
-        { name: 'French', proficiency: 'Basic' }
-      ];
+    console.log(`[DOCX Parser] Extracted ${entries.length} spoken languages from text parsing`);
+    return entries.slice(0, 6);
+  }
+
+  extractCoreCompetencies(): string[] {
+    // First try structured HTML extraction - standard HTML with h2 tags
+    const competenciesSectionMatch = this.rawHtml.match(/<h2[^>]*>\s*CORE\s*COMPETENCIES\s*<\/h2>([\s\S]*?)(?=<h2|<\/section>|<\/div>\s*<\/div>\s*$|$)/i);
+    
+    if (competenciesSectionMatch) {
+      const competenciesHtml = competenciesSectionMatch[1];
+      const competencies: string[] = [];
+      
+      console.log('[DOCX Parser] Found CORE COMPETENCIES section, length:', competenciesHtml.length);
+      
+      // Try list items first
+      const listItems = competenciesHtml.match(/<li[^>]*>([^<]+)<\/li>/gi);
+      if (listItems && listItems.length > 0) {
+        listItems.forEach(li => {
+          const text = this.cleanHTML(li).trim();
+          if (text && text.length > 2) {
+            competencies.push(text);
+          }
+        });
+      }
+      
+      // If no list items, try divs/spans with competency data
+      if (competencies.length === 0) {
+        const textMatches = competenciesHtml.match(/<(?:div|span|p)[^>]*class="[^"]*competenc[^"]*"[^>]*>([^<]+)<\/(?:div|span|p)>/gi);
+        if (textMatches && textMatches.length > 0) {
+          textMatches.forEach(textTag => {
+            const text = this.cleanHTML(textTag).trim();
+            // Filter out empty strings and the section title itself
+            if (text && text.length > 2 && !text.match(/CORE\s*COMPETENCIES/i)) {
+              competencies.push(text);
+            }
+          });
+        }
+      }
+      
+      // If still no matches, try any text content in the section
+      if (competencies.length === 0) {
+        const allTextMatches = competenciesHtml.match(/<(?:div|span|p)[^>]*>([^<]+)<\/(?:div|span|p)>/gi);
+        if (allTextMatches && allTextMatches.length > 0) {
+          allTextMatches.forEach(textTag => {
+            const text = this.cleanHTML(textTag).trim();
+            if (text && text.length > 2 && !text.match(/CORE\s*COMPETENCIES/i)) {
+              // Split by common separators if text contains multiple competencies
+              const items = text.split(/[•|]/);
+              items.forEach(item => {
+                const trimmed = item.trim();
+                if (trimmed.length > 2) {
+                  competencies.push(trimmed);
+                }
+              });
+            }
+          });
+        }
+      }
+      
+      if (competencies.length > 0) {
+        console.log(`[DOCX Parser] Extracted ${competencies.length} core competencies from HTML structure:`, competencies);
+        return competencies.slice(0, 12);
+      }
+    }
+    
+    // Fallback to text-based extraction
+    const competenciesText = this.extractSection(['CORE COMPETENCIES', 'SOFT SKILLS', 'KEY COMPETENCIES', 'COMPETENCIES']);
+    if (!competenciesText) {
+      console.log('[DOCX Parser] No core competencies section found');
+      return [];
     }
 
-    return entries.slice(0, 6);
+    const competencies: string[] = [];
+    const lines = competenciesText.split('\n').filter(l => l.trim());
+    
+    for (const line of lines) {
+      const cleanLine = line.trim().replace(/^[•\-*]\s*/, '');
+      if (cleanLine.length > 2) {
+        // Split by common separators
+        const items = cleanLine.split(/[,;|]/);
+        items.forEach(item => {
+          const trimmed = item.trim();
+          if (trimmed.length > 2) {
+            competencies.push(trimmed);
+          }
+        });
+      }
+    }
+
+    console.log(`[DOCX Parser] Extracted ${competencies.length} core competencies from text parsing:`, competencies);
+    return competencies.slice(0, 12);
   }
 }
 
@@ -624,6 +759,7 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
       const certifications = parser.extractCertifications();
       const awards = parser.extractAwards();
       const languages = parser.extractLanguages();
+      const coreCompetencies = parser.extractCoreCompetencies();
       
       console.log('[API] Parsed content:', {
         summary: professionalSummary.substring(0, 100),
@@ -633,7 +769,8 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
         projectsCount: projects.length,
         certificationsCount: certifications.length,
         awardsCount: awards.length,
-        languagesCount: languages.length
+        languagesCount: languages.length,
+        coreCompetenciesCount: coreCompetencies.length
       });
       
       // Create structured profile data for DocxResumeGenerator
@@ -671,6 +808,8 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
         technicalSkills: Array.isArray(skillBuckets.technical) ? skillBuckets.technical.map(String) : 
                         Array.isArray(skillBuckets.all) ? skillBuckets.all.map(String) : 
                         Array.isArray(activeProfile.skills) ? activeProfile.skills.map(String) : [],
+        coreCompetencies: coreCompetencies.length > 0 ? coreCompetencies.map(String) :
+                         Array.isArray(skillBuckets.soft) ? skillBuckets.soft.map(String) : [],
         
         // Projects from parsed HTML
         projects: projects.map((proj: Record<string, unknown>) => ({

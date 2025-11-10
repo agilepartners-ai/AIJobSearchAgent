@@ -1,4 +1,4 @@
-/* eslint-disable complexity, max-lines, @typescript-eslint/no-explicit-any */
+﻿/* eslint-disable complexity, max-lines, @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
 import { UserProfileData } from '../../services/profileService';

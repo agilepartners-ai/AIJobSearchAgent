@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain, Settings, Upload, HardDrive, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import OptimizationResults from './OptimizationResults';
 import { ResumeExtractionService } from '../../services/resumeExtractionService';
@@ -511,7 +511,14 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
         // Include detailed AI enhancements
         aiEnhancements: {
-          enhancedSummary: enhancementResult.enhancements.enhanced_summary,
+          enhancedSummary: ((): string => {
+            const s = enhancementResult.enhancements.enhanced_summary || '';
+            if (!s) return '';
+            const cleaned = s.replace(/\s+/g, ' ').trim();
+            const sentences = cleaned.match(/[^.!?]+[.!?]?/g) || [cleaned];
+            const out = sentences.slice(0, 3).map(x => x.trim()).join(' ').trim();
+            return out.length > 300 ? out.slice(0, 300).trim() : out;
+          })(),
           enhancedExperienceBullets: enhancementResult.enhancements.enhanced_experience_bullets,
           coverLetterOutline: enhancementResult.enhancements.cover_letter_outline,
           sectionRecommendations: enhancementResult.analysis.section_recommendations,
@@ -623,122 +630,14 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     onClose();
   };
 
-  const handleRegenerate = async (customPrompt: string) => {
-    console.log('🔄 Regenerating with custom prompt:', customPrompt);
-    
-    // Go back to loading state
-    dispatch(setShowResults(false));
-    setLoading(true);
-    setExtractionProgress('Regenerating with your custom instructions...');
-    
-    try {
-      // Get the existing resume text from optimizationResults
-      const resumeText = optimizationResults?.extractedText || manualText;
-      
-      if (!resumeText) {
-        throw new Error('No resume text available for regeneration');
-      }
-
-      // Call AI enhancement with custom prompt
-      const timestamp = Date.now();
-      const resolvedProfile = detailedUserProfile || (user ? await ProfileService.getUserProfile(user.id) : null);
-      
-      const enhancementResult = await AIEnhancementService.enhanceWithOpenAI(
-        resumeText,
-        jobDescription || persistedJobDescription || '',
-        {
-          modelType: config.defaultModelType,
-          model: config.defaultModel,
-          fileId: documentId,
-          userPromptOverride: customPrompt.trim() || aiPrompt,
-          systemPromptOverride: systemPrompt
-        }
-      );
-
-      if (!enhancementResult.success) {
-        throw new Error(enhancementResult.error || 'Failed to regenerate. Please try again.');
-      }
-
-      // Build optimization results (same as handleGenerateAI)
-      const newOptimizationResults = {
-        matchScore: enhancementResult.analysis.match_score,
-        summary: `Your resume has been AI-enhanced for ${applicationData?.position || 'this position'}`,
-        strengths: enhancementResult.analysis.strengths,
-        gaps: enhancementResult.analysis.gaps,
-        suggestions: enhancementResult.analysis.suggestions,
-        keywordAnalysis: {
-          coverageScore: enhancementResult.analysis.keyword_analysis?.keyword_density_score || 0,
-          coveredKeywords: enhancementResult.analysis.keyword_analysis?.present_keywords || [],
-          missingKeywords: enhancementResult.analysis.keyword_analysis?.missing_keywords || [],
-        },
-        parsedResume: {
-          personal: {
-            name: resolvedProfile?.fullName || '',
-            email: resolvedProfile?.email || user?.email || '',
-            phone: resolvedProfile?.phone || '',
-            location: resolvedProfile?.location || ''
-          }
-        },
-        aiEnhancements: {
-          enhancedSummary: enhancementResult.enhancements.enhanced_summary,
-          enhancedExperienceBullets: enhancementResult.enhancements.enhanced_experience_bullets,
-          coverLetterOutline: enhancementResult.enhancements.cover_letter_outline,
-          sectionRecommendations: enhancementResult.analysis.section_recommendations,
-          detailedResumeSections: enhancementResult.enhancements.detailed_resume_sections || {},
-          detailedCoverLetter: enhancementResult.enhancements.detailed_cover_letter || {}
-        },
-        extractionMetadata: {
-          documentId: documentId,
-          extractedTextLength: resumeText.length,
-          processingTime: Date.now() - timestamp,
-          modelUsed: enhancementResult.metadata.model_used,
-          apiBaseUrl: 'OpenAI Direct',
-          sectionsAnalyzed: enhancementResult.metadata.resume_sections_analyzed,
-          regeneratedWithCustomPrompt: customPrompt.trim() ? true : false
-        },
-        rawAIResponse: enhancementResult,
-        jobDescription: jobDescription,
-        applicationData: applicationData,
-        detailedUserProfile: resolvedProfile,
-        user: user,
-        extractedText: resumeText
-      };
-
-      console.log('✅ Regeneration complete, showing results...');
-      dispatch(setOptimizationResults(newOptimizationResults));
-      
-      setTimeout(() => {
-        dispatch(setShowResults(true));
-        setLoading(false);
-        setExtractionProgress('');
-      }, 100);
-
-    } catch (err: unknown) {
-      const error = err as Error;
-      // Log detailed error to console only (NEVER show to users)
-      console.error('❌ Regeneration failed (console only):', {
-        message: error?.message,
-        stack: error?.stack,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Show simple, friendly message to users (no technical details)
-      dispatch(setError('AI enhancement encountered an issue. Please try generating again.'));
-      setLoading(false);
-      setExtractionProgress('');
-      // Stay on results page even if regeneration fails
-      dispatch(setShowResults(true));
-    }
-  };
-
-  React.useEffect(() => {
-    console.log('🔍 showResults changed:', showResults);
-    console.log('🔍 optimizationResults:', optimizationResults);
-  }, [showResults, optimizationResults]);
+  // Removed excessive debug logging
 
   const [uploadComplete, setUploadComplete] = useState(false);
   const [FinalResumeUrl, setFinalResumeUrl] = useState<string | null>(null);
   const [FinalCoverLetterUrl, setFinalCoverLetterUrl] = useState<string | null>(null);
+  
+  // Guard to prevent repeated PDF generation and uploads
+  const pdfUploadAttemptedRef = useRef(false);
 
   React.useEffect(() => {
     const shouldUpload =
@@ -747,6 +646,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       applicationData?.id &&
       typeof window !== 'undefined' &&
       !uploadComplete &&
+      !pdfUploadAttemptedRef.current && // Prevent duplicate attempts
       (!FinalResumeUrl || !FinalCoverLetterUrl); // <-- key check
 
     if (!shouldUpload) return;
@@ -755,6 +655,9 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       console.warn('[uploadPDFs] No authenticated user id available; skipping PDF upload');
       return;
     }
+
+    // Mark that we've attempted upload to prevent re-entry
+    pdfUploadAttemptedRef.current = true;
 
     const detailedResumeHtml = generateDetailedResumeHTML(optimizationResults);
     const detailedCoverLetterHtml = generateDetailedCoverLetterHTML(optimizationResults);
@@ -787,11 +690,14 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           const text = await response.text().catch(() => '');
           const serverMessage = (result && result.error) || text || `HTTP ${response.status}`;
           console.error('[uploadPDFs] Upload failed:', serverMessage, { status: response.status, body: result || text });
+          // Reset flag on failure to allow retry
+          pdfUploadAttemptedRef.current = false;
           throw new Error(serverMessage || 'Failed to upload PDFs');
         }
 
         if (!result || (!result.resumeUrl && !result.coverLetterUrl)) {
           console.error('[uploadPDFs] Unexpected API response shape:', result);
+          pdfUploadAttemptedRef.current = false;
           throw new Error('Upload succeeded but server response is missing URLs');
         }
 
@@ -803,11 +709,15 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
       } catch (error) {
         console.error('❌ Error uploading PDFs:', error);
+        // Flag is reset above on known errors; keep it set for unknown errors to avoid infinite loops
       }
     };
 
     uploadPDFs();
-  }, [showResults, optimizationResults, applicationData?.id]);
+  }, [showResults, optimizationResults, applicationData?.id, user?.id, uploadComplete, FinalResumeUrl, FinalCoverLetterUrl]);
+
+  // ✅ FIX: Use ref to track last updated URLs to prevent infinite loop
+  const lastUpdatedUrlsRef = useRef<{resume: string | null, cover: string | null}>({ resume: null, cover: null });
 
   React.useEffect(() => {
     if (
@@ -817,10 +727,20 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       !optimizationResults
     ) return;
 
+    // ✅ Check if we already updated with these exact URLs
+    if (lastUpdatedUrlsRef.current.resume === FinalResumeUrl &&
+        lastUpdatedUrlsRef.current.cover === FinalCoverLetterUrl) {
+      return; // Already updated, skip
+    }
+
     const alreadyUpdated = optimizationResults.optimizedResumeUrl === FinalResumeUrl &&
       optimizationResults.optimizedCoverLetterUrl === FinalCoverLetterUrl;
 
-    if (alreadyUpdated) return; // ✅ Prevent unnecessary updates
+    if (alreadyUpdated) {
+      // Mark as updated even if already in state
+      lastUpdatedUrlsRef.current = { resume: FinalResumeUrl, cover: FinalCoverLetterUrl };
+      return;
+    }
 
     const updatedResults = {
       ...optimizationResults,
@@ -829,13 +749,14 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     };
 
     dispatch(setOptimizationResults(updatedResults));
+    lastUpdatedUrlsRef.current = { resume: FinalResumeUrl, cover: FinalCoverLetterUrl };
     console.log('✅ optimizationResults updated with Final URLs');
-  }, [uploadComplete, FinalResumeUrl, FinalCoverLetterUrl, optimizationResults]);
+  }, [uploadComplete, FinalResumeUrl, FinalCoverLetterUrl, optimizationResults, dispatch]);
 
 
   if (showResults && optimizationResults) {
-    console.log('🎯 Rendering OptimizationResults component with detailed content');
-    console.log('🎯 Results data:', optimizationResults);
+    // Removed excessive debug logs
+
 
     const detailedResumeHtml = generateDetailedResumeHTML(optimizationResults);
     const detailedCoverLetterHtml = generateDetailedCoverLetterHTML(optimizationResults);
@@ -868,6 +789,9 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       />
     );
   }
+
+
+  // Minimal logging for debugging (removed excessive logs)
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
