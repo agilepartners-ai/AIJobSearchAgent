@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthService } from '../../services/authService';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -14,11 +14,31 @@ const LoginForm: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    // Check if user was redirected due to session expiration
+    if (router.query.session === 'expired') {
+      setSessionExpired(true);
+      setError('Your session has expired. Please sign in again.');
+      
+      // Clear the query parameter from URL
+      const { session, ...restQuery } = router.query;
+      router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+    } else if (router.query.error === 'auth') {
+      setError('Authentication error occurred. Please sign in again.');
+      
+      // Clear the query parameter from URL
+      const { error, ...restQuery } = router.query;
+      router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
+    }
+  }, [router.query]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSessionExpired(false);
     setLoading(true);
 
     try {
@@ -63,8 +83,16 @@ const LoginForm: React.FC = () => {
         <div className="backdrop-blur-lg bg-white/20 dark:bg-gray-900/60 rounded-2xl shadow-xl border border-white/30 dark:border-gray-700/50 p-8 transition-all duration-300">
           <form className="space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-500/20 dark:bg-red-900/40 backdrop-blur-sm text-red-100 dark:text-red-200 p-4 rounded-xl text-sm border border-red-500/30 dark:border-red-700/50">
-              {error}
+            <div className={`backdrop-blur-sm p-4 rounded-xl text-sm border flex items-start gap-3 ${
+              router.query.session === 'expired' 
+                ? 'bg-yellow-500/20 dark:bg-yellow-900/40 text-yellow-100 dark:text-yellow-200 border-yellow-500/30 dark:border-yellow-700/50'
+                : 'bg-red-500/20 dark:bg-red-900/40 text-red-100 dark:text-red-200 border-red-500/30 dark:border-red-700/50'
+            }`}>
+              <Icon 
+                icon={router.query.session === 'expired' ? "mdi:clock-alert-outline" : "mdi:alert-circle-outline"} 
+                className="w-5 h-5 flex-shrink-0 mt-0.5"
+              />
+              <span>{error}</span>
             </div>
           )}
           <div className="space-y-5">

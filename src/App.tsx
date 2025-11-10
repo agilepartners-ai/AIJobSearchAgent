@@ -29,7 +29,7 @@ function App() {
   return (
     <ErrorBoundary>
       <ToastProvider>
-        <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-white dark:bg-gray-900 theme-transition">
+        <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-gray-950 theme-transition">
           <Header />
           <main>
             <Hero />

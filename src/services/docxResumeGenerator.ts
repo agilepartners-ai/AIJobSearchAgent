@@ -416,8 +416,22 @@ export class DocxResumeGenerator {
     console.log('Skills data:', this.profile.skills);
     console.log('Technical skills data:', this.profile.technicalSkills);
     
-    if (!this.profile.skills?.length && !this.profile.technicalSkills?.length) {
-      console.log('❌ No skills data found');
+    // Get skills data and normalize it
+    const skillsData = this.profile.skills || this.profile.technicalSkills || [];
+    
+    // Normalize skills to strings
+    const normalizedSkills = skillsData
+      .map((skill: any) => {
+        if (typeof skill === 'string') return skill.trim();
+        if (skill && typeof skill === 'object' && skill.name) return skill.name.trim();
+        return null;
+      })
+      .filter((skill: string | null) => skill && skill.length > 0);
+    
+    console.log('Normalized skills:', normalizedSkills);
+    
+    if (!normalizedSkills.length) {
+      console.log('❌ No valid skills data found after normalization');
       return [];
     }
 
@@ -447,8 +461,7 @@ export class DocxResumeGenerator {
     );
 
     // Skills by category
-    const skillsData = this.profile.skills || this.profile.technicalSkills || [];
-    const skillCategories = this.organizeSkillsByCategory(skillsData);
+    const skillCategories = this.organizeSkillsByCategory(normalizedSkills);
 
     for (const [category, skills] of Object.entries(skillCategories)) {
       if (skills.length === 0) continue;

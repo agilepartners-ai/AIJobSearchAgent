@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { 
-  Search, Filter, Edit3, Eye, Trash2, ExternalLink, ChevronLeft, ChevronRight, Briefcase, Calendar, Clock, Sparkles, LayoutGrid, LayoutList 
+  Search, Filter, Edit3, Eye, Trash2, ExternalLink, ChevronLeft, ChevronRight, Briefcase, Sparkles, LayoutGrid, LayoutList 
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { JobApplication } from '../../services/firebaseJobApplicationService';
@@ -32,8 +32,42 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const cardWidth = 320; // Width of each card + margin
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRightState, setCanScrollRightState] = useState(true);
+  
+  const filteredApplications = applications.filter(app => {
+    const matchesSearch = (app.position || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (app.company_name || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+  
+  // Update scroll button states
+  const updateScrollButtons = () => {
+    if (!scrollContainerRef.current) return;
+    
+    const container = scrollContainerRef.current;
+    const scrollLeft = container.scrollLeft;
+    const scrollWidth = container.scrollWidth;
+    const clientWidth = container.clientWidth;
+    
+    setCanScrollLeft(scrollLeft > 10);
+    setCanScrollRightState(scrollLeft + clientWidth < scrollWidth - 10);
+  };
+  
+  // Listen to scroll events
+  React.useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    updateScrollButtons();
+    container.addEventListener('scroll', updateScrollButtons);
+    
+    return () => {
+      container.removeEventListener('scroll', updateScrollButtons);
+    };
+  }, [filteredApplications.length]);
   
   const handleQuickApply = (application: JobApplication) => {
     if (application.job_posting_url) {
@@ -44,10 +78,22 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
     }
   };
 
+  // Get actual card width including gap
+  const getCardWidth = () => {
+    if (!scrollContainerRef.current) return 0;
+    const firstCard = scrollContainerRef.current.querySelector('div') as HTMLElement;
+    if (!firstCard) return 0;
+    const cardRect = firstCard.getBoundingClientRect();
+    const gap = 24; // space-x-6 (24px gap)
+    return cardRect.width + gap;
+  };
+
   const scrollLeft = () => {
-    if (scrollContainerRef.current) {
-      const newIndex = Math.max(0, currentIndex - 1);
+    if (scrollContainerRef.current && currentIndex > 0) {
+      const cardWidth = getCardWidth();
+      const newIndex = currentIndex - 1;
       setCurrentIndex(newIndex);
+      
       scrollContainerRef.current.scrollTo({
         left: newIndex * cardWidth,
         behavior: 'smooth'
@@ -57,22 +103,25 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
 
   const scrollRight = () => {
     if (scrollContainerRef.current) {
-      const maxIndex = Math.max(0, filteredApplications.length - 3);
-      const newIndex = Math.min(maxIndex, currentIndex + 1);
-      setCurrentIndex(newIndex);
-      scrollContainerRef.current.scrollTo({
-        left: newIndex * cardWidth,
-        behavior: 'smooth'
-      });
+      const container = scrollContainerRef.current;
+      const cardWidth = getCardWidth();
+      const containerWidth = container.clientWidth;
+      const scrollWidth = container.scrollWidth;
+      const maxScroll = scrollWidth - containerWidth;
+      
+      const newIndex = currentIndex + 1;
+      const newScrollPosition = newIndex * cardWidth;
+      
+      // Only scroll if there's more content to show
+      if (newScrollPosition < maxScroll + cardWidth) {
+        setCurrentIndex(newIndex);
+        container.scrollTo({
+          left: Math.min(newScrollPosition, maxScroll),
+          behavior: 'smooth'
+        });
+      }
     }
   };
-
-  const filteredApplications = applications.filter(app => {
-    const matchesSearch = (app.position || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (app.company_name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -102,49 +151,48 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   };
   
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm relative">
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Your Applications ({filteredApplications.length})
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm flex flex-col h-full overflow-hidden border border-gray-200 dark:border-gray-700">
+      {/* Compact Header - Fixed */}
+      <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 bg-gradient-to-r from-blue-600 to-purple-600">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4">
+          <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+            <span>📋</span> Applications ({filteredApplications.length})
           </h2>
           
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-initial sm:w-48">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-white/70" size={14} />
               <input
                 type="text"
-                placeholder="Search applications..."
+                placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => onSearchTermChange(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-8 pr-3 py-1.5 text-sm border border-white/30 rounded-lg bg-white/10 backdrop-blur text-white placeholder-white/60 focus:ring-2 focus:ring-white/50 focus:border-transparent"
               />
             </div>
             
             <div className="flex gap-2">
               <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Filter className="absolute left-2 top-1/2 transform -translate-y-1/2 text-white/70 pointer-events-none" size={14} />
                 <select
                   value={statusFilter}
                   onChange={(e) => onStatusFilterChange(e.target.value)}
-                  className="pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                  className="pl-8 pr-8 py-1.5 text-sm border border-white/30 rounded-lg bg-white/10 backdrop-blur text-white focus:ring-2 focus:ring-white/50 appearance-none cursor-pointer"
                 >
-                  <option value="all">All Status</option>
-                  <option value="not_applied">Not Applied</option>
-                  <option value="applied">Applied</option>
-                  <option value="screening">Screening</option>
-                  <option value="interview">Interview</option>
-                  <option value="offer">Offer</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="accepted">Accepted</option>
-                  <option value="withdrawn">Withdrawn</option>
+                  <option value="all" className="bg-gray-800">All</option>
+                  <option value="not_applied" className="bg-gray-800">Not Applied</option>
+                  <option value="applied" className="bg-gray-800">Applied</option>
+                  <option value="screening" className="bg-gray-800">Screening</option>
+                  <option value="interview" className="bg-gray-800">Interview</option>
+                  <option value="offer" className="bg-gray-800">Offer</option>
+                  <option value="rejected" className="bg-gray-800">Rejected</option>
                 </select>
               </div>
               
               <button 
                 onClick={toggleViewMode}
-                className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                title={viewMode === 'card' ? "Switch to table view" : "Switch to card view"}
+                className="p-1.5 border border-white/30 rounded-lg bg-white/10 backdrop-blur text-white hover:bg-white/20 transition-colors"
+                title={viewMode === 'card' ? "Table view" : "Card view"}
               >
                 {viewMode === 'card' ? <LayoutList size={16} /> : <LayoutGrid size={16} />}
               </button>
@@ -155,92 +203,92 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
 
       {/* Card View */}
       {viewMode === 'card' && (
-        <div className="relative mx-12">
+        <div className="relative flex-1 flex flex-col overflow-hidden">
           {filteredApplications.length > 0 ? (
             <>
-              {/* Carousel Navigation Buttons - Moved outside */}
+            <div className="flex-1 flex items-center gap-2">
+              {/* Left Navigation Button - Outside cards container */}
               {filteredApplications.length > 3 && (
-                <>
-                  <button
-                    onClick={scrollLeft}
-                    disabled={currentIndex === 0}
-                    className="absolute -left-12 top-1/2 transform -translate-y-1/2 z-10 bg-white dark:bg-gray-700 shadow-lg rounded-full p-3 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200 dark:border-gray-600"
-                  >
-                    <ChevronLeft size={24} className="text-gray-600 dark:text-gray-300" />
-                  </button>
-                  <button
-                    onClick={scrollRight}
-                    disabled={currentIndex >= Math.max(0, filteredApplications.length - 3)}
-                    className="absolute -right-12 top-1/2 transform -translate-y-1/2 z-10 bg-white dark:bg-gray-700 shadow-lg rounded-full p-3 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200 dark:border-gray-600"
-                  >
-                    <ChevronRight size={24} className="text-gray-600 dark:text-gray-300" />
-                  </button>
-                </>
+                <button
+                  onClick={scrollLeft}
+                  disabled={!canScrollLeft}
+                  className="flex-shrink-0 bg-white dark:bg-gray-700 shadow-lg h-24 w-10 hover:w-12 hover:shadow-xl transition-all disabled:opacity-20 disabled:cursor-not-allowed border border-gray-200 dark:border-gray-600 rounded-lg flex items-center justify-center z-10"
+                >
+                  <ChevronLeft size={20} className="text-gray-600 dark:text-gray-300" />
+                </button>
               )}
 
-              {/* Carousel Content */}
-              <div 
-                ref={scrollContainerRef}
-                className="flex overflow-x-auto space-x-6 px-6 py-6 scrollbar-hide"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {filteredApplications.map((application) => (
-                  <div
-                    key={application.id}
-                    className="relative flex-shrink-0 w-80 bg-white dark:bg-gray-700 rounded-xl shadow-lg transition-all duration-300 border border-gray-200 dark:border-gray-600 cursor-pointer flex flex-col h-[500px]"
-                  >
+              {/* Carousel Container - Holds exactly 3 cards */}
+              <div className="flex-1 overflow-hidden">
+                <div 
+                  ref={scrollContainerRef}
+                  className="flex gap-4 py-6 scrollbar-hide h-full items-center scroll-smooth overflow-x-auto"
+                  style={{ 
+                    scrollbarWidth: 'none', 
+                    msOverflowStyle: 'none',
+                    scrollSnapType: 'x mandatory',
+                    WebkitOverflowScrolling: 'touch'
+                  }}
+                >
+                  {filteredApplications.map((application) => (
+                    <div
+                      key={application.id}
+                      className="relative flex-shrink-0 bg-white dark:bg-gray-700 rounded-xl shadow-lg transition-all duration-300 border border-gray-200 dark:border-gray-600 cursor-pointer flex flex-col h-[calc(100vh-22rem)]"
+                      style={{ 
+                        scrollSnapAlign: 'start',
+                        width: 'calc((100% - 2rem) / 3)' // Exactly 3 cards with gaps
+                      }}
+                    >
+                    {/* Status Corner Indicators */}
                     {application.status === 'applied' && (
                       <div className="absolute top-0 right-0 h-8 w-8 bg-gradient-to-bl from-green-400 to-transparent rounded-tr-xl"></div>
                     )}
                     {application.status === 'not_applied' && (
                       <div className="absolute top-0 right-0 h-8 w-8 bg-gradient-to-bl from-red-400 to-transparent rounded-tr-xl"></div>
                     )}
+                    {application.status === 'interviewing' && (
+                      <div className="absolute top-0 right-0 h-8 w-8 bg-gradient-to-bl from-yellow-300 to-transparent rounded-tr-xl"></div>
+                    )}
+                    {application.status === 'offered' && (
+                      <div className="absolute top-0 right-0 h-8 w-8 bg-gradient-to-bl from-orange-400 to-transparent rounded-tr-xl"></div>
+                    )}
+                    {application.status === 'rejected' && (
+                      <div className="absolute top-0 right-0 h-8 w-8 bg-gradient-to-bl from-red-700 to-transparent rounded-tr-xl"></div>
+                    )}
+                    {application.status === 'accepted' && (
+                      <div className="absolute top-0 right-0 h-8 w-8 bg-gradient-to-bl from-purple-500 to-transparent rounded-tr-xl"></div>
+                    )}
+                    {application.status === 'declined' && (
+                      <div className="absolute top-0 right-0 h-8 w-8 bg-gradient-to-bl from-gray-200 dark:from-gray-400 to-transparent rounded-tr-xl"></div>
+                    )}
                     
-                    {/* Card Header - Fixed Height */}
-                    <div className="p-6 border-b border-gray-200 dark:border-gray-600">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1 line-clamp-2 h-14 overflow-hidden">
+                    {/* Card Header - Compact */}
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-600">
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-1">
                             {application.position}
                           </h3>
-                          <div className="flex items-center text-gray-600 dark:text-gray-400 mb-3">
-                            <Briefcase size={16} className="mr-2" />
-                            <span className="text-sm truncate">{application.company_name}</span>
+                          <div className="flex items-center justify-between mt-1">
+                            <div className="flex items-center text-gray-600 dark:text-gray-400">
+                              <Briefcase size={15} className="mr-1.5" />
+                              <span className="text-base font-medium truncate">{application.company_name}</span>
+                            </div>
+                            <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 ml-2 flex-shrink-0 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded">
+                              {formatSafeDate(application.updated_at)}
+                            </span>
                           </div>
                         </div>
-                        {application.status !== 'applied' && application.status !== 'not_applied' && (
-                          <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(application.status || 'not_applied')}`}>
-                            {(application.status || 'not_applied').replace('_', ' ').toUpperCase()}
-                          </span>
-                        )}
                       </div>
                     </div>
 
-                    {/* Card Body - Flexible Content Area */}
-                    <div className="p-6 space-y-4 flex-1">
-                      {/* Dates */}
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="flex items-center text-gray-600 dark:text-gray-400">
-                          <Calendar size={14} className="mr-2" />
-                          <div>
-                            <div className="text-xs font-medium">Applied</div>
-                            <div>{formatSafeDate(application.application_date)}</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center text-gray-600 dark:text-gray-400">
-                          <Clock size={14} className="mr-2" />
-                          <div>
-                            <div className="text-xs font-medium">Updated</div>
-                            <div>{formatSafeDate(application.updated_at)}</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Description Preview */}
+                    {/* Card Body - Compact Content Area */}
+                    <div className="p-4 space-y-2 flex-1">
+                      {/* Description Preview - 2 lines only */}
                       {application.job_description && (
                         <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
-                            {application.job_description.substring(0, 120)}...
+                          <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                            {application.job_description}
                           </p>
                         </div>
                       )}
@@ -248,23 +296,23 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                       {/* Notes Preview */}
                       {application.notes && (
                         <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-500 italic">
-                            "{application.notes.substring(0, 60)}..."
+                          <p className="text-xs text-gray-500 dark:text-gray-500 italic line-clamp-1">
+                            "{application.notes}"
                           </p>
                         </div>
                       )}
                     </div>
 
-                    {/* Card Footer - Fixed at Bottom */}
-                    <div className="p-6 pt-0 mt-auto">
-                      <div className="space-y-3">
+                    {/* Card Footer - Compact */}
+                    <div className="p-4 pt-0 mt-auto">
+                      <div className="space-y-2">
                         {/* Main Action Buttons - Grouped with visual distinction */}
                         <div className="flex flex-col rounded-lg overflow-hidden">
                           {/* Primary Action Button */}
                           {application.job_posting_url && application.status === 'not_applied' && (
                             <button
                               onClick={() => handleQuickApply(application)}
-                              className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md"
+                              className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-3 py-2 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md"
                             >
                               <ExternalLink size={14} className="mr-2" />
                               Apply Now
@@ -274,7 +322,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                           {application.job_posting_url && application.status !== 'not_applied' && (
                             <button
                               onClick={() => onEditApplication(application)}
-                              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md"
+                              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md"
                             >
                               <Edit3 size={14} className="mr-2" />
                               View Job
@@ -285,7 +333,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                           {onLoadAIEnhanced && (
                             <button
                               onClick={() => onLoadAIEnhanced(application)}
-                              className="w-full bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md mt-2"
+                              className="w-full bg-violet-600 hover:bg-violet-700 text-white px-3 py-2 text-sm font-medium transition-all flex items-center justify-center shadow-sm hover:shadow-md mt-1.5"
                             >
                               <Sparkles size={14} className="mr-2" />
                               AI Enhance
@@ -294,10 +342,10 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                         </div>
 
                         {/* Secondary Action Buttons - Fixed at Bottom */}
-                        <div className="flex justify-center space-x-2 pt-2">
+                        <div className="flex justify-center space-x-2 pt-1">
                           <button
                             onClick={() => onEditApplication(application)}
-                            className="p-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
+                            className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
                             title="Edit Application"
                           >
                             <Edit3 size={16} />
@@ -310,7 +358,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                                 company: application.company_name,
                                 description: application.job_description || ''
                               })}
-                              className="p-2 text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
+                              className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
                               title="View Job Description"
                             >
                               <Eye size={16} />
@@ -319,7 +367,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                           
                           <button
                             onClick={() => onDeleteApplication(application.id)}
-                            className="p-2 text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
+                            className="p-1.5 text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
                             title="Delete Application"
                           >
                             <Trash2 size={16} />
@@ -330,31 +378,52 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                   </div>
                 ))}
               </div>
+              </div>
 
-              {/* Carousel Indicators */}
+              {/* Right Navigation Button - Outside cards container */}
               {filteredApplications.length > 3 && (
-                <div className="flex justify-center space-x-2 pb-6">
-                  {Array.from({ length: Math.ceil(filteredApplications.length / 3) }).map((_, index) => (
+                <button
+                  onClick={scrollRight}
+                  disabled={!canScrollRightState}
+                  className="flex-shrink-0 bg-white dark:bg-gray-700 shadow-lg h-24 w-10 hover:w-12 hover:shadow-xl transition-all disabled:opacity-20 disabled:cursor-not-allowed border border-gray-200 dark:border-gray-600 rounded-lg flex items-center justify-center z-10"
+                >
+                  <ChevronRight size={20} className="text-gray-600 dark:text-gray-300" />
+                </button>
+              )}
+            </div>
+
+            {/* Carousel Indicators - Compact Design */}
+            {filteredApplications.length > 3 && (
+              <div className="flex items-center justify-center gap-1.5 py-3">
+                {Array.from({ length: Math.ceil(filteredApplications.length / 3) }).map((_, pageIndex) => {
+                  const isActive = currentIndex === pageIndex;
+                  return (
                     <button
-                      key={index}
+                      key={pageIndex}
                       onClick={() => {
-                        setCurrentIndex(index);
+                        setCurrentIndex(pageIndex);
                         if (scrollContainerRef.current) {
+                          const cardWidth = getCardWidth();
                           scrollContainerRef.current.scrollTo({
-                            left: index * cardWidth,
+                            left: pageIndex * cardWidth * 3,
                             behavior: 'smooth'
                           });
                         }
                       }}
-                      className={`w-3 h-3 rounded-full transition-colors ${
-                        Math.floor(currentIndex / 3) === index
-                          ? 'bg-blue-600'
-                          : 'bg-gray-300 dark:bg-gray-600'
+                      className={`transition-all rounded-full ${
+                        isActive 
+                          ? 'w-8 h-2 bg-gradient-to-r from-blue-600 to-purple-600' 
+                          : 'w-2 h-2 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
                       }`}
+                      title={`Page ${pageIndex + 1}`}
                     />
-                  ))}
-                </div>
-              )}
+                  );
+                })}
+                <span className="ml-2 text-xs text-gray-500 dark:text-gray-400 font-medium">
+                  {currentIndex + 1} / {Math.ceil(filteredApplications.length / 3)}
+                </span>
+              </div>
+            )}
             </>
           ) : (
             <div className="text-center py-12">

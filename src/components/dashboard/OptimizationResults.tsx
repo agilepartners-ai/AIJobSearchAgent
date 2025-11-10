@@ -1,7 +1,7 @@
 "use client";
 // eslint-disable-next-line
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Download, FileText, CheckCircle, Target, TrendingUp, Award, Brain, Copy, Check, ChevronDown, ChevronUp, AlertCircle, Eye } from 'lucide-react';
+import { ArrowLeft, Download, FileText, CheckCircle, Target, TrendingUp, Award, Brain, ChevronDown, ChevronUp, AlertCircle, Eye } from 'lucide-react';
 import { PDFViewer, PDFDownloadLink, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 import { PerfectHTMLToPDF } from './ResumeTemplate';
@@ -34,6 +34,7 @@ interface OptimizationResultsProps {
     };
   };
   onBack: () => void;
+  onRegenerate?: (customPrompt: string) => void;
 }
 
 // PDF Styles with tighter spacing
@@ -255,13 +256,13 @@ const CoverLetterPDFDocument: React.FC<{ content: string; jobDetails: any; resul
 };
 
 // eslint-disable-next-line max-lines-per-function
-const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobDetails, analysisData, onBack }) => {
-  const [copiedResume, setCopiedResume] = useState(false);
-  const [copiedCoverLetter, setCopiedCoverLetter] = useState(false);
+const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobDetails, analysisData, onBack, onRegenerate }) => {
   const [activeDocument, setActiveDocument] = useState<'resume' | 'cover-letter'>('resume');
   const [showPDFPreview, setShowPDFPreview] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [customPrompt, setCustomPrompt] = useState<string>('');
+  const [showPromptSection, setShowPromptSection] = useState(true); // Expanded by default
 
   // Fetch user profile data on component mount
   useEffect(() => {
@@ -323,23 +324,6 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
       coverageScore: 75,
       coveredKeywords: ["React", "JavaScript", "Node.js", "API", "Database", "Git", "Agile"],
       missingKeywords: ["Docker", "AWS", "TypeScript", "CI/CD", "Microservices"]
-    }
-  };
-
-  const copyToClipboard = async (text: string, type: 'resume' | 'cover') => {
-    try {
-      const plainText = text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-      await navigator.clipboard.writeText(plainText);
-
-      if (type === 'resume') {
-        setCopiedResume(true);
-        setTimeout(() => setCopiedResume(false), 2000);
-      } else {
-        setCopiedCoverLetter(true);
-        setTimeout(() => setCopiedCoverLetter(false), 2000);
-      }
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
     }
   };
 
@@ -800,54 +784,85 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
             </div>
           </div>
 
-          {/* Document Content */}
+          {/* Side-by-Side: Custom Prompt Section + PDF Preview */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
-            {/* Left: Text Content */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="font-semibold text-gray-900 dark:text-white">
-                  {activeDocument === 'resume' ? 'Resume Content' : 'Cover Letter Content'}
-                </h4>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => copyToClipboard(
-                      activeDocument === 'resume' ? modifiedResumeHtml : modifiedCoverLetterHtml,
-                      activeDocument === 'resume' ? 'resume' : 'cover'
-                    )}
-                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    title="Copy content"
-                  >
-                    {(activeDocument === 'resume' ? copiedResume : copiedCoverLetter) ?
-                      <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-                  </button>
-                </div>
-              </div>
+            {/* Left: Custom Prompt and Actions */}
+            <div className="flex flex-col h-full">
+              {/* Custom Prompt Section - Expanded */}
+              <div className="bg-gradient-to-r from-blue-900 to-blue-900 dark:from-blue-900/30 dark:to-purple-900/30 rounded-xl border-2 border-blue-900 dark:border-blue-700 p-5 mb-4">
+                <button
+                  onClick={() => setShowPromptSection(!showPromptSection)}
+                  className="w-full flex items-center justify-between mb-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+                      <Brain className="text-white" size={20} />
+                    </div>
+                    <div className="text-left">
+                      <h4 className="text-base font-bold text-gray-900 dark:text-white">
+                        AI User Prompt Header
+                      </h4>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        Customize your AI enhancement
+                      </p>
+                    </div>
+                  </div>
+                  {showPromptSection ? <ChevronUp size={20} className="text-gray-700 dark:text-gray-300" /> : <ChevronDown size={20} className="text-gray-700 dark:text-gray-300" />}
+                </button>
 
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-600">
-                <div
-                  className={`prose prose-sm dark:prose-invert max-w-none leading-relaxed ${activeDocument === 'resume' ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}
-                  dangerouslySetInnerHTML={{
-                    __html: activeDocument === 'resume' ? modifiedResumeHtml : modifiedCoverLetterHtml
-                  }}
-                />
+                {showPromptSection && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                        Custom Instructions (Optional)
+                      </label>
+                      <textarea
+                        value={customPrompt}
+                        onChange={(e) => setCustomPrompt(e.target.value)}
+                        placeholder="Add specific instructions... (e.g., 'Emphasize leadership skills', 'Add more metrics')"
+                        className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 resize-none text-sm font-medium shadow-sm"
+                        rows={4}
+                      />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 font-medium">
+                        💡 Job description and resume context auto-appended
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        if (onRegenerate) {
+                          onRegenerate(customPrompt);
+                        }
+                      }}
+                      disabled={!onRegenerate}
+                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 px-5 rounded-lg font-bold flex items-center justify-center gap-2 transition-all disabled:cursor-not-allowed shadow-lg hover:shadow-xl text-base"
+                    >
+                      <Brain size={20} />
+                      Generate using AI - Resume & Cover Letter
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Download Options */}
-              <div className="mt-4 space-y-3">
-                <div className="flex gap-3">
+              <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-5 shadow-sm">
+                <h4 className="font-bold text-gray-900 dark:text-white text-base mb-4 flex items-center gap-2">
+                  <Download size={18} className="text-blue-600 dark:text-blue-400" />
+                  Download Options
+                </h4>
+                <div className="space-y-3">
                   <button
                     onClick={() => downloadAsHtml(
                       activeDocument === 'resume' ? modifiedResumeHtml : modifiedCoverLetterHtml,
                       activeDocument === 'resume' ? 'ai-enhanced-resume.html' : 'ai-enhanced-cover-letter.html'
                     )}
-                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors text-sm shadow-md hover:shadow-lg"
                   >
-                    <FileText size={16} />
+                    <FileText size={18} />
                     Download HTML
                   </button>
                   <button
                     onClick={() => {
-                      // 🚀 Use powerful DOCX generation instead of weak HTML conversion
                       const profile = userProfile || extractProfileFromHtml(results.resume_html);
                       const jobKeywords = analysisData?.keywordAnalysis?.coveredKeywords || [];
                       const filename = activeDocument === 'resume' ? 'ai-enhanced-resume.docx' : 'ai-enhanced-cover-letter.docx';
@@ -855,22 +870,17 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
                       if (activeDocument === 'resume' && profile) {
                         downloadAsDocxPowerful(profile, jobKeywords, filename);
                       } else {
-                        // Fallback to HTML conversion for cover letters or when no profile
                         downloadAsDocx(
                           activeDocument === 'resume' ? modifiedResumeHtml : modifiedCoverLetterHtml,
                           filename
                         );
                       }
                     }}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors text-sm shadow-md hover:shadow-lg"
                   >
-                    <FileText size={16} />
-                    Download Professional Word DOC
+                    <FileText size={18} />
+                    Download Word DOC
                   </button>
-                </div>
-
-                {/* PDF Download Links */}
-                <div className="flex gap-3">
                   <PDFDownloadLink
                     document={
                       activeDocument === 'resume' ?
@@ -887,12 +897,12 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
                       `ai-enhanced-resume-${jobDetails.company.replace(/\s+/g, '-')}.pdf` :
                       `ai-enhanced-cover-letter-${jobDetails.company.replace(/\s+/g, '-')}.pdf`
                     }
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                    className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors text-sm shadow-md hover:shadow-lg"
                   >
                     {({ loading }) => (
                       <>
-                        <Download size={16} />
-                        {loading ? 'Generating Professional PDF...' : 'Download Professional PDF'}
+                        <Download size={18} />
+                        {loading ? 'Generating PDF...' : 'Download PDF'}
                       </>
                     )}
                   </PDFDownloadLink>
@@ -902,10 +912,13 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
 
             {/* Right: PDF Preview */}
             {showPDFPreview && (
-              <div>
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">PDF Preview</h4>
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-                  <div className="h-96 bg-white rounded border">
+              <div className="flex flex-col h-full">
+                <h4 className="font-bold text-gray-900 dark:text-white mb-4 text-base flex items-center gap-2">
+                  <Eye size={18} className="text-blue-600 dark:text-blue-400" />
+                  {activeDocument === 'resume' ? 'AI-Enhanced Resume Preview' : 'AI-Enhanced Cover Letter Preview'}
+                </h4>
+                <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-xl p-5 border-2 border-gray-200 dark:border-gray-600 shadow-sm">
+                  <div className="h-full min-h-[600px] bg-white dark:bg-gray-900 rounded border-2 border-gray-300 dark:border-gray-600 shadow-lg">
                     {activeDocument === 'resume' ? (
                       <ResumePDFPreview
                         resumeHtml={modifiedResumeHtml}

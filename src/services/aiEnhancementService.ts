@@ -152,15 +152,22 @@ type CanonicalSection =
 const getApiKey = (): string => '';
 
 // Add: Get Gemini API key from environment variables for browser compatibility
+let cachedGeminiKey: string | null = null;
 const getGeminiApiKey = (): string => {
+    // Return cached key if already fetched
+    if (cachedGeminiKey !== null) {
+        return cachedGeminiKey;
+    }
+    
     let apiKey = '';
     if (typeof window !== 'undefined') {
         apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
-        console.log('🔍 [DEBUG] Browser - NEXT_PUBLIC_GEMINI_API_KEY:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
     } else {
         apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
-        console.log('🔍 [DEBUG] Server - GEMINI_API_KEY:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
     }
+    
+    // Cache the key
+    cachedGeminiKey = apiKey;
     return apiKey;
 };
 
@@ -168,11 +175,64 @@ export class AIEnhancementService {
     private static readonly API_KEY = getApiKey();
     private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'Stub';
     private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'stub-model';
+    
+    // Retry configuration
+    private static readonly MAX_RETRIES = 8;
+    private static readonly INITIAL_RETRY_DELAY = 1000; // 1 second
+    private static readonly MAX_RETRY_DELAY = 60000; // 60 seconds
 
     // Helper: detect Gemini provider (supports typo "Gemnin")
     private static isGeminiProvider(modelType?: string) {
         const t = (modelType || this.DEFAULT_MODEL_TYPE || '').toLowerCase();
         return t === 'gemini' || t === 'gemnin';
+    }
+
+    /**
+     * Exponential backoff retry helper with jitter
+     * Retries API calls with exponentially increasing delays
+     */
+    private static async retryWithBackoff<T>(
+        fn: () => Promise<T>,
+        retryCount = 0
+    ): Promise<T> {
+        try {
+            return await fn();
+        } catch (error: any) {
+            // Check if error is retryable (503, 429, network errors)
+            const isRetryable = 
+                error.message?.includes('503') || 
+                error.message?.includes('UNAVAILABLE') ||
+                error.message?.includes('overloaded') ||
+                error.message?.includes('429') ||
+                error.message?.includes('Too Many Requests') ||
+                error.message?.includes('RESOURCE_EXHAUSTED') ||
+                error.message?.includes('Failed to fetch') ||
+                error.message?.includes('NetworkError');
+
+            if (!isRetryable || retryCount >= this.MAX_RETRIES) {
+                // Log to console only, don't show to user
+                console.error(`❌ [AI Enhancement] Final error after ${retryCount} retries:`, error.message);
+                throw error;
+            }
+
+            // Calculate delay with exponential backoff and jitter
+            const baseDelay = Math.min(
+                this.INITIAL_RETRY_DELAY * Math.pow(2, retryCount),
+                this.MAX_RETRY_DELAY
+            );
+            const jitter = Math.random() * 1000; // 0-1 second random jitter
+            const delay = baseDelay + jitter;
+
+            console.warn(
+                `⚠️ [AI Enhancement] Retry ${retryCount + 1}/${this.MAX_RETRIES} after ${Math.round(delay)}ms. Error: ${error.message}`
+            );
+
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, delay));
+
+            // Recursive retry
+            return this.retryWithBackoff(fn, retryCount + 1);
+        }
     }
 
     // Create system prompt for AI enhancement (matching old repo pattern)
@@ -214,12 +274,21 @@ Focus on:
 2. Quantifiable achievements and metrics
 3. Industry-specific terminology
 4. Proper formatting and structure
-5. Tailoring content to specific job requirements`;
+5. Tailoring content to specific job requirements
+
+CRITICAL INSTRUCTIONS FOR PROFESSIONAL SUMMARY:
+- The professional_summary field MUST be SHORT and CONCISE (2-3 sentences maximum)
+- Do NOT write multiple paragraphs or long-winded summaries
+- Keep it under 100 words
+- Make every word count - be impactful and specific
+- Focus only on the most relevant skills and experience for this specific job`;
     }
 
     // Create system prompt for detailed AI enhancement
     private static createDetailedSystemPrompt(): string {
         return `You are an expert resume and cover letter writer specializing in creating comprehensive, ATS-optimized, multi-page professional documents. Your task is to analyze a resume against a job description and create detailed, enhanced content.
+
+CRITICAL REQUIREMENT: The professional_summary field must be SHORT (2-3 sentences, under 100 words). Do NOT write long paragraphs.
 
 You must respond with a valid JSON object containing the following structure:
 {
@@ -244,7 +313,7 @@ You must respond with a valid JSON object containing the following structure:
     "enhanced_skills": ["prioritized technical and soft skills relevant to job"],
     "enhanced_experience_bullets": ["improved bullet points with metrics and achievements"],
     "detailed_resume_sections": {
-      "professional_summary": "3-4 paragraph detailed professional summary highlighting relevant experience and value proposition",
+      "professional_summary": "IMPORTANT: Write a SHORT, CONCISE 2-3 sentence professional summary. Do NOT write multiple paragraphs. Keep it brief and impactful, highlighting only the most relevant experience and value proposition.",
       "technical_skills": ["comprehensive list of technical skills categorized by proficiency"],
       "soft_skills": ["relevant soft skills with context"],
       "experience": [
@@ -359,8 +428,10 @@ Provide a comprehensive analysis and optimization following the JSON structure s
 
         Create a comprehensive analysis and detailed enhanced content following the JSON structure. The enhanced resume should be suitable for a multi-page document with detailed sections. The cover letter should have two substantial paragraphs that create a compelling narrative connecting the candidate's experience to the job requirements.
 
+CRITICAL: For the professional_summary field, write ONLY 2-3 SHORT sentences (maximum 100 words). Do NOT write multiple paragraphs. Keep it concise and impactful.
+
 Make sure all content is:
-1. Highly detailed and professional
+1. Highly detailed and professional (except professional_summary which must be SHORT)
 2. Tailored specifically to the job posting
 3. Includes quantified achievements where possible
 4. Uses industry-specific terminology
@@ -573,7 +644,7 @@ ${resumeText}`;
         options: AIEnhancementOptions = {}
     ): Promise<AIEnhancementResponse> {
         try {
-            console.log('Starting detailed Gemini resume enhancement...');
+            console.log('Starting detailed Gemini resume enhancement with retry mechanism...');
 
             const apiKey = getGeminiApiKey();
             if (!apiKey) {
@@ -604,23 +675,47 @@ ${resumeText}`;
                             { text: `${systemContent}\n\n${userContent}` }
                         ]
                     }
-                ]
+                ],
+                generationConfig: {
+                    temperature: 0.7,
+                    topK: 40,
+                    topP: 0.95,
+                    maxOutputTokens: 8192, // Increased token limit for comprehensive responses
+                    responseMimeType: "text/plain"
+                }
             };
 
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-goog-api-key': apiKey
-                },
-                body: JSON.stringify(payload)
-            });
+            // Wrap the API call in retry logic
+            const makeApiCall = async () => {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-goog-api-key': apiKey
+                    },
+                    body: JSON.stringify(payload)
+                });
 
-            if (!response.ok) {
-                const errText = await response.text().catch(() => '');
-                throw new Error(`Gemini API error ${response.status}: ${errText || response.statusText}`);
-            }
+                if (!response.ok) {
+                    const errText = await response.text().catch(() => '');
+                    let errorMessage = `Gemini API error ${response.status}: ${errText || response.statusText}`;
+                    
+                    // Try to parse error details
+                    try {
+                        const errorData = JSON.parse(errText);
+                        errorMessage = `Gemini API error ${response.status}: ${JSON.stringify(errorData)}`;
+                    } catch {
+                        // Keep the original error message
+                    }
+                    
+                    throw new Error(errorMessage);
+                }
 
+                return response;
+            };
+
+            // Execute with retry mechanism
+            const response = await this.retryWithBackoff(makeApiCall);
             const data = await response.json();
             const responseText =
                 data?.candidates?.[0]?.content?.parts?.[0]?.text ||
@@ -628,23 +723,70 @@ ${resumeText}`;
                 '';
 
             if (!responseText) {
+                console.error('❌ [Gemini] No response text received. Full data:', JSON.stringify(data, null, 2));
                 throw new Error('No response from Gemini');
             }
 
-            console.log('Gemini detailed response received, parsing...');
+            console.log('✅ Gemini detailed response received, parsing...');
+            console.log('📝 Response length:', responseText.length, 'characters');
+            
             let aiResults: any;
             try {
+                // First attempt: direct JSON parse
                 aiResults = JSON.parse(responseText);
-            } catch (e) {
-                // Attempt to extract JSON substring as a fallback
-                const start = responseText.indexOf('{');
-                const end = responseText.lastIndexOf('}');
+                console.log('✅ JSON parsed successfully (direct)');
+            } catch (parseError) {
+                console.warn('⚠️ Direct JSON parse failed, attempting extraction...');
+                
+                // Second attempt: extract JSON from response (handle markdown code blocks)
+                let jsonText = responseText;
+                
+                // Remove markdown code blocks if present
+                if (responseText.includes('```json')) {
+                    const jsonStart = responseText.indexOf('```json') + 7;
+                    const jsonEnd = responseText.indexOf('```', jsonStart);
+                    if (jsonEnd > jsonStart) {
+                        jsonText = responseText.slice(jsonStart, jsonEnd).trim();
+                        console.log('📦 Extracted from markdown ```json block');
+                    }
+                } else if (responseText.includes('```')) {
+                    const jsonStart = responseText.indexOf('```') + 3;
+                    const jsonEnd = responseText.indexOf('```', jsonStart);
+                    if (jsonEnd > jsonStart) {
+                        jsonText = responseText.slice(jsonStart, jsonEnd).trim();
+                        console.log('📦 Extracted from generic ``` code block');
+                    }
+                }
+                
+                // Third attempt: find JSON object boundaries
+                const start = jsonText.indexOf('{');
+                const end = jsonText.lastIndexOf('}');
+                
                 if (start !== -1 && end !== -1 && end > start) {
-                    aiResults = JSON.parse(responseText.slice(start, end + 1));
+                    try {
+                        jsonText = jsonText.slice(start, end + 1);
+                        aiResults = JSON.parse(jsonText);
+                        console.log('✅ JSON extracted and parsed successfully');
+                    } catch (extractError) {
+                        console.error('❌ Failed to parse extracted JSON:', extractError);
+                        console.error('📄 Extracted text preview (first 500 chars):', jsonText.substring(0, 500));
+                        console.error('📄 Extracted text preview (last 200 chars):', jsonText.substring(Math.max(0, jsonText.length - 200)));
+                        throw new Error('Failed to parse AI response. The response format is invalid.');
+                    }
                 } else {
-                    throw new Error('Failed to parse AI response. Please try again.');
+                    console.error('❌ No JSON object found in response');
+                    console.error('📄 Full response preview (first 1000 chars):', responseText.substring(0, 1000));
+                    throw new Error('AI response does not contain valid JSON.');
                 }
             }
+
+            // Validate that we have the required structure
+            if (!aiResults || typeof aiResults !== 'object') {
+                console.error('❌ Parsed result is not an object:', typeof aiResults);
+                throw new Error('AI response has invalid structure.');
+            }
+
+            console.log('✅ AI results validated, building response...');
 
             const enhancementResponse: AIEnhancementResponse = {
                 success: true,
@@ -692,21 +834,19 @@ ${resumeText}`;
             console.log('Gemini detailed enhancement completed successfully');
             return enhancementResponse;
         } catch (error: any) {
-            console.error('Gemini enhancement failed:', error);
+            // Log detailed error to console for debugging (NEVER show these to users)
+            console.error('❌ [Gemini Enhancement] Detailed error (console only):', {
+                message: error?.message,
+                stack: error?.stack,
+                timestamp: new Date().toISOString(),
+                errorType: error?.constructor?.name
+            });
 
-            if (error instanceof Error) {
-                if (error.message.includes('API key') || error.message.includes('401')) {
-                    throw new Error('Gemini API key is missing or invalid. Please check your configuration.');
-                } else if (error.message.includes('quota') || error.message.includes('429')) {
-                    throw new Error('Gemini API quota exceeded. Please check your usage limits.');
-                } else if (error.message.includes('JSON')) {
-                    throw new Error('Failed to parse AI response. Please try again.');
-                } else if (error.message.includes('network') || error.message.includes('fetch')) {
-                    throw new Error('Network error. Please check your internet connection and try again.');
-                }
-            }
-
-            throw new Error(`AI enhancement failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            // IMPORTANT: Never expose parsing errors or technical details to users
+            // All errors are logged to console, but users only see generic friendly messages
+            
+            // Return simple, actionable error message (same for all error types)
+            throw new Error('AI enhancement completed but encountered an issue processing the results. Please try generating again.');
         }
     }
 
