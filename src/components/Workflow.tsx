@@ -57,7 +57,7 @@ const Workflow: React.FC = () => {
   ];
 
   return (
-    <section id="workflow" className="py-20 bg-gradient-to-b from-gray-900 to-gray-800 relative overflow-hidden dark:from-gray-950 dark:to-gray-900">
+    <section id="workflow" className="py-20 bg-gray-900 relative overflow-hidden">
       {/* Background texture */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0" style={{ 

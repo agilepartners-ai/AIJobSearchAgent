@@ -17,7 +17,6 @@ import {
 import { useRouter } from 'next/navigation';
 import DashboardHeader from './DashboardHeader';
 import LeftSidebar from './LeftSidebar';
-import StatsCards from './StatsCards';
 import ApplicationsTable from './ApplicationsTable';
 import JobDescriptionModal from './JobDescriptionModal';
 import ApplicationModal from './ApplicationModal';
@@ -481,7 +480,8 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="h-screen flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
+      {/* Fixed Header at Top */}
       <DashboardHeader
         userProfile={userProfile}
         onAddApplication={handleAddApplication}
@@ -489,8 +489,7 @@ const Dashboard: React.FC = () => {
         onUpdateProfile={handleUpdateProfile}
       />
 
-
-
+      {/* Sidebar - Hidden on mobile, fixed on desktop */}
       <LeftSidebar
         onDashboard={handleDashboard}
         onFindMoreJobs={handleFindMoreJobs}
@@ -499,65 +498,94 @@ const Dashboard: React.FC = () => {
         onUpgrade={handleUpgrade}
       />
 
-      <main className="ml-64 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 dashboard-main">
-        {loading && (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-lg text-gray-600 dark:text-gray-400">Loading applications...</p>
-          </div>
-        )}
-
-        {error && (
-          <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
-
-        {/* Welcome banner for new workflow users */}
-        {combinedListings.some(job => job.id.startsWith('workflow-')) && (
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-6 mb-6">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold">✓</span>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Welcome to Your Dashboard!</h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Great job! We've loaded your selected job opportunities. You can now manage applications, track progress, and discover more opportunities.
-                </p>
+      {/* Main Content Area - Accounts for header and sidebar */}
+      <main className="flex-1 flex flex-col overflow-hidden md:ml-64 pt-14 sm:pt-16">
+          
+          {/* Loading State */}
+          {loading && (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-lg font-medium text-gray-600 dark:text-gray-400">Loading Dashboard...</p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 mt-4">
-              <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full text-sm">
-                🎯 {combinedListings.filter(job => job.id.startsWith('workflow-')).length} Jobs Added
-              </span>
-              <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-full text-sm">
-                📊 Dashboard Ready
-              </span>
-              <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 rounded-full text-sm">
-                🚀 Start Applying
-              </span>
+          )}
+
+          {/* Error State */}
+          {error && !loading && (
+            <div className="m-4 p-4 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-700">
+              <p className="font-medium">⚠️ {error}</p>
             </div>
-          </div>
-        )}
+          )}
 
-        <StatsCards stats={stats} />
+          {/* Main Dashboard Content - Compact, No Scroll */}
+          {!loading && !error && (
+            <div className="flex-1 flex flex-col overflow-hidden p-2 sm:p-3 md:p-4 gap-2 sm:gap-3">
+              
+              {/* Welcome Banner - Compact for Mobile */}
+              {combinedListings.some(job => job.id.startsWith('workflow-')) && (
+                <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-2 sm:p-3 flex-shrink-0 shadow-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 backdrop-blur rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-lg sm:text-xl">✓</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm sm:text-base font-bold truncate">Welcome to Your Dashboard!</h3>
+                      <p className="text-xs sm:text-sm text-white/90 hidden sm:block">
+                        {combinedListings.filter(job => job.id.startsWith('workflow-')).length} jobs loaded and ready to apply
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-        <div className="space-y-8">
-          <ApplicationsTable
-            applications={[...applications, ...combinedListings].map(app => ({ ...app, updated_at: app.updated_at ?? '' }))}
-            searchTerm={searchTerm}
-            statusFilter={statusFilter}
-            onSearchTermChange={setSearchTerm}
-            onStatusFilterChange={setStatusFilter}
-            onEditApplication={handleEditApplication}
-            onViewJobDescription={handleViewJobDescription}
-            onDeleteApplication={handleDeleteApplication}
-            onUpdateApplicationStatus={handleUpdateApplicationStatus}
-            onLoadAIEnhanced={handleLoadAIEnhanced}
-          />
-        </div>
+              {/* Stats Cards - Compact Grid */}
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3 flex-shrink-0">
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Total</div>
+                  <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Applied</div>
+                  <div className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.applied}</div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Pending</div>
+                  <div className="text-lg sm:text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pending}</div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Interview</div>
+                  <div className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.interviews}</div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Offers</div>
+                  <div className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">{stats.offers}</div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Rejected</div>
+                  <div className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400">{stats.rejected}</div>
+                </div>
+              </div>
+
+              {/* Applications Table - Takes Remaining Space */}
+              <div className="flex-1 overflow-hidden min-h-0">
+                <ApplicationsTable
+                  applications={[...applications, ...combinedListings].map(app => ({ ...app, updated_at: app.updated_at ?? '' }))}
+                  searchTerm={searchTerm}
+                  statusFilter={statusFilter}
+                  onSearchTermChange={setSearchTerm}
+                  onStatusFilterChange={setStatusFilter}
+                  onEditApplication={handleEditApplication}
+                  onViewJobDescription={handleViewJobDescription}
+                  onDeleteApplication={handleDeleteApplication}
+                  onUpdateApplicationStatus={handleUpdateApplicationStatus}
+                  onLoadAIEnhanced={handleLoadAIEnhanced}
+                />
+              </div>
+            </div>
+          )}
       </main>
+
       {/* Modals */}
       <JobDescriptionModal
         isOpen={showJobDescriptionModal}

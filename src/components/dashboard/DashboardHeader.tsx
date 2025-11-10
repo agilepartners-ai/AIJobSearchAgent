@@ -82,9 +82,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
   return (
     <>
-      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14 sm:h-16">
+      <header className="fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+        <div className="h-14 sm:h-16 flex justify-between items-center px-3 sm:px-4 md:px-6 lg:px-8 md:pl-72">
             {/* Left side - Logo and Title */}
             <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
               <button
@@ -107,7 +106,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               <div className="hidden lg:block relative">
                 <button
                   onClick={toggleProfileDropdown}
-                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-900 dark:hover:bg-gray-700 transition-colors"
                 >
                   <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 flex-shrink-0">
                     <User size={16} />
@@ -123,14 +122,14 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                     <div className="py-1">
                       <button
                         onClick={() => handleProfileAction(onUpdateProfile)}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-900 dark:hover:bg-gray-700"
                       >
                         <User size={16} className="mr-2" />
                         Update Profile
                       </button>
                       <button
                         onClick={() => handleProfileAction(onJobPreferences)}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-900 dark:hover:bg-gray-700"
                       >
                         <Settings size={16} className="mr-2" />
                         Job Preferences
@@ -138,7 +137,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                       <hr className="my-1 border-gray-200 dark:border-gray-600" />
                       <button
                         onClick={handleSignOut}
-                        className="flex items-center w-full px-4 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        className="flex items-center w-full px-4 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-gray-900 dark:hover:bg-gray-700"
                       >
                         <LogOut size={16} className="mr-2" />
                         Sign Out
@@ -201,7 +200,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               </div>
             </div>
           )}
-        </div>
       </header>
 
       <UpgradeModal

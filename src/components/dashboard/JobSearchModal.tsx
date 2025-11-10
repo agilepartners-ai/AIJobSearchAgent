@@ -414,13 +414,13 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
                 <div className="flex gap-2">
                   <button
                     onClick={selectAllJobs}
-                    className="text-sm bg-green-600 dark:bg-blue-900 text-white dark:text-blue-300 px-3 py-1 rounded hover:bg-green-700 dark:hover:bg-blue-800"
+                    className="text-sm bg-green-600 hover:bg-green-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-3 py-1 rounded"
                   >
                     Select All
                   </button>
                   <button
                     onClick={clearSelection}
-                    className="text-sm bg-red-600 dark:bg-gray-700 text-gray-700 dark:text-gray-700 px-3 py-1 rounded hover:bg-red-700 dark:hover:bg-gray-600"
+                    className="text-sm bg-red-600 hover:bg-red-700 dark:bg-gray-600 dark:hover:bg-gray-700 text-white px-3 py-1 rounded"
                   >
                     Clear Selection
                   </button>
@@ -441,8 +441,8 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
                     key={index} 
                     className={`border rounded-lg p-4 transition-all ${
                       selectedJobs.has(index) 
-                        ? 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600' 
-                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                        ? 'bg-blue-100 border-blue-500 dark:bg-blue-800/60 dark:border-blue-400' 
+                        : 'bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700'
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -450,19 +450,31 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
                         type="checkbox"
                         checked={selectedJobs.has(index)}
                         onChange={() => toggleJobSelection(index)}
-                        className="mt-1 rounded border-gray-400 text-blue-600 focus:ring-blue-500"
+                        className="mt-1 rounded border-gray-300 dark:border-gray-500 text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:checked:bg-blue-600"
                       />
                       
                       <div className="flex-1">
                         <div className="flex justify-between items-start mb-3">
                           <div>
-                            <h4 className="font-semibold text-gray-900 dark:text-white text-lg">
+                            <h4 className={`font-semibold text-lg ${
+                              selectedJobs.has(index) 
+                                ? 'text-blue-800 dark:text-blue-50' 
+                                : 'text-gray-900 dark:text-white'
+                            }`}>
                               {job.job_title || 'Job Title Not Available'}
                             </h4>
-                            <p className="text-gray-600 dark:text-gray-400">
+                            <p className={`${
+                              selectedJobs.has(index) 
+                                ? 'text-blue-600 dark:text-blue-100' 
+                                : 'text-gray-600 dark:text-gray-400'
+                            }`}>
                               {job.employer_name || 'Company Not Specified'}
                             </p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                            <p className={`text-sm ${
+                              selectedJobs.has(index) 
+                                ? 'text-blue-500 dark:text-blue-200' 
+                                : 'text-gray-500 dark:text-gray-400'
+                            }`}>
                               {job.job_city && job.job_state 
                                 ? `${job.job_city}, ${job.job_state}` 
                                 : job.job_country || 'Location not specified'
@@ -492,7 +504,11 @@ const JobSearchModal: React.FC<JobSearchModalProps> = ({
                           </div>
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        <div className={`grid grid-cols-2 gap-4 text-sm mb-3 ${
+                          selectedJobs.has(index) 
+                            ? 'text-blue-600 dark:text-blue-100' 
+                            : 'text-gray-600 dark:text-gray-400'
+                        }`}>
                           {job.job_employment_type && (
                             <div>
                               <span className="font-medium">Type:</span> {job.job_employment_type}

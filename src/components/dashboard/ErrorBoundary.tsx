@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import ApiErrorHandler from '../common/ApiErrorHandler';
+import { isAuthenticationError, handleAuthError } from '../../utils/authErrorHandler';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -11,6 +12,7 @@ interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
+  isAuthError: boolean;
 }
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -19,15 +21,20 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     this.state = {
       hasError: false,
       error: null,
-      errorInfo: null
+      errorInfo: null,
+      isAuthError: false
     };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+    // Check if it's an authentication error using the utility
+    const isAuthError = isAuthenticationError(error);
+
     return {
       hasError: true,
       error,
-      errorInfo: null
+      errorInfo: null,
+      isAuthError
     };
   }
 
@@ -39,6 +46,11 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     }
     
     console.error('Error caught by boundary:', error, errorInfo);
+
+    // If it's an auth error, handle it with the utility
+    if (this.state.isAuthError) {
+      handleAuthError(error);
+    }
   }
 
   handleRetry = async (endpoint: string, params: Record<string, any>): Promise<void> => {
@@ -60,7 +72,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
       this.setState({
         hasError: false,
         error: null,
-        errorInfo: null
+        errorInfo: null,
+        isAuthError: false
       });
       
     } catch (error) {
@@ -73,6 +86,38 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
   render() {
     if (this.state.hasError) {
+      // If it's an authentication error, show session expired message
+      if (this.state.isAuthError) {
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+            <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg max-w-md">
+              <div className="mb-4">
+                <svg
+                  className="mx-auto h-12 w-12 text-yellow-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                Session Expired
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Your session has expired. Redirecting to login page...
+              </p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            </div>
+          </div>
+        );
+      }
+
       // Check if it's an API error with additional metadata
       const apiError = this.state.error as any;
       
@@ -85,7 +130,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             statusCode={apiError.statusCode}
             responseData={apiError.responseData}
             onRetry={this.handleRetry}
-            onClose={() => this.setState({ hasError: false, error: null, errorInfo: null })}
+            onClose={() => this.setState({ hasError: false, error: null, errorInfo: null, isAuthError: false })}
           />
         );
       }
@@ -104,7 +149,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             {this.state.error?.message || 'An unexpected error occurred'}
           </p>
           <button
-            onClick={() => this.setState({ hasError: false, error: null, errorInfo: null })}
+            onClick={() => this.setState({ hasError: false, error: null, errorInfo: null, isAuthError: false })}
             className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
           >
             Try again

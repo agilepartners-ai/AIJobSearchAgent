@@ -115,9 +115,14 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     }
   }, [resolvedProfile, user?.id]);
 
-  // Keep jobDescription in sync with Redux (for persistence)
+  // Keep jobDescription in sync with Redux (for persistence) - only update if significantly different
+  const previousJobDescriptionRef = React.useRef<string>('');
   useEffect(() => {
-    if (jobDescription && jobDescription !== persistedJobDescription) {
+    // Only dispatch if jobDescription has actually changed and is different from what's in Redux
+    if (jobDescription && 
+        jobDescription !== persistedJobDescription && 
+        jobDescription !== previousJobDescriptionRef.current) {
+      previousJobDescriptionRef.current = jobDescription;
       dispatch({ type: 'aiEnhancementModal/openModal', payload: { jobDescription } });
     }
   }, [jobDescription, dispatch, persistedJobDescription]);
@@ -567,22 +572,16 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       }, 100);
 
     } catch (err: any) {
-      console.error('AI enhancement error:', err);
+      // Log detailed error to console only (NEVER show technical details to users)
+      console.error('❌ [AI Enhancement Modal] Error occurred (console only):', {
+        message: err?.message,
+        stack: err?.stack,
+        timestamp: new Date().toISOString()
+      });
 
-      // Enhanced error handling
-      let userMessage = err.message;
-
-      if (err.message.includes('API key')) {
-        userMessage = 'OpenAI API key is not configured or invalid. Please check your environment variables.';
-      } else if (err.message.includes('quota') || err.message.includes('429')) {
-        userMessage = 'OpenAI API quota exceeded. Please try again later or check your usage limits.';
-      } else if (err.message.includes('Failed to fetch') || err.message.includes('network')) {
-        userMessage = 'Unable to connect to the AI service. Please check your internet connection and try again.';
-      } else if (err.message.includes('timeout') || err.message.includes('timed out')) {
-        userMessage = 'The AI processing is taking longer than expected. Please try again with a smaller file or try again later.';
-      } else if (!err.message || err.message === 'Failed to generate AI-enhanced documents. Please try again.') {
-        userMessage = 'The AI service is temporarily unavailable. Please try again in a few minutes or contact support if the issue persists.';
-      }
+      // IMPORTANT: Show simple, friendly message to users regardless of error type
+      // All technical details stay in console logs only
+      const userMessage = 'AI enhancement encountered an issue. Please try generating again.';
 
       dispatch(setError(userMessage));
     } finally {
@@ -786,6 +785,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           },
         }}
         onBack={handleResultsClose}
+        onRegenerate={handleRegenerate}
       />
     );
   }
@@ -1281,24 +1281,58 @@ const generateDetailedResumeHTML = (results: any): string => {
       </section>
 
       <!-- Technical Skills -->
+      ${(() => {
+        // Get technical skills and ensure they are strings
+        const rawSkills = sections.technical_skills || results.skillsOptimization?.technicalSkills || [];
+        const skills = rawSkills
+          .map((skill: any) => {
+            // Handle both string and object skills
+            if (typeof skill === 'string') return skill.trim();
+            if (skill && typeof skill === 'object' && skill.name) return skill.name.trim();
+            return null;
+          })
+          .filter((skill: string | null) => skill && skill.length > 0);
+        
+        // Only render section if we have valid skills
+        if (skills.length === 0) return '';
+        
+        return `
       <section style="margin-bottom: 20px;">
         <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">TECHNICAL SKILLS</h2>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 6px; margin-bottom: 8px;">
-          ${(sections.technical_skills || results.skillsOptimization?.technicalSkills || []).map((skill: string) =>
-    `<span style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-size: 12px; border: 1px solid #e5e7eb;">${skill}</span>`
-  ).join('')}
+          ${skills.map((skill: string) =>
+            `<span style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-size: 12px; border: 1px solid #e5e7eb;">${skill}</span>`
+          ).join('')}
         </div>
-      </section>
+      </section>`;
+      })()}
 
       <!-- Core Competencies -->
+      ${(() => {
+        // Get soft skills and ensure they are strings
+        const rawSkills = sections.soft_skills || results.skillsOptimization?.softSkills || [];
+        const skills = rawSkills
+          .map((skill: any) => {
+            // Handle both string and object skills
+            if (typeof skill === 'string') return skill.trim();
+            if (skill && typeof skill === 'object' && skill.name) return skill.name.trim();
+            return null;
+          })
+          .filter((skill: string | null) => skill && skill.length > 0);
+        
+        // Only render section if we have valid skills
+        if (skills.length === 0) return '';
+        
+        return `
       <section style="margin-bottom: 20px;">
         <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">CORE COMPETENCIES</h2>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 6px;">
-          ${(sections.soft_skills || results.skillsOptimization?.softSkills || []).map((skill: string) =>
-    `<span style="background: #e0f2fe; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #0277bd; border: 1px solid #b3e5fc;">${skill}</span>`
-  ).join('')}
+          ${skills.map((skill: string) =>
+            `<span style="background: #e0f2fe; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #0277bd; border: 1px solid #b3e5fc;">${skill}</span>`
+          ).join('')}
         </div>
-      </section>
+      </section>`;
+      })()}
 
       <!-- Professional Experience -->
       <section style="margin-bottom: 20px;">
