@@ -630,6 +630,71 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     onClose();
   };
 
+  const handleRegenerate = async (customPrompt: string) => {
+    console.log('🔄 Regenerating with custom prompt:', customPrompt);
+    
+    // Go back to loading state
+    dispatch(setShowResults(false));
+    setLoading(true);
+    setExtractionProgress('Regenerating with your custom instructions...');
+    
+    try {
+      // Get the existing resume text from optimizationResults
+      const resumeText = optimizationResults?.extractedText || manualText;
+      
+      if (!resumeText) {
+        throw new Error('No resume text available for regeneration');
+      }
+
+      // Call AI enhancement with custom prompt
+      const resolvedProfile = detailedUserProfile || (user ? await ProfileService.getUserProfile(user.id) : null);
+      
+      const enhancementResult = await AIEnhancementService.enhanceWithOpenAI(
+        resumeText,
+        jobDescription || persistedJobDescription || '',
+        {
+          modelType: config.defaultModelType,
+          model: config.defaultModel,
+          fileId: documentId,
+          userPromptOverride: customPrompt.trim() || aiPrompt,
+          systemPromptOverride: systemPrompt
+        }
+      );
+
+      if (!enhancementResult.success) {
+        throw new Error(enhancementResult.error || 'Failed to regenerate. Please try again.');
+      }
+
+      // Build optimization results (same as handleGenerateAI)
+      const newOptimizationResults = {
+        matchScore: enhancementResult.analysis.match_score,
+        summary: `Your resume has been AI-enhanced for ${applicationData?.position || 'this position'}`,
+        strengths: enhancementResult.analysis.strengths,
+        gaps: enhancementResult.analysis.gaps,
+        suggestions: enhancementResult.analysis.suggestions,
+        keywordAnalysis: {
+          coverageScore: enhancementResult.analysis.keyword_analysis?.keyword_density_score || 0,
+          coveredKeywords: enhancementResult.analysis.keyword_analysis?.present_keywords || [],
+          missingKeywords: enhancementResult.analysis.keyword_analysis?.missing_keywords || [],
+        },
+        enhancements: enhancementResult.enhancements,
+        extractedText: resumeText,
+        detailedUserProfile: resolvedProfile,
+        optimizedResumeUrl: '',
+        optimizedCoverLetterUrl: '',
+      };
+
+      dispatch(setOptimizationResults(newOptimizationResults));
+      dispatch(setShowResults(true));
+      setLoading(false);
+      console.log('✅ Regeneration complete');
+    } catch (error: any) {
+      console.error('❌ Regeneration failed:', error);
+      setLoading(false);
+      dispatch(setError(error.message || 'Failed to regenerate'));
+    }
+  };
+
   // Removed excessive debug logging
 
   const [uploadComplete, setUploadComplete] = useState(false);
