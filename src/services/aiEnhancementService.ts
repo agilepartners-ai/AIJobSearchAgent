@@ -154,6 +154,7 @@ const getApiKey = (): string => '';
 // Add: Get Gemini API key from environment variables for browser compatibility
 // Log API key only once to avoid console spam
 let _hasLoggedGeminiApiKey = false;
+let cachedGeminiKey: string | null = null;
 
 const getGeminiApiKey = (): string => {
     // Return cached key if already fetched
