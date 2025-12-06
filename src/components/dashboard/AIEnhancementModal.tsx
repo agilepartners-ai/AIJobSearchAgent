@@ -389,13 +389,10 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
     setUploadComplete(false);
 
-    // Check API configuration
-    const isGemini = config.defaultModelType.toLowerCase() === 'gemini' || config.defaultModelType.toLowerCase() === 'gemnin';
-    if (isGemini ? !config.hasGeminiApiKey : !config.hasApiKey) {
-      // Don't block the user — use the local stub implementation instead.
-      console.warn('AI provider API key not configured for selected model. Proceeding with local stubbed AI responses.');
-      // Optionally show a non-blocking warning to the user
-      dispatch(setError('AI provider key not configured. Using local fallback AI responses.'));
+    // Check Vertex AI configuration
+    if (!config.isVertexAIConfigured) {
+      dispatch(setError('Vertex AI is not configured. Please check your environment settings.'));
+      return;
     }
 
     // Remove job description validation; the user header is authoritative
@@ -439,23 +436,39 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         throw new Error('Resume text is too short or empty. Please provide a more detailed resume.');
       }
 
-      // Step 2: Enhance resume using AI with strict prompt overrides
+      // Step 2: Enhance resume using AI via server-side API route (Vertex AI requires server-side)
       setExtractionProgress('Analyzing resume with AI...');
 
-      const enhancementResult = await AIEnhancementService.enhanceWithOpenAI(
-        resumeText,
-        jobDescription || persistedJobDescription || '',
-        {
-          modelType: config.defaultModelType,
-          model: config.defaultModel,
-          fileId: documentId,
-          userPromptOverride: aiPrompt,       // header only; service will append fixed context
-          systemPromptOverride: systemPrompt  // full replacement if edited
-        }
-      );
+      const apiResponse = await fetch('/api/enhance-resume', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          resumeText,
+          jobDescription: jobDescription || persistedJobDescription || '',
+          options: {
+            modelType: config.defaultModelType,
+            model: config.defaultModel,
+            fileId: documentId,
+            userPromptOverride: aiPrompt,       // header only; service will append fixed context
+            systemPromptOverride: systemPrompt  // full replacement if edited
+          }
+        }),
+      });
+
+      const apiResult = await apiResponse.json();
+
+      if (!apiResponse.ok || !apiResult.success) {
+        console.error('❌ [AIEnhancementModal] API Request Failed:', apiResult);
+        throw new Error(apiResult.error || `Server Error (${apiResponse.status}): Failed to analyze resume.`);
+      }
+
+      const enhancementResult = apiResult.data;
 
       if (!enhancementResult.success) {
-        throw new Error(enhancementResult.error || 'Failed to analyze resume. Please try again.');
+        console.error('❌ [AIEnhancementModal] AI Service Failed:', enhancementResult);
+        throw new Error(enhancementResult.error || 'AI Service failed to analyze resume.');
       }
 
       setExtractionProgress('Generating optimization recommendations...');
@@ -516,7 +529,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
             if (!s) return '';
             const cleaned = s.replace(/\s+/g, ' ').trim();
             const sentences = cleaned.match(/[^.!?]+[.!?]?/g) || [cleaned];
-            const out = sentences.slice(0, 3).map(x => x.trim()).join(' ').trim();
+            const out = sentences.slice(0, 3).map((x: string) => x.trim()).join(' ').trim();
             return out.length > 300 ? out.slice(0, 300).trim() : out;
           })(),
           enhancedExperienceBullets: enhancementResult.enhancements.enhanced_experience_bullets,
