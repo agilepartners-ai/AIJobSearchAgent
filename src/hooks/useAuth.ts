@@ -68,6 +68,9 @@ export const useAuth = () => {
     user,
     userProfile,
     loading,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
+    // ✅ NEW: convenience flags for email verification
+    isEmailVerified: !!user?.emailVerified,
+    needsEmailVerification: !!user && !user.emailVerified,
   }), [user, userProfile, loading]);
 };

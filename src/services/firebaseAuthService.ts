@@ -7,6 +7,8 @@ import {
   sendPasswordResetEmail as firebaseSendPasswordResetEmail,
   updatePassword as firebaseUpdatePassword,
   updateProfile as firebaseUpdateProfile,
+  sendEmailVerification as firebaseSendEmailVerification, // ✅ NEW
+  reload as firebaseReload,                               // ✅ NEW (for later)
   User,
   AuthError,
 } from 'firebase/auth';
@@ -22,6 +24,7 @@ export interface AuthUser {
   email: string | null;
   displayName: string | null;
   phoneNumber: string | null;
+  emailVerified: boolean;      // ✅ NEW
 }
 
 export interface SignUpData {
@@ -43,6 +46,7 @@ export class FirebaseAuthService {
       email: user.email,
       displayName: user.displayName,
       phoneNumber: user.phoneNumber,
+      emailVerified: user.emailVerified,   // ✅ NEW
     };
   }
 
@@ -55,6 +59,7 @@ export class FirebaseAuthService {
       );
       const user = userCredential.user;
 
+      // Update display name if provided
       await firebaseUpdateProfile(user, {
         displayName: data.fullName,
       });
@@ -64,6 +69,16 @@ export class FirebaseAuthService {
         fullName: data.fullName || '',
         phone: data.phone || '',
         email: user.email,
+      });
+
+      // ✅ Send email verification
+      const origin =
+        typeof window !== 'undefined'
+          ? window.location.origin
+          : 'https://aijobsearchagent.online'; // fallback for SSR
+      await firebaseSendEmailVerification(user, {
+        url: `${origin}/verify-email`,      // this route will show “Check your email”
+        handleCodeInApp: false,
       });
 
       return this.convertUser(user);
@@ -159,6 +174,27 @@ export class FirebaseAuthService {
     return onAuthStateChanged(auth, (user) => {
       callback(user ? this.convertUser(user) : null);
     });
+  }
+
+  // ✅ NEW – resend verification email
+  static async sendEmailVerification(): Promise<void> {
+    if (!auth.currentUser) throw new Error('No user is signed in.');
+    const origin =
+      typeof window !== 'undefined'
+        ? window.location.origin
+        : 'https://aijobsearchagent.online';
+
+    await firebaseSendEmailVerification(auth.currentUser, {
+      url: `${origin}/verify-email`,
+      handleCodeInApp: false,
+    });
+  }
+
+  // ✅ NEW – reload current user (useful on /verify-email page)
+  static async reloadCurrentUser(): Promise<AuthUser | null> {
+    if (!auth.currentUser) return null;
+    await firebaseReload(auth.currentUser);
+    return this.convertUser(auth.currentUser);
   }
 }
 
