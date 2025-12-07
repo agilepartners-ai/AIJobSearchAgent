@@ -37,7 +37,7 @@
     "ldrs": "^1.0.1",
     "libphonenumber-js": "^1.10.57",
     "lucide-react": "^0.344.0",
-    "next": "^15.4.2",
+    "next": "15.4.8",
     "node-fetch": "^3.3.2",
     "openai": "^5.10.2",
     "pdfjs-dist": "^4.2.67",
