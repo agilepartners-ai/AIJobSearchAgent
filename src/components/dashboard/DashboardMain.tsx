@@ -81,8 +81,8 @@ const Dashboard: React.FC = () => {
     user,
     userProfile,
     loading: authLoading,
-    isEmailVerified,               // ✅ NEW
-    needsEmailVerification,        // ✅ NEW (from useAuth)
+    isAuthenticated,
+    needsEmailVerification,
   } = useAuth();
 
   const { showSuccess, showError } = useToastContext();
@@ -151,7 +151,9 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     console.log('[Dashboard Effect] Running effect...');
-    console.log(`[Dashboard Effect] Auth Loading: ${authLoading}, User Present: ${!!user}, Email Verified: ${isEmailVerified}`);
+    console.log(
+      `[Dashboard Effect] Auth Loading: ${authLoading}, User Present: ${!!user}, NeedsEmailVerification: ${needsEmailVerification}`
+    );
 
     if (authLoading) {
       console.log('[Dashboard Effect] Waiting for authentication to complete...');
@@ -165,8 +167,8 @@ const Dashboard: React.FC = () => {
       return;
     }
 
-    // ✅ NEW: Block unverified users and send them to /verify-email
-    if (!isEmailVerified) {
+    // Block unverified users and send them to /verify-email
+    if (needsEmailVerification) {
       console.log('[Dashboard Effect] User email not verified, redirecting to /verify-email.');
       router.push('/verify-email');
       return;
@@ -186,7 +188,7 @@ const Dashboard: React.FC = () => {
       setLoading(false);
     });
 
-  }, [user, authLoading, isEmailVerified, router]);   // ✅ include isEmailVerified
+  }, [user, authLoading, needsEmailVerification, router]);
 
   const handleAddApplication = () => {
     // If we're on SavedResumePage, navigate back to dashboard first

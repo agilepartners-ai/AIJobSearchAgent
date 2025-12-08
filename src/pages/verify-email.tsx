@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; // same as in DashboardMain
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../hooks/useAuth';
 import { AuthService } from '../services/authService';
 
 const VerifyEmailPage: React.FC = () => {
-  const { user, loading, isEmailVerified } = useAuth();
+  const { user, loading, needsEmailVerification } = useAuth(); // ✅ use needsEmailVerification
   const router = useRouter();
   const [sending, setSending] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -20,11 +20,12 @@ const VerifyEmailPage: React.FC = () => {
       return;
     }
 
-    // Already verified → go to dashboard
-    if (isEmailVerified) {
+    // ✅ If user does NOT need verification anymore → go to dashboard
+    if (!needsEmailVerification) {
       router.replace('/dashboard');
     }
-  }, [loading, user, isEmailVerified, router]);
+    // If they DO need verification, stay on this page.
+  }, [loading, user, needsEmailVerification, router]);
 
   const handleResend = async () => {
     setError('');
@@ -46,7 +47,7 @@ const VerifyEmailPage: React.FC = () => {
     }
     try {
       setChecking(true);
-      // simplest way: reload page so Firebase SDK refreshes user info
+      // Easiest: reload page so auth state refreshes; useAuth will re-run and pull updated emailVerified
       window.location.reload();
     } catch (e: any) {
       setError(e.message ?? 'Failed to check verification status.');
