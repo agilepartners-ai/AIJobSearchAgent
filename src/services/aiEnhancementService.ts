@@ -198,6 +198,12 @@ export class AIEnhancementService {
         return t === 'gemini' || t === 'gemnin';
     }
 
+    // Helper: detect Vertex AI provider
+    private static isVertexAIProvider(modelType?: string) {
+        const t = (modelType || this.DEFAULT_MODEL_TYPE || '').toLowerCase();
+        return t === 'vertexai' || t === 'vertex' || t === 'vertex-ai';
+    }
+
     /**
      * Exponential backoff retry helper with jitter
      * Retries API calls with exponentially increasing delays
@@ -606,6 +612,11 @@ ${resumeText}`;
         jobDescription: string,
         options: AIEnhancementOptions = {}
     ): Promise<AIEnhancementResponse> {
+        // If Vertex AI provider requested, delegate to Vertex AI implementation
+        if (this.isVertexAIProvider(options.modelType)) {
+            return this.enhanceWithVertexAI(resumeText, jobDescription, options);
+        }
+        
         // If Gemini provider requested, delegate to Gemini implementation
         if (this.isGeminiProvider(options.modelType)) {
             return this.enhanceWithGemini(resumeText, jobDescription, options);
@@ -922,6 +933,122 @@ ${resumeText}`;
             
             // Return simple, actionable error message (same for all error types)
             throw new Error('AI enhancement completed but encountered an issue processing the results. Please try generating again.');
+        }
+    }
+
+    // New: Enhance resume using Vertex AI
+    private static async enhanceWithVertexAI(
+        resumeText: string,
+        jobDescription: string,
+        options: AIEnhancementOptions = {}
+    ): Promise<AIEnhancementResponse> {
+        try {
+            console.log('Starting Vertex AI resume enhancement...');
+
+            // Use dynamic import to avoid bundling server-only code in client
+            if (typeof window !== 'undefined') {
+                // Client-side: make API call to backend
+                const response = await fetch('/api/vertex-enhance-resume', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        resumeText,
+                        jobDescription,
+                        options: {
+                            model: options.model,
+                            temperature: 0.7,
+                            maxOutputTokens: 8192
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Vertex AI enhancement failed');
+                }
+
+                return {
+                    success: true,
+                    analysis: data.analysis || {},
+                    enhancements: data.enhancements || {},
+                    metadata: data.metadata || {},
+                    file_id: data.file_id || `vertex_${Date.now()}`
+                };
+            } else {
+                // Server-side: use Vertex AI service directly
+                const { vertexAIService } = await import('./vertexAIService');
+                
+                const enhancement = await vertexAIService.enhanceResume(
+                    resumeText,
+                    jobDescription,
+                    {
+                        model: options.model,
+                        temperature: 0.7,
+                        maxOutputTokens: 8192
+                    }
+                );
+
+                // Detect sections for metadata
+                const { orderedSections } = this.detectResumeSections(resumeText);
+                const includedLabels = orderedSections.map(s => this.SECTION_LABELS[s]);
+
+                return {
+                    success: true,
+                    analysis: enhancement.analysis || {
+                        match_score: 0,
+                        strengths: [],
+                        gaps: [],
+                        suggestions: [],
+                        keyword_analysis: {
+                            missing_keywords: [],
+                            present_keywords: [],
+                            keyword_density_score: 0
+                        },
+                        section_recommendations: {
+                            skills: '',
+                            experience: '',
+                            education: ''
+                        }
+                    },
+                    enhancements: enhancement.enhancements || {
+                        enhanced_summary: '',
+                        enhanced_skills: [],
+                        enhanced_experience_bullets: [],
+                        cover_letter_outline: {
+                            opening: '',
+                            body: '',
+                            closing: ''
+                        },
+                        detailed_resume_sections: {},
+                        detailed_cover_letter: {}
+                    },
+                    metadata: {
+                        model_used: options.model || 'gemini-2.0-flash-exp',
+                        model_type: 'VertexAI',
+                        timestamp: new Date().toISOString(),
+                        resume_sections_analyzed: ['summary', 'experience', 'skills', 'education', 'projects', 'certifications'],
+                        included_sections: includedLabels,
+                        section_order: orderedSections,
+                        directive_applied: true
+                    },
+                    file_id: options.fileId || `vertex_enhance_${Date.now()}`
+                };
+            }
+        } catch (error: any) {
+            console.error('❌ [Vertex AI Enhancement] Error:', {
+                message: error?.message,
+                timestamp: new Date().toISOString()
+            });
+
+            throw new Error('Vertex AI enhancement failed. Please try again.');
         }
     }
 

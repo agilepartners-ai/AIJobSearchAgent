@@ -6,12 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup-vertex": "node scripts/setup-vertex-credentials.js"
   },
   "dependencies": {
     "@daily-co/daily-js": "^0.57.0",
     "@daily-co/daily-react": "^0.15.0",
     "@emailjs/browser": "^4.4.1",
+    "@google-cloud/vertexai": "^1.10.0",
     "@iconify/react": "^6.0.0",
     "@radix-ui/react-slot": "^1.2.3",
     "@react-pdf/renderer": "^4.3.0",
