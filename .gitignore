@@ -4,7 +4,14 @@ dist
 .env.*
 !.env.example
 .DS_Store
+env.yaml
 
+tejas-vertex-test-key.json
+credentials-base64.txt
+aijobsearchagent-f5a601468032.json
+credentials-base64.txt
+aijobsearchagent-f5a601468032.json
+credentials-base64.txt
 
 # Debug files
 *debug*.js
