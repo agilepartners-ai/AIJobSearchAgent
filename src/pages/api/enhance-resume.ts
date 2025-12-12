@@ -21,6 +21,50 @@ interface EnhanceResumeResponse {
     error?: string;
 }
 
+// Helper to reconstruct credentials from split environment variables
+function getCredentialsFromEnv(): any {
+    // Try single credential first (for local development)
+    const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON_BASE64;
+    if (credentialsBase64) {
+        return JSON.parse(Buffer.from(credentialsBase64, 'base64').toString());
+    }
+    
+    // Try split credentials (for Netlify/Lambda with 4KB limit)
+    // Credentials are split into GCP_CRED_PART_1, GCP_CRED_PART_2, etc.
+    const parts: string[] = [];
+    for (let i = 1; i <= 10; i++) {
+        const part = process.env[`GCP_CRED_PART_${i}`];
+        if (part) {
+            parts.push(part);
+        } else {
+            break;
+        }
+    }
+    
+    if (parts.length > 0) {
+        const fullBase64 = parts.join('');
+        return JSON.parse(Buffer.from(fullBase64, 'base64').toString());
+    }
+    
+    // Try individual credential fields (most compact approach)
+    const privateKey = process.env.GCP_PRIVATE_KEY;
+    const clientEmail = process.env.GCP_CLIENT_EMAIL;
+    const projectId = process.env.GCP_PROJECT_ID;
+    
+    if (privateKey && clientEmail && projectId) {
+        return {
+            type: 'service_account',
+            project_id: projectId,
+            private_key: privateKey.replace(/\\n/g, '\n'),
+            client_email: clientEmail,
+            auth_uri: 'https://accounts.google.com/o/oauth2/auth',
+            token_uri: 'https://oauth2.googleapis.com/token',
+        };
+    }
+    
+    throw new Error('No valid Google Cloud credentials found. Set GOOGLE_APPLICATION_CREDENTIALS_JSON_BASE64, GCP_CRED_PART_* variables, or individual GCP_PRIVATE_KEY + GCP_CLIENT_EMAIL.');
+}
+
 // Singleton for Vertex AI client
 let vertexClient: ReturnType<typeof createVertex> | null = null;
 
@@ -29,20 +73,13 @@ function getVertexClient() {
 
     const project = process.env.GCP_PROJECT_ID;
     const location = process.env.GCP_LOCATION || 'us-central1';
-    const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON_BASE64;
 
     if (!project) {
         throw new Error('GCP_PROJECT_ID is not configured');
     }
 
-    if (!credentialsBase64) {
-        throw new Error('GOOGLE_APPLICATION_CREDENTIALS_JSON_BASE64 is not configured');
-    }
-
-    // Decode Base64 credentials
-    const credentials = JSON.parse(
-        Buffer.from(credentialsBase64, 'base64').toString()
-    );
+    // Get credentials using flexible approach
+    const credentials = getCredentialsFromEnv();
 
     vertexClient = createVertex({
         project,
