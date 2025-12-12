@@ -157,8 +157,9 @@ const getApiKey = (): string => '';
 
 export class AIEnhancementService {
     private static readonly API_KEY = getApiKey();
-    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'Stub';
-    private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'stub-model';
+    // Hardcoded to reduce Netlify env var count (4KB Lambda limit)
+    private static readonly DEFAULT_MODEL_TYPE = 'Gemini';
+    private static readonly DEFAULT_MODEL = 'gemini-2.5-flash';
     
     // Retry configuration
     private static readonly MAX_RETRIES = 8;
@@ -939,8 +940,9 @@ ${resumeText}`;
     static getConfiguration() {
         // Client-side: we can only check public env vars
         // Server-side credentials are not exposed to the browser
-        const modelType = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'Gemini';
-        const model = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'gemini-2.0-flash';
+        // Hardcoded to reduce Netlify env var count (4KB Lambda limit)
+        const modelType = 'Gemini';
+        const model = 'gemini-2.5-flash';
         
         // Vertex AI is considered configured if model type is Gemini
         // Actual credential validation happens server-side in the API route
