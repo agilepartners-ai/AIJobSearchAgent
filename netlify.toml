@@ -8,12 +8,11 @@
   CI = "false"
   NEXT_TELEMETRY_DISABLED = "1"
 
-# Plugin to inline long environment variables at build time
+# Exclude long credentials from Lambda runtime (they're embedded at build time)
 # This bypasses the AWS Lambda 4KB env var limit
-[[plugins]]
-  package = "netlify-plugin-inline-functions-env"
-  [plugins.inputs]
-  include = ["GCP_PRIVATE_KEY", "GCP_CLIENT_EMAIL", "GCP_PROJECT_ID", "FIREBASE_PRIVATE_KEY", "FIREBASE_CLIENT_EMAIL", "FIREBASE_PROJECT_ID"]
+[functions]
+  [functions.environment]
+    # Credentials are loaded from build-time generated file instead
 
 # Optional: Custom headers for security
 [[headers]]

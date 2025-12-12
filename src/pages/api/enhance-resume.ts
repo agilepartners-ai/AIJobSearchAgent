@@ -5,6 +5,14 @@ import { generateText } from 'ai';
 // API route to handle resume enhancement with Vertex AI
 // This runs on the server side where Vertex AI authentication works
 
+// Try to import build-time generated credentials (bypasses Lambda 4KB limit)
+let generatedCredentials: { gcp?: { projectId: string; clientEmail: string; privateKey: string } } | null = null;
+try {
+    generatedCredentials = require('../../config/credentials.generated.json');
+} catch {
+    // File doesn't exist in dev mode, will use env vars
+}
+
 interface EnhanceResumeRequest {
     resumeText: string;
     jobDescription: string;
@@ -21,32 +29,28 @@ interface EnhanceResumeResponse {
     error?: string;
 }
 
-// Helper to reconstruct credentials from split environment variables
+// Helper to reconstruct credentials from build-time file or environment variables
 function getCredentialsFromEnv(): any {
-    // Try single credential first (for local development)
+    // Priority 1: Build-time generated credentials file (for Netlify - bypasses 4KB limit)
+    if (generatedCredentials?.gcp?.privateKey) {
+        console.log('📁 Using build-time generated credentials');
+        return {
+            type: 'service_account',
+            project_id: generatedCredentials.gcp.projectId,
+            private_key: generatedCredentials.gcp.privateKey,
+            client_email: generatedCredentials.gcp.clientEmail,
+            auth_uri: 'https://accounts.google.com/o/oauth2/auth',
+            token_uri: 'https://oauth2.googleapis.com/token',
+        };
+    }
+
+    // Priority 2: Base64 encoded credentials (for local development)
     const credentialsBase64 = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON_BASE64;
     if (credentialsBase64) {
         return JSON.parse(Buffer.from(credentialsBase64, 'base64').toString());
     }
     
-    // Try split credentials (for Netlify/Lambda with 4KB limit)
-    // Credentials are split into GCP_CRED_PART_1, GCP_CRED_PART_2, etc.
-    const parts: string[] = [];
-    for (let i = 1; i <= 10; i++) {
-        const part = process.env[`GCP_CRED_PART_${i}`];
-        if (part) {
-            parts.push(part);
-        } else {
-            break;
-        }
-    }
-    
-    if (parts.length > 0) {
-        const fullBase64 = parts.join('');
-        return JSON.parse(Buffer.from(fullBase64, 'base64').toString());
-    }
-    
-    // Try individual credential fields (most compact approach)
+    // Priority 3: Individual credential fields from env vars
     const privateKey = process.env.GCP_PRIVATE_KEY;
     const clientEmail = process.env.GCP_CLIENT_EMAIL;
     const projectId = process.env.GCP_PROJECT_ID;
@@ -62,7 +66,7 @@ function getCredentialsFromEnv(): any {
         };
     }
     
-    throw new Error('No valid Google Cloud credentials found. Set GOOGLE_APPLICATION_CREDENTIALS_JSON_BASE64, GCP_CRED_PART_* variables, or individual GCP_PRIVATE_KEY + GCP_CLIENT_EMAIL.');
+    throw new Error('No valid Google Cloud credentials found.');
 }
 
 // Singleton for Vertex AI client
