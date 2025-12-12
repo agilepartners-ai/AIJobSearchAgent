@@ -8,6 +8,13 @@
   CI = "false"
   NEXT_TELEMETRY_DISABLED = "1"
 
+# Plugin to inline long environment variables at build time
+# This bypasses the AWS Lambda 4KB env var limit
+[[plugins]]
+  package = "netlify-plugin-inline-functions-env"
+  [plugins.inputs]
+  include = ["GCP_PRIVATE_KEY", "GCP_CLIENT_EMAIL", "GCP_PROJECT_ID", "FIREBASE_PRIVATE_KEY", "FIREBASE_CLIENT_EMAIL", "FIREBASE_PROJECT_ID"]
+
 # Optional: Custom headers for security
 [[headers]]
   for = "/*"
