@@ -141,177 +141,19 @@ type CanonicalSection =
     | 'volunteer_work'
     | 'publications';
 
-// Import the new unified Google GenAI SDK for Vertex AI
-import { GoogleGenAI } from '@google/genai';
-
-// NOTE: google-auth-library is NOT imported here to avoid webpack bundling issues
-// It's only used internally by @google/genai SDK on the server-side
+// NOTE: Vertex AI SDK (@ai-sdk/google-vertex) is NOT imported here because it uses
+// Node.js-only modules (google-auth-library, net, etc.) that cannot be bundled for the browser.
+// All Vertex AI API calls MUST go through the server-side API route at /api/enhance-resume.
+// This service acts as a client-side facade that calls the API route.
 
 // OpenAI has been removed from the frontend. Provide a local stub
 // implementation that preserves the public API surface and response
 // shapes so the UI flow remains intact.
 
-// NOTE: We intentionally avoid importing the OpenAI SDK anywhere in
-// the frontend. The methods below return deterministic, typed
-// fallback responses.
+// NOTE: We intentionally avoid importing any server-side SDK packages here.
+// The methods below proxy to the API route which runs server-side.
 
 const getApiKey = (): string => '';
-
-// Vertex AI Configuration - Industry Standard with Regional Endpoints
-// Uses the new unified @google/genai SDK with vertexai: true
-// NO FALLBACK - Vertex AI is the only supported backend
-let _hasLoggedVertexAIConfig = false;
-let cachedVertexAIClient: GoogleGenAI | null = null;
-let vertexAIInitError: string | null = null;
-
-// Get Vertex AI client (singleton pattern for efficiency)
-// This function ONLY supports Vertex AI - no fallback to Gemini API
-const getVertexAIClient = (): GoogleGenAI => {
-    // Return cached client if already initialized
-    if (cachedVertexAIClient !== null) {
-        return cachedVertexAIClient;
-    }
-    
-    // If we've already tried and failed, throw the cached error
-    if (vertexAIInitError !== null) {
-        throw new Error(vertexAIInitError);
-    }
-    
-    try {
-        const project = process.env.NEXT_PUBLIC_VERTEX_AI_PROJECT || '';
-        const location = process.env.NEXT_PUBLIC_VERTEX_AI_LOCATION || 'global';
-        
-        // Validate required configuration
-        if (!project) {
-            vertexAIInitError = 'Vertex AI Project ID is not configured. Please set NEXT_PUBLIC_VERTEX_AI_PROJECT in your environment variables.';
-            console.error('❌ [Vertex AI] ' + vertexAIInitError);
-            throw new Error(vertexAIInitError);
-        }
-        
-        // Validate location format
-        const validLocations = ['global', 'us-central1', 'us-east1', 'us-west1', 'europe-west1', 'europe-west4', 'asia-east1', 'asia-northeast1', 'asia-southeast1'];
-        if (!validLocations.includes(location) && !location.match(/^[a-z]+-[a-z]+\d+$/)) {
-            console.warn(`⚠️ [Vertex AI] Unusual location "${location}". Expected one of: ${validLocations.join(', ')} or a valid region format.`);
-        }
-        
-        // Browser environment check - Vertex AI requires server-side execution
-        if (typeof window !== 'undefined') {
-            vertexAIInitError = 'Vertex AI can only be used in server-side environments (API routes, SSR). Please ensure AI enhancement requests are made through an API route, not directly from the browser.';
-            console.error('❌ [Vertex AI] ' + vertexAIInitError);
-            throw new Error(vertexAIInitError);
-        }
-        
-        // Get service account credentials
-        const clientEmail = process.env.VERTEX_AI_CLIENT_EMAIL;
-        let privateKey = process.env.VERTEX_AI_PRIVATE_KEY;
-        
-        if (!clientEmail || !privateKey) {
-            vertexAIInitError = 'Vertex AI service account credentials are missing. Please set VERTEX_AI_CLIENT_EMAIL and VERTEX_AI_PRIVATE_KEY in your environment variables.';
-            console.error('❌ [Vertex AI] ' + vertexAIInitError);
-            throw new Error(vertexAIInitError);
-        }
-
-        // Fix private key format if needed (replace literal \n with actual newlines)
-        // Also handle double escaped newlines just in case
-        if (privateKey.includes('\\n')) {
-            privateKey = privateKey.replace(/\\n/g, '\n');
-        }
-        if (privateKey.includes('\\\\n')) {
-            privateKey = privateKey.replace(/\\\\n/g, '\n');
-        }
-        
-        // Ensure the key has proper BEGIN/END markers if they were stripped or malformed
-        if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
-            // If it looks like just the base64 part, wrap it
-            if (!privateKey.includes('-----')) {
-                privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----\n`;
-            }
-        } else {
-            // Ensure there are newlines after BEGIN and before END if they are missing
-            // This is critical for JWT signature validation
-            const beginMarker = '-----BEGIN PRIVATE KEY-----';
-            const endMarker = '-----END PRIVATE KEY-----';
-            
-            if (privateKey.includes(beginMarker) && !privateKey.includes(beginMarker + '\n')) {
-                privateKey = privateKey.replace(beginMarker, beginMarker + '\n');
-            }
-            
-            if (privateKey.includes(endMarker) && !privateKey.includes('\n' + endMarker)) {
-                privateKey = privateKey.replace(endMarker, '\n' + endMarker);
-            }
-        }
-        
-        // Create a temporary credentials file content for Google Auth
-        // We'll use GOOGLE_APPLICATION_CREDENTIALS environment variable approach
-        const credentialsJson = JSON.stringify({
-            type: 'service_account',
-            project_id: project,
-            private_key_id: 'vertex-ai-key',
-            private_key: privateKey,
-            client_email: clientEmail,
-            client_id: '',
-            auth_uri: 'https://accounts.google.com/o/oauth2/auth',
-            token_uri: 'https://oauth2.googleapis.com/token',
-            auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
-        });
-        
-        // Write credentials to a temporary file
-        // This is the most reliable way to make Google Auth library pick up credentials
-        const fs = require('fs');
-        const path = require('path');
-        const os = require('os');
-        
-        const tempDir = os.tmpdir();
-        const credsFilePath = path.join(tempDir, `vertex-ai-creds-${Date.now()}.json`);
-        
-        try {
-            fs.writeFileSync(credsFilePath, credentialsJson);
-            process.env.GOOGLE_APPLICATION_CREDENTIALS = credsFilePath;
-            console.log(`🔐 [Vertex AI] Credentials written to temp file: ${credsFilePath}`);
-        } catch (err) {
-            console.error('❌ [Vertex AI] Failed to write credentials file:', err);
-            // Fallback to JSON env var if file write fails
-            process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON = credentialsJson;
-        }
-        
-        // Server-side environment - Initialize Vertex AI with service account
-        cachedVertexAIClient = new GoogleGenAI({
-            vertexai: true,
-            project: project,
-            location: location,
-            // Pass googleAuthOptions as a fallback if the env var isn't picked up automatically
-            googleAuthOptions: {
-                credentials: {
-                    client_email: clientEmail,
-                    private_key: privateKey,
-                },
-                projectId: project,
-                scopes: ['https://www.googleapis.com/auth/cloud-platform']
-            }
-        });
-        
-        if (!_hasLoggedVertexAIConfig) {
-            console.log(`🚀 [Vertex AI] Initialized successfully - Project: ${project}, Location: ${location}`);
-            _hasLoggedVertexAIConfig = true;
-        }
-        
-        return cachedVertexAIClient;
-    } catch (error: any) {
-        // Capture and cache the error for future calls
-        if (!vertexAIInitError) {
-            vertexAIInitError = error?.message || 'Unknown error initializing Vertex AI client';
-        }
-        console.error('❌ [Vertex AI] Failed to initialize client:', error);
-        throw new Error(`Vertex AI initialization failed: ${vertexAIInitError}`);
-    }
-};
-
-// Reset Vertex AI client (useful for testing or re-initialization)
-const resetVertexAIClient = (): void => {
-    cachedVertexAIClient = null;
-    vertexAIInitError = null;
-    _hasLoggedVertexAIConfig = false;
-};
 
 export class AIEnhancementService {
     private static readonly API_KEY = getApiKey();
@@ -340,7 +182,7 @@ export class AIEnhancementService {
         try {
             return await fn();
         } catch (error: any) {
-            // Check if error is retryable (503, 429, network errors)
+            // Check if error is retryable (503, 429, network errors, parsing errors)
             const isRetryable = 
                 error.message?.includes('503') || 
                 error.message?.includes('UNAVAILABLE') ||
@@ -349,7 +191,12 @@ export class AIEnhancementService {
                 error.message?.includes('Too Many Requests') ||
                 error.message?.includes('RESOURCE_EXHAUSTED') ||
                 error.message?.includes('Failed to fetch') ||
-                error.message?.includes('NetworkError');
+                error.message?.includes('NetworkError') ||
+                error.message?.includes('response format') ||
+                error.message?.includes('JSON') ||
+                error.message?.includes('parse') ||
+                error.message?.includes('temporarily') ||
+                error.message?.includes('try again');
 
             if (!isRetryable || retryCount >= this.MAX_RETRIES) {
                 // Log to console only, don't show to user
@@ -425,7 +272,15 @@ CRITICAL INSTRUCTIONS FOR PROFESSIONAL SUMMARY:
 - Do NOT write multiple paragraphs or long-winded summaries
 - Keep it under 100 words
 - Make every word count - be impactful and specific
-- Focus only on the most relevant skills and experience for this specific job`;
+- Focus only on the most relevant skills and experience for this specific job
+
+CRITICAL JSON FORMATTING REQUIREMENTS:
+- Output ONLY valid JSON - no markdown code blocks, no explanations
+- Use double quotes for ALL strings and property names
+- Include commas between ALL array elements: ["item1", "item2", "item3"]
+- Include commas between ALL object properties
+- Do NOT include trailing commas before ] or }
+- Escape any quotes inside strings with backslash`;
     }
 
     // Create system prompt for detailed AI enhancement
@@ -435,6 +290,14 @@ CRITICAL INSTRUCTIONS FOR PROFESSIONAL SUMMARY:
 Always include a compact, crisp, professional summary suitable for use at the top of a resume (2-3 sentences maximum). Even when producing long-form detailed sections, ensure the enhanced_summary field contains a short, professional blurb that can be used directly on a one-page resume. For the rest of the detailed content, prefer concise, structured paragraphs and bullet lists.
 
 CRITICAL REQUIREMENT: The professional_summary field must be SHORT (2-3 sentences, under 100 words). Do NOT write long paragraphs.
+
+CRITICAL JSON FORMATTING REQUIREMENTS:
+- Output ONLY valid JSON - no markdown code blocks, no explanations, no text before or after
+- Use double quotes for ALL strings and property names  
+- Include commas between ALL array elements: ["item1", "item2", "item3"]
+- Include commas between ALL object properties
+- Do NOT include trailing commas before ] or }
+- Escape any quotes inside strings with backslash: \\"
 
 You must respond with a valid JSON object containing the following structure:
 {
@@ -810,14 +673,15 @@ ${resumeText}`;
         return enhancementResponse;
     }
 
-    // Enhance resume using Google Vertex AI (unified SDK - NO FALLBACK)
+    // Enhance resume using Google Vertex AI via server-side API route
+    // This method calls the /api/enhance-resume endpoint which handles the Vertex AI SDK
     private static async enhanceWithGemini(
         resumeText: string,
         jobDescription: string,
         options: AIEnhancementOptions = {}
     ): Promise<AIEnhancementResponse> {
         try {
-            console.log('🚀 [Vertex AI] Starting resume enhancement with retry mechanism...');
+            console.log('🚀 [AI Enhancement] Starting resume enhancement via API route...');
 
             // Validate inputs before making API call
             if (!resumeText || resumeText.trim().length < 50) {
@@ -828,23 +692,12 @@ ${resumeText}`;
                 throw new Error('Job description is too short or empty. Please provide a valid job description with at least 30 characters.');
             }
 
-            // Get Vertex AI client - throws error if not configured
-            let client: GoogleGenAI;
-            try {
-                client = getVertexAIClient();
-            } catch (initError: any) {
-                console.error('❌ [Vertex AI] Client initialization failed:', initError.message);
-                throw new Error(`AI service is not properly configured: ${initError.message}`);
-            }
+            const modelId = options.model || this.DEFAULT_MODEL || 'gemini-2.0-flash';
+            console.log(`📊 [AI Enhancement] Using model: ${modelId}`);
 
-            const modelId = options.model || this.DEFAULT_MODEL || 'gemini-2.5-flash';
-            console.log(`📊 [Vertex AI] Using model: ${modelId}`);
-
-            // Use strict overrides when provided, and ALWAYS append fixed context
-            const systemContent =
-                options.systemPromptOverride ?? this.createDetailedSystemPrompt();
-            const userHeader =
-                options.userPromptOverride ?? this.createDetailedUserPromptHeader();
+            // Generate prompts (these helper methods are purely client-side computation)
+            const systemContent = options.systemPromptOverride ?? this.createDetailedSystemPrompt();
+            const userHeader = options.userPromptOverride ?? this.createDetailedUserPromptHeader();
 
             // Add: dynamic directive injection based on detected sections/order
             const { orderedSections } = this.detectResumeSections(resumeText);
@@ -855,173 +708,73 @@ ${resumeText}`;
 
             // Combine system and user prompts
             const fullPrompt = `${systemContent}\n\n${userContent}`;
-            console.log(`📝 [Vertex AI] Prompt length: ${fullPrompt.length} characters`);
+            console.log(`📝 [AI Enhancement] Prompt length: ${fullPrompt.length} characters`);
 
-            // Wrap the API call in retry logic with enhanced error handling
+            // Make API call to server-side endpoint with retry logic
             const makeApiCall = async () => {
-                try {
-                    const result = await client.models.generateContent({
+                const response = await fetch('/api/enhance-resume', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        resumeText,
+                        jobDescription,
                         model: modelId,
-                        contents: fullPrompt,
-                        config: {
-                            temperature: 0.7,
-                            topK: 40,
-                            topP: 0.95,
-                            maxOutputTokens: 8192
-                        }
-                    });
+                        systemPrompt: systemContent,
+                        userPrompt: userContent,
+                    }),
+                });
 
-                    if (!result) {
-                        throw new Error('Vertex AI returned an empty response');
-                    }
-
-                    return result;
-                } catch (apiError: any) {
-                    // Enhanced error categorization for Vertex AI
-                    const errorMessage = apiError?.message || String(apiError);
-                    const statusCode = apiError?.status || apiError?.code || '';
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    const errorMessage = errorData.error || `Server error: ${response.status}`;
                     
-                    // Categorize errors for better user feedback and retry logic
-                    if (errorMessage.includes('PERMISSION_DENIED') || errorMessage.includes('403')) {
-                        throw new Error('Vertex AI permission denied. Please check your service account permissions and ensure the Vertex AI API is enabled in your GCP project.');
+                    // Map HTTP status codes to appropriate error types for retry logic
+                    if (response.status === 429) {
+                        throw new Error('AI service quota exceeded. Please wait a moment and try again.');
                     }
-                    
-                    if (errorMessage.includes('NOT_FOUND') || errorMessage.includes('404')) {
-                        throw new Error(`Model "${modelId}" not found. Please verify the model name is correct and available in your region.`);
+                    if (response.status === 503) {
+                        throw new Error('AI service temporarily unavailable. Retrying...');
                     }
-                    
-                    if (errorMessage.includes('INVALID_ARGUMENT') || errorMessage.includes('400')) {
-                        throw new Error('Invalid request to Vertex AI. The prompt may be malformed or exceed limits.');
+                    if (response.status === 504) {
+                        throw new Error('AI request timed out. Please try again.');
+                    }
+                    if (response.status === 401 || response.status === 403) {
+                        throw new Error('AI service authentication error. Please contact support.');
                     }
                     
-                    if (errorMessage.includes('UNAUTHENTICATED') || errorMessage.includes('401')) {
-                        throw new Error('Vertex AI authentication failed. Please check your service account credentials and ensure they are properly configured.');
-                    }
-                    
-                    if (errorMessage.includes('QUOTA_EXCEEDED') || errorMessage.includes('RESOURCE_EXHAUSTED') || errorMessage.includes('429')) {
-                        throw new Error('Vertex AI quota exceeded. Please wait a moment and try again, or check your GCP billing and quotas.');
-                    }
-                    
-                    if (errorMessage.includes('UNAVAILABLE') || errorMessage.includes('503') || errorMessage.includes('overloaded')) {
-                        throw new Error(`Vertex AI service temporarily unavailable (${statusCode}). Retrying...`);
-                    }
-                    
-                    if (errorMessage.includes('DEADLINE_EXCEEDED') || errorMessage.includes('504')) {
-                        throw new Error('Vertex AI request timed out. The request may be too complex. Please try again.');
-                    }
-                    
-                    // Re-throw with context for retry mechanism
-                    throw new Error(`Vertex AI API error: ${errorMessage}`);
+                    throw new Error(errorMessage);
                 }
+
+                return response.json();
             };
 
             // Execute with retry mechanism
-            const result = await this.retryWithBackoff(makeApiCall);
-            const responseText = result?.text || '';
+            const aiResults = await this.retryWithBackoff(makeApiCall);
 
-            if (!responseText) {
-                console.error('❌ [Vertex AI] No response text received.');
-                throw new Error('Vertex AI returned an empty response. Please try again.');
-            }
-
-            console.log('✅ [Vertex AI] Response received, parsing...');
-            console.log('📝 [Vertex AI] Response length:', responseText.length, 'characters');
-            
-            let aiResults: any;
-            try {
-                // First attempt: direct JSON parse
-                aiResults = JSON.parse(responseText);
-                console.log('✅ [Vertex AI] JSON parsed successfully (direct)');
-            } catch (parseError) {
-                console.warn('⚠️ [Vertex AI] Direct JSON parse failed, attempting extraction...');
-                
-                // Second attempt: extract JSON from response (handle markdown code blocks)
-                let jsonText = responseText;
-                
-                // Remove markdown code blocks if present
-                if (responseText.includes('```json')) {
-                    const jsonStart = responseText.indexOf('```json') + 7;
-                    const jsonEnd = responseText.indexOf('```', jsonStart);
-                    if (jsonEnd > jsonStart) {
-                        jsonText = responseText.slice(jsonStart, jsonEnd).trim();
-                        console.log('📦 [Vertex AI] Extracted from markdown ```json block');
-                    }
-                } else if (responseText.includes('```')) {
-                    const jsonStart = responseText.indexOf('```') + 3;
-                    const jsonEnd = responseText.indexOf('```', jsonStart);
-                    if (jsonEnd > jsonStart) {
-                        jsonText = responseText.slice(jsonStart, jsonEnd).trim();
-                        console.log('📦 [Vertex AI] Extracted from generic ``` code block');
-                    }
-                }
-                
-                // Third attempt: find JSON object boundaries
-                const start = jsonText.indexOf('{');
-                const end = jsonText.lastIndexOf('}');
-                
-                if (start !== -1 && end !== -1 && end > start) {
-                    try {
-                        jsonText = jsonText.slice(start, end + 1);
-                        aiResults = JSON.parse(jsonText);
-                        console.log('✅ [Vertex AI] JSON extracted and parsed successfully');
-                    } catch (extractError) {
-                        console.error('❌ [Vertex AI] Failed to parse extracted JSON:', extractError);
-                        console.error('📄 [Vertex AI] Extracted text preview (first 500 chars):', jsonText.substring(0, 500));
-                        console.error('📄 [Vertex AI] Extracted text preview (last 200 chars):', jsonText.substring(Math.max(0, jsonText.length - 200)));
-                        throw new Error('Failed to parse AI response. The response format is invalid. Please try again.');
-                    }
-                } else {
-                    console.error('❌ [Vertex AI] No JSON object found in response');
-                    console.error('📄 [Vertex AI] Full response preview (first 1000 chars):', responseText.substring(0, 1000));
-                    throw new Error('AI response does not contain valid JSON. Please try again.');
-                }
+            if (!aiResults || !aiResults.success) {
+                throw new Error(aiResults?.error || 'AI enhancement failed. Please try again.');
             }
 
             // Ensure the enhanced_summary is compact (2-3 sentences max)
             const ensureCompactSummary = (text: string, maxSentences = 3): string => {
                 if (!text || typeof text !== 'string') return '';
-                // Normalize whitespace
                 const cleaned = text.replace(/\s+/g, ' ').trim();
-                // Split into sentences using a simple regex
                 const sentences = cleaned.match(/[^.!?]+[.!?]?/g) || [cleaned];
                 if (sentences.length <= maxSentences) return sentences.join(' ').trim();
-                // Return first maxSentences sentences joined
                 return sentences.slice(0, maxSentences).map(s => s.trim()).join(' ').trim();
             };
 
-            // Fallback: try to extract a professional summary from AI detailed sections or the original resume text
-            const extractSummaryFromResumeText = (text: string): string => {
-                if (!text || typeof text !== 'string') return '';
-                const normalized = text.replace(/\r/g, '');
-                // Look for headings like PROFESSIONAL SUMMARY, PROFESSIONAL SUMMARY:, SUMMARY, SUMMARY:\n
-                const headingRegex = /(^|\n)\s*(PROFESSIONAL SUMMARY|PROFESSIONAL SUMMARY:|PROFESSIONAL SUMMARY\n|PROFESSIONAL SUMMARY\s*-|SUMMARY|SUMMARY:)\s*\n?/i;
-                const match = normalized.match(headingRegex);
-                if (match && match.index !== undefined) {
-                    const start = match.index + match[0].length;
-                    // Take up to next double newline or 300 characters
-                    const rest = normalized.slice(start);
-                    const endIdx = rest.search(/\n\s*\n/);
-                    const snippet = endIdx === -1 ? rest.slice(0, 500) : rest.slice(0, endIdx);
-                    return snippet.replace(/\n+/g, ' ').trim();
-                }
-
-                // If no heading, try to take the first 200-300 chars as a fallback
-                return normalized.split('\n').slice(0, 4).join(' ').slice(0, 500).trim();
-            };
-
-            const aiProvidedSummary = aiResults.enhancements?.enhanced_summary || aiResults.enhancements?.detailed_resume_sections?.professional_summary || '';
-            let compactSummary = ensureCompactSummary(aiProvidedSummary || '');
-
-            if (!compactSummary) {
-                // Try extracting from the original resume text passed to this function
-                const extracted = extractSummaryFromResumeText(resumeText || '');
-                compactSummary = ensureCompactSummary(extracted || '');
-            }
+            // Extract and process summary
+            const aiProvidedSummary = aiResults.enhancements?.enhanced_summary || 
+                aiResults.enhancements?.detailed_resume_sections?.professional_summary || '';
+            const compactSummary = ensureCompactSummary(aiProvidedSummary || '');
 
             const enhancementResponse: AIEnhancementResponse = {
                 success: true,
                 analysis: {
-                    match_score: aiResults.match_score || 0,
+                    match_score: aiResults.match_score || aiResults.analysis?.match_score || 0,
                     strengths: aiResults.analysis?.strengths || [],
                     gaps: aiResults.analysis?.gaps || [],
                     suggestions: aiResults.analysis?.suggestions || [],
@@ -1053,7 +806,6 @@ ${resumeText}`;
                     model_type: 'VertexAI',
                     timestamp: new Date().toISOString(),
                     resume_sections_analyzed: ['summary', 'experience', 'skills', 'education', 'projects', 'certifications', 'awards', 'volunteer', 'publications'],
-                    // Add: dynamic section metadata
                     included_sections: orderedSections.map(s => this.SECTION_LABELS[s]),
                     section_order: orderedSections,
                     directive_applied: true
@@ -1061,57 +813,16 @@ ${resumeText}`;
                 file_id: options.fileId || `enhance_${Date.now()}`
             };
 
-            console.log('✅ [Vertex AI] Enhancement completed successfully');
+            console.log('✅ [AI Enhancement] Enhancement completed successfully');
             return enhancementResponse;
         } catch (error: any) {
-            // Log detailed error to console for debugging
-            console.error('❌ [Vertex AI] Enhancement error:', {
+            console.error('❌ [AI Enhancement] Error:', {
                 message: error?.message,
-                stack: error?.stack,
-                timestamp: new Date().toISOString(),
-                errorType: error?.constructor?.name
+                timestamp: new Date().toISOString()
             });
 
-            // Categorize errors and provide user-friendly messages
-            const errorMessage = error?.message || '';
-            
-            // Configuration errors - be specific
-            if (errorMessage.includes('not configured') || errorMessage.includes('not properly configured')) {
-                throw new Error('AI service configuration error. Please contact support.');
-            }
-            
-            // Authentication/Permission errors
-            if (errorMessage.includes('permission') || errorMessage.includes('authentication') || errorMessage.includes('PERMISSION_DENIED') || errorMessage.includes('UNAUTHENTICATED')) {
-                throw new Error('AI service authentication error. Please contact support.');
-            }
-            
-            // Quota/Rate limit errors
-            if (errorMessage.includes('quota') || errorMessage.includes('QUOTA_EXCEEDED') || errorMessage.includes('RESOURCE_EXHAUSTED')) {
-                throw new Error('AI service is temporarily at capacity. Please wait a moment and try again.');
-            }
-            
-            // Service unavailable
-            if (errorMessage.includes('unavailable') || errorMessage.includes('UNAVAILABLE') || errorMessage.includes('503')) {
-                throw new Error('AI service is temporarily unavailable. Please try again in a few moments.');
-            }
-            
-            // Timeout errors
-            if (errorMessage.includes('timeout') || errorMessage.includes('DEADLINE_EXCEEDED') || errorMessage.includes('timed out')) {
-                throw new Error('AI request timed out. Please try again with a shorter resume or job description.');
-            }
-            
-            // Parse errors - safe to show as they're already user-friendly
-            if (errorMessage.includes('parse') || errorMessage.includes('JSON')) {
-                throw new Error('AI enhancement completed but encountered a formatting issue. Please try again.');
-            }
-            
-            // Browser environment error
-            if (errorMessage.includes('server-side') || errorMessage.includes('browser')) {
-                throw new Error('AI enhancement must be processed through the server. Please refresh the page and try again.');
-            }
-            
-            // Generic fallback - don't expose internal details
-            throw new Error('AI enhancement encountered an issue. Please try again.');
+            // Re-throw with original message for user visibility
+            throw error;
         }
     }
 
@@ -1226,36 +937,24 @@ ${resumeText}`;
 
     // Get current configuration for debugging
     static getConfiguration() {
-        const project = process.env.NEXT_PUBLIC_VERTEX_AI_PROJECT || '';
-        const location = process.env.NEXT_PUBLIC_VERTEX_AI_LOCATION || 'global';
-        const clientEmail = typeof window === 'undefined' ? process.env.VERTEX_AI_CLIENT_EMAIL : undefined;
-        const privateKey = typeof window === 'undefined' ? process.env.VERTEX_AI_PRIVATE_KEY : undefined;
+        // Client-side: we can only check public env vars
+        // Server-side credentials are not exposed to the browser
+        const modelType = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'Gemini';
+        const model = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'gemini-2.0-flash';
         
-        // Check if Vertex AI is configured (without initializing the client)
-        const isVertexAIReady = !!(
-            typeof window === 'undefined' && 
-            project && 
-            location && 
-            clientEmail && 
-            privateKey
-        );
-        
-        let vertexAIError: string | null = null;
-        if (!isVertexAIReady && typeof window === 'undefined') {
-            if (!project) {
-                vertexAIError = 'Vertex AI Project ID is not configured';
-            } else if (!clientEmail || !privateKey) {
-                vertexAIError = 'Vertex AI service account credentials are missing';
-            }
-        }
+        // Vertex AI is considered configured if model type is Gemini
+        // Actual credential validation happens server-side in the API route
+        const isVertexAIConfigured = modelType.toLowerCase() === 'gemini' || 
+                                     modelType.toLowerCase() === 'vertexai' ||
+                                     modelType.toLowerCase() === 'vertex';
         
         return {
-            hasApiKey: !!this.API_KEY,
-            isVertexAIConfigured: !!project,
-            isVertexAIReady: isVertexAIReady,
-            vertexAIError: vertexAIError,
-            vertexAIProject: project,
-            vertexAILocation: location,
+            hasApiKey: false, // No longer using client-side API keys
+            isVertexAIConfigured: isVertexAIConfigured,
+            isVertexAIReady: isVertexAIConfigured, // Trust server-side config
+            vertexAIError: null,
+            vertexAIProject: 'configured-server-side',
+            vertexAILocation: 'us-central1',
             defaultModelType: this.DEFAULT_MODEL_TYPE,
             defaultModel: this.DEFAULT_MODEL,
             isServerSide: typeof window === 'undefined'

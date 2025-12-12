@@ -436,38 +436,24 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         throw new Error('Resume text is too short or empty. Please provide a more detailed resume.');
       }
 
-      // Step 2: Enhance resume using AI via server-side API route (Vertex AI requires server-side)
+      // Step 2: Enhance resume using AI via AIEnhancementService (with retry logic)
       setExtractionProgress('Analyzing resume with AI...');
 
-      const apiResponse = await fetch('/api/enhance-resume', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          resumeText,
-          jobDescription: jobDescription || persistedJobDescription || '',
-          options: {
-            modelType: config.defaultModelType,
-            model: config.defaultModel,
-            fileId: documentId,
-            userPromptOverride: aiPrompt,       // header only; service will append fixed context
-            systemPromptOverride: systemPrompt  // full replacement if edited
-          }
-        }),
-      });
-
-      const apiResult = await apiResponse.json();
-
-      if (!apiResponse.ok || !apiResult.success) {
-        console.error('❌ [AIEnhancementModal] API Request Failed:', apiResult);
-        throw new Error(apiResult.error || `Server Error (${apiResponse.status}): Failed to analyze resume.`);
-      }
-
-      const enhancementResult = apiResult.data;
+      // Use the AIEnhancementService which has built-in retry logic
+      const enhancementResult = await AIEnhancementService.enhanceWithOpenAI(
+        resumeText,
+        jobDescription || persistedJobDescription || '',
+        {
+          modelType: config.defaultModelType,
+          model: config.defaultModel,
+          fileId: documentId,
+          userPromptOverride: aiPrompt,       // header only; service will append fixed context
+          systemPromptOverride: systemPrompt  // full replacement if edited
+        }
+      );
 
       if (!enhancementResult.success) {
-        console.error('❌ [AIEnhancementModal] AI Service Failed:', enhancementResult);
+        console.error('❌ [AIEnhancementModal] AI Service Failed:', JSON.stringify(enhancementResult, null, 2));
         throw new Error(enhancementResult.error || 'AI Service failed to analyze resume.');
       }
 
@@ -586,11 +572,11 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
     } catch (err: any) {
       // Log detailed error to console only (NEVER show technical details to users)
-      console.error('❌ [AI Enhancement Modal] Error occurred (console only):', {
-        message: err?.message,
-        stack: err?.stack,
-        timestamp: new Date().toISOString()
-      });
+      console.error('❌ [AI Enhancement Modal] Error occurred (console only):', 
+        'Message:', err?.message || 'Unknown error',
+        'Stack:', err?.stack || 'No stack trace',
+        'Timestamp:', new Date().toISOString()
+      );
 
       // IMPORTANT: Show simple, friendly message to users regardless of error type
       // All technical details stay in console logs only

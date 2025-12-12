@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: 'standalone',
+  // Note: 'standalone' output may cause symlink permission issues on Windows
+  // Use 'standalone' only for Docker/production deployments
+  output: process.env.NEXT_OUTPUT_MODE === 'standalone' ? 'standalone' : undefined,
   
   // Webpack configuration to handle server-only modules
   webpack: (config, { isServer }) => {
