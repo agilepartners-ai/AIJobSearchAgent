@@ -71,8 +71,9 @@ let vertexClient: ReturnType<typeof createVertex> | null = null;
 function getVertexClient() {
     if (vertexClient) return vertexClient;
 
-    const project = process.env.GCP_PROJECT_ID;
-    const location = process.env.GCP_LOCATION || 'us-central1';
+    const project = process.env.GCP_PROJECT_ID || 'aijobsearchagent-465820';
+    // Hardcoded to reduce Netlify env var count (4KB Lambda limit)
+    const location = 'global';
 
     if (!project) {
         throw new Error('GCP_PROJECT_ID is not configured');
