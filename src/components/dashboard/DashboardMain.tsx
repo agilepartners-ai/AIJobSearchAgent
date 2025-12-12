@@ -77,7 +77,14 @@ const Dashboard: React.FC = () => {
     rejected: 0,
   });
 
-  const { user, userProfile, loading: authLoading } = useAuth();
+  const {
+    user,
+    userProfile,
+    loading: authLoading,
+    isAuthenticated,
+    needsEmailVerification,
+  } = useAuth();
+
   const { showSuccess, showError } = useToastContext();
   const router = useRouter();
 
@@ -144,7 +151,9 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     console.log('[Dashboard Effect] Running effect...');
-    console.log(`[Dashboard Effect] Auth Loading: ${authLoading}, User Present: ${!!user}`);
+    console.log(
+      `[Dashboard Effect] Auth Loading: ${authLoading}, User Present: ${!!user}, NeedsEmailVerification: ${needsEmailVerification}`
+    );
 
     if (authLoading) {
       console.log('[Dashboard Effect] Waiting for authentication to complete...');
@@ -158,7 +167,14 @@ const Dashboard: React.FC = () => {
       return;
     }
 
-    console.log('[Dashboard Effect] User is authenticated. Starting data load...');
+    // Block unverified users and send them to /verify-email
+    if (needsEmailVerification) {
+      console.log('[Dashboard Effect] User email not verified, redirecting to /verify-email.');
+      router.push('/verify-email');
+      return;
+    }
+
+    console.log('[Dashboard Effect] User is authenticated and email is verified. Starting data load...');
     setLoading(true);
     Promise.all([
       loadApplications(),
@@ -172,9 +188,7 @@ const Dashboard: React.FC = () => {
       setLoading(false);
     });
 
-  }, [user, authLoading, router]);
-
-
+  }, [user, authLoading, needsEmailVerification, router]);
 
   const handleAddApplication = () => {
     // If we're on SavedResumePage, navigate back to dashboard first
@@ -453,6 +467,7 @@ const Dashboard: React.FC = () => {
     dispatch(setShowAIEnhancementModal(true));
   };
 
+  // While auth state is loading, show a full-page loader
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">

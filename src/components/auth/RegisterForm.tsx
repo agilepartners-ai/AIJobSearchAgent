@@ -55,27 +55,41 @@ const RegisterForm: React.FC = () => {
     if (phone && !validatePhone(phone)) {
       setError('Please enter a valid phone number (e.g., 5869255600 or +15869255600)');
       return;
-    }    const formattedPhone = phone ? formatPhoneNumber(phone) : '';
+    }
+
+    const formattedPhone = phone ? formatPhoneNumber(phone) : '';
     setLoading(true);
 
     try {
-      await AuthService.signUp({ 
-        email, 
-        password, 
-        phone: formattedPhone 
+      // 1️⃣ Create the user
+      await AuthService.signUp({
+        email,
+        password,
+        phone: formattedPhone,
       });
-      
+
+      // 2️⃣ Send verification email right after sign-up
+      try {
+        await AuthService.sendEmailVerification();
+      } catch (sendErr: any) {
+        console.error('Error sending verification email:', sendErr);
+        // Optional: show a soft error if you want
+        // setError('Account created, but we had trouble sending the verification email. Please use "Resend".');
+      }
+
+      // 3️⃣ Route them into the verification flow
       if (formattedPhone) {
         router.push('/verify-phone');
       } else {
-        // Route guard will handle redirect to /dashboard
+        router.push('/verify-email');
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Failed to create account');
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
@@ -159,7 +173,7 @@ const RegisterForm: React.FC = () => {
                 minLength={6}
               />
               <p className="mt-1 text-sm text-blue-200/80 dark:text-blue-200/60">
-                Password must be at least 6 characters long
+                Password must be at least 6 characters long and contain at least 1 number
               </p>
             </div>
             <div className="space-y-2">

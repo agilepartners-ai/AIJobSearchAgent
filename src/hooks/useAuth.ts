@@ -8,9 +8,16 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial user
+    let unsubscribe: (() => void) | null = null;
+
     const initializeAuth = async () => {
       try {
+        setLoading(true);
+
+        // ✅ Make sure the auth provider (Firebase) is ready
+        await AuthService.initializeProvider();
+
+        // Get initial user
         const currentUser = await AuthService.getCurrentUser();
         setUser(currentUser);
         
@@ -28,39 +35,38 @@ export const useAuth = () => {
         } else {
           setUserProfile(null);
         }
+
+        // Listen for auth state changes AFTER provider is initialized
+        unsubscribe = AuthService.onAuthStateChange(async (user) => {
+          setUser(user);
+          
+          if (user) {
+            try {
+              const profile = await FirebaseProfileService.getOrCreateProfile(
+                user.id, 
+                user.email || '', 
+                user.displayName || ''
+              );
+              setUserProfile(profile);
+            } catch (error) {
+              console.error("Failed to update user profile on auth change:", error);
+            }
+          } else {
+            setUserProfile(null);
+          }
+          
+          setLoading(false);
+        });
       } catch (error) {
         console.error("Failed to initialize auth:", error);
-      } finally {
         setLoading(false);
       }
     };
 
     initializeAuth();
 
-    // Listen for auth state changes
-    const unsubscribe = AuthService.onAuthStateChange(async (user) => {
-      setUser(user);
-      
-      if (user) {
-        try {
-          const profile = await FirebaseProfileService.getOrCreateProfile(
-            user.id, 
-            user.email || '', 
-            user.displayName || ''
-          );
-          setUserProfile(profile);
-        } catch (error) {
-          console.error("Failed to update user profile on auth change:", error);
-        }
-      } else {
-        setUserProfile(null);
-      }
-      
-      setLoading(false);
-    });
-
     return () => {
-      unsubscribe();
+      if (unsubscribe) unsubscribe();
     };
   }, []);
 
@@ -68,6 +74,7 @@ export const useAuth = () => {
     user,
     userProfile,
     loading,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
+    needsEmailVerification: user ? !user.emailVerified : false
   }), [user, userProfile, loading]);
 };
