@@ -389,13 +389,10 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
     setUploadComplete(false);
 
-    // Check API configuration
-    const isGemini = config.defaultModelType.toLowerCase() === 'gemini' || config.defaultModelType.toLowerCase() === 'gemnin';
-    if (isGemini ? !config.hasGeminiApiKey : !config.hasApiKey) {
-      // Don't block the user — use the local stub implementation instead.
-      console.warn('AI provider API key not configured for selected model. Proceeding with local stubbed AI responses.');
-      // Optionally show a non-blocking warning to the user
-      dispatch(setError('AI provider key not configured. Using local fallback AI responses.'));
+    // Check Vertex AI configuration
+    if (!config.isVertexAIConfigured) {
+      dispatch(setError('Vertex AI is not configured. Please check your environment settings.'));
+      return;
     }
 
     // Remove job description validation; the user header is authoritative
@@ -439,9 +436,10 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         throw new Error('Resume text is too short or empty. Please provide a more detailed resume.');
       }
 
-      // Step 2: Enhance resume using AI with strict prompt overrides
+      // Step 2: Enhance resume using AI via AIEnhancementService (with retry logic)
       setExtractionProgress('Analyzing resume with AI...');
 
+      // Use the AIEnhancementService which has built-in retry logic
       const enhancementResult = await AIEnhancementService.enhanceWithOpenAI(
         resumeText,
         jobDescription || persistedJobDescription || '',
@@ -455,7 +453,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       );
 
       if (!enhancementResult.success) {
-        throw new Error(enhancementResult.error || 'Failed to analyze resume. Please try again.');
+        console.error('❌ [AIEnhancementModal] AI Service Failed:', JSON.stringify(enhancementResult, null, 2));
+        throw new Error(enhancementResult.error || 'AI Service failed to analyze resume.');
       }
 
       setExtractionProgress('Generating optimization recommendations...');
@@ -516,7 +515,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
             if (!s) return '';
             const cleaned = s.replace(/\s+/g, ' ').trim();
             const sentences = cleaned.match(/[^.!?]+[.!?]?/g) || [cleaned];
-            const out = sentences.slice(0, 3).map(x => x.trim()).join(' ').trim();
+            const out = sentences.slice(0, 3).map((x: string) => x.trim()).join(' ').trim();
             return out.length > 300 ? out.slice(0, 300).trim() : out;
           })(),
           enhancedExperienceBullets: enhancementResult.enhancements.enhanced_experience_bullets,
@@ -573,11 +572,11 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
     } catch (err: any) {
       // Log detailed error to console only (NEVER show technical details to users)
-      console.error('❌ [AI Enhancement Modal] Error occurred (console only):', {
-        message: err?.message,
-        stack: err?.stack,
-        timestamp: new Date().toISOString()
-      });
+      console.error('❌ [AI Enhancement Modal] Error occurred (console only):', 
+        'Message:', err?.message || 'Unknown error',
+        'Stack:', err?.stack || 'No stack trace',
+        'Timestamp:', new Date().toISOString()
+      );
 
       // IMPORTANT: Show simple, friendly message to users regardless of error type
       // All technical details stay in console logs only

@@ -1,11 +1,12 @@
 [build]
-  command = "npm run build"
+  command = "CI=false pnpm run build"
   publish = ".next"
   base = "/"
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
   CI = "false"
+  NEXT_TELEMETRY_DISABLED = "1"
 
 # Optional: Custom headers for security
 [[headers]]

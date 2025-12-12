@@ -14,6 +14,14 @@ declare namespace NodeJS {
     NEXT_PUBLIC_RESUME_API_MODEL_TYPE: string;
     NEXT_PUBLIC_RESUME_API_MODEL: string;
     NEXT_PUBLIC_OPENAI_API_KEY: string;
+    // Vertex AI Configuration (Industry Standard)
+    NEXT_PUBLIC_VERTEX_AI_PROJECT: string;
+    NEXT_PUBLIC_VERTEX_AI_LOCATION: string;
+    VERTEX_AI_CLIENT_EMAIL: string;
+    VERTEX_AI_PRIVATE_KEY: string;
+    // Legacy Gemini API Key (fallback for browser)
+    NEXT_PUBLIC_GEMINI_API_KEY: string;
+    GEMINI_API_KEY: string;
   }
 }
 
