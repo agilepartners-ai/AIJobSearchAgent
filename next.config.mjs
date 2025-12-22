@@ -1,8 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Remove standalone output - not needed for Netlify
-  // output: 'standalone',
+  output: 'standalone',
   
   // Disable TypeScript errors during builds for deployment
   typescript: {
