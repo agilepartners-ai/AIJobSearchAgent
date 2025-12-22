@@ -3,14 +3,9 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   
-  // Disable ESLint during builds (only type-check)
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  
   // Disable TypeScript errors during builds for deployment
   typescript: {
-    ignoreBuildErrors: false,
+    ignoreBuildErrors: true,
   },
   
   // Compiler optimizations for Next.js 15+

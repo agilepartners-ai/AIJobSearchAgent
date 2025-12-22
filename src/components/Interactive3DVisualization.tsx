@@ -322,7 +322,7 @@ const Interactive3DVisualization: React.FC<Interactive3DVisualizationProps> = ({
           (Math.sin(Date.now() * 0.002) * 0.1 + 1) : 1;
         plane.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.05);
       });// Enhanced hover effects with ripple animation
-      if (intersects.length > 0) {
+      if (intersects.length > 0 && intersects[0]?.object?.userData) {
         const hoveredPlaneIndex = intersects[0].object.userData.index;
         const hoveredPlane = planes[hoveredPlaneIndex];
         const satelliteGroup = satellitesRef.current[hoveredPlaneIndex];

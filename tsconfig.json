@@ -15,22 +15,19 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "incremental": true,
     "forceConsistentCasingInFileNames": true,
-    
     // Enhanced type checking for Next.js 15+
     "strictNullChecks": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitAny": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
-    
     // Better module resolution
     "moduleDetection": "force",
     "allowImportingTsExtensions": false,
     "verbatimModuleSyntax": false,
-    
     "plugins": [
       {
         "name": "next"
