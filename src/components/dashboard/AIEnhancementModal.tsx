@@ -6,7 +6,6 @@ import { AIEnhancementService } from '../../services/aiEnhancementService';
 import { UserProfileData, ProfileService } from '../../services/profileService';
 import { useAuth } from '../../hooks/useAuth';
 import { extractTextFromPDF, validatePDFFile, PDFExtractionResult, extractTextFallback } from '../../utils/pdfUtils';
-import { retryWithTokenRefresh } from '../../utils/tokenRefresh';
 
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import ResumeTemplate, { PerfectHTMLToPDF } from './ResumeTemplate';
@@ -390,10 +389,13 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
     setUploadComplete(false);
 
-    // Check Vertex AI configuration
-    if (!config.isVertexAIConfigured) {
-      dispatch(setError('Vertex AI is not configured. Please check your environment settings.'));
-      return;
+    // Check API configuration
+    const isGemini = config.defaultModelType.toLowerCase() === 'gemini' || config.defaultModelType.toLowerCase() === 'gemnin';
+    if (isGemini ? !config.hasGeminiApiKey : !config.hasApiKey) {
+      // Don't block the user — use the local stub implementation instead.
+      console.warn('AI provider API key not configured for selected model. Proceeding with local stubbed AI responses.');
+      // Optionally show a non-blocking warning to the user
+      dispatch(setError('AI provider key not configured. Using local fallback AI responses.'));
     }
 
     // Remove job description validation; the user header is authoritative
@@ -418,8 +420,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         const mimeMatch = arr[0].match(/:(.*?);/);
         const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
         const bstr = arr[1] ? atob(arr[1]) : '';
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
+        let n = bstr.length, u8arr = new Uint8Array(n);
         while (n--) u8arr[n] = bstr.charCodeAt(n);
         const fileToProcess = new File([u8arr], selectedFileMeta.name, { type: mime });
 
@@ -438,10 +439,9 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         throw new Error('Resume text is too short or empty. Please provide a more detailed resume.');
       }
 
-      // Step 2: Enhance resume using AI via AIEnhancementService (with retry logic)
+      // Step 2: Enhance resume using AI with strict prompt overrides
       setExtractionProgress('Analyzing resume with AI...');
 
-      // Use the AIEnhancementService which has built-in retry logic
       const enhancementResult = await AIEnhancementService.enhanceWithOpenAI(
         resumeText,
         jobDescription || persistedJobDescription || '',
@@ -455,8 +455,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       );
 
       if (!enhancementResult.success) {
-        console.error('❌ [AIEnhancementModal] AI Service Failed:', JSON.stringify(enhancementResult, null, 2));
-        throw new Error(enhancementResult.error || 'AI Service failed to analyze resume.');
+        throw new Error(enhancementResult.error || 'Failed to analyze resume. Please try again.');
       }
 
       setExtractionProgress('Generating optimization recommendations...');
@@ -517,7 +516,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
             if (!s) return '';
             const cleaned = s.replace(/\s+/g, ' ').trim();
             const sentences = cleaned.match(/[^.!?]+[.!?]?/g) || [cleaned];
-            const out = sentences.slice(0, 3).map((x: string) => x.trim()).join(' ').trim();
+            const out = sentences.slice(0, 3).map(x => x.trim()).join(' ').trim();
             return out.length > 300 ? out.slice(0, 300).trim() : out;
           })(),
           enhancedExperienceBullets: enhancementResult.enhancements.enhanced_experience_bullets,
@@ -574,11 +573,11 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
     } catch (err: any) {
       // Log detailed error to console only (NEVER show technical details to users)
-      console.error('❌ [AI Enhancement Modal] Error occurred (console only):', 
-        'Message:', err?.message || 'Unknown error',
-        'Stack:', err?.stack || 'No stack trace',
-        'Timestamp:', new Date().toISOString()
-      );
+      console.error('❌ [AI Enhancement Modal] Error occurred (console only):', {
+        message: err?.message,
+        stack: err?.stack,
+        timestamp: new Date().toISOString()
+      });
 
       // IMPORTANT: Show simple, friendly message to users regardless of error type
       // All technical details stay in console logs only
@@ -669,7 +668,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       // Build optimization results (same as handleGenerateAI)
       const newOptimizationResults = {
         matchScore: enhancementResult.analysis.match_score,
-        summary: `Your resume has been optimized for ${applicationData?.position || 'this position'}`,
+        summary: `Your resume has been AI-enhanced for ${applicationData?.position || 'this position'}`,
         strengths: enhancementResult.analysis.strengths,
         gaps: enhancementResult.analysis.gaps,
         suggestions: enhancementResult.analysis.suggestions,
@@ -734,29 +733,32 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         const resumeDataUrl = await htmlStringToPdfDataUrl(detailedResumeHtml);
         const coverDataUrl = await htmlStringToPdfDataUrl(detailedCoverLetterHtml);
 
-        // Use retry with token refresh for the API call
-        const result = await retryWithTokenRefresh(async () => {
-          const response = await fetch('/api/save-generated-pdfs', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId: user?.id,
-              jobApplicationId: applicationData.id,
-              resumePdfBase64: resumeDataUrl,
-              coverLetterPdfBase64: coverDataUrl,
-            }),
-          });
-
-          if (!response.ok) {
-            const text = await response.text();
-            throw new Error(text || `HTTP ${response.status}`);
-          }
-
-          return await response.json();
-        }, {
-          maxRetries: 2,
-          retryDelay: 1000,
+        const response = await fetch('/api/save-generated-pdfs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user?.id,
+            jobApplicationId: applicationData.id,
+            resumePdfBase64: resumeDataUrl,
+            coverLetterPdfBase64: coverDataUrl,
+          }),
         });
+
+        let result: any = null;
+        try {
+          result = await response.json().catch(() => null);
+        } catch {
+          // ignore
+        }
+
+        if (!response.ok) {
+          const text = await response.text().catch(() => '');
+          const serverMessage = (result && result.error) || text || `HTTP ${response.status}`;
+          console.error('[uploadPDFs] Upload failed:', serverMessage, { status: response.status, body: result || text });
+          // Reset flag on failure to allow retry
+          pdfUploadAttemptedRef.current = false;
+          throw new Error(serverMessage || 'Failed to upload PDFs');
+        }
 
         if (!result || (!result.resumeUrl && !result.coverLetterUrl)) {
           console.error('[uploadPDFs] Unexpected API response shape:', result);
@@ -768,11 +770,11 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
         setFinalResumeUrl(result.resumeUrl || null);
         setFinalCoverLetterUrl(result.coverLetterUrl || null);
-        setUploadComplete(true);
+        setUploadComplete(true); // ✅ prevent re-upload
 
       } catch (error) {
         console.error('❌ Error uploading PDFs:', error);
-        pdfUploadAttemptedRef.current = false;
+        // Flag is reset above on known errors; keep it set for unknown errors to avoid infinite loops
       }
     };
 
@@ -883,7 +885,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                     AI Enhancement in Progress
                   </h3>
                   <p className="text-sm font-medium text-blue-300 animate-fade-in-text">
-                    {extractionProgress || "Generating your optimized resume & cover letter..."}
+                    {extractionProgress || "Generating your AI-enhanced resume & cover letter..."}
                   </p>
                   
                   {/* Rotating Informative Text - Dark Grey Box */}
@@ -1339,7 +1341,7 @@ const generateDetailedResumeHTML = (results: any): string => {
       <section style="margin-bottom: 20px;">
         <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PROFESSIONAL SUMMARY</h2>
         <p style="text-align: justify; line-height: 1.6; font-size: 13px; margin: 0;">
-          ${results.aiEnhancements?.enhancedSummary || sections.professional_summary || 'Accomplished professional with proven expertise in key areas aligned with the target role. Track record of delivering measurable results and driving organizational success through strategic initiatives and effective collaboration.'}
+          ${results.aiEnhancements?.enhancedSummary || sections.professional_summary || 'AI-enhanced professional summary highlighting relevant experience, key skills, and value proposition tailored to the target position. This comprehensive summary demonstrates alignment with job requirements and showcases unique qualifications that make the candidate an ideal fit for the role.'}
         </p>
       </section>
 
@@ -1679,7 +1681,7 @@ const generateDetailedCoverLetterHTML = (results: any): string => {
       <!-- Footer -->
       <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: center;">
         <p style="font-size: 11px; color: #9ca3af; margin: 0;">
-          ${name} • ${email} • ${phone}
+          This cover letter was AI-enhanced and personalized for the ${jobDetails.position || 'target position'} at ${jobDetails.company_name || 'the company'}.
         </p>
       </div>
     </div>

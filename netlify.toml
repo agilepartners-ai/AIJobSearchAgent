@@ -1,18 +1,11 @@
 [build]
-  command = "CI=false pnpm run build"
+  command = "npm run build"
   publish = ".next"
   base = "/"
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
   CI = "false"
-  NEXT_TELEMETRY_DISABLED = "1"
-
-# Exclude long credentials from Lambda runtime (they're embedded at build time)
-# This bypasses the AWS Lambda 4KB env var limit
-[functions]
-  [functions.environment]
-    # Credentials are loaded from build-time generated file instead
 
 # Optional: Custom headers for security
 [[headers]]

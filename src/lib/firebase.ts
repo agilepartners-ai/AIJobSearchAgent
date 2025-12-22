@@ -13,13 +13,6 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Validate config
-if (typeof window !== 'undefined' && !firebaseConfig.apiKey) {
-  console.error('❌ Firebase API Key is missing. Check your .env file.');
-} else if (typeof window !== 'undefined') {
-  console.log('🔥 Firebase initialized with project:', firebaseConfig.projectId);
-}
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);

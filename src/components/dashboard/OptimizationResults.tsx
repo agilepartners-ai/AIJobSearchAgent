@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Download, FileText, CheckCircle, Target, TrendingUp, Award, Brain, ChevronDown, ChevronUp, AlertCircle, Eye } from 'lucide-react';
 import { PDFViewer, PDFDownloadLink, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-import { retryWithTokenRefresh } from '../../utils/tokenRefresh';
 
 import { PerfectHTMLToPDF } from './ResumeTemplate';
 import ResumePDFPreview from './ResumePDFPreview';
@@ -248,7 +247,7 @@ const CoverLetterPDFDocument: React.FC<{ content: string; jobDetails: any; resul
         {/* Footer */}
         <View style={{ marginTop: 30, paddingTop: 15, borderTop: '1 solid #e5e7eb', alignItems: 'center' }}>
           <Text style={{ fontSize: 9, color: '#000000' }}>
-            {coverLetterData.name} • {coverLetterData.email} • {coverLetterData.phone}
+            This cover letter was AI-enhanced and personalized for the {jobDetails.position || 'target position'} at {jobDetails.company_name || 'the company'}.
           </Text>
         </View>
       </Page>
@@ -370,20 +369,17 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
       console.log('[OptimizationResults] Sending PDF-style payload to API:', payload);
       
       console.log('[OptimizationResults] sending PDF-style conversion request to /api/convert-html-to-docx');
-      const resp = await retryWithTokenRefresh(async () => {
-        const response = await fetch('/api/convert-html-to-docx', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
+      const resp = await fetch('/api/convert-html-to-docx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-        if (!response.ok) {
-          const txt = await response.text().catch(() => '');
-          console.error('[OptimizationResults] PDF-style conversion API failed', response.status, txt);
-          throw new Error('PDF-style DOCX generation failed');
-        }
-        return response;
-      }, { maxRetries: 2, retryDelay: 1000 });
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        console.error('[OptimizationResults] PDF-style conversion API failed', resp.status, txt);
+        throw new Error('PDF-style DOCX generation failed');
+      }
 
       console.log('[OptimizationResults] PDF-style conversion API succeeded, reading blob');
       const arrayBuffer = await resp.arrayBuffer();
@@ -411,20 +407,17 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
     try {
       const payload = { html: content, filename };
       console.log('[OptimizationResults] sending conversion request to /api/convert-html-to-docx');
-      const resp = await retryWithTokenRefresh(async () => {
-        const response = await fetch('/api/convert-html-to-docx', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
+      const resp = await fetch('/api/convert-html-to-docx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-        if (!response.ok) {
-          const txt = await response.text().catch(() => '');
-          console.error('[OptimizationResults] conversion API failed', response.status, txt);
-          throw new Error('Conversion API failed');
-        }
-        return response;
-      }, { maxRetries: 2, retryDelay: 1000 });
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        console.error('[OptimizationResults] conversion API failed', resp.status, txt);
+        throw new Error('Conversion API failed');
+      }
 
       console.log('[OptimizationResults] conversion API succeeded, reading blob');
       const arrayBuffer = await resp.arrayBuffer();

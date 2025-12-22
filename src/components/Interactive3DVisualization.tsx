@@ -116,7 +116,7 @@ const Interactive3DVisualization: React.FC<Interactive3DVisualizationProps> = ({
       // Create main planes with varied sizes for visual hierarchy
     positions.forEach((pos, index) => {
       let geometry = planeGeometry;
-      const material = materials.mainPlane.clone();
+      let material = materials.mainPlane.clone();
         // Create visual hierarchy with different sizes - reduced opacity for background
       if (index === 0) {
         // Central node - larger and more prominent
@@ -295,11 +295,9 @@ const Interactive3DVisualization: React.FC<Interactive3DVisualizationProps> = ({
           const currentRadius = userData.radius * (1 + Math.sin(time + userData.angle) * 0.1);
           
           const parentPlane = planes[userData.parentPlaneIndex];
-          if (parentPlane) {
-            mesh.position.x = parentPlane.position.x + Math.cos(currentAngle) * currentRadius;
-            mesh.position.y = parentPlane.position.y + Math.sin(currentAngle) * currentRadius;
-            mesh.position.z = parentPlane.position.z + Math.sin(currentAngle * 2) * 0.3;
-          }
+          mesh.position.x = parentPlane.position.x + Math.cos(currentAngle) * currentRadius;
+          mesh.position.y = parentPlane.position.y + Math.sin(currentAngle) * currentRadius;
+          mesh.position.z = parentPlane.position.z + Math.sin(currentAngle * 2) * 0.3;
           
           // Individual rotation
           mesh.rotation.z += userData.rotationSpeed || 0.01;
@@ -322,7 +320,7 @@ const Interactive3DVisualization: React.FC<Interactive3DVisualizationProps> = ({
           (Math.sin(Date.now() * 0.002) * 0.1 + 1) : 1;
         plane.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.05);
       });// Enhanced hover effects with ripple animation
-      if (intersects.length > 0 && intersects[0]?.object?.userData) {
+      if (intersects.length > 0) {
         const hoveredPlaneIndex = intersects[0].object.userData.index;
         const hoveredPlane = planes[hoveredPlaneIndex];
         const satelliteGroup = satellitesRef.current[hoveredPlaneIndex];

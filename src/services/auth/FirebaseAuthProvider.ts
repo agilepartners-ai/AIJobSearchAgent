@@ -39,7 +39,6 @@ export class FirebaseAuthProvider implements AuthProvider {
 
   async signUp(data: SignUpData): Promise<AuthUser> {
     try {
-      console.log('📝 [Firebase Auth] Attempting sign up for:', data.email);
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         data.email,
@@ -63,91 +62,22 @@ export class FirebaseAuthProvider implements AuthProvider {
         updatedAt: new Date(),
       });
 
-      console.log('✅ [Firebase Auth] Sign up successful');
       return this.convertUser(user);
-    } catch (error: any) {
-      console.error('❌ [Firebase Auth] Sign up error:', {
-        code: error?.code,
-        message: error?.message,
-        email: data.email
-      });
-      
-      // Provide more specific error messages based on Firebase error codes
-      const errorCode = error?.code || '';
-      let userMessage = 'Failed to create account';
-      
-      switch (errorCode) {
-        case 'auth/email-already-in-use':
-          userMessage = 'An account with this email already exists';
-          break;
-        case 'auth/invalid-email':
-          userMessage = 'Invalid email address format';
-          break;
-        case 'auth/operation-not-allowed':
-          userMessage = 'Email/password accounts are not enabled. Please contact support';
-          break;
-        case 'auth/weak-password':
-          userMessage = 'Password is too weak. Please use a stronger password';
-          break;
-        case 'auth/network-request-failed':
-          userMessage = 'Network error. Please check your connection';
-          break;
-        default:
-          userMessage = error?.message || 'Failed to create account';
-      }
-      
-      throw new Error(userMessage);
+    } catch (error) {
+      throw new Error((error as AuthError).message || 'Failed to create account');
     }
   }
 
   async signIn(data: SignInData): Promise<AuthUser> {
     try {
-      console.log('🔐 [Firebase Auth] Attempting sign in for:', data.email);
       const userCredential = await signInWithEmailAndPassword(
         auth,
         data.email,
         data.password
       );
-      console.log('✅ [Firebase Auth] Sign in successful');
       return this.convertUser(userCredential.user);
-    } catch (error: any) {
-      console.error('❌ [Firebase Auth] Sign in error:', {
-        code: error?.code,
-        message: error?.message,
-        email: data.email
-      });
-      
-      // Provide more specific error messages based on Firebase error codes
-      const errorCode = error?.code || '';
-      let userMessage = 'Failed to sign in';
-      
-      switch (errorCode) {
-        case 'auth/invalid-email':
-          userMessage = 'Invalid email address format';
-          break;
-        case 'auth/user-disabled':
-          userMessage = 'This account has been disabled';
-          break;
-        case 'auth/user-not-found':
-          userMessage = 'No account found with this email';
-          break;
-        case 'auth/wrong-password':
-          userMessage = 'Incorrect password';
-          break;
-        case 'auth/invalid-credential':
-          userMessage = 'Invalid email or password';
-          break;
-        case 'auth/too-many-requests':
-          userMessage = 'Too many failed attempts. Please try again later';
-          break;
-        case 'auth/network-request-failed':
-          userMessage = 'Network error. Please check your connection';
-          break;
-        default:
-          userMessage = error?.message || 'Failed to sign in';
-      }
-      
-      throw new Error(userMessage);
+    } catch (error) {
+      throw new Error((error as AuthError).message || 'Failed to sign in');
     }
   }
 

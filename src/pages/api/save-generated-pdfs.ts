@@ -3,61 +3,6 @@ import admin from 'firebase-admin';
 
 // Support frontend-generated PDF blobs (base64/data URLs). The frontend should send PDFs directly.
 
-// Helper to initialize Firebase Admin (singleton pattern)
-const initializeFirebaseAdmin = () => {
-  if (admin.apps.length > 0) {
-    console.log('[Firebase Admin] Already initialized, reusing existing app');
-    return admin.app();
-  }
-
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
-  const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-
-  if (!projectId || !clientEmail || !privateKeyRaw || !storageBucket) {
-    throw new Error('Missing Firebase environment variables');
-  }
-
-  // Handle various formats of private key (with escaped newlines, actual newlines, or JSON-escaped)
-  let privateKey = privateKeyRaw;
-  
-  // If the key is JSON-stringified (wrapped in quotes), parse it first
-  if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-    try {
-      privateKey = JSON.parse(privateKey);
-    } catch {
-      // Not JSON, continue with raw value
-    }
-  }
-  
-  // Replace escaped newlines with actual newlines
-  privateKey = privateKey
-    .replace(/\\n/g, '\n')
-    .replace(/\\\\n/g, '\n');
-  
-  // Ensure the key has proper BEGIN/END markers
-  if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
-    throw new Error('Invalid private key format: missing BEGIN marker');
-  }
-
-  try {
-    const app = admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId,
-        clientEmail,
-        privateKey,
-      }),
-      storageBucket,
-    });
-    console.log('[✅] Firebase Admin initialized successfully');
-    return app;
-  } catch (error) {
-    console.error('[❌] Firebase initialization error:', error);
-    throw error;
-  }
-};
-
 // Handler lazily initializes Firebase Admin and wkhtmltopdf to avoid module-load failures
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log('\n--- 📩 Incoming request to /api/save-generated-pdfs ---');
@@ -94,16 +39,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Initialize Firebase Admin SDK using the helper function
-    try {
-      initializeFirebaseAdmin();
-    } catch (initErr) {
-      console.error('[save-generated-pdfs] Firebase initialization failed:', initErr);
-      const errorMessage = initErr instanceof Error ? initErr.message : String(initErr);
-      return res.status(500).json({ 
-        error: 'Server configuration error: Failed to initialize Firebase Admin', 
-        details: errorMessage 
-      });
+    // Initialize Firebase Admin SDK on first request (avoid module-load failures)
+    if (!admin.apps.length) {
+      const projectId = process.env.FIREBASE_PROJECT_ID;
+      const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+      const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
+      const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+
+      if (!projectId || !clientEmail || !privateKeyRaw || !storageBucket) {
+        console.error('[save-generated-pdfs] Missing Firebase environment variables');
+        return res.status(500).json({ error: 'Server configuration error: missing Firebase credentials' });
+      }
+
+      try {
+        const privateKey = privateKeyRaw.replace(/\\n/g, '\n');
+        admin.initializeApp({
+          credential: admin.credential.cert({
+            projectId,
+            clientEmail,
+            privateKey,
+          }),
+          storageBucket,
+        });
+        console.log('[✅] Firebase Admin initialized');
+      } catch (initErr) {
+        console.error('[❌] Firebase initialization failed:', initErr);
+        return res.status(500).json({ error: 'Failed to initialize Firebase Admin' });
+      }
     }
 
     const db = admin.firestore();

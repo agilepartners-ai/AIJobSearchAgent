@@ -53,9 +53,8 @@ export interface GenerateCoverLetterRequest {
 export class PDFGenerationService {
     private static readonly API_BASE_URL = process.env.NEXT_PUBLIC_RESUME_API_BASE_URL || 'https://resumebuilder-arfb.onrender.com';
     private static readonly API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
-    // Hardcoded to reduce Netlify env var count (4KB Lambda limit)
-    private static readonly DEFAULT_MODEL_TYPE = 'Gemini';
-    private static readonly DEFAULT_MODEL = 'gemini-2.5-flash';
+    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'Stub';
+    private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'stub-model';
 
     // Available LaTeX templates - Updated to match your backend
     static readonly AVAILABLE_TEMPLATES = [

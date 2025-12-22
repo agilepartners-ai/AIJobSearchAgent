@@ -16,9 +16,8 @@ export class ResumeExtractionService {
     // Remove hardcoded Render default. Use env only; if not set, fallback to local extraction.
     private static readonly API_BASE_URL = process.env.NEXT_PUBLIC_RESUME_API_BASE_URL || '';
     private static readonly API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
-    // Hardcoded to reduce Netlify env var count (4KB Lambda limit)
-    private static readonly DEFAULT_MODEL_TYPE = 'Gemini';
-    private static readonly DEFAULT_MODEL = 'gemini-2.5-flash';
+    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'Stub';
+    private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'stub-model';
 
     // Local: extract raw text from PDF or other files
     private static async extractRawText(file: File): Promise<string> {

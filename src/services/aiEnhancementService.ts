@@ -141,25 +141,51 @@ type CanonicalSection =
     | 'volunteer_work'
     | 'publications';
 
-// NOTE: Vertex AI SDK (@ai-sdk/google-vertex) is NOT imported here because it uses
-// Node.js-only modules (google-auth-library, net, etc.) that cannot be bundled for the browser.
-// All Vertex AI API calls MUST go through the server-side API route at /api/enhance-resume.
-// This service acts as a client-side facade that calls the API route.
-
 // OpenAI has been removed from the frontend. Provide a local stub
 // implementation that preserves the public API surface and response
 // shapes so the UI flow remains intact.
 
-// NOTE: We intentionally avoid importing any server-side SDK packages here.
-// The methods below proxy to the API route which runs server-side.
+// NOTE: We intentionally avoid importing the OpenAI SDK anywhere in
+// the frontend. The methods below return deterministic, typed
+// fallback responses.
 
 const getApiKey = (): string => '';
 
+// Add: Get Gemini API key from environment variables for browser compatibility
+// Log API key only once to avoid console spam
+let _hasLoggedGeminiApiKey = false;
+let cachedGeminiKey: string | null = null;
+
+const getGeminiApiKey = (): string => {
+    // Return cached key if already fetched
+    if (cachedGeminiKey !== null) {
+        return cachedGeminiKey;
+    }
+    
+    let apiKey = '';
+    if (typeof window !== 'undefined') {
+        apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
+        if (!_hasLoggedGeminiApiKey) {
+            console.log('🔍 [DEBUG] Browser - NEXT_PUBLIC_GEMINI_API_KEY:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
+            _hasLoggedGeminiApiKey = true;
+        }
+    } else {
+        apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
+        if (!_hasLoggedGeminiApiKey) {
+            console.log('🔍 [DEBUG] Server - GEMINI_API_KEY:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
+            _hasLoggedGeminiApiKey = true;
+        }
+    }
+    
+    // Cache the key
+    cachedGeminiKey = apiKey;
+    return apiKey;
+};
+
 export class AIEnhancementService {
     private static readonly API_KEY = getApiKey();
-    // Hardcoded to reduce Netlify env var count (4KB Lambda limit)
-    private static readonly DEFAULT_MODEL_TYPE = 'Gemini';
-    private static readonly DEFAULT_MODEL = 'gemini-2.5-flash';
+    private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'Stub';
+    private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'stub-model';
     
     // Retry configuration
     private static readonly MAX_RETRIES = 8;
@@ -183,7 +209,7 @@ export class AIEnhancementService {
         try {
             return await fn();
         } catch (error: any) {
-            // Check if error is retryable (503, 429, network errors, parsing errors)
+            // Check if error is retryable (503, 429, network errors)
             const isRetryable = 
                 error.message?.includes('503') || 
                 error.message?.includes('UNAVAILABLE') ||
@@ -192,12 +218,7 @@ export class AIEnhancementService {
                 error.message?.includes('Too Many Requests') ||
                 error.message?.includes('RESOURCE_EXHAUSTED') ||
                 error.message?.includes('Failed to fetch') ||
-                error.message?.includes('NetworkError') ||
-                error.message?.includes('response format') ||
-                error.message?.includes('JSON') ||
-                error.message?.includes('parse') ||
-                error.message?.includes('temporarily') ||
-                error.message?.includes('try again');
+                error.message?.includes('NetworkError');
 
             if (!isRetryable || retryCount >= this.MAX_RETRIES) {
                 // Log to console only, don't show to user
@@ -227,15 +248,7 @@ export class AIEnhancementService {
 
     // Create system prompt for AI enhancement (matching old repo pattern)
     private static createSystemPrompt(): string {
-    return `You are an expert resume optimization specialist with 15+ years of experience in career counseling and HR. Write in a natural, human voice with varied sentence structures and authentic professional tone. Avoid repetitive patterns, overly formal language, or predictable AI writing markers.
-
-IMPORTANT - Write like a human:
-- Use varied sentence lengths (mix short and longer sentences naturally)
-- Include occasional contractions where appropriate
-- Vary paragraph openings and avoid formulaic patterns
-- Write with genuine enthusiasm but remain professional
-- Use specific industry language naturally, not forced
-- Include subtle personality while maintaining professionalism
+    return `You are an expert resume optimization AI assistant specializing in ATS optimization and job matching. Your task is to analyze a resume against a job description and provide comprehensive optimization recommendations.
 
 Always include a compact, crisp, professional summary suitable for use at the top of a resume (2-3 sentences maximum). Keep this summary short, precise, and professional. For other sections prefer concise, actionable items rather than long paragraphs.
 
@@ -281,43 +294,16 @@ CRITICAL INSTRUCTIONS FOR PROFESSIONAL SUMMARY:
 - Do NOT write multiple paragraphs or long-winded summaries
 - Keep it under 100 words
 - Make every word count - be impactful and specific
-- Focus only on the most relevant skills and experience for this specific job
-
-CRITICAL JSON FORMATTING REQUIREMENTS:
-- Output ONLY valid JSON - no markdown code blocks, no explanations
-- Use double quotes for ALL strings and property names
-- Include commas between ALL array elements: ["item1", "item2", "item3"]
-- Include commas between ALL object properties
-- Do NOT include trailing commas before ] or }
-- Escape any quotes inside strings with backslash`;
+- Focus only on the most relevant skills and experience for this specific job`;
     }
 
     // Create system prompt for detailed AI enhancement
     private static createDetailedSystemPrompt(): string {
-    return `You are a senior career advisor and professional writer with extensive experience helping professionals land their dream jobs. Write in an authentic, human voice that sounds natural and unforced. Your writing should pass as genuinely human-written content.
+    return `You are an expert resume and cover letter writer specializing in creating comprehensive, ATS-optimized, multi-page professional documents. Your task is to analyze a resume against a job description and create detailed, enhanced content.
 
-CRITICAL - Human Writing Guidelines:
-- Vary sentence structure significantly (short, medium, long - mix them naturally)
-- Use natural transitions and occasional contractions
-- Avoid repetitive opening words (don't start multiple sentences with "I", "My", "The", etc.)
-- Write with genuine enthusiasm but authentic restraint
-- Include specific details that feel personally crafted, not templated
-- Use active voice primarily but mix in passive where it sounds natural
-- Avoid buzzwords unless truly relevant; prefer concrete language
-- Write cover letters that sound like a real person speaking, not a robot
-- Include subtle imperfections that make it feel authentic (varied rhythm, natural emphasis)
+Always include a compact, crisp, professional summary suitable for use at the top of a resume (2-3 sentences maximum). Even when producing long-form detailed sections, ensure the enhanced_summary field contains a short, professional blurb that can be used directly on a one-page resume. For the rest of the detailed content, prefer concise, structured paragraphs and bullet lists.
 
-Always include a compact, crisp, professional summary suitable for use at the top of a resume (2-3 sentences maximum). Write in a natural, conversational yet professional tone. Use authentic language that a real person would use when describing their own experience. Avoid phrases that sound robotic or template-like.
-
-CRITICAL REQUIREMENT: The professional_summary field must be SHORT (2-3 sentences, under 100 words) and sound genuinely written by a human, not generated by AI.
-
-CRITICAL JSON FORMATTING REQUIREMENTS:
-- Output ONLY valid JSON - no markdown code blocks, no explanations, no text before or after
-- Use double quotes for ALL strings and property names  
-- Include commas between ALL array elements: ["item1", "item2", "item3"]
-- Include commas between ALL object properties
-- Do NOT include trailing commas before ] or }
-- Escape any quotes inside strings with backslash: \\"
+CRITICAL REQUIREMENT: The professional_summary field must be SHORT (2-3 sentences, under 100 words). Do NOT write long paragraphs.
 
 You must respond with a valid JSON object containing the following structure:
 {
@@ -342,7 +328,7 @@ You must respond with a valid JSON object containing the following structure:
     "enhanced_skills": ["prioritized technical and soft skills relevant to job"],
     "enhanced_experience_bullets": ["improved bullet points with metrics and achievements"],
     "detailed_resume_sections": {
-      "professional_summary": "IMPORTANT: Write a SHORT, CONCISE 2-3 sentence professional summary in natural, human language. Avoid buzzwords, corporate jargon, or phrases that sound automated. Write as if the candidate is genuinely describing their experience in their own words. Keep it brief, authentic, and conversational yet professional.",
+      "professional_summary": "IMPORTANT: Write a SHORT, CONCISE 2-3 sentence professional summary. Do NOT write multiple paragraphs. Keep it brief and impactful, highlighting only the most relevant experience and value proposition.",
       "technical_skills": ["comprehensive list of technical skills categorized by proficiency"],
       "soft_skills": ["relevant soft skills with context"],
       "experience": [
@@ -351,10 +337,10 @@ You must respond with a valid JSON object containing the following structure:
           "position": "Enhanced Job Title",
           "duration": "Start Date - End Date",
           "location": "City, State",
-          "achievements": ["3-5 quantified achievements with metrics, written in natural language"],
-          "key_responsibilities": ["4-6 detailed responsibilities using action verbs, sounding authentic not templated"],
+          "achievements": ["3-5 quantified achievements with metrics"],
+          "key_responsibilities": ["4-6 detailed responsibilities using action verbs"],
           "technologies_used": ["relevant technologies and tools"],
-          "quantified_results": ["specific numbers, percentages, dollar amounts presented naturally"]
+          "quantified_results": ["specific numbers, percentages, dollar amounts"]
         }
       ],
       "education": [
@@ -416,9 +402,9 @@ You must respond with a valid JSON object containing the following structure:
       ]
     },
     "detailed_cover_letter": {
-      "opening_paragraph": "4-5 sentence engaging opening that sounds genuinely human - vary sentence length, use natural enthusiasm without being over-the-top, mention specific job title and company, and highlight most relevant qualification. Write as if you're having a professional conversation, not delivering a formal speech.",
-      "body_paragraph": "8-10 sentence detailed paragraph with VARIED sentence structure connecting specific experiences to job requirements. Mix short punchy sentences with longer detailed ones. Use concrete examples and quantified achievements naturally woven into storytelling. Avoid formulaic patterns - write as a real person would describe their experience to an interested colleague. Include authentic transitions between ideas.",
-      "closing_paragraph": "3-4 sentence strong closing with natural flow - express genuine interest without sounding desperate or robotic. Mention next steps conversationally. End with warmth but professionalism. Sound like a real person, not a template."
+      "opening_paragraph": "4-5 sentence engaging opening that mentions specific job title, company, and highlights most relevant qualification with enthusiasm",
+      "body_paragraph": "8-10 sentence detailed paragraph connecting specific experiences to job requirements, using concrete examples and quantified achievements that demonstrate value to the company",
+      "closing_paragraph": "3-4 sentence strong closing that reiterates interest, mentions next steps, and includes professional sign-off"
     },
     "cover_letter_outline": {
       "opening": "Brief opening guidance",
@@ -429,16 +415,13 @@ You must respond with a valid JSON object containing the following structure:
 }
 
 Focus on:
-1. Writing in an authentic, human voice that avoids AI detection patterns
-2. Creating comprehensive, multi-page content suitable for experienced professionals
-3. Using specific examples and quantified achievements woven naturally into narratives
-4. Incorporating job-specific keywords organically, not forced
-5. Ensuring ATS optimization while maintaining natural readability
-6. Creating compelling narratives with varied sentence structures that connect experience to job requirements
-7. Providing detailed sections that showcase full professional profile with personality
-8. Making cover letter sound like a real professional wrote it - warm, genuine, specific
-9. Varying writing patterns to avoid repetitive or formulaic language
-10. Including subtle imperfections that make content feel authentically human`;
+1. Creating comprehensive, multi-page content suitable for experienced professionals
+2. Using specific examples and quantified achievements
+3. Incorporating job-specific keywords naturally
+4. Ensuring ATS optimization while maintaining readability
+5. Creating compelling narratives that connect experience to job requirements
+6. Providing detailed sections that showcase full professional profile
+7. Making cover letter highly personalized and compelling`;
     }
 
     // Create user prompt
@@ -696,31 +679,28 @@ ${resumeText}`;
         return enhancementResponse;
     }
 
-    // Enhance resume using Google Vertex AI via server-side API route
-    // This method calls the /api/enhance-resume endpoint which handles the Vertex AI SDK
+    // New: Enhance resume using Google Gemini API
     private static async enhanceWithGemini(
         resumeText: string,
         jobDescription: string,
         options: AIEnhancementOptions = {}
     ): Promise<AIEnhancementResponse> {
         try {
-            console.log('🚀 [AI Enhancement] Starting resume enhancement via API route...');
+            console.log('Starting detailed Gemini resume enhancement with retry mechanism...');
 
-            // Validate inputs before making API call
-            if (!resumeText || resumeText.trim().length < 50) {
-                throw new Error('Resume text is too short or empty. Please provide a valid resume with at least 50 characters.');
-            }
-            
-            if (!jobDescription || jobDescription.trim().length < 30) {
-                throw new Error('Job description is too short or empty. Please provide a valid job description with at least 30 characters.');
+            const apiKey = getGeminiApiKey();
+            if (!apiKey) {
+                throw new Error('Gemini API key is not configured. Please set NEXT_PUBLIC_GEMINI_API_KEY in your environment variables.');
             }
 
-            const modelId = options.model || this.DEFAULT_MODEL || 'gemini-2.0-flash';
-            console.log(`📊 [AI Enhancement] Using model: ${modelId}`);
+            const modelId = options.model || this.DEFAULT_MODEL || 'gemini-2.5-flash';
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelId)}:generateContent`;
 
-            // Generate prompts (these helper methods are purely client-side computation)
-            const systemContent = options.systemPromptOverride ?? this.createDetailedSystemPrompt();
-            const userHeader = options.userPromptOverride ?? this.createDetailedUserPromptHeader();
+            // Use strict overrides when provided, and ALWAYS append fixed context
+            const systemContent =
+                options.systemPromptOverride ?? this.createDetailedSystemPrompt();
+            const userHeader =
+                options.userPromptOverride ?? this.createDetailedUserPromptHeader();
 
             // Add: dynamic directive injection based on detected sections/order
             const { orderedSections } = this.detectResumeSections(resumeText);
@@ -729,75 +709,164 @@ ${resumeText}`;
 
             const userContent = this.buildFinalUserPrompt(userHeaderWithDirective, resumeText, jobDescription);
 
-            // Combine system and user prompts
-            const fullPrompt = `${systemContent}\n\n${userContent}`;
-            console.log(`📝 [AI Enhancement] Prompt length: ${fullPrompt.length} characters`);
+            // Combine system and user prompts into a single user message for Gemini
+            const payload = {
+                contents: [
+                    {
+                        parts: [
+                            { text: `${systemContent}\n\n${userContent}` }
+                        ]
+                    }
+                ],
+                generationConfig: {
+                    temperature: 0.7,
+                    topK: 40,
+                    topP: 0.95,
+                    maxOutputTokens: 8192, // Increased token limit for comprehensive responses
+                    responseMimeType: "text/plain"
+                }
+            };
 
-            // Make API call to server-side endpoint with retry logic
+            // Wrap the API call in retry logic
             const makeApiCall = async () => {
-                const response = await fetch('/api/enhance-resume', {
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'x-goog-api-key': apiKey
                     },
-                    body: JSON.stringify({
-                        resumeText,
-                        jobDescription,
-                        model: modelId,
-                        systemPrompt: systemContent,
-                        userPrompt: userContent,
-                    }),
+                    body: JSON.stringify(payload)
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    const errorMessage = errorData.error || `Server error: ${response.status}`;
+                    const errText = await response.text().catch(() => '');
+                    let errorMessage = `Gemini API error ${response.status}: ${errText || response.statusText}`;
                     
-                    // Map HTTP status codes to appropriate error types for retry logic
-                    if (response.status === 429) {
-                        throw new Error('AI service quota exceeded. Please wait a moment and try again.');
-                    }
-                    if (response.status === 503) {
-                        throw new Error('AI service temporarily unavailable. Retrying...');
-                    }
-                    if (response.status === 504) {
-                        throw new Error('AI request timed out. Please try again.');
-                    }
-                    if (response.status === 401 || response.status === 403) {
-                        throw new Error('AI service authentication error. Please contact support.');
+                    // Try to parse error details
+                    try {
+                        const errorData = JSON.parse(errText);
+                        errorMessage = `Gemini API error ${response.status}: ${JSON.stringify(errorData)}`;
+                    } catch {
+                        // Keep the original error message
                     }
                     
                     throw new Error(errorMessage);
                 }
 
-                return response.json();
+                return response;
             };
 
             // Execute with retry mechanism
-            const aiResults = await this.retryWithBackoff(makeApiCall);
+            const response = await this.retryWithBackoff(makeApiCall);
+            const data = await response.json();
+            const responseText =
+                data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+                data?.candidates?.[0]?.output_text ||
+                '';
 
-            if (!aiResults || !aiResults.success) {
-                throw new Error(aiResults?.error || 'AI enhancement failed. Please try again.');
+            if (!responseText) {
+                console.error('❌ [Gemini] No response text received. Full data:', JSON.stringify(data, null, 2));
+                throw new Error('No response from Gemini');
+            }
+
+            console.log('✅ Gemini detailed response received, parsing...');
+            console.log('📝 Response length:', responseText.length, 'characters');
+            
+            let aiResults: any;
+            try {
+                // First attempt: direct JSON parse
+                aiResults = JSON.parse(responseText);
+                console.log('✅ JSON parsed successfully (direct)');
+            } catch (parseError) {
+                console.warn('⚠️ Direct JSON parse failed, attempting extraction...');
+                
+                // Second attempt: extract JSON from response (handle markdown code blocks)
+                let jsonText = responseText;
+                
+                // Remove markdown code blocks if present
+                if (responseText.includes('```json')) {
+                    const jsonStart = responseText.indexOf('```json') + 7;
+                    const jsonEnd = responseText.indexOf('```', jsonStart);
+                    if (jsonEnd > jsonStart) {
+                        jsonText = responseText.slice(jsonStart, jsonEnd).trim();
+                        console.log('📦 Extracted from markdown ```json block');
+                    }
+                } else if (responseText.includes('```')) {
+                    const jsonStart = responseText.indexOf('```') + 3;
+                    const jsonEnd = responseText.indexOf('```', jsonStart);
+                    if (jsonEnd > jsonStart) {
+                        jsonText = responseText.slice(jsonStart, jsonEnd).trim();
+                        console.log('📦 Extracted from generic ``` code block');
+                    }
+                }
+                
+                // Third attempt: find JSON object boundaries
+                const start = jsonText.indexOf('{');
+                const end = jsonText.lastIndexOf('}');
+                
+                if (start !== -1 && end !== -1 && end > start) {
+                    try {
+                        jsonText = jsonText.slice(start, end + 1);
+                        aiResults = JSON.parse(jsonText);
+                        console.log('✅ JSON extracted and parsed successfully');
+                    } catch (extractError) {
+                        console.error('❌ Failed to parse extracted JSON:', extractError);
+                        console.error('📄 Extracted text preview (first 500 chars):', jsonText.substring(0, 500));
+                        console.error('📄 Extracted text preview (last 200 chars):', jsonText.substring(Math.max(0, jsonText.length - 200)));
+                        throw new Error('Failed to parse AI response. The response format is invalid.');
+                    }
+                } else {
+                    console.error('❌ No JSON object found in response');
+                    console.error('📄 Full response preview (first 1000 chars):', responseText.substring(0, 1000));
+                    throw new Error('AI response does not contain valid JSON.');
+                }
             }
 
             // Ensure the enhanced_summary is compact (2-3 sentences max)
             const ensureCompactSummary = (text: string, maxSentences = 3): string => {
                 if (!text || typeof text !== 'string') return '';
+                // Normalize whitespace
                 const cleaned = text.replace(/\s+/g, ' ').trim();
+                // Split into sentences using a simple regex
                 const sentences = cleaned.match(/[^.!?]+[.!?]?/g) || [cleaned];
                 if (sentences.length <= maxSentences) return sentences.join(' ').trim();
+                // Return first maxSentences sentences joined
                 return sentences.slice(0, maxSentences).map(s => s.trim()).join(' ').trim();
             };
 
-            // Extract and process summary
-            const aiProvidedSummary = aiResults.enhancements?.enhanced_summary || 
-                aiResults.enhancements?.detailed_resume_sections?.professional_summary || '';
-            const compactSummary = ensureCompactSummary(aiProvidedSummary || '');
+            // Fallback: try to extract a professional summary from AI detailed sections or the original resume text
+            const extractSummaryFromResumeText = (text: string): string => {
+                if (!text || typeof text !== 'string') return '';
+                const normalized = text.replace(/\r/g, '');
+                // Look for headings like PROFESSIONAL SUMMARY, PROFESSIONAL SUMMARY:, SUMMARY, SUMMARY:\n
+                const headingRegex = /(^|\n)\s*(PROFESSIONAL SUMMARY|PROFESSIONAL SUMMARY:|PROFESSIONAL SUMMARY\n|PROFESSIONAL SUMMARY\s*-|SUMMARY|SUMMARY:)\s*\n?/i;
+                const match = normalized.match(headingRegex);
+                if (match && match.index !== undefined) {
+                    const start = match.index + match[0].length;
+                    // Take up to next double newline or 300 characters
+                    const rest = normalized.slice(start);
+                    const endIdx = rest.search(/\n\s*\n/);
+                    const snippet = endIdx === -1 ? rest.slice(0, 500) : rest.slice(0, endIdx);
+                    return snippet.replace(/\n+/g, ' ').trim();
+                }
+
+                // If no heading, try to take the first 200-300 chars as a fallback
+                return normalized.split('\n').slice(0, 4).join(' ').slice(0, 500).trim();
+            };
+
+            const aiProvidedSummary = aiResults.enhancements?.enhanced_summary || aiResults.enhancements?.detailed_resume_sections?.professional_summary || '';
+            let compactSummary = ensureCompactSummary(aiProvidedSummary || '');
+
+            if (!compactSummary) {
+                // Try extracting from the original resume text passed to this function
+                const extracted = extractSummaryFromResumeText(resumeText || '');
+                compactSummary = ensureCompactSummary(extracted || '');
+            }
 
             const enhancementResponse: AIEnhancementResponse = {
                 success: true,
                 analysis: {
-                    match_score: aiResults.match_score || aiResults.analysis?.match_score || 0,
+                    match_score: aiResults.match_score || 0,
                     strengths: aiResults.analysis?.strengths || [],
                     gaps: aiResults.analysis?.gaps || [],
                     suggestions: aiResults.analysis?.suggestions || [],
@@ -826,9 +895,10 @@ ${resumeText}`;
                 },
                 metadata: {
                     model_used: modelId,
-                    model_type: 'VertexAI',
+                    model_type: options.modelType || this.DEFAULT_MODEL_TYPE || 'Gemini',
                     timestamp: new Date().toISOString(),
                     resume_sections_analyzed: ['summary', 'experience', 'skills', 'education', 'projects', 'certifications', 'awards', 'volunteer', 'publications'],
+                    // Add: dynamic section metadata
                     included_sections: orderedSections.map(s => this.SECTION_LABELS[s]),
                     section_order: orderedSections,
                     directive_applied: true
@@ -836,60 +906,66 @@ ${resumeText}`;
                 file_id: options.fileId || `enhance_${Date.now()}`
             };
 
-            console.log('✅ [AI Enhancement] Enhancement completed successfully');
+            console.log('Gemini detailed enhancement completed successfully');
             return enhancementResponse;
         } catch (error: any) {
-            console.error('❌ [AI Enhancement] Error:', {
+            // Log detailed error to console for debugging (NEVER show these to users)
+            console.error('❌ [Gemini Enhancement] Detailed error (console only):', {
                 message: error?.message,
-                timestamp: new Date().toISOString()
+                stack: error?.stack,
+                timestamp: new Date().toISOString(),
+                errorType: error?.constructor?.name
             });
 
-            // Re-throw with original message for user visibility
-            throw error;
+            // IMPORTANT: Never expose parsing errors or technical details to users
+            // All errors are logged to console, but users only see generic friendly messages
+            
+            // Return simple, actionable error message (same for all error types)
+            throw new Error('AI enhancement completed but encountered an issue processing the results. Please try generating again.');
         }
     }
 
-    // Enhance resume with file upload
+    // Enhance resume with file upload (fallback to backend if needed)
     static async enhanceWithFile(
         file: File,
         jobDescription: string,
         options: AIEnhancementOptions = {}
     ): Promise<AIEnhancementResponse> {
         try {
-            // First try to extract text from file and use Vertex AI
+            // First try to extract text from file and use OpenAI directly
             const { extractTextFromPDF } = await import('../utils/pdfUtils');
             const extractionResult = await extractTextFromPDF(file);
 
             if (extractionResult.text && extractionResult.text.length > 50) {
-                console.log('📄 [Vertex AI] Using extracted text from file...');
-                // Route via enhanceWithOpenAI, which dispatches to Vertex AI
+                console.log('Using extracted text with AI directly...');
+                // Route via enhanceWithOpenAI, which now dispatches to Gemini when needed
                 return await this.enhanceWithOpenAI(extractionResult.text, jobDescription, options);
             } else {
-                throw new Error('Unable to extract sufficient text from file. Please ensure the file contains readable text.');
+                throw new Error('Unable to extract sufficient text from file');
             }
         } catch (error: any) {
-            console.error('❌ [Vertex AI] Error in AI enhancement with file:', error);
+            console.error('Error in AI enhancement with file:', error);
 
             if (error.name === 'AbortError') {
                 throw new Error('AI enhancement timed out. The analysis is taking longer than expected. Please try again.');
             }
 
             if (error.message.includes('Failed to fetch')) {
-                throw new Error('Unable to connect to the AI service. Please check your internet connection and try again.');
+                throw new Error('Unable to connect to the AI enhancement service. Please check your internet connection and try again.');
             }
 
-            throw new Error(error.message || 'Failed to enhance resume with AI. Please try again.');
+            throw new Error(error.message || 'Failed to enhance resume with AI');
         }
     }
 
-    // Enhance resume with JSON data using Vertex AI
+    // Enhance resume with JSON data using OpenAI directly
     static async enhanceWithJson(
         resumeJson: any,
         jobDescription: string,
         options: AIEnhancementOptions = {}
     ): Promise<AIEnhancementResponse> {
         try {
-            // Convert JSON resume data to text format for Vertex AI
+            // Convert JSON resume data to text format for OpenAI
             let resumeText = '';
 
             if (resumeJson.personal) {
@@ -939,49 +1015,32 @@ ${resumeText}`;
                 }
             }
 
-            console.log('📄 [Vertex AI] Using JSON resume data...');
-            // Route via enhanceWithOpenAI, which dispatches to Vertex AI
+            console.log('Using JSON resume data with AI directly...');
+            // Route via enhanceWithOpenAI, which now dispatches to Gemini when needed
             return await this.enhanceWithOpenAI(resumeText, jobDescription, options);
 
         } catch (error: any) {
-            console.error('❌ [Vertex AI] Error in AI enhancement with JSON:', error);
+            console.error('Error in AI enhancement with JSON:', error);
 
             if (error.name === 'AbortError') {
                 throw new Error('AI enhancement timed out. The analysis is taking longer than expected. Please try again.');
             }
 
             if (error.message.includes('Failed to fetch')) {
-                throw new Error('Unable to connect to the AI service. Please check your internet connection and try again.');
+                throw new Error('Unable to connect to the AI enhancement service. Please check your internet connection and try again.');
             }
 
-            throw new Error(error.message || 'Failed to enhance resume with AI. Please try again.');
+            throw new Error(error.message || 'Failed to enhance resume with AI');
         }
     }
 
     // Get current configuration for debugging
     static getConfiguration() {
-        // Client-side: we can only check public env vars
-        // Server-side credentials are not exposed to the browser
-        // Hardcoded to reduce Netlify env var count (4KB Lambda limit)
-        const modelType = 'Gemini';
-        const model = 'gemini-2.5-flash';
-        
-        // Vertex AI is considered configured if model type is Gemini
-        // Actual credential validation happens server-side in the API route
-        const isVertexAIConfigured = modelType.toLowerCase() === 'gemini' || 
-                                     modelType.toLowerCase() === 'vertexai' ||
-                                     modelType.toLowerCase() === 'vertex';
-        
         return {
-            hasApiKey: false, // No longer using client-side API keys
-            isVertexAIConfigured: isVertexAIConfigured,
-            isVertexAIReady: isVertexAIConfigured, // Trust server-side config
-            vertexAIError: null,
-            vertexAIProject: 'configured-server-side',
-            vertexAILocation: 'us-central1',
+            hasApiKey: !!this.API_KEY,
+            hasGeminiApiKey: !!getGeminiApiKey(),
             defaultModelType: this.DEFAULT_MODEL_TYPE,
-            defaultModel: this.DEFAULT_MODEL,
-            isServerSide: typeof window === 'undefined'
+            defaultModel: this.DEFAULT_MODEL
         };
     }
 
