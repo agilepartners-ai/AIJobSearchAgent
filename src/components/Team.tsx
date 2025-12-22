@@ -148,6 +148,9 @@ const Team: React.FC = () => {
 
   // Handle window resize
   useEffect(() => {
+    // SSR guard
+    if (typeof window === 'undefined') return;
+    
     const handleResize = () => {
       setCardsToShow(getCardsToShow());
     };
