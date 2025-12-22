@@ -30,6 +30,9 @@ test-*
 *.tmp
 *.temp
 
+# Build-time generated credentials (contains secrets, generated at build time)
+src/config/credentials.generated.json
+
 # Team updates folder
 latest updates from team/
 *~
