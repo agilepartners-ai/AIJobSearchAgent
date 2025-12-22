@@ -10,6 +10,8 @@ import { useRouter } from 'next/router';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { handleAuthError, isAuthenticationError, redirectToLogin } from '../utils/authErrorHandler';
+import { useTokenRefreshMonitor } from '../hooks/useTokenRefresh';
+import { isTokenExpiredError, handleTokenExpiredError } from '../utils/tokenRefresh';
 import '../index.css';
 import '../styles/dashboard-responsive.css';
 
@@ -19,10 +21,31 @@ AuthService.initializeProvider();
 
 function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
+  
+  // Setup automatic token refresh monitoring
+  useTokenRefreshMonitor(5 * 60 * 1000); // Refresh 5 minutes before expiry
 
   useEffect(() => {
     // Global error handler for uncaught errors
     const handleError = (event: ErrorEvent) => {
+      // Check for token expiration first
+      if (isTokenExpiredError(event.error)) {
+        console.error('Token expired error detected:', event.error);
+        handleTokenExpiredError(
+          event.error,
+          () => {
+            console.log('Token refreshed, reloading page');
+            window.location.reload();
+          },
+          (error) => {
+            console.error('Token refresh failed:', error);
+            redirectToLogin('expired');
+          }
+        );
+        event.preventDefault();
+        return;
+      }
+      
       if (isAuthenticationError(event.error)) {
         console.error('Authentication error detected:', event.error);
         handleAuthError(event.error);
@@ -32,6 +55,24 @@ function MyApp({ Component, pageProps }: AppProps) {
 
     // Global promise rejection handler
     const handleRejection = (event: PromiseRejectionEvent) => {
+      // Check for token expiration first
+      if (isTokenExpiredError(event.reason)) {
+        console.error('Token expired error in promise:', event.reason);
+        handleTokenExpiredError(
+          event.reason,
+          () => {
+            console.log('Token refreshed successfully');
+            // Optionally reload or retry the failed operation
+          },
+          (error) => {
+            console.error('Token refresh failed:', error);
+            redirectToLogin('expired');
+          }
+        );
+        event.preventDefault();
+        return;
+      }
+      
       if (isAuthenticationError(event.reason)) {
         console.error('Authentication error in promise:', event.reason);
         handleAuthError(event.reason);

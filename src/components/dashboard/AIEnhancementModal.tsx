@@ -6,6 +6,7 @@ import { AIEnhancementService } from '../../services/aiEnhancementService';
 import { UserProfileData, ProfileService } from '../../services/profileService';
 import { useAuth } from '../../hooks/useAuth';
 import { extractTextFromPDF, validatePDFFile, PDFExtractionResult, extractTextFallback } from '../../utils/pdfUtils';
+import { retryWithTokenRefresh } from '../../utils/tokenRefresh';
 
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import ResumeTemplate, { PerfectHTMLToPDF } from './ResumeTemplate';
@@ -733,32 +734,29 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         const resumeDataUrl = await htmlStringToPdfDataUrl(detailedResumeHtml);
         const coverDataUrl = await htmlStringToPdfDataUrl(detailedCoverLetterHtml);
 
-        const response = await fetch('/api/save-generated-pdfs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: user?.id,
-            jobApplicationId: applicationData.id,
-            resumePdfBase64: resumeDataUrl,
-            coverLetterPdfBase64: coverDataUrl,
-          }),
+        // Use retry with token refresh for the API call
+        const result = await retryWithTokenRefresh(async () => {
+          const response = await fetch('/api/save-generated-pdfs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: user?.id,
+              jobApplicationId: applicationData.id,
+              resumePdfBase64: resumeDataUrl,
+              coverLetterPdfBase64: coverDataUrl,
+            }),
+          });
+
+          if (!response.ok) {
+            const text = await response.text();
+            throw new Error(text || `HTTP ${response.status}`);
+          }
+
+          return await response.json();
+        }, {
+          maxRetries: 2,
+          retryDelay: 1000,
         });
-
-        let result: any = null;
-        try {
-          result = await response.json().catch(() => null);
-        } catch {
-          // ignore
-        }
-
-        if (!response.ok) {
-          const text = await response.text().catch(() => '');
-          const serverMessage = (result && result.error) || text || `HTTP ${response.status}`;
-          console.error('[uploadPDFs] Upload failed:', serverMessage, { status: response.status, body: result || text });
-          // Reset flag on failure to allow retry
-          pdfUploadAttemptedRef.current = false;
-          throw new Error(serverMessage || 'Failed to upload PDFs');
-        }
 
         if (!result || (!result.resumeUrl && !result.coverLetterUrl)) {
           console.error('[uploadPDFs] Unexpected API response shape:', result);
@@ -770,11 +768,11 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
         setFinalResumeUrl(result.resumeUrl || null);
         setFinalCoverLetterUrl(result.coverLetterUrl || null);
-        setUploadComplete(true); // ✅ prevent re-upload
+        setUploadComplete(true);
 
       } catch (error) {
         console.error('❌ Error uploading PDFs:', error);
-        // Flag is reset above on known errors; keep it set for unknown errors to avoid infinite loops
+        pdfUploadAttemptedRef.current = false;
       }
     };
 
@@ -1681,7 +1679,7 @@ const generateDetailedCoverLetterHTML = (results: any): string => {
       <!-- Footer -->
       <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: center;">
         <p style="font-size: 11px; color: #9ca3af; margin: 0;">
-          This cover letter was AI-enhanced and personalized for the ${jobDetails.position || 'target position'} at ${jobDetails.company_name || 'the company'}.
+          ${name} • ${email} • ${phone}
         </p>
       </div>
     </div>
