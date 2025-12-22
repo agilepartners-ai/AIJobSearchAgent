@@ -227,7 +227,15 @@ export class AIEnhancementService {
 
     // Create system prompt for AI enhancement (matching old repo pattern)
     private static createSystemPrompt(): string {
-    return `You are an expert resume optimization AI assistant specializing in ATS optimization and job matching. Your task is to analyze a resume against a job description and provide comprehensive optimization recommendations.
+    return `You are an expert resume optimization specialist with 15+ years of experience in career counseling and HR. Write in a natural, human voice with varied sentence structures and authentic professional tone. Avoid repetitive patterns, overly formal language, or predictable AI writing markers.
+
+IMPORTANT - Write like a human:
+- Use varied sentence lengths (mix short and longer sentences naturally)
+- Include occasional contractions where appropriate
+- Vary paragraph openings and avoid formulaic patterns
+- Write with genuine enthusiasm but remain professional
+- Use specific industry language naturally, not forced
+- Include subtle personality while maintaining professionalism
 
 Always include a compact, crisp, professional summary suitable for use at the top of a resume (2-3 sentences maximum). Keep this summary short, precise, and professional. For other sections prefer concise, actionable items rather than long paragraphs.
 
@@ -286,7 +294,18 @@ CRITICAL JSON FORMATTING REQUIREMENTS:
 
     // Create system prompt for detailed AI enhancement
     private static createDetailedSystemPrompt(): string {
-    return `You are a professional career consultant helping to refine and optimize resume and cover letter content. Write in a natural, human tone that sounds authentic and professional - avoid corporate jargon, buzzwords, or overly formal language. Create content that reads as if written by the candidate themselves, not by an automated system.
+    return `You are a senior career advisor and professional writer with extensive experience helping professionals land their dream jobs. Write in an authentic, human voice that sounds natural and unforced. Your writing should pass as genuinely human-written content.
+
+CRITICAL - Human Writing Guidelines:
+- Vary sentence structure significantly (short, medium, long - mix them naturally)
+- Use natural transitions and occasional contractions
+- Avoid repetitive opening words (don't start multiple sentences with "I", "My", "The", etc.)
+- Write with genuine enthusiasm but authentic restraint
+- Include specific details that feel personally crafted, not templated
+- Use active voice primarily but mix in passive where it sounds natural
+- Avoid buzzwords unless truly relevant; prefer concrete language
+- Write cover letters that sound like a real person speaking, not a robot
+- Include subtle imperfections that make it feel authentic (varied rhythm, natural emphasis)
 
 Always include a compact, crisp, professional summary suitable for use at the top of a resume (2-3 sentences maximum). Write in a natural, conversational yet professional tone. Use authentic language that a real person would use when describing their own experience. Avoid phrases that sound robotic or template-like.
 
@@ -397,9 +416,9 @@ You must respond with a valid JSON object containing the following structure:
       ]
     },
     "detailed_cover_letter": {
-      "opening_paragraph": "4-5 sentence natural, genuine opening that expresses authentic interest in the specific role and company. Use personal, conversational language that sounds like a real person writing, not a template. Avoid clichés like 'I am writing to express my interest' - be more natural and direct.",
-      "body_paragraph": "8-10 sentence paragraph written in first-person, conversational professional tone. Connect personal experiences to job requirements using specific examples. Avoid corporate buzzwords and clichés like 'synergy', 'paradigm shift', 'leverage', etc. Write as if having a genuine conversation about your qualifications. Use varied sentence structures and natural transitions.",
-      "closing_paragraph": "3-4 sentence authentic closing that naturally expresses interest in next steps. Sound professional but personable, like you're writing to a real person, not filling out a form. Avoid overly formal phrases - be warm but professional."
+      "opening_paragraph": "4-5 sentence engaging opening that sounds genuinely human - vary sentence length, use natural enthusiasm without being over-the-top, mention specific job title and company, and highlight most relevant qualification. Write as if you're having a professional conversation, not delivering a formal speech.",
+      "body_paragraph": "8-10 sentence detailed paragraph with VARIED sentence structure connecting specific experiences to job requirements. Mix short punchy sentences with longer detailed ones. Use concrete examples and quantified achievements naturally woven into storytelling. Avoid formulaic patterns - write as a real person would describe their experience to an interested colleague. Include authentic transitions between ideas.",
+      "closing_paragraph": "3-4 sentence strong closing with natural flow - express genuine interest without sounding desperate or robotic. Mention next steps conversationally. End with warmth but professionalism. Sound like a real person, not a template."
     },
     "cover_letter_outline": {
       "opening": "Brief opening guidance",
@@ -410,15 +429,16 @@ You must respond with a valid JSON object containing the following structure:
 }
 
 Focus on:
-1. Writing in natural, human language - avoid robotic or template-like phrasing
-2. Using authentic, conversational yet professional tone throughout
-3. Creating content that sounds like it was genuinely written by the candidate
-4. Including specific examples and quantified achievements in a natural way
-5. Incorporating job keywords naturally without stuffing or forced language
-6. Avoiding AI-sounding phrases, corporate buzzwords, and clichés
-7. Making the cover letter sound like a real person expressing genuine interest
-8. Never mentioning AI, automated tools, or that content was generated
-9. Writing as if you ARE the candidate sharing your own authentic story`;
+1. Writing in an authentic, human voice that avoids AI detection patterns
+2. Creating comprehensive, multi-page content suitable for experienced professionals
+3. Using specific examples and quantified achievements woven naturally into narratives
+4. Incorporating job-specific keywords organically, not forced
+5. Ensuring ATS optimization while maintaining natural readability
+6. Creating compelling narratives with varied sentence structures that connect experience to job requirements
+7. Providing detailed sections that showcase full professional profile with personality
+8. Making cover letter sound like a real professional wrote it - warm, genuine, specific
+9. Varying writing patterns to avoid repetitive or formulaic language
+10. Including subtle imperfections that make content feel authentically human`;
     }
 
     // Create user prompt

@@ -143,7 +143,7 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
     newFormData[section].push(emptyEntry);
     dispatch(setFormData(newFormData));
     // Auto-expand section
-    let newExpanded: string[] = Array.isArray(expandedSections)
+    const newExpanded: string[] = Array.isArray(expandedSections)
       ? [...expandedSections]
       : Array.from(expandedSections as any);
     if (!newExpanded.includes(section)) {
