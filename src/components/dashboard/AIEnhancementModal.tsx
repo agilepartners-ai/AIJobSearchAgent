@@ -667,7 +667,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       // Build optimization results (same as handleGenerateAI)
       const newOptimizationResults = {
         matchScore: enhancementResult.analysis.match_score,
-        summary: `Your resume has been AI-enhanced for ${applicationData?.position || 'this position'}`,
+        summary: `Your resume has been optimized for ${applicationData?.position || 'this position'}`,
         strengths: enhancementResult.analysis.strengths,
         gaps: enhancementResult.analysis.gaps,
         suggestions: enhancementResult.analysis.suggestions,
@@ -884,7 +884,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                     AI Enhancement in Progress
                   </h3>
                   <p className="text-sm font-medium text-blue-300 animate-fade-in-text">
-                    {extractionProgress || "Generating your AI-enhanced resume & cover letter..."}
+                    {extractionProgress || "Generating your optimized resume & cover letter..."}
                   </p>
                   
                   {/* Rotating Informative Text - Dark Grey Box */}
@@ -1340,7 +1340,7 @@ const generateDetailedResumeHTML = (results: any): string => {
       <section style="margin-bottom: 20px;">
         <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PROFESSIONAL SUMMARY</h2>
         <p style="text-align: justify; line-height: 1.6; font-size: 13px; margin: 0;">
-          ${results.aiEnhancements?.enhancedSummary || sections.professional_summary || 'AI-enhanced professional summary highlighting relevant experience, key skills, and value proposition tailored to the target position. This comprehensive summary demonstrates alignment with job requirements and showcases unique qualifications that make the candidate an ideal fit for the role.'}
+          ${results.aiEnhancements?.enhancedSummary || sections.professional_summary || 'Accomplished professional with proven expertise in key areas aligned with the target role. Track record of delivering measurable results and driving organizational success through strategic initiatives and effective collaboration.'}
         </p>
       </section>
 
@@ -1677,12 +1677,6 @@ const generateDetailedCoverLetterHTML = (results: any): string => {
         </p>
       </div>
 
-      <!-- Footer -->
-      <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: center;">
-        <p style="font-size: 11px; color: #9ca3af; margin: 0;">
-          This cover letter was AI-enhanced and personalized for the ${jobDetails.position || 'target position'} at ${jobDetails.company_name || 'the company'}.
-        </p>
-      </div>
     </div>
   `;
 };
