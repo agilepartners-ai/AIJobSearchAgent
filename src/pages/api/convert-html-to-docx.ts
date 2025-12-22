@@ -72,7 +72,7 @@ class ResumeContentParser {
       let title = '';
       let company = '';
       let dates = '';
-      let location = '';
+      const location = '';
       const responsibilities: string[] = [];
 
       const titleMatch = block.match(/<h3[^>]*>([^<]+)<\/h3>/);

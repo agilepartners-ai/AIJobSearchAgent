@@ -418,7 +418,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         const mimeMatch = arr[0].match(/:(.*?);/);
         const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
         const bstr = arr[1] ? atob(arr[1]) : '';
-        let n = bstr.length, u8arr = new Uint8Array(n);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
         while (n--) u8arr[n] = bstr.charCodeAt(n);
         const fileToProcess = new File([u8arr], selectedFileMeta.name, { type: mime });
 

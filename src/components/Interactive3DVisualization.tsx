@@ -116,7 +116,7 @@ const Interactive3DVisualization: React.FC<Interactive3DVisualizationProps> = ({
       // Create main planes with varied sizes for visual hierarchy
     positions.forEach((pos, index) => {
       let geometry = planeGeometry;
-      let material = materials.mainPlane.clone();
+      const material = materials.mainPlane.clone();
         // Create visual hierarchy with different sizes - reduced opacity for background
       if (index === 0) {
         // Central node - larger and more prominent
