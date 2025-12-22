@@ -152,6 +152,16 @@ const nextConfig = {
     return [];
   },
   
+  // Rewrites to handle favicon.ico requests
+  async rewrites() {
+    return [
+      {
+        source: '/favicon.ico',
+        destination: '/favicon.png',
+      },
+    ];
+  },
+  
   // Environment variables that should be inlined during build
   env: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
