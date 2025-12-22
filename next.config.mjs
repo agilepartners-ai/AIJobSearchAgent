@@ -36,8 +36,25 @@ const nextConfig = {
     ],
   },
   
+  // Turbopack configuration for Next.js 16
+  turbopack: {
+    // Empty config to silence the webpack/turbopack warning
+  },
+  
   // Webpack optimizations
   webpack: (config, { dev, isServer }) => {
+    // Add fallbacks for client-side builds to prevent Node.js modules from being bundled
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        child_process: false,
+        'google-auth-library': false,
+      };
+    }
+    
     // Optimize bundle size
     if (!dev && !isServer) {
       config.optimization = {
