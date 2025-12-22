@@ -3,8 +3,8 @@ import { useDailyEvent } from "@daily-co/daily-react";
 import { memo, useCallback, useMemo, useState } from "react";
 import { useAtom } from "jotai";
 import { cn } from "@/utils";
-import nice from "@/assets/sounds/nice.mp3";
-import naughty from "@/assets/sounds/naughty.mp3";
+import beep from "@/assets/sounds/beep.mp3";
+import zoom from "@/assets/sounds/zoom.mp3";
 import { niceScoreAtom, naughtyScoreAtom } from "@/store/game";
 
 const Typewriter = ({
@@ -154,12 +154,12 @@ const GameComponent: React.FC = () => {
   const [showNice, setShowNice] = useState(false);
   const [showNaughty, setShowNaughty] = useState(false);
   const audioNice = useMemo(() => {
-    const audioObj = new Audio(nice);
+    const audioObj = new Audio(beep);
     audioObj.volume = 0.7;
     return audioObj;
   }, []);
   const audioNaughty = useMemo(() => {
-    const audioObj = new Audio(naughty);
+    const audioObj = new Audio(zoom);
     audioObj.volume = 0.7;
     return audioObj;
   }, []);
