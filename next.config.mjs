@@ -3,9 +3,6 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   
-  // Performance optimizations
-  swcMinify: true,
-  
   // Compiler optimizations for Next.js 15+
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {
@@ -32,14 +29,6 @@ const nextConfig = {
       'framer-motion',
       '@iconify/react',
     ],
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
   },
   
   // Webpack optimizations

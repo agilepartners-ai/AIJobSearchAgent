@@ -295,9 +295,11 @@ const Interactive3DVisualization: React.FC<Interactive3DVisualizationProps> = ({
           const currentRadius = userData.radius * (1 + Math.sin(time + userData.angle) * 0.1);
           
           const parentPlane = planes[userData.parentPlaneIndex];
-          mesh.position.x = parentPlane.position.x + Math.cos(currentAngle) * currentRadius;
-          mesh.position.y = parentPlane.position.y + Math.sin(currentAngle) * currentRadius;
-          mesh.position.z = parentPlane.position.z + Math.sin(currentAngle * 2) * 0.3;
+          if (parentPlane) {
+            mesh.position.x = parentPlane.position.x + Math.cos(currentAngle) * currentRadius;
+            mesh.position.y = parentPlane.position.y + Math.sin(currentAngle) * currentRadius;
+            mesh.position.z = parentPlane.position.z + Math.sin(currentAngle * 2) * 0.3;
+          }
           
           // Individual rotation
           mesh.rotation.z += userData.rotationSpeed || 0.01;
