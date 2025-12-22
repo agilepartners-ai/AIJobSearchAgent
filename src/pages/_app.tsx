@@ -26,9 +26,6 @@ function MyApp({ Component, pageProps }: AppProps) {
   useTokenRefreshMonitor(5 * 60 * 1000); // Refresh 5 minutes before expiry
 
   useEffect(() => {
-    // SSR guard - only run on client-side
-    if (typeof window === 'undefined') return;
-
     // Global error handler for uncaught errors
     const handleError = (event: ErrorEvent) => {
       // Check for token expiration first

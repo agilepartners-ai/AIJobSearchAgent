@@ -9,9 +9,6 @@ const Header: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    // SSR guard - only run on client-side
-    if (typeof window === 'undefined') return;
-    
     const handleScroll = () => {
       const offset = window.scrollY;
       if (offset > 50) {

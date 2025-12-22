@@ -5,12 +5,10 @@ import { ArrowUp } from 'lucide-react';
 
 const Footer: React.FC = () => {
   const scrollToTop = () => {
-    if (typeof window !== 'undefined') {
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    }
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   };
 
   return (

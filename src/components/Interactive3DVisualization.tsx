@@ -42,8 +42,6 @@ const Interactive3DVisualization: React.FC<Interactive3DVisualizationProps> = ({
   }), []);
 
   useEffect(() => {
-    // SSR guard - only run on client-side
-    if (typeof window === 'undefined') return;
     if (!mountRef.current) return;
 
     // Scene setup
@@ -380,9 +378,7 @@ const Interactive3DVisualization: React.FC<Interactive3DVisualizationProps> = ({
     };
 
     // Event listeners
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', handleResize);
-    }
+    window.addEventListener('resize', handleResize);
     mountRef.current.addEventListener('mousemove', handleMouseMove);
 
     // Start animation
@@ -394,9 +390,7 @@ const Interactive3DVisualization: React.FC<Interactive3DVisualizationProps> = ({
         cancelAnimationFrame(animationIdRef.current);
       }
       
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('resize', handleResize);
-      }
+      window.removeEventListener('resize', handleResize);
       if (mountRef.current) {
         mountRef.current.removeEventListener('mousemove', handleMouseMove);
         if (renderer.domElement.parentNode === mountRef.current) {
