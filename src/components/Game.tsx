@@ -1,10 +1,8 @@
 import { motion } from "framer-motion";
 import { useDailyEvent } from "@daily-co/daily-react";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { useAtom } from "jotai";
 import { cn } from "@/utils";
-import beep from "@/assets/sounds/beep.mp3";
-import zoom from "@/assets/sounds/zoom.mp3";
 import { niceScoreAtom, naughtyScoreAtom } from "@/store/game";
 
 const Typewriter = ({
@@ -153,16 +151,6 @@ const GameComponent: React.FC = () => {
   const [naughtyScore, setNaughtyScore] = useAtom(naughtyScoreAtom);
   const [showNice, setShowNice] = useState(false);
   const [showNaughty, setShowNaughty] = useState(false);
-  const audioNice = useMemo(() => {
-    const audioObj = new Audio(beep);
-    audioObj.volume = 0.7;
-    return audioObj;
-  }, []);
-  const audioNaughty = useMemo(() => {
-    const audioObj = new Audio(zoom);
-    audioObj.volume = 0.7;
-    return audioObj;
-  }, []);
 
   const getScorePoint = (score: number) => {
     if (score > 0.75) return 0.75;
@@ -197,17 +185,11 @@ const GameComponent: React.FC = () => {
               setTimeout(() => {
                 setShowNice(false);
               }, 2000);
-              audioNice.play().catch((error) => {
-                console.warn("Audio playback failed:", error);
-              });
               setNiceScore(scorePoint);
             }
           } else if (score < 0) {
             if (scorePoint !== naughtyScore) {
               setShowNaughty(true);
-              audioNaughty.play().catch((error) => {
-                console.warn("Audio playback failed:", error);
-              });
               setTimeout(() => {
                 setShowNaughty(false);
               }, 2000);
@@ -216,7 +198,7 @@ const GameComponent: React.FC = () => {
           }
         }
       },
-      [niceScore, naughtyScore],
+      [niceScore, naughtyScore, setNiceScore, setNaughtyScore],
     ),
   );
 
