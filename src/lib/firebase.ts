@@ -24,6 +24,16 @@ if (typeof window !== 'undefined' && !firebaseConfig.apiKey) {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+
+// Only initialize analytics on client-side
+let analytics = null;
+if (typeof window !== 'undefined') {
+  try {
+    const { getAnalytics } = require('firebase/analytics');
+    analytics = getAnalytics(app);
+  } catch (error) {
+    console.warn('Analytics initialization failed:', error);
+  }
+}
 
 export { app, auth, db, analytics };

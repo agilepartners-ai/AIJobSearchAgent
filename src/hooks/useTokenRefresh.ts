@@ -109,6 +109,9 @@ export function useTokenExpiredHandler(callbacks?: {
  */
 export function useTokenRefreshMonitor(refreshBeforeExpiry: number = 5 * 60 * 1000) {
   useEffect(() => {
+    // Skip during SSR
+    if (typeof window === 'undefined') return;
+    
     console.log('[useTokenRefreshMonitor] Setting up token refresh monitor');
     const cleanup = setupTokenRefreshMonitor(refreshBeforeExpiry);
     

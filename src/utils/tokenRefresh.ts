@@ -256,6 +256,11 @@ export async function handleTokenExpiredError(
  * Call this when initializing your app
  */
 export function setupTokenRefreshMonitor(refreshBeforeExpiry: number = 5 * 60 * 1000): () => void {
+  // Skip during SSR
+  if (typeof window === 'undefined') {
+    return () => {};
+  }
+  
   let intervalId: NodeJS.Timeout | null = null;
   
   const checkAndRefreshToken = async () => {
