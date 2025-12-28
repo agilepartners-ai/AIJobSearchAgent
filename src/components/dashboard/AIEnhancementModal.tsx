@@ -119,9 +119,9 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   const previousJobDescriptionRef = React.useRef<string>('');
   useEffect(() => {
     // Only dispatch if jobDescription has actually changed and is different from what's in Redux
-    if (jobDescription && 
-        jobDescription !== persistedJobDescription && 
-        jobDescription !== previousJobDescriptionRef.current) {
+    if (jobDescription &&
+      jobDescription !== persistedJobDescription &&
+      jobDescription !== previousJobDescriptionRef.current) {
       previousJobDescriptionRef.current = jobDescription;
       dispatch({ type: 'aiEnhancementModal/openModal', payload: { jobDescription } });
     }
@@ -180,10 +180,12 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       // Try a remote font registration retry before failing hard. This helps
       // when local font binaries cause encoding issues in some browsers.
       try {
-        Font.register({ family: 'Inter', fonts: [
-          { src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2', fontWeight: 'normal' },
-          { src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2', fontWeight: 'bold' }
-        ]});
+        Font.register({
+          family: 'Inter', fonts: [
+            { src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2', fontWeight: 'normal' },
+            { src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2', fontWeight: 'bold' }
+          ]
+        });
         const asPdf2 = pdf(doc);
         const blob2: Blob = await asPdf2.toBlob();
         return await blobToDataUrl(blob2);
@@ -226,7 +228,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       const interval = setInterval(() => {
         // Fade out
         setTextFadeClass('animate-fade-out-text');
-        
+
         setTimeout(() => {
           // Change text randomly
           const newRandomIndex = Math.floor(Math.random() * loaderTexts.length);
@@ -632,23 +634,23 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
   const handleRegenerate = async (customPrompt: string) => {
     console.log('🔄 Regenerating with custom prompt:', customPrompt);
-    
+
     // Go back to loading state
     dispatch(setShowResults(false));
     setLoading(true);
     setExtractionProgress('Regenerating with your custom instructions...');
-    
+
     try {
       // Get the existing resume text from optimizationResults
       const resumeText = optimizationResults?.extractedText || manualText;
-      
+
       if (!resumeText) {
         throw new Error('No resume text available for regeneration');
       }
 
       // Call AI enhancement with custom prompt
       const resolvedProfile = detailedUserProfile || (user ? await ProfileService.getUserProfile(user.id) : null);
-      
+
       const enhancementResult = await AIEnhancementService.enhanceWithOpenAI(
         resumeText,
         jobDescription || persistedJobDescription || '',
@@ -700,7 +702,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   const [uploadComplete, setUploadComplete] = useState(false);
   const [FinalResumeUrl, setFinalResumeUrl] = useState<string | null>(null);
   const [FinalCoverLetterUrl, setFinalCoverLetterUrl] = useState<string | null>(null);
-  
+
   // Guard to prevent repeated PDF generation and uploads
   const pdfUploadAttemptedRef = useRef(false);
 
@@ -782,7 +784,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   }, [showResults, optimizationResults, applicationData?.id, user?.id, uploadComplete, FinalResumeUrl, FinalCoverLetterUrl]);
 
   // ✅ FIX: Use ref to track last updated URLs to prevent infinite loop
-  const lastUpdatedUrlsRef = useRef<{resume: string | null, cover: string | null}>({ resume: null, cover: null });
+  const lastUpdatedUrlsRef = useRef<{ resume: string | null, cover: string | null }>({ resume: null, cover: null });
 
   React.useEffect(() => {
     if (
@@ -794,7 +796,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
     // ✅ Check if we already updated with these exact URLs
     if (lastUpdatedUrlsRef.current.resume === FinalResumeUrl &&
-        lastUpdatedUrlsRef.current.cover === FinalCoverLetterUrl) {
+      lastUpdatedUrlsRef.current.cover === FinalCoverLetterUrl) {
       return; // Already updated, skip
     }
 
@@ -873,12 +875,12 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                     <Brain className="text-white animate-spin-slow" size={40} />
                   </span>
                 </div>
-                
+
                 {/* Progress Bar */}
                 <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden shadow-inner">
                   <div className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-progress-bar"></div>
                 </div>
-                
+
                 {/* Status Text */}
                 <div className="text-center space-y-4">
                   <h3 className="text-xl font-bold text-white animate-fade-in-text">
@@ -887,7 +889,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                   <p className="text-sm font-medium text-blue-300 animate-fade-in-text">
                     {extractionProgress || "Generating your AI-enhanced resume & cover letter..."}
                   </p>
-                  
+
                   {/* Rotating Informative Text - Dark Grey Box */}
                   {currentLoaderText && (
                     <div className="mt-6">
@@ -896,7 +898,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                       </p>
                     </div>
                   )}
-                  
+
                   {/* Cancel Button */}
                   <div className="mt-6">
                     <button
@@ -913,7 +915,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                 </div>
               </div>
             </div>
-            
+
             {/* CSS Animations */}
             <style>{`
               @keyframes bounce-slow {
@@ -1108,18 +1110,18 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     AI System Prompt (replace the entire system prompt sent to the AI)
                   </label>
-            <textarea
-              value={systemPrompt}
-              onChange={(e) => {
-                setSystemPrompt(e.target.value);
-                setSystemPromptEdited(true);
-              }}
-              placeholder="Edit the full system prompt sent to the AI here..."
-              className="w-full h-28 p-3 border border-gray-300 dark:border-gray-600 rounded-lg resize-y text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              If edited, the system prompt will completely replace the default system instructions.
-            </p>
+                  <textarea
+                    value={systemPrompt}
+                    onChange={(e) => {
+                      setSystemPrompt(e.target.value);
+                      setSystemPromptEdited(true);
+                    }}
+                    placeholder="Edit the full system prompt sent to the AI here..."
+                    className="w-full h-28 p-3 border border-gray-300 dark:border-gray-600 rounded-lg resize-y text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    If edited, the system prompt will completely replace the default system instructions.
+                  </p>
                 </div>
 
                 {/* Editable AI User Prompt Section */}
@@ -1247,12 +1249,12 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           <div className="flex gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
-                onClick={handleGenerateAI}
-                disabled={
-                  loading ||
-                  // allow if we have a file OR extracted/manual text
-                  (!selectedFileMeta && !cloudFileUrl && !extractedPDFData?.text && !manualText.trim())
-                }
+              onClick={handleGenerateAI}
+              disabled={
+                loading ||
+                // allow if we have a file OR extracted/manual text
+                (!selectedFileMeta && !cloudFileUrl && !extractedPDFData?.text && !manualText.trim())
+              }
               className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 px-6 rounded-lg font-medium flex items-center justify-center gap-2 transition-all disabled:cursor-not-allowed"
             >
               {loading ? (
@@ -1327,6 +1329,26 @@ const generateDetailedResumeHTML = (results: any): string => {
     (parsedPersonal.location && parsedPersonal.location.trim()) ||
     '';
 
+  // Helper to check if a section has content
+  const hasContent = (data: any): boolean => {
+    if (!data) return false;
+    if (Array.isArray(data)) return data.length > 0;
+    if (typeof data === 'string') return data.trim().length > 0;
+    if (typeof data === 'object') return Object.keys(data).length > 0;
+    return false;
+  };
+
+  // Helper to safely render skills (handles both string and object formats)
+  const renderSkills = (skills: any[]): string[] => {
+    return skills
+      .map((skill: any) => {
+        if (typeof skill === 'string') return skill.trim();
+        if (skill && typeof skill === 'object' && skill.name) return skill.name.trim();
+        return null;
+      })
+      .filter((skill: string | null): skill is string => skill !== null && skill.length > 0);
+  };
+
   return `
     <div style="font-family: 'Arial', sans-serif; line-height: 1.4; color: #333; max-width: 800px;">
       <!-- Header Section -->
@@ -1337,83 +1359,67 @@ const generateDetailedResumeHTML = (results: any): string => {
         </div>
       </header>
 
+      <!-- Career Objective (if present) -->
+      ${hasContent(sections.objective) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">CAREER OBJECTIVE</h2>
+        <p style="text-align: justify; line-height: 1.6; font-size: 13px; margin: 0;">${sections.objective}</p>
+      </section>
+      ` : ''}
+
       <!-- Professional Summary -->
       <section style="margin-bottom: 20px;">
         <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PROFESSIONAL SUMMARY</h2>
         <p style="text-align: justify; line-height: 1.6; font-size: 13px; margin: 0;">
-          ${results.aiEnhancements?.enhancedSummary || sections.professional_summary || 'AI-enhanced professional summary highlighting relevant experience, key skills, and value proposition tailored to the target position. This comprehensive summary demonstrates alignment with job requirements and showcases unique qualifications that make the candidate an ideal fit for the role.'}
+          ${results.aiEnhancements?.enhancedSummary || sections.professional_summary || 'AI-enhanced professional summary highlighting relevant experience, key skills, and value proposition tailored to the target position.'}
         </p>
       </section>
 
       <!-- Technical Skills -->
       ${(() => {
-        // Get technical skills and ensure they are strings
-        const rawSkills = sections.technical_skills || results.skillsOptimization?.technicalSkills || [];
-        const skills = rawSkills
-          .map((skill: any) => {
-            // Handle both string and object skills
-            if (typeof skill === 'string') return skill.trim();
-            if (skill && typeof skill === 'object' && skill.name) return skill.name.trim();
-            return null;
-          })
-          .filter((skill: string | null) => skill && skill.length > 0);
-        
-        // Only render section if we have valid skills
-        if (skills.length === 0) return '';
-        
-        return `
+      const skills = renderSkills(sections.technical_skills || results.skillsOptimization?.technicalSkills || []);
+      if (skills.length === 0) return '';
+      return `
       <section style="margin-bottom: 20px;">
         <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">TECHNICAL SKILLS</h2>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 6px; margin-bottom: 8px;">
           ${skills.map((skill: string) =>
-            `<span style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-size: 12px; border: 1px solid #e5e7eb;">${skill}</span>`
-          ).join('')}
+        `<span style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-size: 12px; border: 1px solid #e5e7eb;">${skill}</span>`
+      ).join('')}
         </div>
       </section>`;
-      })()}
+    })()}
 
-      <!-- Core Competencies -->
+      <!-- Core Competencies / Soft Skills -->
       ${(() => {
-        // Get soft skills and ensure they are strings
-        const rawSkills = sections.soft_skills || results.skillsOptimization?.softSkills || [];
-        const skills = rawSkills
-          .map((skill: any) => {
-            // Handle both string and object skills
-            if (typeof skill === 'string') return skill.trim();
-            if (skill && typeof skill === 'object' && skill.name) return skill.name.trim();
-            return null;
-          })
-          .filter((skill: string | null) => skill && skill.length > 0);
-        
-        // Only render section if we have valid skills
-        if (skills.length === 0) return '';
-        
-        return `
+      const skills = renderSkills(sections.soft_skills || results.skillsOptimization?.softSkills || []);
+      if (skills.length === 0) return '';
+      return `
       <section style="margin-bottom: 20px;">
         <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">CORE COMPETENCIES</h2>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 6px;">
           ${skills.map((skill: string) =>
-            `<span style="background: #e0f2fe; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #0277bd; border: 1px solid #b3e5fc;">${skill}</span>`
-          ).join('')}
+        `<span style="background: #e0f2fe; padding: 4px 8px; border-radius: 4px; font-size: 12px; color: #0277bd; border: 1px solid #b3e5fc;">${skill}</span>`
+      ).join('')}
         </div>
       </section>`;
-      })()}
+    })()}
 
       <!-- Professional Experience -->
+      ${hasContent(sections.experience) ? `
       <section style="margin-bottom: 20px;">
         <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PROFESSIONAL EXPERIENCE</h2>
         ${(sections.experience || []).map((exp: any) => `
           <div style="margin-bottom: 18px; page-break-inside: avoid;">
             <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;">
               <h3 style="font-size: 14px; font-weight: 600; margin: 0; color: #1f2937;">${exp.position || 'Job Title'}</h3>
-              <span style="font-size: 12px; color: #6b7280; font-weight: 500;">${exp.duration || 'Start - End'}</span>
+              <span style="font-size: 12px; color: #6b7280; font-weight: 500;">${exp.duration || ''}</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
               <span style="font-size: 13px; color: #4b5563; font-weight: 500;">${exp.company || 'Company Name'}</span>
-              <span style="font-size: 12px; color: #6b7280;">${exp.location || 'City, State'}</span>
+              <span style="font-size: 12px; color: #6b7280;">${exp.location || ''}</span>
             </div>
-            
-            ${exp.key_responsibilities && Array.isArray(exp.key_responsibilities) && exp.key_responsibilities.length ? `
+            ${hasContent(exp.key_responsibilities) ? `
               <div style="margin-bottom: 8px;">
                 <strong style="font-size: 12px; color: #374151;">Key Responsibilities:</strong>
                 <ul style="margin: 3px 0 0 15px; padding: 0;">
@@ -1421,8 +1427,7 @@ const generateDetailedResumeHTML = (results: any): string => {
                 </ul>
               </div>
             ` : ''}
-            
-            ${exp.achievements && Array.isArray(exp.achievements) && exp.achievements.length ? `
+            ${hasContent(exp.achievements) ? `
               <div style="margin-bottom: 8px;">
                 <strong style="font-size: 12px; color: #374151;">Key Achievements:</strong>
                 <ul style="margin: 3px 0 0 15px; padding: 0;">
@@ -1430,8 +1435,7 @@ const generateDetailedResumeHTML = (results: any): string => {
                 </ul>
               </div>
             ` : ''}
-            
-            ${exp.technologies_used && Array.isArray(exp.technologies_used) && exp.technologies_used.length ? `
+            ${hasContent(exp.technologies_used) ? `
               <div style="margin-top: 5px;">
                 <strong style="font-size: 11px; color: #6b7280;">Technologies:</strong>
                 <span style="font-size: 11px; color: #6b7280;"> ${exp.technologies_used.join(', ')}</span>
@@ -1440,137 +1444,342 @@ const generateDetailedResumeHTML = (results: any): string => {
           </div>
         `).join('')}
       </section>
+      ` : ''}
 
       <!-- Education -->
-      ${sections.education?.length ? `
-        <section style="margin-bottom: 20px;">
-          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">EDUCATION</h2>
-          ${sections.education.map((edu: any) => `
-            <div style="margin-bottom: 12px;">
-              <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                <h3 style="font-size: 13px; font-weight: 600; margin: 0; color: #1f2937;">${edu.degree || 'Degree'} in ${edu.field_of_study || 'Field'}</h3>
-                <span style="font-size: 12px; color: #6b7280;">${edu.graduation_date || 'Year'}</span>
-              </div>
-              <div style="font-size: 12px; color: #4b5563; margin-bottom: 3px;">${edu.institution || 'Institution Name'}</div>
-              ${edu.gpa ? `<div style="font-size: 11px; color: #6b7280;">GPA: ${edu.gpa}</div>` : ''}
-              ${edu.relevant_coursework && Array.isArray(edu.relevant_coursework) && edu.relevant_coursework.length ? `
-                <div style="margin-top: 3px;">
-                  <strong style="font-size: 11px;">Relevant Coursework:</strong>
-                  <span style="font-size: 11px; color: #6b7280;"> ${edu.relevant_coursework.join(', ')}</span>
-                </div>
-              ` : ''}
-              ${edu.honors && Array.isArray(edu.honors) && edu.honors.length ? `
-                <div style="margin-top: 3px;">
-                  <strong style="font-size: 11px;">Honors:</strong>
-                  <span style="font-size: 11px; color: #059669;"> ${edu.honors.join(', ')}</span>
-                </div>
-              ` : ''}
+      ${hasContent(sections.education) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">EDUCATION</h2>
+        ${sections.education.map((edu: any) => `
+          <div style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <h3 style="font-size: 13px; font-weight: 600; margin: 0; color: #1f2937;">${edu.degree || 'Degree'}${edu.field_of_study ? ` in ${edu.field_of_study}` : ''}</h3>
+              <span style="font-size: 12px; color: #6b7280;">${edu.graduation_date || ''}</span>
             </div>
-          `).join('')}
-        </section>
+            <div style="font-size: 12px; color: #4b5563; margin-bottom: 3px;">${edu.institution || ''}</div>
+            ${edu.gpa ? `<div style="font-size: 11px; color: #6b7280;">GPA: ${edu.gpa}</div>` : ''}
+            ${hasContent(edu.relevant_coursework) ? `
+              <div style="margin-top: 3px;">
+                <strong style="font-size: 11px;">Relevant Coursework:</strong>
+                <span style="font-size: 11px; color: #6b7280;"> ${edu.relevant_coursework.join(', ')}</span>
+              </div>
+            ` : ''}
+            ${hasContent(edu.honors) ? `
+              <div style="margin-top: 3px;">
+                <strong style="font-size: 11px;">Honors:</strong>
+                <span style="font-size: 11px; color: #059669;"> ${edu.honors.join(', ')}</span>
+              </div>
+            ` : ''}
+          </div>
+        `).join('')}
+      </section>
       ` : ''}
 
       <!-- Projects -->
-      ${sections.projects?.length ? `
-        <section style="margin-bottom: 20px;">
-          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">KEY PROJECTS</h2>
-          ${sections.projects.map((project: any) => `
-            <div style="margin-bottom: 15px; page-break-inside: avoid;">
-              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px;">
-                <h3 style="font-size: 13px; font-weight: 600; margin: 0; color: #1f2937;">${project.name || 'Project Name'}</h3>
-                <span style="font-size: 11px; color: #6b7280;">${project.duration || 'Duration'}</span>
-              </div>
-              <p style="font-size: 12px; margin-bottom: 5px; line-height: 1.4;">${project.description || 'Project description'}</p>
-              ${project.achievements && Array.isArray(project.achievements) && project.achievements.length ? `
-                <ul style="margin: 5px 0 0 15px; padding: 0;">
-                  ${project.achievements.map((achievement: string) => `<li style="margin-bottom: 2px; font-size: 12px; color: #059669;">${achievement}</li>`).join('')}
-                </ul>
-              ` : ''}
-              ${project.technologies && Array.isArray(project.technologies) && project.technologies.length ? `
-                <div style="margin-top: 5px;">
-                  <strong style="font-size: 11px; color: #6b7280;">Technologies:</strong>
-                  <span style="font-size: 11px; color: #6b7280;"> ${project.technologies.join(', ')}</span>
-                </div>
-              ` : ''}
+      ${hasContent(sections.projects) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">KEY PROJECTS</h2>
+        ${sections.projects.map((project: any) => `
+          <div style="margin-bottom: 15px; page-break-inside: avoid;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px;">
+              <h3 style="font-size: 13px; font-weight: 600; margin: 0; color: #1f2937;">${project.name || 'Project Name'}</h3>
+              <span style="font-size: 11px; color: #6b7280;">${project.duration || ''}</span>
             </div>
-          `).join('')}
-        </section>
+            <p style="font-size: 12px; margin-bottom: 5px; line-height: 1.4;">${project.description || ''}</p>
+            ${hasContent(project.achievements) ? `
+              <ul style="margin: 5px 0 0 15px; padding: 0;">
+                ${project.achievements.map((achievement: string) => `<li style="margin-bottom: 2px; font-size: 12px; color: #059669;">${achievement}</li>`).join('')}
+              </ul>
+            ` : ''}
+            ${hasContent(project.technologies) ? `
+              <div style="margin-top: 5px;">
+                <strong style="font-size: 11px; color: #6b7280;">Technologies:</strong>
+                <span style="font-size: 11px; color: #6b7280;"> ${project.technologies.join(', ')}</span>
+              </div>
+            ` : ''}
+          </div>
+        `).join('')}
+      </section>
       ` : ''}
 
       <!-- Certifications -->
-      ${sections.certifications?.length ? `
-        <section style="margin-bottom: 20px;">
-          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">CERTIFICATIONS</h2>
-          ${sections.certifications.map((cert: any) => `
-            <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <strong style="font-size: 12px; color: #1f2937;">${cert.name || 'Certification Name'}</strong>
-                <div style="font-size: 11px; color: #6b7280;">${cert.issuing_organization || 'Issuing Organization'}</div>
-              </div>
-              <div style="text-align: right; font-size: 11px; color: #6b7280;">
-                <div>Issued: ${cert.issue_date || 'Date'}</div>
-                ${cert.expiration_date ? `<div>Expires: ${cert.expiration_date}</div>` : ''}
-              </div>
+      ${hasContent(sections.certifications) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">CERTIFICATIONS</h2>
+        ${sections.certifications.map((cert: any) => `
+          <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong style="font-size: 12px; color: #1f2937;">${cert.name || ''}</strong>
+              <div style="font-size: 11px; color: #6b7280;">${cert.issuing_organization || ''}</div>
             </div>
-          `).join('')}
-        </section>
+            <div style="text-align: right; font-size: 11px; color: #6b7280;">
+              ${cert.issue_date ? `<div>Issued: ${cert.issue_date}</div>` : ''}
+              ${cert.expiration_date ? `<div>Expires: ${cert.expiration_date}</div>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </section>
+      ` : ''}
+
+      <!-- Licenses -->
+      ${hasContent(sections.licenses) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PROFESSIONAL LICENSES</h2>
+        ${sections.licenses.map((license: any) => `
+          <div style="margin-bottom: 8px;">
+            <strong style="font-size: 12px; color: #1f2937;">${license.name || ''}</strong>
+            <div style="font-size: 11px; color: #6b7280;">${license.issuing_authority || ''} ${license.license_number ? `• #${license.license_number}` : ''}</div>
+            ${license.expiration_date ? `<div style="font-size: 11px; color: #6b7280;">Valid until: ${license.expiration_date}</div>` : ''}
+          </div>
+        `).join('')}
+      </section>
       ` : ''}
 
       <!-- Awards -->
-      ${sections.awards?.length ? `
-        <section style="margin-bottom: 20px;">
-          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">AWARDS & RECOGNITION</h2>
-          ${sections.awards.map((award: any) => `
-            <div style="margin-bottom: 8px;">
-              <div style="display: flex; justify-content: space-between; align-items: baseline;">
-                <strong style="font-size: 12px; color: #1f2937;">${award.title || 'Award Title'}</strong>
-                <span style="font-size: 11px; color: #6b7280;">${award.date || 'Date'}</span>
-              </div>
-              <div style="font-size: 11px; color: #6b7280;">${award.issuing_organization || 'Organization'}</div>
-              ${award.description ? `<p style="font-size: 11px; margin-top: 2px; line-height: 1.3;">${award.description}</p>` : ''}
+      ${hasContent(sections.awards) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">AWARDS & RECOGNITION</h2>
+        ${sections.awards.map((award: any) => `
+          <div style="margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <strong style="font-size: 12px; color: #1f2937;">${award.title || ''}</strong>
+              <span style="font-size: 11px; color: #6b7280;">${award.date || ''}</span>
             </div>
-          `).join('')}
-        </section>
+            <div style="font-size: 11px; color: #6b7280;">${award.issuing_organization || ''}</div>
+            ${award.description ? `<p style="font-size: 11px; margin-top: 2px; line-height: 1.3;">${award.description}</p>` : ''}
+          </div>
+        `).join('')}
+      </section>
+      ` : ''}
+
+      <!-- Key Achievements (standalone section) -->
+      ${hasContent(sections.achievements) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">KEY ACHIEVEMENTS</h2>
+        <ul style="margin: 0 0 0 15px; padding: 0;">
+          ${sections.achievements.map((achievement: any) => {
+      const text = typeof achievement === 'string' ? achievement : achievement.description || '';
+      return text ? `<li style="margin-bottom: 5px; font-size: 12px; line-height: 1.4; color: #059669;">${text}</li>` : '';
+    }).join('')}
+        </ul>
+      </section>
+      ` : ''}
+
+      <!-- Languages -->
+      ${hasContent(sections.languages) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">LANGUAGES</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
+          ${sections.languages.map((lang: any) => {
+      const name = typeof lang === 'string' ? lang : lang.name || '';
+      const level = typeof lang === 'object' ? lang.proficiency || lang.level || '' : '';
+      return name ? `
+              <div style="background: #f3f4f6; padding: 6px 10px; border-radius: 4px; font-size: 12px; border: 1px solid #e5e7eb;">
+                <strong>${name}</strong>${level ? ` - ${level}` : ''}
+              </div>
+            ` : '';
+    }).join('')}
+        </div>
+      </section>
+      ` : ''}
+
+      <!-- Training & Development -->
+      ${hasContent(sections.training) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">TRAINING & DEVELOPMENT</h2>
+        ${sections.training.map((training: any) => `
+          <div style="margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <strong style="font-size: 12px; color: #1f2937;">${training.name || training.title || ''}</strong>
+              <span style="font-size: 11px; color: #6b7280;">${training.date || training.year || ''}</span>
+            </div>
+            <div style="font-size: 11px; color: #6b7280;">${training.provider || training.organization || ''}</div>
+          </div>
+        `).join('')}
+      </section>
+      ` : ''}
+
+      <!-- Courses -->
+      ${hasContent(sections.courses) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">RELEVANT COURSES</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px;">
+          ${sections.courses.map((course: any) => {
+      const name = typeof course === 'string' ? course : course.name || course.title || '';
+      return name ? `<span style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-size: 12px; border: 1px solid #e5e7eb;">${name}</span>` : '';
+    }).join('')}
+        </div>
+      </section>
+      ` : ''}
+
+      <!-- Professional Memberships -->
+      ${hasContent(sections.memberships) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PROFESSIONAL MEMBERSHIPS</h2>
+        ${sections.memberships.map((membership: any) => `
+          <div style="margin-bottom: 8px;">
+            <strong style="font-size: 12px; color: #1f2937;">${membership.organization || membership.name || ''}</strong>
+            ${membership.role ? `<span style="font-size: 11px; color: #6b7280;"> - ${membership.role}</span>` : ''}
+            ${membership.since || membership.year ? `<div style="font-size: 11px; color: #6b7280;">Member since ${membership.since || membership.year}</div>` : ''}
+          </div>
+        `).join('')}
+      </section>
       ` : ''}
 
       <!-- Volunteer Work -->
-      ${sections.volunteer_work?.length ? `
-        <section style="margin-bottom: 20px;">
-          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">VOLUNTEER EXPERIENCE</h2>
-          ${sections.volunteer_work.map((vol: any) => `
-            <div style="margin-bottom: 12px;">
-              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px;">
-                <strong style="font-size: 12px; color: #1f2937;">${vol.role || 'Volunteer Role'}</strong>
-                <span style="font-size: 11px; color: #6b7280;">${vol.duration || 'Duration'}</span>
-              </div>
-              <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">${vol.organization || 'Organization Name'}</div>
-              <p style="font-size: 11px; line-height: 1.3; margin-bottom: 3px;">${vol.description || 'Description of volunteer work'}</p>
-              ${vol.achievements && Array.isArray(vol.achievements) && vol.achievements.length ? `
-                <ul style="margin: 3px 0 0 15px; padding: 0;">
-                  ${vol.achievements.map((achievement: string) => `<li style="margin-bottom: 2px; font-size: 11px; color: #059669;">${achievement}</li>`).join('')}
-                </ul>
-              ` : ''}
+      ${hasContent(sections.volunteer_work) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">VOLUNTEER EXPERIENCE</h2>
+        ${sections.volunteer_work.map((vol: any) => `
+          <div style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px;">
+              <strong style="font-size: 12px; color: #1f2937;">${vol.role || ''}</strong>
+              <span style="font-size: 11px; color: #6b7280;">${vol.duration || ''}</span>
             </div>
-          `).join('')}
-        </section>
+            <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">${vol.organization || ''}</div>
+            ${vol.description ? `<p style="font-size: 11px; line-height: 1.3; margin-bottom: 3px;">${vol.description}</p>` : ''}
+            ${hasContent(vol.achievements) ? `
+              <ul style="margin: 3px 0 0 15px; padding: 0;">
+                ${vol.achievements.map((achievement: string) => `<li style="margin-bottom: 2px; font-size: 11px; color: #059669;">${achievement}</li>`).join('')}
+              </ul>
+            ` : ''}
+          </div>
+        `).join('')}
+      </section>
+      ` : ''}
+
+      <!-- Extracurricular Activities -->
+      ${hasContent(sections.extracurricular) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">EXTRACURRICULAR ACTIVITIES</h2>
+        ${sections.extracurricular.map((activity: any) => `
+          <div style="margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <strong style="font-size: 12px; color: #1f2937;">${activity.name || activity.activity || ''}</strong>
+              <span style="font-size: 11px; color: #6b7280;">${activity.duration || activity.year || ''}</span>
+            </div>
+            ${activity.role ? `<div style="font-size: 11px; color: #6b7280;">${activity.role}</div>` : ''}
+            ${activity.description ? `<p style="font-size: 11px; line-height: 1.3; margin-top: 2px;">${activity.description}</p>` : ''}
+          </div>
+        `).join('')}
+      </section>
+      ` : ''}
+
+      <!-- Military Service -->
+      ${hasContent(sections.military) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">MILITARY SERVICE</h2>
+        ${sections.military.map((service: any) => `
+          <div style="margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <strong style="font-size: 12px; color: #1f2937;">${service.rank || ''} ${service.branch ? `- ${service.branch}` : ''}</strong>
+              <span style="font-size: 11px; color: #6b7280;">${service.duration || service.years || ''}</span>
+            </div>
+            ${service.specialty || service.role ? `<div style="font-size: 11px; color: #6b7280;">${service.specialty || service.role}</div>` : ''}
+            ${hasContent(service.achievements) ? `
+              <ul style="margin: 3px 0 0 15px; padding: 0;">
+                ${service.achievements.map((a: string) => `<li style="margin-bottom: 2px; font-size: 11px;">${a}</li>`).join('')}
+              </ul>
+            ` : ''}
+          </div>
+        `).join('')}
+      </section>
       ` : ''}
 
       <!-- Publications -->
-      ${sections.publications?.length ? `
-        <section style="margin-bottom: 20px;">
-          <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PUBLICATIONS</h2>
-          ${sections.publications.map((pub: any) => `
-            <div style="margin-bottom: 10px;">
-              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px;">
-                <strong style="font-size: 12px; color: #1f2937;">${pub.title || 'Publication Title'}</strong>
-                <span style="font-size: 11px; color: #6b7280;">${pub.date || 'Date'}</span>
-              </div>
-              <div style="font-size: 11px; color: #6b7280; font-style: italic; margin-bottom: 2px;">${pub.publication || 'Publication Name'}</div>
-              ${pub.authors && Array.isArray(pub.authors) && pub.authors.length ? `<div style="font-size: 10px; color: #6b7280;">Authors: ${pub.authors.join(', ')}</div>` : ''}
-              ${pub.description ? `<p style="font-size: 11px; margin-top: 3px; line-height: 1.3;">${pub.description}</p>` : ''}
+      ${hasContent(sections.publications) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PUBLICATIONS</h2>
+        ${sections.publications.map((pub: any) => `
+          <div style="margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px;">
+              <strong style="font-size: 12px; color: #1f2937;">${pub.title || ''}</strong>
+              <span style="font-size: 11px; color: #6b7280;">${pub.date || pub.year || ''}</span>
             </div>
-          `).join('')}
-        </section>
+            <div style="font-size: 11px; color: #6b7280; font-style: italic; margin-bottom: 2px;">${pub.publication || pub.journal || ''}</div>
+            ${hasContent(pub.authors) ? `<div style="font-size: 10px; color: #6b7280;">Authors: ${pub.authors.join(', ')}</div>` : ''}
+            ${pub.description ? `<p style="font-size: 11px; margin-top: 3px; line-height: 1.3;">${pub.description}</p>` : ''}
+          </div>
+        `).join('')}
+      </section>
+      ` : ''}
+
+      <!-- Patents -->
+      ${hasContent(sections.patents) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PATENTS</h2>
+        ${sections.patents.map((patent: any) => `
+          <div style="margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <strong style="font-size: 12px; color: #1f2937;">${patent.title || patent.name || ''}</strong>
+              <span style="font-size: 11px; color: #6b7280;">${patent.date || patent.year || ''}</span>
+            </div>
+            ${patent.patent_number ? `<div style="font-size: 11px; color: #6b7280;">Patent #: ${patent.patent_number}</div>` : ''}
+            ${patent.description ? `<p style="font-size: 11px; line-height: 1.3; margin-top: 2px;">${patent.description}</p>` : ''}
+          </div>
+        `).join('')}
+      </section>
+      ` : ''}
+
+      <!-- Presentations -->
+      ${hasContent(sections.presentations) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PRESENTATIONS & SPEAKING</h2>
+        ${sections.presentations.map((pres: any) => `
+          <div style="margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <strong style="font-size: 12px; color: #1f2937;">${pres.title || ''}</strong>
+              <span style="font-size: 11px; color: #6b7280;">${pres.date || ''}</span>
+            </div>
+            <div style="font-size: 11px; color: #6b7280;">${pres.event || pres.venue || ''}</div>
+            ${pres.description ? `<p style="font-size: 11px; line-height: 1.3; margin-top: 2px;">${pres.description}</p>` : ''}
+          </div>
+        `).join('')}
+      </section>
+      ` : ''}
+
+      <!-- Portfolio -->
+      ${hasContent(sections.portfolio) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">PORTFOLIO</h2>
+        ${sections.portfolio.map((item: any) => `
+          <div style="margin-bottom: 10px;">
+            <strong style="font-size: 12px; color: #1f2937;">${item.title || item.name || ''}</strong>
+            ${item.url ? `<div style="font-size: 11px; color: #2563eb;">${item.url}</div>` : ''}
+            ${item.description ? `<p style="font-size: 11px; line-height: 1.3; margin-top: 2px;">${item.description}</p>` : ''}
+          </div>
+        `).join('')}
+      </section>
+      ` : ''}
+
+      <!-- Interests -->
+      ${hasContent(sections.interests) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">INTERESTS & HOBBIES</h2>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          ${sections.interests.map((interest: any) => {
+      const text = typeof interest === 'string' ? interest : interest.name || '';
+      return text ? `<span style="background: #f3f4f6; padding: 4px 10px; border-radius: 12px; font-size: 12px; border: 1px solid #e5e7eb;">${text}</span>` : '';
+    }).join('')}
+        </div>
+      </section>
+      ` : ''}
+
+      <!-- References -->
+      ${hasContent(sections.references) ? `
+      <section style="margin-bottom: 20px;">
+        <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">REFERENCES</h2>
+        ${typeof sections.references === 'string' ? `
+          <p style="font-size: 12px; color: #6b7280; font-style: italic;">${sections.references}</p>
+        ` : sections.references.map((ref: any) => `
+          <div style="margin-bottom: 10px;">
+            <strong style="font-size: 12px; color: #1f2937;">${ref.name || ''}</strong>
+            ${ref.title || ref.position ? `<div style="font-size: 11px; color: #6b7280;">${ref.title || ref.position}${ref.company ? ` at ${ref.company}` : ''}</div>` : ''}
+            ${ref.email ? `<div style="font-size: 11px; color: #6b7280;">${ref.email}</div>` : ''}
+            ${ref.phone ? `<div style="font-size: 11px; color: #6b7280;">${ref.phone}</div>` : ''}
+          </div>
+        `).join('')}
+      </section>
       ` : ''}
     </div>
   `;

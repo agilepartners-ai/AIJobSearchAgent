@@ -130,8 +130,10 @@ export interface DetailedPublication {
     description: string;
 }
 
-// Add: canonical section type for dynamic prompting
-type CanonicalSection =
+// Add: canonical section type for dynamic prompting (EXPANDED to 20+ sections)
+// Export for use in metadata interface
+export type CanonicalSection =
+    | 'professional_summary'
     | 'skills'
     | 'experience'
     | 'education'
@@ -139,7 +141,21 @@ type CanonicalSection =
     | 'certifications'
     | 'awards'
     | 'volunteer_work'
-    | 'publications';
+    | 'publications'
+    | 'languages'
+    | 'interests'
+    | 'references'
+    | 'objective'
+    | 'courses'
+    | 'training'
+    | 'memberships'
+    | 'patents'
+    | 'presentations'
+    | 'portfolio'
+    | 'achievements'
+    | 'extracurricular'
+    | 'military'
+    | 'licenses';
 
 // OpenAI has been removed from the frontend. Provide a local stub
 // implementation that preserves the public API surface and response
@@ -161,7 +177,7 @@ const getGeminiApiKey = (): string => {
     if (cachedGeminiKey !== null) {
         return cachedGeminiKey;
     }
-    
+
     let apiKey = '';
     if (typeof window !== 'undefined') {
         apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
@@ -176,7 +192,7 @@ const getGeminiApiKey = (): string => {
             _hasLoggedGeminiApiKey = true;
         }
     }
-    
+
     // Cache the key
     cachedGeminiKey = apiKey;
     return apiKey;
@@ -186,7 +202,7 @@ export class AIEnhancementService {
     private static readonly API_KEY = getApiKey();
     private static readonly DEFAULT_MODEL_TYPE = process.env.NEXT_PUBLIC_RESUME_API_MODEL_TYPE || 'Stub';
     private static readonly DEFAULT_MODEL = process.env.NEXT_PUBLIC_RESUME_API_MODEL || 'stub-model';
-    
+
     // Retry configuration
     private static readonly MAX_RETRIES = 8;
     private static readonly INITIAL_RETRY_DELAY = 1000; // 1 second
@@ -210,8 +226,8 @@ export class AIEnhancementService {
             return await fn();
         } catch (error: any) {
             // Check if error is retryable (503, 429, network errors)
-            const isRetryable = 
-                error.message?.includes('503') || 
+            const isRetryable =
+                error.message?.includes('503') ||
                 error.message?.includes('UNAVAILABLE') ||
                 error.message?.includes('overloaded') ||
                 error.message?.includes('429') ||
@@ -248,7 +264,7 @@ export class AIEnhancementService {
 
     // Create system prompt for AI enhancement (matching old repo pattern)
     private static createSystemPrompt(): string {
-    return `You are an expert resume optimization AI assistant specializing in ATS optimization and job matching. Your task is to analyze a resume against a job description and provide comprehensive optimization recommendations.
+        return `You are an expert resume optimization AI assistant specializing in ATS optimization and job matching. Your task is to analyze a resume against a job description and provide comprehensive optimization recommendations.
 
 Always include a compact, crisp, professional summary suitable for use at the top of a resume (2-3 sentences maximum). Keep this summary short, precise, and professional. For other sections prefer concise, actionable items rather than long paragraphs.
 
@@ -299,7 +315,7 @@ CRITICAL INSTRUCTIONS FOR PROFESSIONAL SUMMARY:
 
     // Create system prompt for detailed AI enhancement
     private static createDetailedSystemPrompt(): string {
-    return `You are an expert resume and cover letter writer specializing in creating comprehensive, ATS-optimized, multi-page professional documents. Your task is to analyze a resume against a job description and create detailed, enhanced content.
+        return `You are an expert resume and cover letter writer specializing in creating comprehensive, ATS-optimized, multi-page professional documents. Your task is to analyze a resume against a job description and create detailed, enhanced content.
 
 Always include a compact, crisp, professional summary suitable for use at the top of a resume (2-3 sentences maximum). Even when producing long-form detailed sections, ensure the enhanced_summary field contains a short, professional blurb that can be used directly on a one-page resume. For the rest of the detailed content, prefer concise, structured paragraphs and bullet lists.
 
@@ -464,7 +480,7 @@ Provide a comprehensive analysis and optimization following the JSON structure s
 
     // Create detailed user prompt (kept for reference/compat)
     private static createDetailedUserPrompt(resumeText: string, jobDescription: string): string {
-    return `Please analyze and create detailed, comprehensive enhanced content for this resume and a personalized cover letter for the given job description.
+        return `Please analyze and create detailed, comprehensive enhanced content for this resume and a personalized cover letter for the given job description.
 
 Always include a compact, crisp, professional summary suitable for the top of a resume (2-3 sentences maximum). Place this short summary in the enhancements.enhanced_summary field so it can be used on a one-page resume. When producing the longer detailed sections, keep language concise and use bullet lists where possible.
 
@@ -521,82 +537,138 @@ CURRENT RESUME:
 ${resumeText}`;
     }
 
-    // Add: Section labels and patterns for detection
+    // Add: Section labels and patterns for detection (EXPANDED to 20+ sections)
     private static readonly SECTION_LABELS: Record<CanonicalSection, string> = {
+        professional_summary: 'Professional Summary',
         skills: 'Skills',
-        experience: 'Experience',
+        experience: 'Professional Experience',
         education: 'Education',
         projects: 'Projects',
         certifications: 'Certifications',
-        awards: 'Awards',
-        volunteer_work: 'Volunteer Work',
-        publications: 'Publications'
+        awards: 'Awards & Honors',
+        volunteer_work: 'Volunteer Experience',
+        publications: 'Publications',
+        languages: 'Languages',
+        interests: 'Interests & Hobbies',
+        references: 'References',
+        objective: 'Career Objective',
+        courses: 'Relevant Courses',
+        training: 'Training & Development',
+        memberships: 'Professional Memberships',
+        patents: 'Patents',
+        presentations: 'Presentations & Speaking',
+        portfolio: 'Portfolio',
+        achievements: 'Key Achievements',
+        extracurricular: 'Extracurricular Activities',
+        military: 'Military Service',
+        licenses: 'Professional Licenses'
     };
 
     private static readonly SECTION_PATTERNS: Record<CanonicalSection, RegExp[]> = {
+        professional_summary: [
+            /^\s*(professional\s+summary|summary|profile|executive\s+summary|career\s+summary|personal\s+statement|about\s+me)\s*[:\-]?$/i
+        ],
         skills: [
-            /^\s*(skills|technical skills|core competencies|competencies|skills & abilities|key skills)\s*[:\-]?$/i
+            /^\s*(skills|technical\s+skills|core\s+competencies|competencies|skills\s*&\s*abilities|key\s+skills|areas\s+of\s+expertise|expertise|proficiencies)\s*[:\-]?$/i
         ],
         experience: [
-            /^\s*(experience|professional experience|work experience|employment history|career history)\s*[:\-]?$/i
+            /^\s*(experience|professional\s+experience|work\s+experience|employment\s+history|career\s+history|work\s+history|employment|positions\s+held)\s*[:\-]?$/i
         ],
         education: [
-            /^\s*(education|academic background|education & training|academics)\s*[:\-]?$/i
+            /^\s*(education|academic\s+background|education\s*&\s*training|academics|educational\s+qualifications|academic\s+credentials)\s*[:\-]?$/i
         ],
         projects: [
-            /^\s*(projects|selected projects|academic projects|personal projects)\s*[:\-]?$/i
+            /^\s*(projects|selected\s+projects|academic\s+projects|personal\s+projects|key\s+projects|notable\s+projects|project\s+experience)\s*[:\-]?$/i
         ],
         certifications: [
-            /^\s*(certifications?|licenses?|certifications? & licenses?)\s*[:\-]?$/i
+            /^\s*(certifications?|licenses?\s*&\s*certifications?|professional\s+certifications?|credentials)\s*[:\-]?$/i
         ],
         awards: [
-            /^\s*(awards?|honors|honors & awards|achievements)\s*[:\-]?$/i
+            /^\s*(awards?|honors?|honors?\s*&\s*awards?|recognition|accolades|distinctions)\s*[:\-]?$/i
         ],
         volunteer_work: [
-            /^\s*(volunteer( work)?|community service|volunteering|extracurricular)\s*[:\-]?$/i
+            /^\s*(volunteer(\s+work|\s+experience)?|community\s+service|volunteering|civic\s+engagement|pro\s+bono)\s*[:\-]?$/i
         ],
         publications: [
-            /^\s*(publications?|papers|research|research publications)\s*[:\-]?$/i
+            /^\s*(publications?|papers|research|research\s+publications?|published\s+works?|articles)\s*[:\-]?$/i
+        ],
+        languages: [
+            /^\s*(languages?|language\s+skills?|linguistic\s+skills?|foreign\s+languages?)\s*[:\-]?$/i
+        ],
+        interests: [
+            /^\s*(interests?|hobbies|hobbies?\s*&\s*interests?|personal\s+interests?|activities)\s*[:\-]?$/i
+        ],
+        references: [
+            /^\s*(references?|professional\s+references?|references?\s+available)\s*[:\-]?$/i
+        ],
+        objective: [
+            /^\s*(objective|career\s+objective|job\s+objective|professional\s+objective|goal)\s*[:\-]?$/i
+        ],
+        courses: [
+            /^\s*(courses?|relevant\s+courses?|coursework|relevant\s+coursework|academic\s+courses?)\s*[:\-]?$/i
+        ],
+        training: [
+            /^\s*(training|professional\s+development|training\s*&\s*development|workshops?|seminars?)\s*[:\-]?$/i
+        ],
+        memberships: [
+            /^\s*(memberships?|professional\s+memberships?|affiliations?|professional\s+affiliations?|associations?)\s*[:\-]?$/i
+        ],
+        patents: [
+            /^\s*(patents?|intellectual\s+property|inventions?)\s*[:\-]?$/i
+        ],
+        presentations: [
+            /^\s*(presentations?|speaking\s+engagements?|talks?|conferences?\s+presentations?|public\s+speaking)\s*[:\-]?$/i
+        ],
+        portfolio: [
+            /^\s*(portfolio|work\s+samples?|samples?|creative\s+portfolio)\s*[:\-]?$/i
+        ],
+        achievements: [
+            /^\s*(achievements?|key\s+achievements?|accomplishments?|key\s+accomplishments?|career\s+highlights?)\s*[:\-]?$/i
+        ],
+        extracurricular: [
+            /^\s*(extracurricular(\s+activities)?|activities|student\s+activities|campus\s+involvement|leadership\s+activities)\s*[:\-]?$/i
+        ],
+        military: [
+            /^\s*(military(\s+service|\s+experience)?|armed\s+forces|veteran|service\s+record)\s*[:\-]?$/i
+        ],
+        licenses: [
+            /^\s*(licenses?|professional\s+licenses?|licensure|state\s+licenses?)\s*[:\-]?$/i
         ]
     };
-
-    // Add: Detect sections and their order from resume text
-    private static detectResumeSections(resumeText: string): { orderedSections: CanonicalSection[]; indices: Record<CanonicalSection, number> } {
-        if (!resumeText) return { orderedSections: [], indices: {} as Record<CanonicalSection, number> };
-
-        const lines = resumeText.split(/\r?\n/).map(l => l.trim());
-        const firstIndex: Partial<Record<CanonicalSection, number>> = {};
-
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            for (const key of Object.keys(this.SECTION_PATTERNS) as CanonicalSection[]) {
-                if (firstIndex[key] !== undefined) continue;
-                const patterns = this.SECTION_PATTERNS[key];
-                if (patterns.some(r => r.test(line))) {
-                    firstIndex[key] = i;
-                }
-            }
-        }
-
-        const orderedSections = (Object.keys(firstIndex) as CanonicalSection[])
-            .sort((a, b) => (firstIndex[a]! - firstIndex[b]!));
-
-        return { orderedSections, indices: firstIndex as Record<CanonicalSection, number> };
-    }
 
     // Add: Build dynamic directive to control which sections the AI should output
     private static createDynamicSectionDirective(orderedSections: CanonicalSection[]): string {
         const list = orderedSections.map((k, idx) => `${idx + 1}) ${this.SECTION_LABELS[k]}`).join('\n');
 
+        // Build list of sections NOT to include
+        const allSections = Object.keys(this.SECTION_LABELS) as CanonicalSection[];
+        const excludedSections = allSections.filter(s => !orderedSections.includes(s));
+        const excludedList = excludedSections.map(k => this.SECTION_LABELS[k]).join(', ');
+
         return [
-            'Dynamic section directive:',
-            '- Mandatory: Include a Professional Summary at the top.',
-            '- After the Professional Summary, include ONLY the following sections, in this exact order:',
-            list.length ? list : '(No additional sections detected. Do not invent new sections.)',
-            '- Do NOT add or invent sections that are not present in the original resume.',
-            '- In the JSON output under enhancements.detailed_resume_sections:',
-            '  - If Skills is present, populate technical_skills and soft_skills as appropriate (leave empty if unclear).',
-            '  - For sections not listed above, leave them empty and do not fabricate content.'
+            'CRITICAL - Dynamic Section Filtering Agent Directive:',
+            '',
+            'You are a section filtering agent. Your task is to STRICTLY include ONLY the sections that exist in the original resume.',
+            '',
+            '✅ SECTIONS DETECTED IN ORIGINAL RESUME (include these in exact order):',
+            list.length ? list : '(No additional sections detected beyond personal info)',
+            '',
+            '❌ SECTIONS NOT FOUND IN ORIGINAL RESUME (DO NOT INCLUDE - leave empty arrays/objects):',
+            excludedList || '(All sections were detected)',
+            '',
+            'STRICT RULES:',
+            '1. NEVER invent or fabricate content for sections not present in the original resume',
+            '2. If a section like "Projects" is not in the original resume, set projects: [] (empty array)',
+            '3. If "Publications" is not detected, set publications: [] (empty array)',
+            '4. Only populate sections that have corresponding content in the original resume text',
+            '5. Maintain the exact order of sections as detected above',
+            '6. For any section not listed in the ✅ DETECTED list above, return empty content',
+            '',
+            'In the JSON output under enhancements.detailed_resume_sections:',
+            '- professional_summary: Always include (mandatory)',
+            '- For each detected section: Populate with enhanced content from the resume',
+            '- For each non-detected section: Return empty array [] or empty string ""',
+            '- DO NOT hallucinate or create fictional section content'
         ].join('\n');
     }
 
@@ -612,13 +684,13 @@ ${resumeText}`;
         }
 
         // Add: detect sections for stub path too (used in metadata/UI)
-        const { orderedSections } = this.detectResumeSections(resumeText);
-        const includedLabels = orderedSections.map(s => this.SECTION_LABELS[s]);
+        const { orderedSections } = AIEnhancementService.detectResumeSections(resumeText);
+        const includedLabels = orderedSections.map(s => AIEnhancementService.SECTION_LABELS[s]);
 
         // Return a deterministic stubbed response to preserve UI flow.
         const matchScore = Math.min(85, Math.max(40, Math.floor((resumeText.length % 100) + 40)));
 
-    const enhancementResponse: AIEnhancementResponse = {
+        const enhancementResponse: AIEnhancementResponse = {
             success: true,
             analysis: {
                 match_score: matchScore,
@@ -637,7 +709,7 @@ ${resumeText}`;
                 }
             },
             enhancements: {
-                    enhanced_summary: this.formatCompactSummary('Experienced professional with demonstrated expertise relevant to the role.'),
+                enhanced_summary: this.formatCompactSummary('Experienced professional with demonstrated expertise relevant to the role.'),
                 enhanced_skills: [],
                 enhanced_experience_bullets: [],
                 cover_letter_outline: {
@@ -693,21 +765,24 @@ ${resumeText}`;
                 throw new Error('Gemini API key is not configured. Please set NEXT_PUBLIC_GEMINI_API_KEY in your environment variables.');
             }
 
-            const modelId = options.model || this.DEFAULT_MODEL || 'gemini-2.5-flash';
+            const modelId = options.model || AIEnhancementService.DEFAULT_MODEL || 'gemini-2.5-flash';
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelId)}:generateContent`;
 
             // Use strict overrides when provided, and ALWAYS append fixed context
             const systemContent =
-                options.systemPromptOverride ?? this.createDetailedSystemPrompt();
+                options.systemPromptOverride ?? AIEnhancementService.createDetailedSystemPrompt();
             const userHeader =
-                options.userPromptOverride ?? this.createDetailedUserPromptHeader();
+                options.userPromptOverride ?? AIEnhancementService.createDetailedUserPromptHeader();
 
-            // Add: dynamic directive injection based on detected sections/order
-            const { orderedSections } = this.detectResumeSections(resumeText);
-            const dynamicDirective = this.createDynamicSectionDirective(orderedSections);
+            // Add: dynamic directive injection based on detected sections
+            console.log('🔍 Detecting resume sections...');
+            const { orderedSections } = AIEnhancementService.detectResumeSections(resumeText);
+            console.log('✅ Detected sections:', orderedSections);
+
+            const dynamicDirective = AIEnhancementService.createDynamicSectionDirective(orderedSections);
             const userHeaderWithDirective = `${userHeader}\n\n${dynamicDirective}`;
 
-            const userContent = this.buildFinalUserPrompt(userHeaderWithDirective, resumeText, jobDescription);
+            const userContent = AIEnhancementService.buildFinalUserPrompt(userHeaderWithDirective, resumeText, jobDescription);
 
             // Combine system and user prompts into a single user message for Gemini
             const payload = {
@@ -741,7 +816,7 @@ ${resumeText}`;
                 if (!response.ok) {
                     const errText = await response.text().catch(() => '');
                     let errorMessage = `Gemini API error ${response.status}: ${errText || response.statusText}`;
-                    
+
                     // Try to parse error details
                     try {
                         const errorData = JSON.parse(errText);
@@ -749,7 +824,7 @@ ${resumeText}`;
                     } catch {
                         // Keep the original error message
                     }
-                    
+
                     throw new Error(errorMessage);
                 }
 
@@ -757,7 +832,8 @@ ${resumeText}`;
             };
 
             // Execute with retry mechanism
-            const response = await this.retryWithBackoff(makeApiCall);
+            const response = await AIEnhancementService.retryWithBackoff(makeApiCall);
+
             const data = await response.json();
             const responseText =
                 data?.candidates?.[0]?.content?.parts?.[0]?.text ||
@@ -771,7 +847,7 @@ ${resumeText}`;
 
             console.log('✅ Gemini detailed response received, parsing...');
             console.log('📝 Response length:', responseText.length, 'characters');
-            
+
             let aiResults: any;
             try {
                 // First attempt: direct JSON parse
@@ -779,10 +855,10 @@ ${resumeText}`;
                 console.log('✅ JSON parsed successfully (direct)');
             } catch (parseError) {
                 console.warn('⚠️ Direct JSON parse failed, attempting extraction...');
-                
+
                 // Second attempt: extract JSON from response (handle markdown code blocks)
                 let jsonText = responseText;
-                
+
                 // Remove markdown code blocks if present
                 if (responseText.includes('```json')) {
                     const jsonStart = responseText.indexOf('```json') + 7;
@@ -799,11 +875,11 @@ ${resumeText}`;
                         console.log('📦 Extracted from generic ``` code block');
                     }
                 }
-                
+
                 // Third attempt: find JSON object boundaries
                 const start = jsonText.indexOf('{');
                 const end = jsonText.lastIndexOf('}');
-                
+
                 if (start !== -1 && end !== -1 && end > start) {
                     try {
                         jsonText = jsonText.slice(start, end + 1);
@@ -895,11 +971,11 @@ ${resumeText}`;
                 },
                 metadata: {
                     model_used: modelId,
-                    model_type: options.modelType || this.DEFAULT_MODEL_TYPE || 'Gemini',
+                    model_type: options.modelType || AIEnhancementService.DEFAULT_MODEL_TYPE || 'Gemini',
                     timestamp: new Date().toISOString(),
                     resume_sections_analyzed: ['summary', 'experience', 'skills', 'education', 'projects', 'certifications', 'awards', 'volunteer', 'publications'],
                     // Add: dynamic section metadata
-                    included_sections: orderedSections.map(s => this.SECTION_LABELS[s]),
+                    included_sections: orderedSections.map(s => AIEnhancementService.SECTION_LABELS[s]),
                     section_order: orderedSections,
                     directive_applied: true
                 },
@@ -909,17 +985,20 @@ ${resumeText}`;
             console.log('Gemini detailed enhancement completed successfully');
             return enhancementResponse;
         } catch (error: any) {
-            // Log detailed error to console for debugging (NEVER show these to users)
+            // Log detailed error to console for debugging
             console.error('❌ [Gemini Enhancement] Detailed error (console only):', {
                 message: error?.message,
                 stack: error?.stack,
                 timestamp: new Date().toISOString(),
-                errorType: error?.constructor?.name
+                errorType: error?.constructor?.name,
+                // Add more context
+                resumeTextLength: resumeText?.length,
+                hasApiKey: !!getGeminiApiKey()
             });
 
             // IMPORTANT: Never expose parsing errors or technical details to users
             // All errors are logged to console, but users only see generic friendly messages
-            
+
             // Return simple, actionable error message (same for all error types)
             throw new Error('AI enhancement completed but encountered an issue processing the results. Please try generating again.');
         }
@@ -1123,6 +1202,30 @@ ${resumeText}`;
             console.error('Error normalizing enhancement response:', error);
             throw new Error('Failed to process AI enhancement response');
         }
+    }
+
+    // Add: Detect sections and their order from resume text
+    private static detectResumeSections(resumeText: string): { orderedSections: CanonicalSection[]; indices: Record<CanonicalSection, number> } {
+        if (!resumeText) return { orderedSections: [], indices: {} as Record<CanonicalSection, number> };
+
+        const lines = resumeText.split(/\r?\n/).map(l => l.trim());
+        const firstIndex: Partial<Record<CanonicalSection, number>> = {};
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            for (const key of Object.keys(AIEnhancementService.SECTION_PATTERNS) as CanonicalSection[]) {
+                if (firstIndex[key] !== undefined) continue;
+                const patterns = AIEnhancementService.SECTION_PATTERNS[key];
+                if (patterns.some(r => r.test(line))) {
+                    firstIndex[key] = i;
+                }
+            }
+        }
+
+        const orderedSections = (Object.keys(firstIndex) as CanonicalSection[])
+            .sort((a, b) => (firstIndex[a]! - firstIndex[b]!));
+
+        return { orderedSections, indices: firstIndex as Record<CanonicalSection, number> };
     }
 }
 
