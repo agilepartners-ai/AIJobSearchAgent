@@ -9,6 +9,69 @@ import {
   Packer
 } from 'docx';
 
+// Detailed section interfaces matching AI enhancement service
+interface DetailedExperience {
+  company: string;
+  position: string;
+  duration: string;
+  location: string;
+  achievements: string[];
+  key_responsibilities: string[];
+  technologies_used: string[];
+  quantified_results: string[];
+}
+
+interface DetailedEducation {
+  institution: string;
+  degree: string;
+  field_of_study: string;
+  graduation_date: string;
+  gpa?: string;
+  relevant_coursework: string[];
+  honors: string[];
+}
+
+interface DetailedProject {
+  name: string;
+  description: string;
+  technologies: string[];
+  achievements: string[];
+  duration: string;
+  team_size?: string;
+  role: string;
+}
+
+interface DetailedCertification {
+  name: string;
+  issuing_organization: string;
+  issue_date: string;
+  expiration_date?: string;
+  credential_id?: string;
+}
+
+interface DetailedAward {
+  title: string;
+  issuing_organization: string;
+  date: string;
+  description: string;
+}
+
+interface DetailedVolunteerWork {
+  organization: string;
+  role: string;
+  duration: string;
+  description: string;
+  achievements: string[];
+}
+
+interface DetailedPublication {
+  title: string;
+  publication: string;
+  date: string;
+  authors: string[];
+  description: string;
+}
+
 // Profile data structure that accommodates various resume formats
 interface ResumeProfileData {
   // Basic Information
@@ -30,6 +93,7 @@ interface ResumeProfileData {
   // Skills
   skills?: string[];
   technicalSkills?: string[];
+  softSkills?: string[];
   coreCompetencies?: string[];
 
   // Experience - flexible structure to handle various formats
@@ -111,6 +175,27 @@ interface ResumeProfileData {
     name?: string;
     proficiency?: string;
   }>;
+
+  // Detailed AI-enhanced sections
+  detailedResumeSections?: {
+    professional_summary?: string;
+    technical_skills?: string[];
+    soft_skills?: string[];
+    experience?: DetailedExperience[];
+    education?: DetailedEducation[];
+    projects?: DetailedProject[];
+    certifications?: DetailedCertification[];
+    awards?: DetailedAward[];
+    volunteer_work?: DetailedVolunteerWork[];
+    publications?: DetailedPublication[];
+  };
+
+  // Detailed cover letter
+  detailedCoverLetter?: {
+    opening_paragraph?: string;
+    body_paragraph?: string;
+    closing_paragraph?: string;
+  };
 }
 
 export class DocxResumeGenerator {
@@ -298,6 +383,8 @@ export class DocxResumeGenerator {
             ...this.createProjectsSection(),
             ...this.createCertificationsSection(),
             ...this.createAwardsSection(),
+            ...this.createVolunteerSection(),
+            ...this.createPublicationsSection(),
             ...this.createLanguagesSection(),
           ],
         },
@@ -374,9 +461,12 @@ export class DocxResumeGenerator {
   }
 
   private createProfessionalSummary(): Paragraph[] {
-    if (!this.profile.summary && !this.profile.professionalSummary) return [];
-
-    const summary = this.profile.summary || this.profile.professionalSummary || "";
+    // Prioritize detailed AI-enhanced summary
+    const summary = this.profile.detailedResumeSections?.professional_summary ||
+                   this.profile.summary || 
+                   this.profile.professionalSummary || "";
+    
+    if (!summary) return [];
     
     return [
       new Paragraph({
@@ -415,11 +505,13 @@ export class DocxResumeGenerator {
 
   private createSkillsSection(): Paragraph[] {
     console.log('🛠️ Creating skills section');
-    console.log('Skills data:', this.profile.skills);
-    console.log('Technical skills data:', this.profile.technicalSkills);
     
-    // Get skills data and normalize it
-    const skillsData = this.profile.skills || this.profile.technicalSkills || [];
+    // Prioritize detailed AI-enhanced skills
+    const skillsData = this.profile.detailedResumeSections?.technical_skills ||
+                      this.profile.technicalSkills || 
+                      this.profile.skills || [];
+    
+    console.log('Skills data:', skillsData);
     
     // Normalize skills to strings
     const normalizedSkills = skillsData
@@ -548,8 +640,24 @@ export class DocxResumeGenerator {
   }
 
   private createExperienceSection(): Paragraph[] {
-    // Use either experience or workExperience array
-    const experienceData = this.profile.experience || this.profile.workExperience || [];
+    // Prioritize detailed AI-enhanced experience
+    let experienceData: any[] = [];
+    
+    if (this.profile.detailedResumeSections?.experience) {
+      experienceData = this.profile.detailedResumeSections.experience.map(exp => ({
+        position: exp.position,
+        company: exp.company,
+        location: exp.location,
+        duration: exp.duration,
+        responsibilities: exp.key_responsibilities,
+        achievements: exp.achievements,
+        technologies_used: exp.technologies_used,
+        quantified_results: exp.quantified_results
+      }));
+    } else {
+      experienceData = this.profile.experience || this.profile.workExperience || [];
+    }
+    
     console.log('[DocxResumeGenerator] createExperienceSection called, experienceData:', experienceData);
     console.log('[DocxResumeGenerator] experienceData length:', experienceData.length);
     
@@ -628,8 +736,21 @@ export class DocxResumeGenerator {
         );
       }
 
-      // Responsibilities/Description
+      // Key Responsibilities
       if (exp.responsibilities?.length) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Key Responsibilities:",
+                size: 20,
+                bold: true,
+                color: "1F2937",
+              }),
+            ],
+            spacing: { after: 60, before: 80 },
+          })
+        );
         for (const responsibility of exp.responsibilities) {
           paragraphs.push(
             new Paragraph({
@@ -660,6 +781,64 @@ export class DocxResumeGenerator {
         );
       }
 
+      // Key Achievements
+      if (exp.achievements?.length) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Key Achievements:",
+                size: 20,
+                bold: true,
+                color: "1F2937",
+              }),
+            ],
+            spacing: { after: 60, before: 80 },
+          })
+        );
+        for (const achievement of exp.achievements) {
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: this.highlightKeywords(achievement),
+                  size: 20,
+                  color: "0F3D7A",
+                }),
+              ],
+              bullet: { level: 0 },
+              spacing: { after: 80 },
+            })
+          );
+        }
+      }
+
+      // Technologies Used
+      if (exp.technologies_used?.length) {
+        const techText = Array.isArray(exp.technologies_used) 
+          ? exp.technologies_used.join(", ") 
+          : exp.technologies_used;
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Technologies: ",
+                size: 18,
+                bold: true,
+                color: "6B7280",
+              }),
+              new TextRun({
+                text: techText,
+                size: 18,
+                color: "6B7280",
+                italics: true,
+              }),
+            ],
+            spacing: { after: 80, before: 40 },
+          })
+        );
+      }
+
       paragraphs.push(new Paragraph({ children: [new TextRun("")], spacing: { after: 200 } }));
     }
 
@@ -668,9 +847,27 @@ export class DocxResumeGenerator {
 
   private createEducationSection(): Paragraph[] {
     console.log('📚 Creating education section');
-    console.log('Education data:', this.profile.education);
     
-    if (!this.profile.education?.length) {
+    // Prioritize detailed AI-enhanced education
+    let educationData: any[] = [];
+    
+    if (this.profile.detailedResumeSections?.education) {
+      educationData = this.profile.detailedResumeSections.education.map(edu => ({
+        degree: edu.degree,
+        school: edu.institution,
+        institution: edu.institution,
+        graduationDate: edu.graduation_date,
+        gpa: edu.gpa,
+        relevantCoursework: edu.relevant_coursework?.join(', '),
+        honors: edu.honors?.join(', ')
+      }));
+    } else {
+      educationData = this.profile.education || [];
+    }
+    
+    console.log('Education data:', educationData);
+    
+    if (!educationData.length) {
       console.log('❌ No education data found');
       return [];
     }
@@ -700,7 +897,7 @@ export class DocxResumeGenerator {
       })
     );
 
-    for (const edu of this.profile.education) {
+    for (const edu of educationData) {
       // Degree and Date
       paragraphs.push(
         new Paragraph({
@@ -772,9 +969,19 @@ export class DocxResumeGenerator {
 
   private createProjectsSection(): Paragraph[] {
     console.log('🚀 Creating projects section');
-    console.log('Projects data:', this.profile.projects);
     
-    if (!this.profile.projects?.length) {
+    // Prioritize detailed AI-enhanced projects
+    let projectsData: any[] = [];
+    
+    if (this.profile.detailedResumeSections?.projects) {
+      projectsData = this.profile.detailedResumeSections.projects;
+    } else {
+      projectsData = this.profile.projects || [];
+    }
+    
+    console.log('Projects data:', projectsData);
+    
+    if (!projectsData.length) {
       console.log('❌ No projects data found');
       return [];
     }
@@ -804,7 +1011,7 @@ export class DocxResumeGenerator {
       })
     );
 
-    for (const project of this.profile.projects) {
+    for (const project of projectsData) {
       // Project Title and Duration
       paragraphs.push(
         new Paragraph({
@@ -894,7 +1101,25 @@ export class DocxResumeGenerator {
   }
 
   private createCertificationsSection(): Paragraph[] {
-    if (!this.profile.certifications?.length) return [];
+    // Prioritize detailed AI-enhanced certifications
+    let certificationsData: any[] = [];
+    
+    if (this.profile.detailedResumeSections?.certifications) {
+      certificationsData = this.profile.detailedResumeSections.certifications.map(cert => ({
+        name: cert.name,
+        title: cert.name,
+        issuer: cert.issuing_organization,
+        organization: cert.issuing_organization,
+        date: cert.issue_date,
+        issueDate: cert.issue_date,
+        expirationDate: cert.expiration_date,
+        credentialId: cert.credential_id
+      }));
+    } else {
+      certificationsData = this.profile.certifications || [];
+    }
+    
+    if (!certificationsData.length) return [];
 
     const paragraphs: Paragraph[] = [];
 
@@ -921,7 +1146,7 @@ export class DocxResumeGenerator {
       })
     );
 
-    for (const cert of this.profile.certifications) {
+    for (const cert of certificationsData) {
       paragraphs.push(
         new Paragraph({
           children: [
@@ -957,9 +1182,36 @@ export class DocxResumeGenerator {
                 color: "374151",
               }),
             ],
+            spacing: { after: 60 },
+          })
+        );
+      }
+      
+      // Add credential ID and expiration if available
+      const additionalInfo: string[] = [];
+      if (cert.credentialId) additionalInfo.push(`Credential ID: ${cert.credentialId}`);
+      if (cert.expirationDate) additionalInfo.push(`Expires: ${cert.expirationDate}`);
+      
+      if (additionalInfo.length > 0) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: additionalInfo.join(' • '),
+                size: 18,
+                color: "6B7280",
+                italics: true,
+              }),
+            ],
             spacing: { after: 120 },
           })
         );
+      } else {
+        // Add extra spacing if no additional info
+        paragraphs[paragraphs.length - 1] = new Paragraph({
+          ...paragraphs[paragraphs.length - 1],
+          spacing: { after: 120 },
+        });
       }
     }
 
@@ -967,7 +1219,16 @@ export class DocxResumeGenerator {
   }
 
   private createAwardsSection(): Paragraph[] {
-    if (!this.profile.awards?.length) return [];
+    // Prioritize detailed AI-enhanced awards
+    let awardsData: any[] = [];
+    
+    if (this.profile.detailedResumeSections?.awards) {
+      awardsData = this.profile.detailedResumeSections.awards;
+    } else {
+      awardsData = this.profile.awards || [];
+    }
+    
+    if (!awardsData.length) return [];
 
     const paragraphs: Paragraph[] = [];
 
@@ -994,7 +1255,7 @@ export class DocxResumeGenerator {
       })
     );
 
-    for (const award of this.profile.awards) {
+    for (const award of awardsData) {
       // Award title and date on same line (title left, date right)
       paragraphs.push(
         new Paragraph({
@@ -1144,6 +1405,237 @@ export class DocxResumeGenerator {
     // We'll just return the text as-is for now, but this could be enhanced
     // by splitting text and applying different styles to highlighted portions
     return text;
+  }
+
+  private createVolunteerSection(): Paragraph[] {
+    // Use detailed AI-enhanced volunteer work
+    let volunteerData: any[] = [];
+    
+    if (this.profile.detailedResumeSections?.volunteer_work) {
+      volunteerData = this.profile.detailedResumeSections.volunteer_work;
+    }
+    
+    if (!volunteerData.length) return [];
+    
+    const paragraphs: Paragraph[] = [];
+
+    paragraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: "VOLUNTEER EXPERIENCE",
+            size: 28,
+            bold: true,
+            color: "1F2937",
+            allCaps: true,
+          }),
+        ],
+        spacing: { before: 240, after: 120 },
+        border: {
+          bottom: {
+            color: "E5E7EB",
+            space: 1,
+            style: BorderStyle.SINGLE,
+            size: 6,
+          },
+        },
+      })
+    );
+
+    for (const volunteer of volunteerData) {
+      // Role and Duration
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: volunteer.role,
+              size: 24,
+              bold: true,
+              color: "111827",
+            }),
+            new TextRun({
+              text: `\t${volunteer.duration}`,
+              size: 18,
+              color: "6B7280",
+            }),
+          ],
+          spacing: { after: 80 },
+          tabStops: [
+            {
+              type: "right",
+              position: convertInchesToTwip(6),
+            },
+          ],
+        })
+      );
+
+      // Organization
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: volunteer.organization,
+              size: 20,
+              bold: true,
+              color: "1F2937",
+            }),
+          ],
+          spacing: { after: 80 },
+        })
+      );
+
+      // Description
+      if (volunteer.description) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: volunteer.description,
+                size: 20,
+                color: "374151",
+              }),
+            ],
+            spacing: { after: 80 },
+          })
+        );
+      }
+
+      // Achievements
+      if (volunteer.achievements?.length) {
+        for (const achievement of volunteer.achievements) {
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: achievement,
+                  size: 20,
+                  color: "2C3E50",
+                }),
+              ],
+              bullet: { level: 0 },
+              spacing: { after: 80 },
+            })
+          );
+        }
+      }
+
+      paragraphs.push(new Paragraph({ children: [new TextRun("")], spacing: { after: 200 } }));
+    }
+
+    return paragraphs;
+  }
+
+  private createPublicationsSection(): Paragraph[] {
+    // Use detailed AI-enhanced publications
+    let publicationsData: any[] = [];
+    
+    if (this.profile.detailedResumeSections?.publications) {
+      publicationsData = this.profile.detailedResumeSections.publications;
+    }
+    
+    if (!publicationsData.length) return [];
+    
+    const paragraphs: Paragraph[] = [];
+
+    paragraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: "PUBLICATIONS",
+            size: 28,
+            bold: true,
+            color: "1F2937",
+            allCaps: true,
+          }),
+        ],
+        spacing: { before: 240, after: 120 },
+        border: {
+          bottom: {
+            color: "E5E7EB",
+            space: 1,
+            style: BorderStyle.SINGLE,
+            size: 6,
+          },
+        },
+      })
+    );
+
+    for (const publication of publicationsData) {
+      // Title and Date
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: publication.title,
+              size: 22,
+              bold: true,
+              color: "1F2937",
+            }),
+            new TextRun({
+              text: `\t${publication.date}`,
+              size: 18,
+              color: "6B7280",
+            }),
+          ],
+          spacing: { after: 60 },
+          tabStops: [
+            {
+              type: "right",
+              position: convertInchesToTwip(6),
+            },
+          ],
+        })
+      );
+
+      // Publication venue
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: publication.publication,
+              size: 20,
+              color: "4B5563",
+              italics: true,
+            }),
+          ],
+          spacing: { after: 80 },
+        })
+      );
+
+      // Authors
+      if (publication.authors?.length) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `Authors: ${publication.authors.join(', ')}`,
+                size: 18,
+                color: "6B7280",
+              }),
+            ],
+            spacing: { after: 60 },
+          })
+        );
+      }
+
+      // Description
+      if (publication.description) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: publication.description,
+                size: 20,
+                color: "374151",
+              }),
+            ],
+            spacing: { after: 160 },
+          })
+        );
+      }
+    }
+
+    return paragraphs;
   }
 
   private createLanguagesSection(): Paragraph[] {

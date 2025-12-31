@@ -573,6 +573,45 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: 4,
   },
+
+  // Publications styles
+  publicationItem: {
+    marginBottom: 8,
+    borderBottom: '1 solid #e5e7eb',
+    paddingBottom: 4,
+  },
+  publicationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  publicationTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    flex: 1,
+  },
+  publicationDate: {
+    fontSize: 11,
+    color: '#6b7280',
+  },
+  publicationVenue: {
+    fontSize: 11,
+    color: '#4b5563',
+    fontStyle: 'italic',
+    marginBottom: 2,
+  },
+  publicationAuthors: {
+    fontSize: 10,
+    color: '#6b7280',
+    marginBottom: 2,
+  },
+  publicationDescription: {
+    fontSize: 11,
+    color: '#374151',
+    lineHeight: 1.4,
+  },
 });
 
 interface ParsedExperience {
@@ -1700,8 +1739,119 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
   let certificationsData: Array<{name: string, issuer: string, issued: string, expires: string}> = [];
   let awardsData: Array<{name: string, issuer: string, date: string, description: string}> = [];
   let volunteerData: Array<{title: string, organization: string, date: string, description: string, achievements: string[]}> = [];
+  let publicationsData: Array<{title: string, publication: string, date: string, authors: string[], description: string}> = [];
 
-  if (!simpleMode) {
+  // PRIORITY: Check if detailed AI-enhanced sections are available in profile
+  const hasDetailedSections = profile.detailedResumeSections && 
+    Object.keys(profile.detailedResumeSections).length > 0;
+
+  if (hasDetailedSections && !simpleMode) {
+    console.log('✅ Using detailed AI-enhanced sections from profile');
+    const detailed = profile.detailedResumeSections!;
+    
+    // Use detailed professional summary
+    if (detailed.professional_summary) {
+      professionalSummary = detailed.professional_summary;
+    }
+    
+    // Use detailed skills
+    if (detailed.technical_skills?.length) {
+      skillBuckets.technical = detailed.technical_skills;
+      skillBuckets.all.push(...detailed.technical_skills);
+    }
+    if (detailed.soft_skills?.length) {
+      skillBuckets.soft = detailed.soft_skills;
+      skillBuckets.all.push(...detailed.soft_skills);
+    }
+    
+    // Use detailed experience with all fields
+    if (detailed.experience?.length) {
+      experience = detailed.experience.map(exp => ({
+        title: exp.position,
+        position: exp.position,
+        company: exp.company,
+        dates: exp.duration,
+        location: exp.location,
+        responsibilities: exp.key_responsibilities || [],
+        achievements: exp.achievements || [],
+        technologies_used: exp.technologies_used || []
+      }));
+    }
+    
+    // Use detailed education
+    if (detailed.education?.length) {
+      education = detailed.education.map(edu => ({
+        degree: edu.degree,
+        major: edu.field_of_study,
+        school: edu.institution,
+        graduationDate: edu.graduation_date,
+        dates: edu.graduation_date,
+        details: `${edu.degree} in ${edu.field_of_study}`,
+        gpa: edu.gpa,
+        coursework: edu.relevant_coursework,
+        honors: edu.honors
+      }));
+    }
+    
+    // Use detailed projects
+    if (detailed.projects?.length) {
+      projects = detailed.projects.map(proj => ({
+        name: proj.name,
+        title: proj.name,
+        description: proj.description,
+        achievements: proj.achievements || [],
+        technologies: proj.technologies?.join(', ') || '',
+        techStack: proj.technologies?.join(', ') || '',
+        duration: proj.duration,
+        role: proj.role,
+        teamSize: proj.team_size
+      }));
+    }
+    
+    // Use detailed certifications
+    if (detailed.certifications?.length) {
+      certificationsData = detailed.certifications.map(cert => ({
+        name: cert.name,
+        issuer: cert.issuing_organization,
+        issued: cert.issue_date,
+        expires: cert.expiration_date || 'N/A'
+      }));
+    }
+    
+    // Use detailed awards
+    if (detailed.awards?.length) {
+      awardsData = detailed.awards.map(award => ({
+        name: award.title,
+        issuer: award.issuing_organization,
+        date: award.date,
+        description: award.description
+      }));
+    }
+    
+    // Use detailed volunteer work
+    if (detailed.volunteer_work?.length) {
+      volunteerData = detailed.volunteer_work.map(vol => ({
+        title: vol.role,
+        organization: vol.organization,
+        date: vol.duration,
+        description: vol.description,
+        achievements: vol.achievements || []
+      }));
+    }
+    
+    // Use detailed publications
+    if (detailed.publications?.length) {
+      publicationsData = detailed.publications.map(pub => ({
+        title: pub.title,
+        publication: pub.publication,
+        date: pub.date,
+        authors: pub.authors,
+        description: pub.description
+      }));
+    }
+  } else if (!simpleMode) {
+    // Fallback to HTML parsing if no detailed sections available
+    console.log('⚠️ No detailed sections available, falling back to HTML parsing');
     try {
       const parser = new ResumeContentParser(htmlContent);
       professionalSummary = parser.extractSection(['PROFESSIONAL SUMMARY', 'SUMMARY', 'PROFILE']);
@@ -1714,6 +1864,7 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
       certificationsData = parser.extractCertifications();
       awardsData = parser.extractAwards();
       volunteerData = parser.extractVolunteerExperience();
+      // Note: publications parsing not implemented in parser, would need to add
     } catch (error) {
       console.error('Error parsing resume content:', error);
       simpleMode = true;
@@ -2105,6 +2256,30 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
     </View>
   );
 
+  // Publications section
+  const publicationsSection = publicationsData.length > 0 && (
+    <View style={styles.section} key="publications">
+      <Text style={styles.sectionTitle}>PUBLICATIONS</Text>
+      {publicationsData.map((publication, index) => (
+        <View key={index} style={styles.publicationItem}>
+          <View style={styles.publicationHeader}>
+            <Text style={styles.publicationTitle}>{publication.title}</Text>
+            <Text style={styles.publicationDate}>{publication.date}</Text>
+          </View>
+          <Text style={styles.publicationVenue}>{publication.publication}</Text>
+          {publication.authors && publication.authors.length > 0 && (
+            <Text style={styles.publicationAuthors}>
+              Authors: {publication.authors.join(', ')}
+            </Text>
+          )}
+          {publication.description && (
+            <Text style={styles.publicationDescription}>{publication.description}</Text>
+          )}
+        </View>
+      ))}
+    </View>
+  );
+
   const experienceSection = !simpleMode && safeExperience.length > 0 && (
     <View key="experience" style={styles.section}>
       <Text style={styles.sectionTitle}>PROFESSIONAL EXPERIENCE</Text>
@@ -2183,6 +2358,7 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
         {certificationsSection}
         {awardsSection}
         {volunteerSection}
+        {publicationsSection}
         <Text style={styles.pageNumber}>1</Text>
         <View style={styles.footer}>
           <Text style={styles.footerText}>
