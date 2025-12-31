@@ -264,9 +264,9 @@ export class AIEnhancementService {
 
     // Create system prompt for AI enhancement (matching old repo pattern)
     private static createSystemPrompt(): string {
-        return `You are an expert resume optimization AI assistant specializing in ATS optimization and job matching. Your task is to analyze a resume against a job description and provide comprehensive optimization recommendations.
+        return `You are an expert resume optimization specialist with deep experience in ATS systems and job matching. Your task is to analyze a resume against a job description and provide expert optimization recommendations.
 
-Always include a compact, crisp, professional summary suitable for use at the top of a resume (2-3 sentences maximum). Keep this summary short, precise, and professional. For other sections prefer concise, actionable items rather than long paragraphs.
+Always include a concise, professional summary suitable for use at the top of a resume (2-3 sentences maximum). Keep this summary short, precise, and professional. For other sections prefer concise, actionable items rather than long paragraphs.
 
 You must respond with a valid JSON object containing the following structure:
 {
@@ -287,13 +287,13 @@ You must respond with a valid JSON object containing the following structure:
     }
   },
   "enhancements": {
-    "enhanced_summary": "AI-improved professional summary",
+    "enhanced_summary": "Optimized professional summary",
     "enhanced_skills": ["prioritized technical and soft skills"],
     "enhanced_experience_bullets": ["improved bullet points with metrics"],
     "cover_letter_outline": {
-      "opening": "compelling opening paragraph",
-      "body": "main body content highlighting relevant experience",
-      "closing": "strong closing with call to action"
+      "opening": "engaging opening that expresses genuine interest",
+      "body": "main body content showcasing relevant experience",
+      "closing": "strong closing with clear next steps"
     }
   }
 }
@@ -315,9 +315,9 @@ CRITICAL INSTRUCTIONS FOR PROFESSIONAL SUMMARY:
 
     // Create system prompt for detailed AI enhancement
     private static createDetailedSystemPrompt(): string {
-        return `You are an expert resume and cover letter writer specializing in creating comprehensive, ATS-optimized, multi-page professional documents. Your task is to analyze a resume against a job description and create detailed, enhanced content.
+        return `You are an expert resume writer and career strategist with deep expertise in creating comprehensive, ATS-optimized professional documents. Your task is to analyze a resume against a job description and create detailed, polished content.
 
-Always include a compact, crisp, professional summary suitable for use at the top of a resume (2-3 sentences maximum). Even when producing long-form detailed sections, ensure the enhanced_summary field contains a short, professional blurb that can be used directly on a one-page resume. For the rest of the detailed content, prefer concise, structured paragraphs and bullet lists.
+Always include a concise, professional summary suitable for use at the top of a resume (2-3 sentences maximum). Even when producing long-form detailed sections, ensure the enhanced_summary field contains a short, professional summary that can be used directly on a one-page resume. For the rest of the detailed content, prefer concise, structured paragraphs and bullet lists.
 
 CRITICAL REQUIREMENT: The professional_summary field must be SHORT (2-3 sentences, under 100 words). Do NOT write long paragraphs.
 
@@ -344,13 +344,13 @@ You must respond with a valid JSON object containing the following structure:
     "enhanced_skills": ["prioritized technical and soft skills relevant to job"],
     "enhanced_experience_bullets": ["improved bullet points with metrics and achievements"],
     "detailed_resume_sections": {
-      "professional_summary": "IMPORTANT: Write a SHORT, CONCISE 2-3 sentence professional summary. Do NOT write multiple paragraphs. Keep it brief and impactful, highlighting only the most relevant experience and value proposition.",
+      "professional_summary": "Write a SHORT, CONCISE 2-3 sentence professional summary. Do NOT write multiple paragraphs. Keep it brief and impactful, highlighting only the most relevant experience and value proposition.",
       "technical_skills": ["comprehensive list of technical skills categorized by proficiency"],
       "soft_skills": ["relevant soft skills with context"],
       "experience": [
         {
           "company": "Company Name",
-          "position": "Enhanced Job Title",
+          "position": "Job Title",
           "duration": "Start Date - End Date",
           "location": "City, State",
           "achievements": ["3-5 quantified achievements with metrics"],
@@ -418,14 +418,14 @@ You must respond with a valid JSON object containing the following structure:
       ]
     },
     "detailed_cover_letter": {
-      "opening_paragraph": "4-5 sentence engaging opening that mentions specific job title, company, and highlights most relevant qualification with enthusiasm",
-      "body_paragraph": "8-10 sentence detailed paragraph connecting specific experiences to job requirements, using concrete examples and quantified achievements that demonstrate value to the company",
-      "closing_paragraph": "3-4 sentence strong closing that reiterates interest, mentions next steps, and includes professional sign-off"
+      "opening_paragraph": "Engaging 4-5 sentence introduction that expresses genuine interest in the position, briefly mentions the company, and highlights your most relevant achievement or skill",
+      "body_paragraph": "Substantial 8-10 sentence paragraph that demonstrates your understanding of the role's requirements and tells a compelling story of how your specific experience directly addresses the company's needs, using concrete examples",
+      "closing_paragraph": "Professional 3-4 sentence conclusion expressing enthusiasm, indicating next steps, and thanking them for their consideration"
     },
     "cover_letter_outline": {
-      "opening": "Brief opening guidance",
-      "body": "Main body guidance",
-      "closing": "Closing guidance"
+      "opening": "Express genuine interest in the role and company, mentioning a specific reason why you're excited about the opportunity",
+      "body": "Connect your relevant experience and achievements to the job requirements, using specific examples that demonstrate your value",
+      "closing": "Reiterate your interest, mention you'll follow up, and thank them for considering your application"
     }
   }
 }

@@ -6,6 +6,7 @@ import { X, Calendar, Building, FileText, User, Link, Sparkles, MapPin } from 'l
 import { JobApplication } from '../../services/firebaseJobApplicationService';
 import { UserProfileData } from '../../services/profileService';
 import AIEnhancementModal from './AIEnhancementModal';
+import { FirebaseStorageService } from '../../services/firebaseStorageService';
 
 const ApplicationStatus = {
   NOT_APPLIED: 'not_applied',
@@ -33,22 +34,44 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
   const [showAIModal, setShowAIModal] = useState(false);
 
   useEffect(() => {
-    if (application) {
-      dispatch(setFormData({
-        company_name: application.company_name || '',
-        position: application.position || '',
-        status: application.status || 'not_applied',
-        application_date: application.application_date ? new Date(application.application_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        location: application.location || '',
-        job_posting_url: application.job_posting_url || '',
-        job_description: application.job_description || '',
-        notes: application.notes || '',
-        resume_url: application.resume_url || '',
-        cover_letter_url: application.cover_letter_url || ''
-      }));
-    } else {
-      dispatch(resetForm());
-    }
+    const loadAndRefreshUrls = async () => {
+      if (application) {
+        // Refresh URLs if they're expired
+        let resumeUrl = application.resume_url || '';
+        let coverLetterUrl = application.cover_letter_url || '';
+
+        try {
+          if (resumeUrl) {
+            resumeUrl = await FirebaseStorageService.refreshUrlIfExpired(resumeUrl);
+          }
+          if (coverLetterUrl) {
+            coverLetterUrl = await FirebaseStorageService.refreshUrlIfExpired(coverLetterUrl);
+          }
+        } catch (error) {
+          console.error('Failed to refresh URLs:', error);
+          // Continue with original URLs if refresh fails
+          resumeUrl = application.resume_url || '';
+          coverLetterUrl = application.cover_letter_url || '';
+        }
+
+        dispatch(setFormData({
+          company_name: application.company_name || '',
+          position: application.position || '',
+          status: application.status || 'not_applied',
+          application_date: application.application_date ? new Date(application.application_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          location: application.location || '',
+          job_posting_url: application.job_posting_url || '',
+          job_description: application.job_description || '',
+          notes: application.notes || '',
+          resume_url: resumeUrl,
+          cover_letter_url: coverLetterUrl
+        }));
+      } else {
+        dispatch(resetForm());
+      }
+    };
+
+    loadAndRefreshUrls();
   }, [application, dispatch]);
 
   const handleSubmit = (e: React.FormEvent) => {

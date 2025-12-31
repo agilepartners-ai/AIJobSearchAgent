@@ -243,13 +243,6 @@ const CoverLetterPDFDocument: React.FC<{ content: string; jobDetails: any; resul
         <View style={{ marginBottom: 15 }}>
           <Text style={{ fontSize: 11, color: '#000000' }}>{coverLetterData.name}</Text>
         </View>
-
-        {/* Footer */}
-        <View style={{ marginTop: 30, paddingTop: 15, borderTop: '1 solid #e5e7eb', alignItems: 'center' }}>
-          <Text style={{ fontSize: 9, color: '#000000' }}>
-            This cover letter was AI-enhanced and personalized for the {jobDetails.position || 'target position'} at {jobDetails.company_name || 'the company'}.
-          </Text>
-        </View>
       </Page>
     </Document>
   );

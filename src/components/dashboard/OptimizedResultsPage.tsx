@@ -1,5 +1,6 @@
-import React from 'react';
-import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain, ArrowLeft, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain, ArrowLeft, ExternalLink, Loader2 } from 'lucide-react';
+import { FirebaseStorageService } from '../../services/firebaseStorageService';
 
 interface OptimizedResultsPageProps {
   results: {
@@ -43,6 +44,39 @@ const OptimizedResultsPage: React.FC<OptimizedResultsPageProps> = ({
   onClose, 
   onBackToDashboard 
 }) => {
+  const [resumeUrl, setResumeUrl] = useState(results.optimizedResumeUrl);
+  const [coverLetterUrl, setCoverLetterUrl] = useState(results.optimizedCoverLetterUrl);
+  const [refreshingUrls, setRefreshingUrls] = useState(false);
+
+  // Refresh URLs on component mount if they're expired
+  useEffect(() => {
+    const refreshUrls = async () => {
+      setRefreshingUrls(true);
+      try {
+        const [refreshedResumeUrl, refreshedCoverLetterUrl] = await Promise.all([
+          FirebaseStorageService.refreshUrlIfExpired(results.optimizedResumeUrl),
+          FirebaseStorageService.refreshUrlIfExpired(results.optimizedCoverLetterUrl)
+        ]);
+
+        setResumeUrl(refreshedResumeUrl);
+        setCoverLetterUrl(refreshedCoverLetterUrl);
+
+        // If URLs were refreshed, log it
+        if (refreshedResumeUrl !== results.optimizedResumeUrl || refreshedCoverLetterUrl !== results.optimizedCoverLetterUrl) {
+          console.log('✅ URLs refreshed successfully');
+        }
+      } catch (error) {
+        console.error('Failed to refresh URLs:', error);
+        // Fall back to original URLs if refresh fails
+        setResumeUrl(results.optimizedResumeUrl);
+        setCoverLetterUrl(results.optimizedCoverLetterUrl);
+      } finally {
+        setRefreshingUrls(false);
+      }
+    };
+
+    refreshUrls();
+  }, [results.optimizedResumeUrl, results.optimizedCoverLetterUrl]);
   const getScoreBadge = (score: number) => {
     if (score >= 85) {
       return {
@@ -196,28 +230,35 @@ const OptimizedResultsPage: React.FC<OptimizedResultsPageProps> = ({
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               Your AI-optimized resume and cover letter are ready for download in professional PDF format.
             </p>
-            <div className="flex gap-4 flex-wrap">
-              <a
-                href={results.optimizedResumeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all hover:shadow-lg"
-              >
-                <Download size={20} />
-                Download Optimized Resume PDF
-                <ExternalLink size={16} />
-              </a>
-              <a
-                href={results.optimizedCoverLetterUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all hover:shadow-lg"
-              >
-                <FileText size={20} />
-                Download Cover Letter PDF
-                <ExternalLink size={16} />
-              </a>
-            </div>
+            {refreshingUrls ? (
+              <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
+                <Loader2 size={20} className="animate-spin" />
+                <span>Refreshing document links...</span>
+              </div>
+            ) : (
+              <div className="flex gap-4 flex-wrap">
+                <a
+                  href={resumeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all hover:shadow-lg"
+                >
+                  <Download size={20} />
+                  Download Optimized Resume PDF
+                  <ExternalLink size={16} />
+                </a>
+                <a
+                  href={coverLetterUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all hover:shadow-lg"
+                >
+                  <FileText size={20} />
+                  Download Cover Letter PDF
+                  <ExternalLink size={16} />
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Keyword Analysis */}

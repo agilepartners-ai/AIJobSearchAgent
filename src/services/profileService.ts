@@ -50,6 +50,75 @@ export interface UserProfileData {
   resume_url?: string;
   cover_letter_template?: string;
   subscription_status?: string;
+
+  // Detailed AI-enhanced sections from aiEnhancementService
+  detailedResumeSections?: {
+    professional_summary?: string;
+    technical_skills?: string[];
+    soft_skills?: string[];
+    experience?: Array<{
+      company: string;
+      position: string;
+      duration: string;
+      location: string;
+      achievements: string[];
+      key_responsibilities: string[];
+      technologies_used: string[];
+      quantified_results: string[];
+    }>;
+    education?: Array<{
+      institution: string;
+      degree: string;
+      field_of_study: string;
+      graduation_date: string;
+      gpa?: string;
+      relevant_coursework: string[];
+      honors: string[];
+    }>;
+    projects?: Array<{
+      name: string;
+      description: string;
+      technologies: string[];
+      achievements: string[];
+      duration: string;
+      team_size?: string;
+      role: string;
+    }>;
+    certifications?: Array<{
+      name: string;
+      issuing_organization: string;
+      issue_date: string;
+      expiration_date?: string;
+      credential_id?: string;
+    }>;
+    awards?: Array<{
+      title: string;
+      issuing_organization: string;
+      date: string;
+      description: string;
+    }>;
+    volunteer_work?: Array<{
+      organization: string;
+      role: string;
+      duration: string;
+      description: string;
+      achievements: string[];
+    }>;
+    publications?: Array<{
+      title: string;
+      publication: string;
+      date: string;
+      authors: string[];
+      description: string;
+    }>;
+  };
+
+  // Detailed cover letter from AI enhancement
+  detailedCoverLetter?: {
+    opening_paragraph?: string;
+    body_paragraph?: string;
+    closing_paragraph?: string;
+  };
 }
 
 
