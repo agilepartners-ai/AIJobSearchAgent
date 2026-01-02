@@ -12,33 +12,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Only POST requests are allowed' });
   }
 
-  const {
-    userId,
-    jobApplicationId,
-    resumePdfBase64,
-    coverLetterPdfBase64,
-    // Optional: server-fetchable URLs pointing to generated PDFs (http(s) accessible)
-    resumePdfUrl,
-    coverLetterPdfUrl,
-  } = req.body || {};
-
-  console.log('📦 Request body:', {
-    jobApplicationId,
-    resumePdfProvided: typeof resumePdfBase64 === 'string',
-    coverLetterPdfProvided: typeof coverLetterPdfBase64 === 'string',
-  });
-
-  if (!jobApplicationId) {
-    console.warn('❌ Missing required jobApplicationId');
-    return res.status(400).json({ error: 'Missing jobApplicationId' });
-  }
-
-  if (!userId || typeof userId !== 'string' || userId.trim() === '') {
-    console.warn('❌ Missing required userId');
-    return res.status(400).json({ error: 'Missing userId' });
-  }
-
   try {
+    const {
+      userId,
+      jobApplicationId,
+      resumePdfBase64,
+      coverLetterPdfBase64,
+      // Optional: server-fetchable URLs pointing to generated PDFs (http(s) accessible)
+      resumePdfUrl,
+      coverLetterPdfUrl,
+    } = req.body || {};
+
+    console.log('📦 Request body keys:', Object.keys(req.body || {}));
+    console.log('📦 Request payload info:', {
+      hasUserId: !!userId,
+      hasJobApplicationId: !!jobApplicationId,
+      resumeSize: resumePdfBase64?.length || 0,
+      coverLetterSize: coverLetterPdfBase64?.length || 0,
+    });
+
+    if (!jobApplicationId) {
+      console.warn('❌ Missing required jobApplicationId');
+      return res.status(400).json({ error: 'Missing jobApplicationId' });
+    }
+
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+      console.warn('❌ Missing required userId');
+      return res.status(400).json({ error: 'Missing userId' });
+    }
     // Initialize Firebase Admin SDK on first request (avoid module-load failures)
     if (!admin.apps.length) {
       const projectId = process.env.FIREBASE_PROJECT_ID;
@@ -74,18 +75,54 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('🚀 Processing incoming payload (PDF blobs or HTML)');
 
     const extractBase64 = (input: unknown): string | null => {
-      if (typeof input !== 'string') return null;
-      const match = input.match(/^data:application\/(pdf);base64,(.*)$/i);
-      if (match) return match[2];
-      return input.replace(/\s+/g, '');
+      if (typeof input !== 'string') {
+        console.warn('[extractBase64] Input is not a string:', typeof input);
+        return null;
+      }
+      
+      // Handle data URL format: data:application/pdf;base64,<base64>
+      const match = input.match(/^data:application\/(pdf|octet-stream);base64,(.*)$/i);
+      if (match && match[2]) {
+        console.log('[extractBase64] Successfully extracted base64 from data URL');
+        return match[2];
+      }
+      
+      // Try plain base64 if no data URL format
+      const cleanBase64 = input.replace(/\s+/g, '');
+      if (cleanBase64 && cleanBase64.length > 0) {
+        console.log('[extractBase64] Using plain base64 string');
+        return cleanBase64;
+      }
+      
+      console.warn('[extractBase64] Could not extract valid base64 from input');
+      return null;
     };
 
     const decodePdf = (b64: string): Buffer | null => {
       try {
+        if (!b64 || b64.length === 0) {
+          console.warn('[decodePdf] Empty base64 string provided');
+          return null;
+        }
+        
         const buf = Buffer.from(b64, 'base64');
-        if (buf.slice(0, 5).toString() !== '%PDF-') return null;
+        
+        if (buf.length === 0) {
+          console.warn('[decodePdf] Buffer is empty after decoding');
+          return null;
+        }
+        
+        // Check for PDF magic bytes
+        const pdfSignature = buf.slice(0, 4).toString();
+        if (!pdfSignature.startsWith('%PDF')) {
+          console.warn('[decodePdf] Invalid PDF signature. First 20 bytes:', buf.slice(0, 20).toString('hex'));
+          return null;
+        }
+        
+        console.log('[decodePdf] PDF decoded successfully, size:', buf.length);
         return buf;
-      } catch {
+      } catch (e) {
+        console.error('[decodePdf] Error decoding base64:', e);
         return null;
       }
     };
@@ -113,8 +150,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let resumeBuffer: Buffer | null = null;
     let coverLetterBuffer: Buffer | null = null;
 
-    if (resumeB64) resumeBuffer = decodePdf(resumeB64);
-    if (coverB64) coverLetterBuffer = decodePdf(coverB64);
+    console.log('[save-generated-pdfs] Processing PDF data...');
+    
+    if (resumeB64) {
+      console.log('[save-generated-pdfs] Decoding resume PDF...');
+      resumeBuffer = decodePdf(resumeB64);
+      if (!resumeBuffer) {
+        console.error('[save-generated-pdfs] Resume PDF is invalid or corrupted');
+      }
+    } else {
+      console.warn('[save-generated-pdfs] No resume base64 data provided');
+    }
+    
+    if (coverB64) {
+      console.log('[save-generated-pdfs] Decoding cover letter PDF...');
+      coverLetterBuffer = decodePdf(coverB64);
+      if (!coverLetterBuffer) {
+        console.error('[save-generated-pdfs] Cover letter PDF is invalid or corrupted');
+      }
+    } else {
+      console.warn('[save-generated-pdfs] No cover letter base64 data provided');
+    }
 
     // Try fetching from URLs if buffers are not provided by base64
     if (!resumeBuffer && resumePdfUrl) {
@@ -126,9 +182,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       coverLetterBuffer = await fetchPdfFromUrl(coverLetterPdfUrl);
     }
 
-    if (!resumeBuffer || !coverLetterBuffer) {
-      console.warn('[save-generated-pdfs] Missing or invalid PDF data (base64 or fetch failed)');
-      return res.status(400).json({ error: 'Missing or invalid PDF data provided. Send base64 PDFs or server-accessible PDF URLs.' });
+    if (!resumeBuffer) {
+      console.error('[save-generated-pdfs] Missing valid resume PDF - base64 extraction failed or no data provided');
+      return res.status(400).json({ 
+        error: 'Invalid or missing resume PDF. Ensure the PDF was generated correctly.',
+        detail: 'Resume PDF extraction failed'
+      });
+    }
+    
+    if (!coverLetterBuffer) {
+      console.error('[save-generated-pdfs] Missing valid cover letter PDF - base64 extraction failed or no data provided');
+      return res.status(400).json({ 
+        error: 'Invalid or missing cover letter PDF. Ensure the PDF was generated correctly.',
+        detail: 'Cover letter PDF extraction failed'
+      });
     }
 
     const uploadAndGetUrl = async (buffer: Buffer, filename: string) => {
@@ -143,18 +210,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           console.info('[save-generated-pdfs] File saved to storage:', filename);
         }
 
-        // Return a signed URL (read) valid for 7 days
+        // Return a signed URL (read) valid for 30 days
+        // Use Date object for better compatibility with Firebase v4 signing
         try {
-          const expires = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
+          const expirationDate = new Date();
+          expirationDate.setDate(expirationDate.getDate() + 30); // 30 days from now
+          
+          console.log('[save-generated-pdfs] Generating signed URL with expiration:', expirationDate.toISOString());
+          
           const [signedUrl] = await file.getSignedUrl({
             version: 'v4',
             action: 'read',
-            expires,
+            expires: expirationDate,
           });
+          
+          console.log('[save-generated-pdfs] Signed URL generated successfully');
           return signedUrl;
-        } catch (e) {
-          console.warn('[save-generated-pdfs] getSignedUrl failed, returning gs:// path', e);
-          return `gs://${bucket.name}/${filename}`;
+        } catch (e: any) {
+          console.error('[save-generated-pdfs] getSignedUrl failed:', e.message);
+          console.warn('[save-generated-pdfs] Falling back to public URL or gs:// path');
+          
+          // Try to make the file public as a fallback
+          try {
+            await file.makePublic();
+            const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+            console.log('[save-generated-pdfs] Using public URL:', publicUrl);
+            return publicUrl;
+          } catch (publicError) {
+            console.warn('[save-generated-pdfs] Could not make file public, returning gs:// path');
+            return `gs://${bucket.name}/${filename}`;
+          }
         }
       } catch (e) {
         console.error('[save-generated-pdfs] uploadAndGetUrl error for', filename, e);

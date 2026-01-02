@@ -5,6 +5,10 @@ export interface AIEnhancementOptions {
     // NEW: full prompt overrides (replace whole prompt if provided)
     userPromptOverride?: string;
     systemPromptOverride?: string;
+    // Progress callback for real-time updates
+    onProgress?: (stage: string, percentage: number) => void;
+    // Enable streaming for token-by-token progress
+    enableStreaming?: boolean;
 }
 
 export interface AIEnhancementRequest {
@@ -317,6 +321,25 @@ CRITICAL INSTRUCTIONS FOR PROFESSIONAL SUMMARY:
     private static createDetailedSystemPrompt(): string {
         return `You are an expert resume writer and career strategist with deep expertise in creating comprehensive, ATS-optimized professional documents. Your task is to analyze a resume against a job description and create detailed, polished content.
 
+⚠️ CRITICAL RULES - NEVER VIOLATE THESE:
+1. NEVER add synthetic, fabricated, or invented data
+2. ONLY use information EXPLICITLY provided in the original resume
+3. DO NOT add percentages, metrics, or numbers that aren't in the source resume (e.g., NO "(resulted in ~10% efficiency gain)" unless it's in the original)
+4. DO NOT invent achievements, technologies, dates, or experiences
+5. DO NOT add placeholder text, synthetic metrics, or made-up accomplishments
+6. ONLY rephrase, reorganize, and optimize what already exists in the source resume
+7. If information is unclear or missing, DO NOT fill it in - leave it out
+8. DO NOT repeat degree names (e.g., "MBA in Business Administration" NOT "MBA in Business Administration in Business Administration")
+9. DO NOT create separate "projects" section if projects are already covered in experience section
+
+SPACE-SAVING GUIDELINES:
+- Combine "Key Achievements" and "Key Responsibilities" into a single "achievements" array to eliminate duplication
+- Remove redundant bullet points that say the same thing in different words
+- Focus on unique, specific accomplishments from the original resume
+- Consolidate overlapping information
+- Technical skills should be a simple flat array (no categories) for inline display
+- Keep education entries concise: "degree + field" once, not repeated
+
 Always include a concise, professional summary suitable for use at the top of a resume (2-3 sentences maximum). Even when producing long-form detailed sections, ensure the enhanced_summary field contains a short, professional summary that can be used directly on a one-page resume. For the rest of the detailed content, prefer concise, structured paragraphs and bullet lists.
 
 CRITICAL REQUIREMENT: The professional_summary field must be SHORT (2-3 sentences, under 100 words). Do NOT write long paragraphs.
@@ -325,7 +348,7 @@ You must respond with a valid JSON object containing the following structure:
 {
   "match_score": number (0-100),
   "analysis": {
-    "strengths": ["array of specific strengths"],
+    "strengths": ["array of specific strengths FROM THE RESUME"],
     "gaps": ["array of gaps/weaknesses"],
     "suggestions": ["array of specific improvement suggestions"],
     "keyword_analysis": {
@@ -340,104 +363,102 @@ You must respond with a valid JSON object containing the following structure:
     }
   },
   "enhancements": {
-    "enhanced_summary": "2-3 sentence professional summary tailored to job",
-    "enhanced_skills": ["prioritized technical and soft skills relevant to job"],
-    "enhanced_experience_bullets": ["improved bullet points with metrics and achievements"],
+    "enhanced_summary": "2-3 sentence professional summary tailored to job USING ONLY REAL RESUME CONTENT",
+    "enhanced_skills": ["prioritized technical and soft skills THAT EXIST IN THE RESUME"],
+    "enhanced_experience_bullets": ["improved bullet points WITH ONLY REAL METRICS from the resume"],
     "detailed_resume_sections": {
-      "professional_summary": "Write a SHORT, CONCISE 2-3 sentence professional summary. Do NOT write multiple paragraphs. Keep it brief and impactful, highlighting only the most relevant experience and value proposition.",
-      "technical_skills": ["comprehensive list of technical skills categorized by proficiency"],
-      "soft_skills": ["relevant soft skills with context"],
+      "professional_summary": "Write a SHORT, CONCISE 2-3 sentence professional summary. Do NOT write multiple paragraphs. Keep it brief and impactful, highlighting only the most relevant experience and value proposition FROM THE ACTUAL RESUME.",
+      "technical_skills": ["Flat array of technical skills FROM THE RESUME ONLY - NO categories, NO grouping - simple list for inline comma-separated display"],
+      "soft_skills": ["relevant soft skills WITH EVIDENCE FROM THE RESUME"],
       "experience": [
         {
-          "company": "Company Name",
-          "position": "Job Title",
-          "duration": "Start Date - End Date",
-          "location": "City, State",
-          "achievements": ["3-5 quantified achievements with metrics"],
-          "key_responsibilities": ["4-6 detailed responsibilities using action verbs"],
-          "technologies_used": ["relevant technologies and tools"],
-          "quantified_results": ["specific numbers, percentages, dollar amounts"]
+          "company": "Company Name FROM RESUME",
+          "position": "Job Title FROM RESUME",
+          "duration": "EXACT Dates FROM RESUME",
+          "location": "EXACT Location FROM RESUME",
+          "achievements": ["3-8 consolidated achievements combining responsibilities AND accomplishments to eliminate duplication. Use ONLY real information from the resume. Include metrics ONLY if they appear in the source resume."],
+          "technologies_used": ["ONLY technologies explicitly mentioned in the resume"]
         }
       ],
       "education": [
         {
-          "institution": "University Name",
-          "degree": "Degree Type",
-          "field_of_study": "Major/Field",
-          "graduation_date": "Month Year",
-          "gpa": "GPA if impressive",
-          "relevant_coursework": ["courses relevant to target job"],
-          "honors": ["academic honors and achievements"]
+          "institution": "University Name FROM RESUME",
+          "degree": "Degree Type FROM RESUME (e.g., MBA, Master's, Bachelor's) - WRITE ONCE, DO NOT DUPLICATE",
+          "field_of_study": "EXACT Field FROM RESUME (e.g., Business Administration, Applied Economics) - DO NOT REPEAT WITH DEGREE",
+          "graduation_date": "EXACT Date FROM RESUME",
+          "gpa": "ONLY if provided in resume",
+          "relevant_coursework": ["ONLY if mentioned in resume"],
+          "honors": ["ONLY if mentioned in resume"]
         }
       ],
       "projects": [
         {
-          "name": "Project Name",
-          "description": "2-3 sentence detailed description",
-          "technologies": ["technologies used"],
-          "achievements": ["quantified results and impact"],
-          "duration": "timeframe",
-          "team_size": "if applicable",
-          "role": "your specific role"
+          "name": "ONLY include if this is independent work OUTSIDE of employment experience",
+          "description": "DO NOT duplicate projects already mentioned in experience section",
+          "technologies": ["ONLY if this is a separate project not covered in experience"],
+          "achievements": ["ONLY for independent/side projects"],
+          "duration": "ONLY if specified in resume",
+          "team_size": "ONLY if specified in resume",
+          "role": "ONLY if specified in resume",
+          "note": "LEAVE THIS SECTION EMPTY if all projects are already covered in the experience section"
         }
       ],
       "certifications": [
         {
-          "name": "Certification Name",
-          "issuing_organization": "Organization",
-          "issue_date": "Month Year",
-          "expiration_date": "Month Year if applicable",
-          "credential_id": "ID if available"
+          "name": "EXACT Certification Name FROM RESUME",
+          "issuing_organization": "EXACT Organization FROM RESUME",
+          "issue_date": "EXACT Date FROM RESUME",
+          "expiration_date": "ONLY if in resume",
+          "credential_id": "ONLY if in resume"
         }
       ],
       "awards": [
         {
-          "title": "Award Name",
-          "issuing_organization": "Organization",
-          "date": "Month Year",
-          "description": "Brief description of achievement"
+          "title": "EXACT Award Name FROM RESUME",
+          "issuing_organization": "EXACT Organization FROM RESUME",
+          "date": "EXACT Date FROM RESUME",
+          "description": "ONLY information from resume"
         }
       ],
       "volunteer_work": [
         {
-          "organization": "Organization Name",
-          "role": "Volunteer Role",
-          "duration": "Start - End",
-          "description": "Description of work",
-          "achievements": ["measurable impact"]
+          "organization": "EXACT Organization Name FROM RESUME",
+          "role": "EXACT Role FROM RESUME",
+          "duration": "EXACT Duration FROM RESUME",
+          "description": "ONLY information from resume",
+          "achievements": ["ONLY if measurable impact is mentioned in resume"]
         }
       ],
       "publications": [
         {
-          "title": "Publication Title",
-          "publication": "Journal/Conference Name",
-          "date": "Month Year",
-          "authors": ["author names"],
-          "description": "Brief description of contribution"
+          "title": "EXACT Title FROM RESUME",
+          "publication": "EXACT Publication FROM RESUME",
+          "date": "EXACT Date FROM RESUME",
+          "authors": ["EXACT authors FROM RESUME"],
+          "description": "ONLY information from resume"
         }
       ]
     },
     "detailed_cover_letter": {
-      "opening_paragraph": "Engaging 4-5 sentence introduction that expresses genuine interest in the position, briefly mentions the company, and highlights your most relevant achievement or skill",
-      "body_paragraph": "Substantial 8-10 sentence paragraph that demonstrates your understanding of the role's requirements and tells a compelling story of how your specific experience directly addresses the company's needs, using concrete examples",
+      "opening_paragraph": "Engaging 4-5 sentence introduction that expresses genuine interest in the position, briefly mentions the company, and highlights REAL achievements from the resume",
+      "body_paragraph": "Substantial 8-10 sentence paragraph that demonstrates understanding of the role and tells a compelling story using REAL experience from the resume with concrete examples",
       "closing_paragraph": "Professional 3-4 sentence conclusion expressing enthusiasm, indicating next steps, and thanking them for their consideration"
     },
     "cover_letter_outline": {
-      "opening": "Express genuine interest in the role and company, mentioning a specific reason why you're excited about the opportunity",
-      "body": "Connect your relevant experience and achievements to the job requirements, using specific examples that demonstrate your value",
-      "closing": "Reiterate your interest, mention you'll follow up, and thank them for considering your application"
+      "opening": "Express genuine interest in the role and company, mentioning a specific reason why you're excited",
+      "body": "Connect REAL experience and achievements from the resume to the job requirements",
+      "closing": "Reiterate interest, mention follow-up, and thank them"
     }
   }
 }
 
 Focus on:
-1. Creating comprehensive, multi-page content suitable for experienced professionals
-2. Using specific examples and quantified achievements
-3. Incorporating job-specific keywords naturally
-4. Ensuring ATS optimization while maintaining readability
-5. Creating compelling narratives that connect experience to job requirements
-6. Providing detailed sections that showcase full professional profile
-7. Making cover letter highly personalized and compelling`;
+1. ACCURACY: Use only real information from the source resume
+2. CONSOLIDATION: Combine overlapping content to save space
+3. NO INVENTION: Never add synthetic data, metrics, or placeholder text
+4. SPECIFICITY: Use concrete examples from the actual resume
+5. ATS OPTIMIZATION: Incorporate job-specific keywords naturally where they genuinely apply
+6. READABILITY: Keep content concise and impactful`;
     }
 
     // Create user prompt
@@ -508,15 +529,27 @@ ${resumeText}`;
     private static createDetailedUserPromptHeader(): string {
         return `Please analyze and create detailed, comprehensive enhanced content for this resume and a personalized cover letter for the given job description.
 
+⚠️ CRITICAL: Use ONLY information from the provided resume. DO NOT add synthetic data, invented metrics, or placeholder text.
+
 Create a comprehensive analysis and detailed enhanced content following the JSON structure. The enhanced resume should be suitable for a multi-page document with detailed sections. The cover letter should have two substantial paragraphs that create a compelling narrative connecting the candidate's experience to the job requirements.
 
+STRICT REQUIREMENTS:
+1. Consolidate "Key Achievements" and "Key Responsibilities" into a single "achievements" array to save space
+2. Remove any duplicate or overlapping bullet points
+3. NEVER add percentages, metrics, or data not present in the original resume
+4. NEVER add text like "(resulted in ~X% efficiency gain)" unless it exists in the source
+5. Use ONLY real technologies, dates, companies, and accomplishments from the resume
+6. Technical skills must be a flat array (no categories) for inline comma-separated display
+7. Education: Write degree and field ONCE (e.g., "MBA in Business Administration" NOT "MBA in Business Administration in Business Administration")
+8. Projects: ONLY include if they are independent work outside employment; DO NOT duplicate experience content
+
 Make sure all content is:
-1. Highly detailed and professional
-2. Tailored specifically to the job posting
-3. Includes quantified achievements where possible
-4. Uses industry-specific terminology
+1. Highly detailed and professional - BUT ACCURATE TO THE SOURCE
+2. Tailored specifically to the job posting - WITHOUT INVENTING DATA
+3. Includes quantified achievements - ONLY IF PRESENT IN THE ORIGINAL RESUME
+4. Uses industry-specific terminology - FROM THE RESUME CONTEXT
 5. Optimized for ATS systems
-6. Creates a compelling narrative for the candidate`;
+6. Creates a compelling narrative - USING REAL EXPERIENCES ONLY`;
     }
 
     // NEW: public alias used by UI to get the default "user" prompt header (no context block)
@@ -760,13 +793,24 @@ ${resumeText}`;
         try {
             console.log('Starting detailed Gemini resume enhancement with retry mechanism...');
 
+            // Progress callback: Stage 1 - Preparing
+            options.onProgress?.('Preparing AI prompt...', 10);
+
             const apiKey = getGeminiApiKey();
             if (!apiKey) {
-                throw new Error('Gemini API key is not configured. Please set NEXT_PUBLIC_GEMINI_API_KEY in your environment variables.');
+                console.error('❌ Gemini API key is not configured');
+                throw new Error('API configuration is missing. Please ensure NEXT_PUBLIC_GEMINI_API_KEY environment variable is set.');
             }
 
-            const modelId = options.model || AIEnhancementService.DEFAULT_MODEL || 'gemini-2.5-flash';
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelId)}:generateContent`;
+            // Validate API key format
+            if (!apiKey.startsWith('AIza')) {
+                console.warn('⚠️ API key format may be invalid (should start with AIza)');
+            }
+
+            console.log('✅ API key validated (length:', apiKey.length, ')');
+
+            const modelId = options.model || AIEnhancementService.DEFAULT_MODEL || 'gemini-2.0-flash-exp';
+            console.log('🤖 Using model:', modelId);
 
             // Use strict overrides when provided, and ALWAYS append fixed context
             const systemContent =
@@ -776,10 +820,22 @@ ${resumeText}`;
 
             // Add: dynamic directive injection based on detected sections
             console.log('🔍 Detecting resume sections...');
+            console.log('📄 Resume text length:', resumeText?.length, 'characters');
+            console.log('📄 Resume text preview (first 200 chars):', resumeText?.substring(0, 200));
+            
             const { orderedSections } = AIEnhancementService.detectResumeSections(resumeText);
             console.log('✅ Detected sections:', orderedSections);
+            
+            // If no sections detected, use default common sections to avoid empty directive
+            const sectionsToUse = orderedSections.length > 0 
+                ? orderedSections 
+                : ['professional_summary', 'skills', 'experience', 'education', 'projects'] as CanonicalSection[];
+            
+            if (orderedSections.length === 0) {
+                console.warn('⚠️ No resume sections detected via pattern matching. Using default sections:', sectionsToUse);
+            }
 
-            const dynamicDirective = AIEnhancementService.createDynamicSectionDirective(orderedSections);
+            const dynamicDirective = AIEnhancementService.createDynamicSectionDirective(sectionsToUse);
             const userHeaderWithDirective = `${userHeader}\n\n${dynamicDirective}`;
 
             const userContent = AIEnhancementService.buildFinalUserPrompt(userHeaderWithDirective, resumeText, jobDescription);
@@ -794,67 +850,241 @@ ${resumeText}`;
                     }
                 ],
                 generationConfig: {
-                    temperature: 0.7,
-                    topK: 40,
-                    topP: 0.95,
+                    temperature: 0.3,  // Reduced from 0.7 to minimize creativity/hallucination
+                    topK: 20,          // Reduced from 40 to focus on most likely tokens
+                    topP: 0.8,         // Reduced from 0.95 to limit diversity
                     maxOutputTokens: 8192, // Increased token limit for comprehensive responses
                     responseMimeType: "text/plain"
                 }
             };
 
-            // Wrap the API call in retry logic
-            const makeApiCall = async () => {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-goog-api-key': apiKey
-                    },
-                    body: JSON.stringify(payload)
-                });
+            // Progress callback: Stage 2 - Sending to Gemini
+            options.onProgress?.('Sending request to Gemini AI...', 30);
 
-                if (!response.ok) {
-                    const errText = await response.text().catch(() => '');
-                    let errorMessage = `Gemini API error ${response.status}: ${errText || response.statusText}`;
+            let responseText = '';
+            let streamingFailed = false;
 
-                    // Try to parse error details
-                    try {
-                        const errorData = JSON.parse(errText);
-                        errorMessage = `Gemini API error ${response.status}: ${JSON.stringify(errorData)}`;
-                    } catch {
-                        // Keep the original error message
+            if (options.enableStreaming) {
+                try {
+                    // Use streaming API
+                    const streamUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelId)}:streamGenerateContent`;
+                    
+                    console.log('🌊 Attempting streaming request to:', streamUrl);
+                    
+                    const response = await fetch(streamUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-goog-api-key': apiKey
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errText = await response.text().catch(() => '');
+                        console.error('❌ Streaming API failed:', response.status, errText);
+                        throw new Error(`Gemini streaming API error ${response.status}: ${errText || response.statusText}`);
                     }
 
-                    throw new Error(errorMessage);
+                    options.onProgress?.('Processing AI response (streaming)...', 50);
+
+                    const reader = response.body?.getReader();
+                    if (!reader) {
+                        console.warn('⚠️ No reader available from streaming response');
+                        throw new Error('Streaming reader not available');
+                    }
+
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+                    let chunkCount = 0;
+                    let lastDataSize = 0;
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) {
+                            // Process any remaining buffer content
+                            if (buffer.trim()) {
+                                try {
+                                    const cleanLine = buffer.trim().replace(/,\s*$/, '');
+                                    if (cleanLine && cleanLine !== '[' && cleanLine !== ']') {
+                                        const chunk = JSON.parse(cleanLine);
+                                        const text = chunk?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                                        if (text) {
+                                            responseText += text;
+                                            chunkCount++;
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.warn('⚠️ Could not parse final buffer:', buffer.substring(0, 100));
+                                }
+                            }
+                            console.log('✅ Streaming complete. Chunks received:', chunkCount, 'Total text length:', responseText.length);
+                            break;
+                        }
+
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        
+                        // Keep the last incomplete line in the buffer
+                        buffer = lines.pop() || '';
+
+                        for (const line of lines) {
+                            const trimmed = line.trim();
+                            
+                            // Skip empty lines and array delimiters
+                            if (!trimmed || trimmed === '[' || trimmed === ']') continue;
+                            
+                            try {
+                                // Clean up trailing commas which are common in streaming responses
+                                const cleanLine = trimmed.replace(/,\s*$/, '');
+                                
+                                // Skip empty after cleaning
+                                if (!cleanLine || cleanLine === '[' || cleanLine === ']') continue;
+                                
+                                // Parse the JSON chunk
+                                const chunk = JSON.parse(cleanLine);
+                                
+                                // Extract text from the proper nested structure
+                                const text = chunk?.candidates?.[0]?.content?.parts?.[0]?.text;
+                                
+                                if (text && typeof text === 'string' && text.length > 0) {
+                                    responseText += text;
+                                    lastDataSize = text.length;
+                                    chunkCount++;
+                                    
+                                    // Update progress as tokens arrive
+                                    const progress = Math.min(90, 50 + Math.floor(responseText.length / 100));
+                                    options.onProgress?.('Receiving AI response...', progress);
+                                    
+                                    console.log(`📨 Received chunk ${chunkCount}, text size: ${lastDataSize}, total: ${responseText.length}`);
+                                }
+                            } catch (e: any) {
+                                // Only log if it's not whitespace or expected control characters
+                                const preview = trimmed.substring(0, 100);
+                                if (preview && !preview.match(/^\s*[\[\]{}]*\s*$/)) {
+                                    console.debug('⚠️ Skipping non-JSON line:', preview, 'Error:', e.message);
+                                }
+                            }
+                        }
+                    }
+
+                    if (!responseText || responseText.trim().length === 0) {
+                        console.warn('⚠️ Streaming completed but no text received, falling back to standard API');
+                        streamingFailed = true;
+                    }
+                } catch (streamError: any) {
+                    console.warn('⚠️ Streaming failed, falling back to standard API:', streamError.message);
+                    streamingFailed = true;
+                    responseText = ''; // Reset for fallback
+                }
+            }
+
+            // Use standard API call (either by choice or as fallback)
+            if (!options.enableStreaming || streamingFailed) {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelId)}:generateContent`;
+                
+                console.log('📡 Using standard API call to:', url);
+                
+                const makeApiCall = async () => {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-goog-api-key': apiKey
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errText = await response.text().catch(() => '');
+                        console.error('❌ Standard API failed:', response.status, errText);
+                        
+                        let errorMessage = `Gemini API error ${response.status}: ${errText || response.statusText}`;
+
+                        // Try to parse error details
+                        try {
+                            const errorData = JSON.parse(errText);
+                            console.error('❌ Parsed error:', errorData);
+                            errorMessage = `Gemini API error ${response.status}: ${JSON.stringify(errorData)}`;
+                        } catch {
+                            // Keep the original error message
+                        }
+
+                        throw new Error(errorMessage);
+                    }
+
+                    return response;
+                };
+
+                options.onProgress?.('Waiting for AI response...', 50);
+                
+                // Execute with retry mechanism
+                const response = await AIEnhancementService.retryWithBackoff(makeApiCall);
+                
+                options.onProgress?.('Processing AI response...', 70);
+
+                const data = await response.json();
+                console.log('📦 API Response structure:', {
+                    hasCandidates: !!data?.candidates,
+                    candidatesLength: data?.candidates?.length,
+                    hasContent: !!data?.candidates?.[0]?.content,
+                    hasParts: !!data?.candidates?.[0]?.content?.parts,
+                    partsLength: data?.candidates?.[0]?.content?.parts?.length,
+                    firstPartKeys: data?.candidates?.[0]?.content?.parts?.[0] ? Object.keys(data.candidates[0].content.parts[0]) : []
+                });
+
+                // Check for safety/content filtering
+                if (data?.candidates?.[0]?.finishReason) {
+                    console.log('🔍 Finish reason:', data.candidates[0].finishReason);
+                    if (data.candidates[0].finishReason === 'SAFETY' || data.candidates[0].finishReason === 'BLOCKED') {
+                        console.error('❌ Content was blocked by safety filters');
+                        throw new Error('Content blocked by AI safety filters. Please try with different resume content or remove sensitive information.');
+                    }
                 }
 
-                return response;
-            };
+                responseText =
+                    data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+                    data?.candidates?.[0]?.output_text ||
+                    '';
 
-            // Execute with retry mechanism
-            const response = await AIEnhancementService.retryWithBackoff(makeApiCall);
+                if (!responseText && data) {
+                    console.error('❌ [Gemini] Full response data:', JSON.stringify(data, null, 2));
+                    
+                    // Check for specific error messages
+                    if (data?.error) {
+                        console.error('❌ API Error:', data.error);
+                        throw new Error(`Gemini API Error: ${data.error.message || JSON.stringify(data.error)}`);
+                    }
+                    
+                    // Check for prompt feedback
+                    if (data?.promptFeedback) {
+                        console.error('❌ Prompt feedback:', data.promptFeedback);
+                        if (data.promptFeedback.blockReason) {
+                            throw new Error(`Content blocked: ${data.promptFeedback.blockReason}. Please try with different content.`);
+                        }
+                    }
+                }
+            }
 
-            const data = await response.json();
-            const responseText =
-                data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-                data?.candidates?.[0]?.output_text ||
-                '';
-
-            if (!responseText) {
-                console.error('❌ [Gemini] No response text received. Full data:', JSON.stringify(data, null, 2));
-                throw new Error('No response from Gemini');
+            if (!responseText || responseText.trim().length === 0) {
+                console.error('❌ [Gemini] No response text received after all attempts');
+                console.error('Response length:', responseText?.length || 0);
+                throw new Error('Gemini returned an empty response. This could be due to content filtering or API quota limits. Please try again.');
             }
 
             console.log('✅ Gemini detailed response received, parsing...');
             console.log('📝 Response length:', responseText.length, 'characters');
+
+            options.onProgress?.('Parsing enhancement data...', 85);
 
             let aiResults: any;
             try {
                 // First attempt: direct JSON parse
                 aiResults = JSON.parse(responseText);
                 console.log('✅ JSON parsed successfully (direct)');
-            } catch (parseError) {
-                console.warn('⚠️ Direct JSON parse failed, attempting extraction...');
+            } catch (parseError: any) {
+                console.warn('⚠️ Direct JSON parse failed:', parseError.message);
+                console.warn('Error at position:', parseError.message.match(/position (\d+)/)?.[1] || 'unknown');
 
                 // Second attempt: extract JSON from response (handle markdown code blocks)
                 let jsonText = responseText;
@@ -883,13 +1113,45 @@ ${resumeText}`;
                 if (start !== -1 && end !== -1 && end > start) {
                     try {
                         jsonText = jsonText.slice(start, end + 1);
+                        
+                        // Sanitize JSON: fix common issues
+                        // 1. Remove trailing commas before } or ]
+                        jsonText = jsonText.replace(/,(\s*[}\]])/g, '$1');
+                        
+                        // 2. Fix incomplete arrays (missing closing bracket)
+                        const openBrackets = (jsonText.match(/\[/g) || []).length;
+                        const closeBrackets = (jsonText.match(/\]/g) || []).length;
+                        if (openBrackets > closeBrackets) {
+                            console.warn(`⚠️ Fixing ${openBrackets - closeBrackets} unclosed array brackets`);
+                            jsonText += ']'.repeat(openBrackets - closeBrackets);
+                        }
+                        
+                        // 3. Fix incomplete objects (missing closing brace)
+                        const openBraces = (jsonText.match(/\{/g) || []).length;
+                        const closeBraces = (jsonText.match(/\}/g) || []).length;
+                        if (openBraces > closeBraces) {
+                            console.warn(`⚠️ Fixing ${openBraces - closeBraces} unclosed object braces`);
+                            jsonText += '}'.repeat(openBraces - closeBraces);
+                        }
+                        
                         aiResults = JSON.parse(jsonText);
-                        console.log('✅ JSON extracted and parsed successfully');
-                    } catch (extractError) {
-                        console.error('❌ Failed to parse extracted JSON:', extractError);
+                        console.log('✅ JSON extracted and parsed successfully after sanitization');
+                    } catch (extractError: any) {
+                        console.error('❌ Failed to parse extracted JSON:', extractError.message);
+                        
+                        // Try to find the error location
+                        const errorMatch = extractError.message.match(/position (\d+)/);
+                        if (errorMatch) {
+                            const errorPos = parseInt(errorMatch[1]);
+                            const contextStart = Math.max(0, errorPos - 100);
+                            const contextEnd = Math.min(jsonText.length, errorPos + 100);
+                            console.error('📍 Error context:', jsonText.substring(contextStart, contextEnd));
+                            console.error('📍 Error at character:', jsonText[errorPos] || 'EOF');
+                        }
+                        
                         console.error('📄 Extracted text preview (first 500 chars):', jsonText.substring(0, 500));
                         console.error('📄 Extracted text preview (last 200 chars):', jsonText.substring(Math.max(0, jsonText.length - 200)));
-                        throw new Error('Failed to parse AI response. The response format is invalid.');
+                        throw new Error(`Failed to parse AI response: ${extractError.message}. The response may be incomplete or malformed.`);
                     }
                 } else {
                     console.error('❌ No JSON object found in response');
@@ -975,14 +1237,15 @@ ${resumeText}`;
                     timestamp: new Date().toISOString(),
                     resume_sections_analyzed: ['summary', 'experience', 'skills', 'education', 'projects', 'certifications', 'awards', 'volunteer', 'publications'],
                     // Add: dynamic section metadata
-                    included_sections: orderedSections.map(s => AIEnhancementService.SECTION_LABELS[s]),
-                    section_order: orderedSections,
+                    included_sections: sectionsToUse.map(s => AIEnhancementService.SECTION_LABELS[s]),
+                    section_order: sectionsToUse,
                     directive_applied: true
                 },
                 file_id: options.fileId || `enhance_${Date.now()}`
             };
 
-            console.log('Gemini detailed enhancement completed successfully');
+            options.onProgress?.('Complete!', 100);
+            console.log('✅ Gemini detailed enhancement completed successfully');
             return enhancementResponse;
         } catch (error: any) {
             // Log detailed error to console for debugging
@@ -993,14 +1256,33 @@ ${resumeText}`;
                 errorType: error?.constructor?.name,
                 // Add more context
                 resumeTextLength: resumeText?.length,
-                hasApiKey: !!getGeminiApiKey()
+                jobDescriptionLength: jobDescription?.length,
+                hasApiKey: !!getGeminiApiKey(),
+                modelId: options.model || AIEnhancementService.DEFAULT_MODEL,
+                streamingEnabled: options.enableStreaming
             });
 
             // IMPORTANT: Never expose parsing errors or technical details to users
             // All errors are logged to console, but users only see generic friendly messages
 
-            // Return simple, actionable error message (same for all error types)
-            throw new Error('AI enhancement completed but encountered an issue processing the results. Please try generating again.');
+            // Provide specific, actionable error messages based on error type
+            let userMessage = 'AI enhancement encountered an issue. Please try again.';
+
+            if (error?.message?.includes('API key')) {
+                userMessage = 'API configuration issue. Please contact support.';
+            } else if (error?.message?.includes('quota') || error?.message?.includes('limit')) {
+                userMessage = 'API usage limit reached. Please try again later or contact support.';
+            } else if (error?.message?.includes('empty response') || error?.message?.includes('No response')) {
+                userMessage = 'AI service returned no response. This may be due to content filtering or service limitations. Please try with a different resume or try again later.';
+            } else if (error?.message?.includes('timeout')) {
+                userMessage = 'Request timed out. Please try again.';
+            } else if (error?.message?.includes('Failed to fetch') || error?.message?.includes('network')) {
+                userMessage = 'Network connection issue. Please check your internet connection and try again.';
+            } else if (error?.message?.includes('parse') || error?.message?.includes('JSON')) {
+                userMessage = 'AI response could not be processed. Please try generating again.';
+            }
+
+            throw new Error(userMessage);
         }
     }
 
@@ -1206,24 +1488,78 @@ ${resumeText}`;
 
     // Add: Detect sections and their order from resume text
     private static detectResumeSections(resumeText: string): { orderedSections: CanonicalSection[]; indices: Record<CanonicalSection, number> } {
-        if (!resumeText) return { orderedSections: [], indices: {} as Record<CanonicalSection, number> };
+        if (!resumeText || resumeText.trim().length === 0) {
+            console.warn('⚠️ Empty resume text provided for section detection');
+            return { orderedSections: [], indices: {} as Record<CanonicalSection, number> };
+        }
 
-        const lines = resumeText.split(/\r?\n/).map(l => l.trim());
+        const lines = resumeText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
         const firstIndex: Partial<Record<CanonicalSection, number>> = {};
 
+        console.log('🔍 Analyzing', lines.length, 'non-empty lines for section detection');
+
+        // First pass: Exact pattern matching
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
+            const lineUpper = line.toUpperCase();
+            
             for (const key of Object.keys(AIEnhancementService.SECTION_PATTERNS) as CanonicalSection[]) {
                 if (firstIndex[key] !== undefined) continue;
                 const patterns = AIEnhancementService.SECTION_PATTERNS[key];
                 if (patterns.some(r => r.test(line))) {
                     firstIndex[key] = i;
+                    console.log(`✅ Found section '${key}' at line ${i}: "${line.substring(0, 50)}"`);
+                }
+            }
+        }
+
+        // Second pass: Fuzzy matching for common variations if no sections found
+        if (Object.keys(firstIndex).length === 0) {
+            console.warn('⚠️ No sections found via pattern matching, trying fuzzy matching...');
+            
+            const fuzzyPatterns: Record<string, CanonicalSection> = {
+                'summary': 'professional_summary',
+                'profile': 'professional_summary',
+                'about': 'professional_summary',
+                'objective': 'objective',
+                'skill': 'skills',
+                'expertise': 'skills',
+                'competenc': 'skills',
+                'experience': 'experience',
+                'employment': 'experience',
+                'work history': 'experience',
+                'education': 'education',
+                'academic': 'education',
+                'project': 'projects',
+                'certif': 'certifications',
+                'award': 'awards',
+                'honor': 'awards',
+                'volunteer': 'volunteer_work',
+                'publication': 'publications',
+                'language': 'languages'
+            };
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const lineUpper = line.toUpperCase();
+                
+                // Check if line looks like a heading (short, possibly bold/caps)
+                if (line.length < 50 && line.length > 2) {
+                    for (const [keyword, section] of Object.entries(fuzzyPatterns)) {
+                        if (lineUpper.includes(keyword.toUpperCase()) && firstIndex[section] === undefined) {
+                            firstIndex[section] = i;
+                            console.log(`✅ Fuzzy matched '${section}' at line ${i}: "${line}"`);
+                            break;
+                        }
+                    }
                 }
             }
         }
 
         const orderedSections = (Object.keys(firstIndex) as CanonicalSection[])
             .sort((a, b) => (firstIndex[a]! - firstIndex[b]!));
+
+        console.log(`📋 Final detected sections (${orderedSections.length}):`, orderedSections);
 
         return { orderedSections, indices: firstIndex as Record<CanonicalSection, number> };
     }
@@ -1248,4 +1584,17 @@ export interface AIEnhancementResponse {
     file_id: string;
     error?: string;
     message?: string;
+}
+
+export interface EnhancementAnalytics {
+    sessionId: string;
+    userId: string;
+    timestamp: Date;
+    jobDescription: string;
+    matchScore: number;
+    processingTimeMs: number;
+    modelUsed: string;
+    feedback: 'positive' | 'negative' | null;
+    regenerationCount: number;
+    completedAt: string;
 }

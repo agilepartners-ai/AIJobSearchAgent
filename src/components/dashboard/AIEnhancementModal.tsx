@@ -85,6 +85,9 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   // NEW: rotating informative text for loader
   const [currentLoaderText, setCurrentLoaderText] = React.useState<string>('');
   const [textFadeClass, setTextFadeClass] = React.useState<string>('animate-fade-in-text');
+  // NEW: Progress tracking for real-time updates
+  const [progressPercentage, setProgressPercentage] = React.useState<number>(0);
+  const [enhancementStartTime, setEnhancementStartTime] = React.useState<number>(0);
 
   const { user } = useAuth();
   const config = AIEnhancementService.getConfiguration();
@@ -443,6 +446,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
 
       // Step 2: Enhance resume using AI with strict prompt overrides
       setExtractionProgress('Analyzing resume with AI...');
+      setEnhancementStartTime(Date.now());
 
       const enhancementResult = await AIEnhancementService.enhanceWithOpenAI(
         resumeText,
@@ -452,7 +456,12 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           model: config.defaultModel,
           fileId: documentId,
           userPromptOverride: aiPrompt,       // header only; service will append fixed context
-          systemPromptOverride: systemPrompt  // full replacement if edited
+          systemPromptOverride: systemPrompt,  // full replacement if edited
+          enableStreaming: false, // Disable streaming to fix malformed chunk issues
+          onProgress: (stage: string, percentage: number) => {
+            setExtractionProgress(stage);
+            setProgressPercentage(percentage);
+          }
         }
       );
 
@@ -732,8 +741,14 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     const uploadPDFs = async () => {
       try {
         // Convert generated HTML to PDF client-side and send base64 data URLs to the API
+        console.log('[uploadPDFs] Starting PDF generation...');
         const resumeDataUrl = await htmlStringToPdfDataUrl(detailedResumeHtml);
         const coverDataUrl = await htmlStringToPdfDataUrl(detailedCoverLetterHtml);
+        
+        console.log('[uploadPDFs] PDFs generated, sizes:', {
+          resume: resumeDataUrl?.length || 0,
+          coverLetter: coverDataUrl?.length || 0
+        });
 
         const response = await fetch('/api/save-generated-pdfs', {
           method: 'POST',
@@ -749,14 +764,18 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         let result: any = null;
         try {
           result = await response.json().catch(() => null);
-        } catch {
-          // ignore
+        } catch (jsonErr) {
+          console.warn('[uploadPDFs] Failed to parse response as JSON:', jsonErr);
         }
 
         if (!response.ok) {
           const text = await response.text().catch(() => '');
           const serverMessage = (result && result.error) || text || `HTTP ${response.status}`;
-          console.error('[uploadPDFs] Upload failed:', serverMessage, { status: response.status, body: result || text });
+          console.error('[uploadPDFs] Upload failed:', {
+            status: response.status,
+            message: serverMessage,
+            fullResponse: result || text
+          });
           // Reset flag on failure to allow retry
           pdfUploadAttemptedRef.current = false;
           throw new Error(serverMessage || 'Failed to upload PDFs');
@@ -877,8 +896,17 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                 </div>
 
                 {/* Progress Bar */}
-                <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden shadow-inner">
-                  <div className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-progress-bar"></div>
+                <div className="w-full space-y-2">
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>{extractionProgress || "Preparing..."}</span>
+                    <span className="font-bold">{progressPercentage}%</span>
+                  </div>
+                  <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden shadow-inner">
+                    <div 
+                      className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transition-all duration-300"
+                      style={{ width: `${progressPercentage}%` }}
+                    ></div>
+                  </div>
                 </div>
 
                 {/* Status Text */}
