@@ -47,10 +47,16 @@ async function main() {
 
   await bucket.upload(filePath, { destination: destPath, metadata: { contentType: 'application/pdf' } });
 
-  // Create signed URL (7 days)
+  // Create signed URL (30 days) - using Date object for Firebase v4 compatibility
   const file = bucket.file(destPath);
-  const [url] = await file.getSignedUrl({ action: 'read', expires: Date.now() + 7 * 24 * 60 * 60 * 1000 });
-  console.log('Signed URL (7d):', url);
+  const expirationDate = new Date();
+  expirationDate.setDate(expirationDate.getDate() + 30);
+  const [url] = await file.getSignedUrl({
+    version: 'v4',
+    action: 'read',
+    expires: expirationDate
+  });
+  console.log(`Signed URL (30d, expires ${expirationDate.toISOString()}):`, url);
 }
 
 main().catch(err => {

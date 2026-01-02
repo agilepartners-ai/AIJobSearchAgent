@@ -70,6 +70,11 @@ export class FirebaseDBService {
     await setDoc(docRef, data);
   }
 
+  // Alias for set method (for compatibility)
+  static async setDocument<T extends WithFieldValue<DocumentData>>(documentPath: string, data: T): Promise<void> {
+    return this.set(documentPath, data);
+  }
+
   // Delete a document
   static async delete(documentPath: string): Promise<void> {
     if (!documentPath || typeof documentPath !== 'string') {

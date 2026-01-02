@@ -6,6 +6,7 @@
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
   CI = "false"
+  NEXT_PUBLIC_ENABLE_ENHANCEMENT_TRACKING = "true"
 
 # Optional: Custom headers for security
 [[headers]]

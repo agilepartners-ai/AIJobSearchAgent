@@ -1,8 +1,9 @@
 "use client";
 // eslint-disable-next-line
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Download, FileText, CheckCircle, Target, TrendingUp, Award, Brain, ChevronDown, ChevronUp, AlertCircle, Eye } from 'lucide-react';
+import { ArrowLeft, Download, FileText, CheckCircle, Target, TrendingUp, Award, Brain, ChevronDown, ChevronUp, AlertCircle, Eye, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { PDFViewer, PDFDownloadLink, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import toast from 'react-hot-toast';
 
 import { PerfectHTMLToPDF } from './ResumeTemplate';
 import ResumePDFPreview from './ResumePDFPreview';
@@ -10,6 +11,7 @@ import { getCleanHTMLForDocs } from './HTMLResumeTemplate';
 import { UserProfileData } from '../../services/profileService';
 import { ProfileService } from '../../services/profileService';
 import { AuthService } from '../../services/authService';
+import { FirebaseDBService } from '../../services/firebaseDBService';
 
 interface OptimizationResultsProps {
   results: {
@@ -256,6 +258,36 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [customPrompt, setCustomPrompt] = useState<string>('');
   const [showPromptSection, setShowPromptSection] = useState(true); // Expanded by default
+  const [feedback, setFeedback] = useState<'positive' | 'negative' | null>(null);
+  const [completedAt] = useState(new Date().toLocaleTimeString());
+
+  // Handle feedback submission
+  const handleFeedback = async (type: 'positive' | 'negative') => {
+    try {
+      setFeedback(type);
+      
+      const currentUser = await AuthService.getCurrentUser();
+      if (currentUser) {
+        const analyticsData = {
+          timestamp: new Date(),
+          jobDescription: jobDetails.title,
+          matchScore: analysisData?.matchScore || 0,
+          feedback: type,
+          completedAt: new Date().toISOString()
+        };
+        
+        await FirebaseDBService.setDocument(
+          `users/${currentUser.id}/enhancementAnalytics/${Date.now()}`,
+          analyticsData
+        );
+        
+        toast.success(`Thank you for your feedback!`, { icon: type === 'positive' ? '👍' : '👎' });
+      }
+    } catch (error) {
+      console.error('Error saving feedback:', error);
+      toast.error('Failed to save feedback. Please try again.');
+    }
+  };
 
   // Fetch user profile data on component mount
   useEffect(() => {
@@ -736,6 +768,48 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
           </p>
         </div>
 
+        {/* Feedback Section */}
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-base font-semibold text-gray-900 dark:text-white">
+                  Was this enhancement helpful?
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  ✓ Completed at {completedAt}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => handleFeedback('positive')}
+                  disabled={feedback !== null}
+                  className={`p-3 rounded-lg transition-all ${
+                    feedback === 'positive'
+                      ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  title="Helpful"
+                >
+                  <ThumbsUp size={20} />
+                </button>
+                <button
+                  onClick={() => handleFeedback('negative')}
+                  disabled={feedback !== null}
+                  className={`p-3 rounded-lg transition-all ${
+                    feedback === 'negative'
+                      ? 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  title="Not helpful"
+                >
+                  <ThumbsDown size={20} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Document Viewer Section */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
@@ -781,61 +855,8 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
             {/* Left: Custom Prompt and Actions */}
             <div className="flex flex-col h-full">
-              {/* Custom Prompt Section - Expanded */}
-              <div className="bg-gradient-to-r from-blue-900 to-blue-900 dark:from-blue-900/30 dark:to-purple-900/30 rounded-xl border-2 border-blue-900 dark:border-blue-700 p-5 mb-4">
-                <button
-                  onClick={() => setShowPromptSection(!showPromptSection)}
-                  className="w-full flex items-center justify-between mb-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
-                      <Brain className="text-white" size={20} />
-                    </div>
-                    <div className="text-left">
-                      <h4 className="text-base font-bold text-gray-900 dark:text-white">
-                        AI User Prompt Header
-                      </h4>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
-                        Customize your AI enhancement
-                      </p>
-                    </div>
-                  </div>
-                  {showPromptSection ? <ChevronUp size={20} className="text-gray-700 dark:text-gray-300" /> : <ChevronDown size={20} className="text-gray-700 dark:text-gray-300" />}
-                </button>
-
-                {showPromptSection && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                        Custom Instructions (Optional)
-                      </label>
-                      <textarea
-                        value={customPrompt}
-                        onChange={(e) => setCustomPrompt(e.target.value)}
-                        placeholder="Add specific instructions... (e.g., 'Emphasize leadership skills', 'Add more metrics')"
-                        className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 resize-none text-sm font-medium shadow-sm"
-                        rows={4}
-                      />
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 font-medium">
-                        💡 Job description and resume context auto-appended
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        if (onRegenerate) {
-                          onRegenerate(customPrompt);
-                        }
-                      }}
-                      disabled={!onRegenerate}
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 px-5 rounded-lg font-bold flex items-center justify-center gap-2 transition-all disabled:cursor-not-allowed shadow-lg hover:shadow-xl text-base"
-                    >
-                      <Brain size={20} />
-                      Generate using AI - Resume & Cover Letter
-                    </button>
-                  </div>
-                )}
-              </div>
+              {/* Empty space - Custom Prompt Section removed */}
+              <div className="mb-4"></div>
 
               {/* Download Options */}
               <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-5 shadow-sm">

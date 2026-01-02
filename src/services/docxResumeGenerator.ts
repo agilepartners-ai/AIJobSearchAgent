@@ -554,33 +554,23 @@ export class DocxResumeGenerator {
       })
     );
 
-    // Skills by category
-    const skillCategories = this.organizeSkillsByCategory(normalizedSkills);
-
-    for (const [category, skills] of Object.entries(skillCategories)) {
-      if (skills.length === 0) continue;
-
-      paragraphs.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: `${category}: `,
-              size: 20,
-              bold: true,
-              color: "1F2937",
-            }),
-            new TextRun({
-              text: skills.join(", "),
-              size: 20,
-              color: "374151",
-            }),
-          ],
-          spacing: { after: 120 },
-        })
-      );
-    }
-
-    paragraphs.push(new Paragraph({ children: [new TextRun("")], spacing: { after: 120 } }));
+    // Display all skills inline with bullet separators - SAVES SIGNIFICANT SPACE
+    // This format is more professional and ATS-friendly than multi-line categories
+    // Using LEFT alignment to prevent odd spacing, and ensuring skills flow naturally in paragraph
+    paragraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: normalizedSkills.join(" • "),
+            size: 20,
+            color: "374151",
+          }),
+        ],
+        spacing: { after: 180, line: 276 }, // Single line spacing (1.15)
+        alignment: AlignmentType.LEFT,
+        wordWrap: true, // Ensure proper word wrapping
+      })
+    );
 
     return paragraphs;
   }

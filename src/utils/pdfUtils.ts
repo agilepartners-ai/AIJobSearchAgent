@@ -126,13 +126,24 @@ export const extractTextFromPDF = async (file: File): Promise<PDFExtractionResul
             console.warn('Could not extract PDF metadata:', metaError);
         }
 
-        // Clean up PDF resources
-        if (pdf.destroy) {
-            await pdf.destroy();
+        // Extract structured sections for better DOCX conversion (BEFORE destroying PDF)
+        let structuredSections: any[] = [];
+        try {
+            structuredSections = await extractStructuredSections(pdf);
+            console.log('✅ Structured sections extracted:', structuredSections.length);
+        } catch (structError) {
+            console.warn('⚠️ Failed to extract structured sections, continuing with text-only:', structError);
+            structuredSections = [];
         }
 
-        // Extract structured sections for better DOCX conversion
-        const structuredSections = await extractStructuredSections(pdf);
+        // Clean up PDF resources (AFTER extraction)
+        try {
+            if (pdf.destroy) {
+                await pdf.destroy();
+            }
+        } catch (cleanupError) {
+            console.warn('PDF cleanup warning (non-critical):', cleanupError);
+        }
 
         const finalText = fullText.trim();
         const result = {
@@ -328,17 +339,29 @@ const extractStructuredSections = async (pdf: any): Promise<any[]> => {
     try {
         // Guard against null/undefined PDF or missing getPage method
         if (!pdf || typeof pdf.getPage !== 'function' || !pdf.numPages) {
-            console.warn('Invalid PDF document for structured extraction');
+            console.warn('⚠️ Invalid PDF document for structured extraction');
+            return sections;
+        }
+
+        // Check if PDF has been destroyed
+        if (pdf._transport === null || pdf._transport === undefined) {
+            console.warn('⚠️ PDF document has been destroyed, cannot extract structured sections');
             return sections;
         }
 
         for (let i = 1; i <= pdf.numPages; i++) {
             try {
-                const page = await pdf.getPage(i);
+                // Add timeout protection for getPage
+                const pagePromise = pdf.getPage(i);
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Page load timeout')), 5000)
+                );
+                
+                const page = await Promise.race([pagePromise, timeoutPromise]);
                 
                 // Guard against worker transport errors
                 if (!page || typeof page.getTextContent !== 'function') {
-                    console.warn(`Page ${i} missing getTextContent method, skipping`);
+                    console.warn(`⚠️ Page ${i} missing getTextContent method, skipping`);
                     continue;
                 }
                 

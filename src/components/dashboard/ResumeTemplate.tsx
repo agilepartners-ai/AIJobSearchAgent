@@ -312,16 +312,15 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 
-  // Technical Skills styles
-  skillsGrid: {
-    flexDirection: 'column',
-    gap: 4,
+  // Technical Skills styles - inline paragraph format for space efficiency
+  skillsContainer: {
+    marginTop: 4,
   },
-  skillItem: {
-    fontSize: 11,
+  skillsParagraph: {
+    fontSize: 10,
     lineHeight: 1.4,
-    marginBottom: 2,
     color: '#374151',
+    textAlign: 'left',
   },
 
   // Core Competencies styles
@@ -1971,7 +1970,9 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
     return parts.map(fmt).join(' – ');
   };
 
-  const safeExperience = fallbackExperience.map(exp => {
+  const safeExperience = (fallbackExperience || [])
+    .filter((exp: any) => exp && (exp.company || exp.title))
+    .map(exp => {
     const processedBullets = postProcessExperienceBullets(exp.responsibilities, {
         jobKeywords,
         enforceQuantification: true
@@ -1990,8 +1991,8 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
     };
   });
 
-  const safeEducation = fallbackEducation;
-  const safeProjects = fallbackProjects;
+  const safeEducation = (fallbackEducation || []).filter((edu: any) => edu && (edu.school || edu.institution || edu.degree));
+  const safeProjects = (fallbackProjects || []).filter((proj: any) => proj && (proj.name || proj.title || proj.description));
 
   // Header section matching HTML exactly
   const headerSection = (
@@ -2027,14 +2028,14 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
     </View>
   );
 
-  // Technical Skills section matching HTML grid layout exactly - now dynamic
+  // Technical Skills section - inline paragraph format for space efficiency
   const technicalSkillsSection = skillBuckets.technical.length > 0 && (
     <View style={styles.section} key="technical-skills">
       <Text style={styles.sectionTitle}>TECHNICAL SKILLS</Text>
-      <View style={styles.skillsGrid}>
-        {skillBuckets.technical.map((skill, index) => (
-          <Text key={index} style={styles.skillItem}>{skill}</Text>
-        ))}
+      <View style={styles.skillsContainer}>
+        <Text style={styles.skillsParagraph}>
+          {skillBuckets.technical.join(' • ')}
+        </Text>
       </View>
     </View>
   );
@@ -2143,8 +2144,8 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
     </View>
   );
 
-  // Key Projects section matching HTML exactly  
-  const keyProjectsSection = (
+  // Key Projects section - ONLY SHOW IF HAS DATA
+  const keyProjectsSection = safeProjects.length > 0 && (
     <View style={styles.section} key="key-projects">
       <Text style={styles.sectionTitle}>KEY PROJECTS</Text>
       {safeProjects.map((project, index) => (
@@ -2200,28 +2201,22 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
     </View>
   );
 
-  // Awards & Recognition section - ALWAYS SHOW (even if empty)
-  const awardsSection = (
+  // Awards & Recognition section - ONLY SHOW IF HAS DATA
+  const awardsSection = awardsData.length > 0 && (
     <View style={styles.section} key="awards">
       <Text style={styles.sectionTitle}>AWARDS & RECOGNITION</Text>
-      {awardsData.length > 0 ? (
-        awardsData.map((award, index) => (
-          <View key={index} style={styles.awardItem}>
-            <View style={styles.awardHeader}>
-              <Text style={styles.awardName}>{award.name}</Text>
-              <Text style={styles.awardDate}>{award.date}</Text>
-            </View>
-            <Text style={styles.awardIssuer}>{award.issuer}</Text>
-            {award.description && (
-              <Text style={styles.awardDescription}>{award.description}</Text>
-            )}
+      {awardsData.map((award, index) => (
+        <View key={index} style={styles.awardItem}>
+          <View style={styles.awardHeader}>
+            <Text style={styles.awardName}>{award.name}</Text>
+            <Text style={styles.awardDate}>{award.date}</Text>
           </View>
-        ))
-      ) : (
-        <Text style={styles.placeholderText}>
-          Add your awards, honors, and recognitions here to showcase your achievements.
-        </Text>
-      )}
+          <Text style={styles.awardIssuer}>{award.issuer}</Text>
+          {award.description && (
+            <Text style={styles.awardDescription}>{award.description}</Text>
+          )}
+        </View>
+      ))}
     </View>
   );
 
