@@ -482,10 +482,10 @@ export class DocxResumeGenerator {
         spacing: { before: 240, after: 120 },
         border: {
           bottom: {
-            color: "E5E7EB",
+            color: "2563EB",
             space: 1,
             style: BorderStyle.SINGLE,
-            size: 6,
+            size: 12,
           },
         },
       }),
@@ -545,23 +545,23 @@ export class DocxResumeGenerator {
         spacing: { before: 240, after: 120 },
         border: {
           bottom: {
-            color: "E5E7EB",
+            color: "2563EB",
             space: 1,
             style: BorderStyle.SINGLE,
-            size: 6,
+            size: 12,
           },
         },
       })
     );
 
-    // Display all skills inline with bullet separators - SAVES SIGNIFICANT SPACE
+    // Display all skills inline with asterisk separators - SAVES SIGNIFICANT SPACE
     // This format is more professional and ATS-friendly than multi-line categories
     // Using LEFT alignment to prevent odd spacing, and ensuring skills flow naturally in paragraph
     paragraphs.push(
       new Paragraph({
         children: [
           new TextRun({
-            text: normalizedSkills.join(" • "),
+            text: normalizedSkills.join(" * "),
             size: 20,
             color: "374151",
           }),
@@ -596,10 +596,10 @@ export class DocxResumeGenerator {
         spacing: { before: 240, after: 120 },
         border: {
           bottom: {
-            color: "E5E7EB",
+            color: "2563EB",
             space: 1,
             style: BorderStyle.SINGLE,
-            size: 6,
+            size: 12,
           },
         },
       })
@@ -672,10 +672,10 @@ export class DocxResumeGenerator {
         spacing: { before: 240, after: 120 },
         border: {
           bottom: {
-            color: "E5E7EB",
+            color: "2563EB",
             space: 1,
             style: BorderStyle.SINGLE,
-            size: 6,
+            size: 12,
           },
         },
       })
@@ -878,10 +878,10 @@ export class DocxResumeGenerator {
         spacing: { before: 240, after: 120 },
         border: {
           bottom: {
-            color: "E5E7EB",
+            color: "2563EB",
             space: 1,
             style: BorderStyle.SINGLE,
-            size: 6,
+            size: 12,
           },
         },
       })
@@ -992,10 +992,10 @@ export class DocxResumeGenerator {
         spacing: { before: 240, after: 120 },
         border: {
           bottom: {
-            color: "E5E7EB",
+            color: "2563EB",
             space: 1,
             style: BorderStyle.SINGLE,
-            size: 6,
+            size: 12,
           },
         },
       })
@@ -1127,10 +1127,10 @@ export class DocxResumeGenerator {
         spacing: { before: 240, after: 120 },
         border: {
           bottom: {
-            color: "E5E7EB",
+            color: "2563EB",
             space: 1,
             style: BorderStyle.SINGLE,
-            size: 6,
+            size: 12,
           },
         },
       })
@@ -1236,10 +1236,10 @@ export class DocxResumeGenerator {
         spacing: { before: 240, after: 120 },
         border: {
           bottom: {
-            color: "E5E7EB",
+            color: "2563EB",
             space: 1,
             style: BorderStyle.SINGLE,
-            size: 6,
+            size: 12,
           },
         },
       })
@@ -1423,10 +1423,10 @@ export class DocxResumeGenerator {
         spacing: { before: 240, after: 120 },
         border: {
           bottom: {
-            color: "E5E7EB",
+            color: "2563EB",
             space: 1,
             style: BorderStyle.SINGLE,
-            size: 6,
+            size: 12,
           },
         },
       })
@@ -1541,10 +1541,10 @@ export class DocxResumeGenerator {
         spacing: { before: 240, after: 120 },
         border: {
           bottom: {
-            color: "E5E7EB",
+            color: "2563EB",
             space: 1,
             style: BorderStyle.SINGLE,
-            size: 6,
+            size: 12,
           },
         },
       })
@@ -1640,17 +1640,18 @@ export class DocxResumeGenerator {
           new TextRun({
             text: "LANGUAGES",
             bold: true,
-            size: 24,
+            size: 28,
             color: "1F2937",
+            allCaps: true,
           }),
         ],
-        spacing: { before: 300, after: 120 },
+        spacing: { before: 240, after: 120 },
         border: {
           bottom: {
-            color: "E5E7EB",
+            color: "2563EB",
             space: 1,
             style: BorderStyle.SINGLE,
-            size: 6,
+            size: 12,
           },
         },
       })

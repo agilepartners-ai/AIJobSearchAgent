@@ -147,12 +147,28 @@ export const Conversation: React.FC = () => {
     daily?.setLocalAudio(!isMicEnabled);
   }, [daily, isMicEnabled]);
 
-  const leaveConversation = useCallback(() => {
+  const leaveConversation = useCallback(async () => {
     daily?.leave();
     daily?.destroy();
+    
     if (conversation?.conversation_id && token) {
-      endConversation(token, conversation.conversation_id);
+      try {
+        await endConversation(token, conversation.conversation_id);
+      } catch (error) {
+        const errorStr = String(error);
+        const isTokenExpired = errorStr.includes("expired") || 
+                              errorStr.includes("TokenExpiredError") ||
+                              errorStr.includes("signature expired");
+        
+        if (isTokenExpired) {
+          // Token expired, but conversation is already ending, just proceed
+          console.warn("Token expired while ending conversation, but proceeding with cleanup");
+        } else {
+          console.error("Error ending conversation:", error);
+        }
+      }
     }
+    
     setConversation(null);
     clearSessionTime();
     
