@@ -14,6 +14,10 @@ const screens = {
   conversation: "conversation",
 } as const;
 
+// Maximum number of retry attempts for token expiration
+const MAX_RETRY_ATTEMPTS = 3;
+const RETRY_DELAY = 2000; // 2 seconds
+
 const useHealthCheck = () => {
   const [screenState, setScreenState] = useState<keyof typeof screens | null>(
     null,
@@ -21,7 +25,7 @@ const useHealthCheck = () => {
   const [, setConversation] = useAtom(conversationAtom);
   const token = useAtomValue(apiTokenAtom);
 
-  const healthCheck = async (): Promise<void> => {
+  const healthCheck = async (retryAttempt = 0): Promise<void> => {
     try {
       const response = await healthCheckApi();
       if (response?.status) {
@@ -35,9 +39,29 @@ const useHealthCheck = () => {
             setConversation(conversation);
             setScreenState("conversation");
           } catch (error) {
-            console.error("Failed to load conversation:", error);
-            // If conversation fetch fails, go to normal intro
-            setScreenState("success");
+            const errorStr = String(error);
+            const isTokenExpired = errorStr.includes("expired") || 
+                                  errorStr.includes("TokenExpiredError") ||
+                                  errorStr.includes("signature expired");
+            
+            if (isTokenExpired && retryAttempt < MAX_RETRY_ATTEMPTS) {
+              // Token expired, retry instead of showing error
+              console.warn(`Token expired loading conversation, retrying... (attempt ${retryAttempt + 1}/${MAX_RETRY_ATTEMPTS})`);
+              
+              // Wait before retrying
+              await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+              
+              // Recursively retry
+              return healthCheck(retryAttempt + 1);
+            } else if (isTokenExpired && retryAttempt >= MAX_RETRY_ATTEMPTS) {
+              // Max retries reached, go to normal intro
+              console.error("Max retry attempts reached for loading conversation");
+              setScreenState("success");
+            } else {
+              // Other error, go to normal intro
+              console.error("Failed to load conversation:", error);
+              setScreenState("success");
+            }
           }
         } else {
           setScreenState("success");

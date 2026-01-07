@@ -1,4 +1,4 @@
-import { createConversation } from "@/api";
+import { createConversation, createConversation as createConversationApi } from "@/api";
 import {
   DialogWrapper,
   AnimatedTextBlockWrapper,
@@ -20,23 +20,52 @@ import gloriaVideo from "@/assets/video/gloria.mp4";
 // Register the quantum loader
 quantum.register();
 
+// Maximum number of retry attempts for token expiration
+const MAX_RETRY_ATTEMPTS = 3;
+const RETRY_DELAY = 2000; // 2 seconds
+
 const useCreateConversationMutation = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [, setScreenState] = useAtom(screenAtom);
   const [, setConversation] = useAtom(conversationAtom);
   const token = useAtomValue(apiTokenAtom);
 
-  const createConversationRequest = async () => {
+  const createConversationRequest = async (retryAttempt = 0) => {
     try {
       if (!token) {
         throw new Error("Token is required");
       }
-      const conversation = await createConversation(token);
+      const conversation = await createConversationApi(token);
       setConversation(conversation);
       setScreenState({ currentScreen: "conversation" });
+      setError(null);
+      setRetryCount(0);
     } catch (error) {
-      setError(error as string);
+      const errorStr = String(error);
+      const isTokenExpired = errorStr.includes("expired") || 
+                            errorStr.includes("TokenExpiredError") ||
+                            errorStr.includes("signature expired");
+      
+      if (isTokenExpired && retryAttempt < MAX_RETRY_ATTEMPTS) {
+        // Token expired, wait and retry instead of showing error
+        console.warn(`Token expired, retrying... (attempt ${retryAttempt + 1}/${MAX_RETRY_ATTEMPTS})`);
+        setRetryCount(retryAttempt + 1);
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        
+        // Recursively retry
+        return createConversationRequest(retryAttempt + 1);
+      } else if (isTokenExpired && retryAttempt >= MAX_RETRY_ATTEMPTS) {
+        // Max retries reached, show error
+        console.error("Max retry attempts reached for token expiration");
+        setError("Unable to establish connection. Please refresh the page.");
+      } else {
+        // Other error, show it
+        setError(errorStr);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -45,6 +74,7 @@ const useCreateConversationMutation = () => {
   return {
     isLoading,
     error,
+    retryCount,
     createConversationRequest,
   };
 };
