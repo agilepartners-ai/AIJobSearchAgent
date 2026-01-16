@@ -480,17 +480,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#6b7280',
   },
-  certificationDates: {
-    alignItems: 'flex-end',
-  },
-  certificationIssued: {
-    fontSize: 10,
-    color: '#4b5563',
-  },
-  certificationExpires: {
-    fontSize: 10,
-    color: '#4b5563',
-  },
 
   // Awards styles
   awardItem: {
@@ -1477,7 +1466,7 @@ class ResumeContentParser {
     return [];
   }
 
-  extractCertifications(): Array<{name: string, issuer: string, issued: string, expires: string}> {
+  extractCertifications(): Array<{name: string, issuer: string}> {
     const certificationsText = this.extractSection(['CERTIFICATIONS', 'CERTIFICATES', 'PROFESSIONAL CERTIFICATIONS']);
     
     if (certificationsText) {
@@ -1492,15 +1481,11 @@ class ResumeContentParser {
         for (const block of certBlocks) {
           const nameMatch = block.match(/<strong[^>]*>([^<]+)<\/strong>/i);
           const issuerMatch = block.match(/<div[^>]*>([^<]+)<\/div>/i);
-          const issuedMatch = block.match(/Issued:\s*([^<\n]+)/i);
-          const expiresMatch = block.match(/Expires:\s*([^<\n]+)/i);
           
           if (nameMatch) {
             certEntries.push({
               name: this.cleanHTML(nameMatch[1]).trim(),
-              issuer: issuerMatch ? this.cleanHTML(issuerMatch[1]).trim() : '',
-              issued: issuedMatch ? this.cleanHTML(issuedMatch[1]).trim() : '',
-              expires: expiresMatch ? this.cleanHTML(expiresMatch[1]).trim() : 'N/A'
+              issuer: issuerMatch ? this.cleanHTML(issuerMatch[1]).trim() : ''
             });
           }
         }
@@ -1515,11 +1500,6 @@ class ResumeContentParser {
     
     console.log('⚠️ No certifications found in HTML');
     return [];
-    return [
-      { name: 'Career Essentials in Data Analysis', issuer: 'Microsoft & LinkedIn', issued: 'August 2024', expires: 'N/A' },
-      { name: 'Data Visualization Using Python', issuer: 'IBM', issued: 'May 2024', expires: 'N/A' },
-      { name: 'Data Analytics Professional Certificate', issuer: 'Google', issued: 'October 2024', expires: 'N/A' }
-    ];
   }
 
   extractAwards(): Array<{name: string, issuer: string, date: string, description: string}> {
@@ -1735,7 +1715,7 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
     all: [] as string[]
   };
   let coreCompetencies: string[] = [];
-  let certificationsData: Array<{name: string, issuer: string, issued: string, expires: string}> = [];
+  let certificationsData: Array<{name: string, issuer: string}> = [];
   let awardsData: Array<{name: string, issuer: string, date: string, description: string}> = [];
   let volunteerData: Array<{title: string, organization: string, date: string, description: string, achievements: string[]}> = [];
   let publicationsData: Array<{title: string, publication: string, date: string, authors: string[], description: string}> = [];
@@ -1811,9 +1791,7 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
     if (detailed.certifications?.length) {
       certificationsData = detailed.certifications.map(cert => ({
         name: cert.name,
-        issuer: cert.issuing_organization,
-        issued: cert.issue_date,
-        expires: cert.expiration_date || 'N/A'
+        issuer: cert.issuing_organization
       }));
     }
     
@@ -2191,10 +2169,6 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
           <View style={styles.certificationInfo}>
             <Text style={styles.certificationName}>{cert.name}</Text>
             <Text style={styles.certificationIssuer}>{cert.issuer}</Text>
-          </View>
-          <View style={styles.certificationDates}>
-            <Text style={styles.certificationIssued}>Issued: {cert.issued}</Text>
-            <Text style={styles.certificationExpires}>Expires: {cert.expires}</Text>
           </View>
         </View>
       ))}

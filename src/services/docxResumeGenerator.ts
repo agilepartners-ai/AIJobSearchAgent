@@ -1146,19 +1146,8 @@ export class DocxResumeGenerator {
               bold: true,
               color: "1F2937",
             }),
-            new TextRun({
-              text: `\t${cert.date || cert.issueDate || ""}`,
-              size: 18,
-              color: "6B7280",
-            }),
           ],
           spacing: { after: 80 },
-          tabStops: [
-            {
-              type: "right",
-              position: convertInchesToTwip(6),
-            },
-          ],
         })
       );
 
@@ -1177,32 +1166,11 @@ export class DocxResumeGenerator {
         );
       }
       
-      // Add credential ID and expiration if available
-      const additionalInfo: string[] = [];
-      if (cert.credentialId) additionalInfo.push(`Credential ID: ${cert.credentialId}`);
-      if (cert.expirationDate) additionalInfo.push(`Expires: ${cert.expirationDate}`);
-      
-      if (additionalInfo.length > 0) {
-        paragraphs.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: additionalInfo.join(' • '),
-                size: 18,
-                color: "6B7280",
-                italics: true,
-              }),
-            ],
-            spacing: { after: 120 },
-          })
-        );
-      } else {
-        // Add extra spacing if no additional info
-        paragraphs[paragraphs.length - 1] = new Paragraph({
-          ...paragraphs[paragraphs.length - 1],
-          spacing: { after: 120 },
-        });
-      }
+      // Add extra spacing after issuer
+      paragraphs[paragraphs.length - 1] = new Paragraph({
+        ...paragraphs[paragraphs.length - 1],
+        spacing: { after: 120 },
+      });
     }
 
     return paragraphs;

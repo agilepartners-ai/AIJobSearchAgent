@@ -1535,14 +1535,10 @@ const generateDetailedResumeHTML = (results: any): string => {
       <section style="margin-bottom: 20px;">
         <h2 style="font-size: 16px; color: #2563eb; border-left: 4px solid #2563eb; padding-left: 8px; margin-bottom: 10px; font-weight: 600;">CERTIFICATIONS</h2>
         ${sections.certifications.map((cert: any) => `
-          <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="margin-bottom: 8px;">
             <div>
               <strong style="font-size: 12px; color: #1f2937;">${cert.name || ''}</strong>
               <div style="font-size: 11px; color: #6b7280;">${cert.issuing_organization || ''}</div>
-            </div>
-            <div style="text-align: right; font-size: 11px; color: #6b7280;">
-              ${cert.issue_date ? `<div>Issued: ${cert.issue_date}</div>` : ''}
-              ${cert.expiration_date ? `<div>Expires: ${cert.expiration_date}</div>` : ''}
             </div>
           </div>
         `).join('')}

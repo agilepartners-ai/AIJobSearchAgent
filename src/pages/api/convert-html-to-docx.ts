@@ -292,11 +292,11 @@ class ResumeContentParser {
     return entries;
   }
 
-  extractCertifications(): Array<{name: string, issuer: string, issued: string, expires: string}> {
+  extractCertifications(): Array<{name: string, issuer: string}> {
     const certsText = this.extractSection(['CERTIFICATIONS', 'CERTIFICATES', 'PROFESSIONAL CERTIFICATIONS']);
     
     if (certsText) {
-      const certEntries: Array<{name: string, issuer: string, issued: string, expires: string}> = [];
+      const certEntries: Array<{name: string, issuer: string}> = [];
       
       // First try HTML parsing like PDF version
       const certSectionMatch = this.rawHtml.match(/<h2[^>]*>\s*CERTIFICATIONS\s*<\/h2>([\s\S]*?)(?=<h2|<section|$)/i);
@@ -308,15 +308,11 @@ class ResumeContentParser {
         for (const block of certBlocks) {
           const nameMatch = block.match(/<strong[^>]*>([^<]+)<\/strong>/i);
           const issuerMatch = block.match(/<div[^>]*>([^<]+)<\/div>/i);
-          const issuedMatch = block.match(/Issued:\s*([^<\n]+)/i);
-          const expiresMatch = block.match(/Expires:\s*([^<\n]+)/i);
           
           if (nameMatch) {
             certEntries.push({
               name: this.cleanHTML(nameMatch[1]).trim(),
-              issuer: issuerMatch ? this.cleanHTML(issuerMatch[1]).trim() : '',
-              issued: issuedMatch ? this.cleanHTML(issuedMatch[1]).trim() : '',
-              expires: expiresMatch ? this.cleanHTML(expiresMatch[1]).trim() : 'N/A'
+              issuer: issuerMatch ? this.cleanHTML(issuerMatch[1]).trim() : ''
             });
           }
         }
@@ -332,29 +328,21 @@ class ResumeContentParser {
           
           const certName = lines[0]?.trim() || '';
           let issuer = '';
-          let issued = '';
-          let expires = '';
           
-          // Parse additional lines for issuer and dates
+          // Parse additional lines for issuer
           for (let i = 1; i < lines.length; i++) {
             const line = lines[i].trim();
             if (line.toLowerCase().includes('issuer') || line.toLowerCase().includes('organization')) {
               issuer = line.replace(/^[^:]*:\s*/, '');
-            } else if (line.toLowerCase().includes('issued') || line.toLowerCase().includes('date')) {
-              issued = line.replace(/^[^:]*:\s*/, '');
-            } else if (line.toLowerCase().includes('expires') || line.toLowerCase().includes('expiration')) {
-              expires = line.replace(/^[^:]*:\s*/, '');
-            } else if (!issuer && line.length > 5) {
-              issuer = line; // Assume second line is issuer if not labeled
+            } else if (!issuer && line.length > 5 && !line.toLowerCase().includes('issued') && !line.toLowerCase().includes('expires')) {
+              issuer = line; // Assume second line is issuer if not labeled and not a date line
             }
           }
           
           if (certName) {
             certEntries.push({ 
               name: certName, 
-              issuer, 
-              issued, 
-              expires: expires || 'N/A' 
+              issuer
             });
           }
         }
@@ -366,9 +354,9 @@ class ResumeContentParser {
 
     // Fallback data like PDF version
     return [
-      { name: 'Career Essentials in Data Analysis', issuer: 'Microsoft & LinkedIn', issued: 'August 2024', expires: 'N/A' },
-      { name: 'Data Visualization Using Python', issuer: 'IBM', issued: 'May 2024', expires: 'N/A' },
-      { name: 'Data Analytics Professional Certificate', issuer: 'Google', issued: 'October 2024', expires: 'N/A' }
+      { name: 'Career Essentials in Data Analysis', issuer: 'Microsoft & LinkedIn' },
+      { name: 'Data Visualization Using Python', issuer: 'IBM' },
+      { name: 'Data Analytics Professional Certificate', issuer: 'Google' }
     ];
   }
 
@@ -827,8 +815,6 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
           certifications.map(cert => ({
             name: cert.name,
             issuer: cert.issuer,
-            date: cert.issued,
-            issueDate: cert.issued,
             organization: cert.issuer
           })) : Array.isArray(activeProfile.certifications) ? 
           activeProfile.certifications.map((cert: unknown) => {
@@ -837,16 +823,12 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
               return {
                 name: String(certObj.name || certObj.title || ''),
                 issuer: String(certObj.issuing_organization || certObj.issuer || certObj.organization || ''),
-                date: String(certObj.issue_date || certObj.date || ''),
-                issueDate: String(certObj.issue_date || certObj.date || ''),
                 organization: String(certObj.issuing_organization || certObj.issuer || certObj.organization || '')
               };
             }
             return {
               name: String(cert),
               issuer: '',
-              date: '',
-              issueDate: '',
               organization: ''
             };
           }) : [],
