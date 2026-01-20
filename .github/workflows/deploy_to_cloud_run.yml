@@ -1,0 +1,61 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allows manual triggering
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GAR_LOCATION: ${{ secrets.GCP_GAR_LOCATION }}
+  REPOSITORY: ${{ secrets.GCP_REPOSITORY }}
+  SERVICE_NAME: ${{ secrets.GCP_SERVICE_NAME }}
+  SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+  WIF_PROVIDER: ${{ secrets.WIF_PROVIDER }}
+  GH_SA_EMAIL: ${{ secrets.GH_SA_EMAIL }}
+  
+jobs:
+  deploy:
+    name: Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for Workload Identity Federation
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.GH_SA_EMAIL }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Submit build to Cloud Build
+        run: |
+          gcloud builds submit \
+            --config=cloudbuild.yaml \
+            --substitutions=_GAR_LOCATION=${{ env.GAR_LOCATION }},_REPOSITORY=${{ env.REPOSITORY }},_SERVICE_NAME=${{ env.SERVICE_NAME }},_SERVICE_ACCOUNT_EMAIL=${{ env.SERVICE_ACCOUNT_EMAIL }} \
+            .
+
+      - name: Get service URL
+        id: get-url
+        run: |
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ env.GAR_LOCATION }} \
+            --format="value(status.url)")
+          echo "url=$SERVICE_URL" >> $GITHUB_OUTPUT
+          echo "Service deployed at: $SERVICE_URL"
+
+      - name: Deployment Summary
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo "Service: ${{ env.SERVICE_NAME }}"
+          echo "Region: ${{ env.GAR_LOCATION }}"
+          echo "URL: ${{ steps.get-url.outputs.url }}"
+
