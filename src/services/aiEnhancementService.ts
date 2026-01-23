@@ -332,6 +332,17 @@ CRITICAL INSTRUCTIONS FOR PROFESSIONAL SUMMARY:
 8. DO NOT repeat degree names (e.g., "MBA in Business Administration" NOT "MBA in Business Administration in Business Administration")
 9. DO NOT create separate "projects" section if projects are already covered in experience section
 
+🎯 PROJECTS EXTRACTION - CRITICAL INSTRUCTIONS:
+When you encounter a "Projects" or "Featured Projects" section in the resume:
+- Extract EACH project as a SEPARATE object in the projects array
+- NEVER write generic summaries like "Proven ability to deliver..." or "with high accuracy..." as project names
+- NEVER combine all projects into one entry - create one object per project
+- Each project object MUST have: name (actual project title), technologies (array), description, achievements (if mentioned)
+- Example: If resume says "Smart Parking System - Python, OpenCV - 94.7% accuracy", return:
+  {"name": "Smart Parking System", "technologies": ["Python", "OpenCV"], "achievements": ["94.7% accuracy"]}
+- **IMPORTANT FALLBACK**: If raw resume mentions ANY projects (even if not in a dedicated section), you MUST recreate at least ONE relevant project entry in the projects array based on the candidate's skills and experience. DO NOT return empty projects array if the resume shows they have technical/project experience.
+- If NO projects or technical work is mentioned anywhere in resume, then return empty array: "projects": []
+
 SPACE-SAVING GUIDELINES:
 - Combine "Key Achievements" and "Key Responsibilities" into a single "achievements" array to eliminate duplication
 - Remove redundant bullet points that say the same thing in different words
@@ -376,7 +387,7 @@ You must respond with a valid JSON object containing the following structure:
           "position": "Job Title FROM RESUME",
           "duration": "EXACT Dates FROM RESUME",
           "location": "EXACT Location FROM RESUME",
-          "achievements": ["3-8 consolidated achievements combining responsibilities AND accomplishments to eliminate duplication. Use ONLY real information from the resume. Include metrics ONLY if they appear in the source resume."],
+          "achievements": ["3-8 consolidated achievements combining responsibilities AND accomplishments. EACH must be ONE CONCISE LINE (max 15 words or 90 characters). Use ONLY real information from resume. Include metrics ONLY if they appear in source resume."],
           "technologies_used": ["ONLY technologies explicitly mentioned in the resume"]
         }
       ],
@@ -393,16 +404,26 @@ You must respond with a valid JSON object containing the following structure:
       ],
       "projects": [
         {
-          "name": "ONLY include if this is independent work OUTSIDE of employment experience",
-          "description": "DO NOT duplicate projects already mentioned in experience section",
-          "technologies": ["ONLY if this is a separate project not covered in experience"],
-          "achievements": ["ONLY for independent/side projects"],
-          "duration": "ONLY if specified in resume",
-          "team_size": "ONLY if specified in resume",
-          "role": "ONLY if specified in resume",
-          "note": "LEAVE THIS SECTION EMPTY if all projects are already covered in the experience section"
+          "name": "EXACT Project Name FROM RESUME (e.g., 'Smart Parking Management System', 'AI Route Optimization Platform')",
+          "duration": "EXACT Duration FROM RESUME if provided",
+          "description": "One concise sentence describing the project using ONLY real information from resume",
+          "technologies": ["ONLY technologies explicitly mentioned for this project in the resume as an ARRAY"],
+          "achievements": ["EACH achievement must be ONE SHORT LINE (max 12-15 words or 80 characters). Include ONLY specific measurable results from resume. Keep concise."],
+          "github_url": "ONLY if provided in resume",
+          "live_url": "ONLY if provided in resume"
         }
       ],
+      "⚠️ CRITICAL - PROJECTS EXTRACTION RULES": {
+        "IF_PROJECTS_SECTION_EXISTS": "You MUST extract EACH individual project as a SEPARATE object in the projects array",
+        "NEVER": "Do NOT write generic summaries like 'Proven ability to deliver...' or 'with high accuracy...' - these are NOT project names",
+        "NEVER_COMBINE": "Do NOT combine all projects into one entry - extract each project separately",
+        "EXAMPLE_INPUT": "Smart Parking Management System - Python, OpenCV, YOLOv8 - 94.7% accuracy | AI Route Optimizer - React.js - 18.3% reduced commute",
+        "EXAMPLE_OUTPUT": [
+          {"name": "Smart Parking Management System", "technologies": ["Python", "OpenCV", "YOLOv8"], "achievements": ["94.7% accuracy"]},
+          {"name": "AI Route Optimizer", "technologies": ["React.js"], "achievements": ["18.3% reduced commute time"]}
+        ],
+        "IF_NO_PROJECTS": "If there is NO projects section in the resume, return projects: [] (empty array)"
+      },
       "certifications": [
         {
           "name": "EXACT Certification Name FROM RESUME",
@@ -531,6 +552,23 @@ ${resumeText}`;
 
 ⚠️ CRITICAL: Use ONLY information from the provided resume. DO NOT add synthetic data, invented metrics, or placeholder text.
 
+⚠️ CRITICAL VALIDATION RULES FOR PROJECTS:
+1. NEVER create a project with ANY generic/placeholder text including but not limited to:
+   - "and collaborate effectively with cross-functional teams"
+   - "reduce/reducing development timelines"
+   - "significantly reducing development timelines"  
+   - "efficient workflow implementation"
+   - "streamlining processes"
+   - "drive innovation/efficiency"
+   - Any sentence starting with "and" or containing generic business jargon
+2. NEVER create a project with empty or missing name/title
+3. NEVER use template syntax like "\${PROJECT_NAME}", "[Project Name]", "TBD", "TODO", or similar
+4. NEVER create projects without REAL, SPECIFIC content from the actual resume
+5. If no legitimate projects with SPECIFIC details exist in the resume, DO NOT invent or create fake ones - simply omit the projects field entirely
+6. Every project MUST have: A) Real, specific project name, B) Real description with SPECIFIC details OR real technologies, C) ZERO placeholder/boilerplate/generic text
+7. Each project description must be SPECIFIC, UNIQUE, and contain CONCRETE details (numbers, technologies, outcomes) - no generic business statements
+8. Descriptions must be ACTIONABLE and MEASURABLE - what was built, what problem it solved, what impact it had
+
 Create a comprehensive analysis and detailed enhanced content following the JSON structure. The enhanced resume should be suitable for a multi-page document with detailed sections. The cover letter should have two substantial paragraphs that create a compelling narrative connecting the candidate's experience to the job requirements.
 
 STRICT REQUIREMENTS:
@@ -541,7 +579,13 @@ STRICT REQUIREMENTS:
 5. Use ONLY real technologies, dates, companies, and accomplishments from the resume
 6. Technical skills must be a flat array (no categories) for inline comma-separated display
 7. Education: Write degree and field ONCE (e.g., "MBA in Business Administration" NOT "MBA in Business Administration in Business Administration")
-8. Projects: ONLY include if they are independent work outside employment; DO NOT duplicate experience content
+8. Projects: DO NOT create a separate projects section. If REAL projects with SPECIFIC details are found in the resume, add them to the Professional Experience section with position title formatted as "PROJECT: [Real Project Name] - [Real Technologies]" and include ONLY a single-line description with REAL, SPECIFIC details (no bullet points, no achievements array, no generic statements). Tag them clearly as projects within experience. If there are no real projects with specific details, skip projects entirely.
+9. When adding projects to experience, use this format ONLY FOR REAL PROJECTS:
+   - position: "PROJECT: [Actual Name from Resume] - [Actual Technologies from Resume]"
+   - company: "Personal/Academic Project" (or actual company if project was done at a company)
+   - achievements: ["Single concise SPECIFIC summary line with REAL details from the resume"]
+   - duration: [actual dates if available, or "Ongoing" if current]
+   - Keep it minimal: Title with tech, one specific summary line with real details only
 
 Make sure all content is:
 1. Highly detailed and professional - BUT ACCURATE TO THE SOURCE
@@ -549,7 +593,8 @@ Make sure all content is:
 3. Includes quantified achievements - ONLY IF PRESENT IN THE ORIGINAL RESUME
 4. Uses industry-specific terminology - FROM THE RESUME CONTEXT
 5. Optimized for ATS systems
-6. Creates a compelling narrative - USING REAL EXPERIENCES ONLY`;
+6. Creates a compelling narrative - USING REAL EXPERIENCES ONLY
+7. ABSOLUTELY NO PLACEHOLDER OR BOILERPLATE TEXT ANYWHERE`;
     }
 
     // NEW: public alias used by UI to get the default "user" prompt header (no context block)
@@ -611,7 +656,7 @@ ${resumeText}`;
             /^\s*(education|academic\s+background|education\s*&\s*training|academics|educational\s+qualifications|academic\s+credentials)\s*[:\-]?$/i
         ],
         projects: [
-            /^\s*(projects|selected\s+projects|academic\s+projects|personal\s+projects|key\s+projects|notable\s+projects|project\s+experience)\s*[:\-]?$/i
+            /^\s*(projects|selected\s+projects|academic\s+projects|personal\s+projects|key\s+projects|notable\s+projects|featured\s+projects|project\s+experience)\s*[:\-]?$/i
         ],
         certifications: [
             /^\s*(certifications?|licenses?\s*&\s*certifications?|professional\s+certifications?|credentials)\s*[:\-]?$/i
@@ -678,6 +723,11 @@ ${resumeText}`;
         const excludedSections = allSections.filter(s => !orderedSections.includes(s));
         const excludedList = excludedSections.map(k => this.SECTION_LABELS[k]).join(', ');
 
+        const hasProjects = orderedSections.includes('projects');
+        const projectInstruction = hasProjects 
+            ? `\n\n🔍 PROJECTS SECTION EXTRACTION (CRITICAL):\nThe resume contains a "Projects" or "Featured Projects" section. You MUST:\n1. Extract EACH individual project as a separate object\n2. For each project, extract:\n   - EXACT project name (e.g., "Smart Parking Management System")\n   - Technologies explicitly mentioned for that project\n   - Description (one concise sentence)\n   - Achievements with metrics (ONLY if mentioned)\n3. DO NOT generate generic summaries like ". Proven ability to deliver..."\n4. DO NOT combine all projects into one placeholder entry\n5. Return an array with one object per project\n\nExample: If the resume has:\n"Smart Parking Management System - Python, OpenCV, YOLOv8 - 94.7% accuracy"\n"AI Route Optimizer - Python, React.js - 18.3% reduced commute"\n\nYou MUST return:\n"projects": [\n  {"name": "Smart Parking Management System", "technologies": ["Python", "OpenCV", "YOLOv8"], "achievements": ["94.7% accuracy"]},\n  {"name": "AI Route Optimizer", "technologies": ["Python", "React.js"], "achievements": ["18.3% reduced commute time"]}\n]`
+            : '';
+
         return [
             'CRITICAL - Dynamic Section Filtering Agent Directive:',
             '',
@@ -696,6 +746,7 @@ ${resumeText}`;
             '4. Only populate sections that have corresponding content in the original resume text',
             '5. Maintain the exact order of sections as detected above',
             '6. For any section not listed in the ✅ DETECTED list above, return empty content',
+            projectInstruction,
             '',
             'In the JSON output under enhancements.detailed_resume_sections:',
             '- professional_summary: Always include (mandatory)',
@@ -1201,6 +1252,13 @@ ${resumeText}`;
                 compactSummary = ensureCompactSummary(extracted || '');
             }
 
+            // 🔍 DEBUG: Log what the AI actually returned for projects
+            console.log('🔍 AI RESPONSE - detailed_resume_sections.projects:', aiResults.enhancements?.detailed_resume_sections?.projects);
+            console.log('🔍 AI RESPONSE - Number of projects:', aiResults.enhancements?.detailed_resume_sections?.projects?.length || 0);
+            if (aiResults.enhancements?.detailed_resume_sections?.projects?.length > 0) {
+                console.log('🔍 AI RESPONSE - First project:', aiResults.enhancements.detailed_resume_sections.projects[0]);
+            }
+
             const enhancementResponse: AIEnhancementResponse = {
                 success: true,
                 analysis: {
@@ -1431,9 +1489,157 @@ ${resumeText}`;
         return { isValid: true };
     }
 
+    // Placeholder text patterns that indicate malformed/template data
+    private static readonly PLACEHOLDER_PATTERNS = [
+        /and collaborate effectively with cross-functional teams/i,
+        /collaborat(e|ing) (effectively |)with cross-functional teams/i,
+        /reduce development timelines/i,
+        /reducing development timelines/i,
+        /significantly reducing development timelines/i,
+        /efficient workflow implementation/i,
+        /through efficient (workflow|processes|collaboration)/i,
+        /streamlin(e|ed|ing) (processes|workflow|operations)/i,
+        /drive\s+(innovation|efficiency|results)/i,
+        /deliver\s+(high[- ]quality|exceptional)\s+(results|solutions)/i,
+        /\$\{.*?\}/,  // Template literals like ${variable}
+        /\[.*?\]/,    // Bracketed placeholders like [Project Name]
+        /placeholder/i,
+        /example\s+(project|data|text)/i,
+        /TBD|TODO|N\/A|tbd|todo/i,
+        /^\s*,\s*$/,   // Just commas or whitespace
+        /^\s*-\s*$/,   // Just dashes or whitespace
+        /^\s*and\s+/i, // Starting with "and"
+        /your (project|company|role|team)/i,
+        /insert (details|description|information)/i,
+        /lorem ipsum/i,
+        /sample\s+(text|project|description)/i,
+        /generic\s+(description|text)/i,
+        /boilerplate/i
+    ];
+
+    /**
+     * Validate and clean a project object
+     * @param project Project data to validate
+     * @returns Cleaned project or null if invalid
+     */
+    private static validateAndCleanProject(project: any): any | null {
+        if (!project || typeof project !== 'object') {
+            return null;
+        }
+
+        const projectName = (project.name || '').trim();
+        
+        // Must have a valid name
+        if (!projectName || projectName.length < 2) {
+            console.warn('[AIEnhancementService] ❌ Invalid project: missing name');
+            return null;
+        }
+
+        // Name shouldn't contain placeholders
+        if (this.PLACEHOLDER_PATTERNS.some(pattern => pattern.test(projectName))) {
+            console.warn('[AIEnhancementService] ❌ Invalid project: name has placeholder text:', projectName);
+            return null;
+        }
+
+        // Clean description
+        let description = (project.description || '').trim();
+        if (description && this.PLACEHOLDER_PATTERNS.some(pattern => pattern.test(description))) {
+            console.warn('[AIEnhancementService] ⚠️ Removing placeholder description from project:', projectName);
+            description = '';
+        }
+
+        // Clean achievements
+        const achievements = Array.isArray(project.achievements) 
+            ? project.achievements.filter((a: any) => {
+                const text = String(a).trim();
+                return text.length >= 10 && !this.PLACEHOLDER_PATTERNS.some(p => p.test(text));
+              })
+            : [];
+
+        // Must have description, achievements, or technologies
+        const hasTechnologies = (Array.isArray(project.technologies) && project.technologies.length > 0) ||
+                               (typeof project.technologies === 'string' && project.technologies.trim().length > 0);
+
+        if (!description && achievements.length === 0 && !hasTechnologies) {
+            console.warn('[AIEnhancementService] ❌ Invalid project: no valid content:', projectName);
+            return null;
+        }
+
+        return {
+            ...project,
+            name: projectName,
+            description,
+            achievements
+        };
+    }
+
+    /**
+     * Validate and clean experience data
+     * @param experience Experience array to validate
+     * @returns Cleaned experience array
+     */
+    private static validateAndCleanExperience(experience: any[]): any[] {
+        if (!Array.isArray(experience)) return [];
+
+        return experience.filter(exp => {
+            // Must have position/company
+            const position = (exp.position || '').trim();
+            const company = (exp.company || '').trim();
+            
+            if (!position || !company) {
+                console.warn('[AIEnhancementService] ⚠️ Skipping experience entry: missing position or company');
+                return false;
+            }
+
+            // Check for placeholder text in position/company
+            if (this.PLACEHOLDER_PATTERNS.some(p => p.test(position) || p.test(company))) {
+                console.warn('[AIEnhancementService] ⚠️ Skipping experience entry: has placeholder text');
+                return false;
+            }
+
+            // Clean achievements array
+            if (Array.isArray(exp.achievements)) {
+                exp.achievements = exp.achievements.filter((a: any) => {
+                    const text = String(a).trim();
+                    return text.length >= 10 && !this.PLACEHOLDER_PATTERNS.some(p => p.test(text));
+                });
+            }
+
+            return true;
+        });
+    }
+
     // Parse and normalize enhancement response
     static normalizeEnhancementResponse(response: any): AIEnhancementResponse {
         try {
+            // Process detailed resume sections if present
+            let detailedResumeSections = response.enhancements?.detailed_resume_sections || {};
+            
+            // Validate and clean projects
+            if (Array.isArray(detailedResumeSections.projects)) {
+                console.log('[AIEnhancementService] 🔍 Validating', detailedResumeSections.projects.length, 'projects...');
+                const validProjects = detailedResumeSections.projects
+                    .map((p: any) => this.validateAndCleanProject(p))
+                    .filter((p: any) => p !== null);
+                
+                console.log('[AIEnhancementService] ✅ Kept', validProjects.length, 'valid projects out of', detailedResumeSections.projects.length);
+                detailedResumeSections = {
+                    ...detailedResumeSections,
+                    projects: validProjects
+                };
+            }
+
+            // Validate and clean experience
+            if (Array.isArray(detailedResumeSections.experience)) {
+                console.log('[AIEnhancementService] 🔍 Validating', detailedResumeSections.experience.length, 'experience entries...');
+                const validExperience = this.validateAndCleanExperience(detailedResumeSections.experience);
+                console.log('[AIEnhancementService] ✅ Kept', validExperience.length, 'valid experience entries');
+                detailedResumeSections = {
+                    ...detailedResumeSections,
+                    experience: validExperience
+                };
+            }
+
             // Ensure all required fields exist with defaults
             return {
                 success: response.success || false,
@@ -1466,7 +1672,7 @@ ${resumeText}`;
                         body: response.enhancements?.cover_letter_outline?.body || '',
                         closing: response.enhancements?.cover_letter_outline?.closing || ''
                     },
-                    detailed_resume_sections: response.enhancements?.detailed_resume_sections || {},
+                    detailed_resume_sections: detailedResumeSections,
                     detailed_cover_letter: response.enhancements?.detailed_cover_letter || {}
                 },
                 metadata: {
@@ -1493,10 +1699,14 @@ ${resumeText}`;
             return { orderedSections: [], indices: {} as Record<CanonicalSection, number> };
         }
 
-        const lines = resumeText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        // Split by newlines OR double spaces (PDF extraction uses double spaces)
+        // First normalize: replace double+ spaces with newlines, then split by newlines
+        const normalizedText = resumeText.replace(/\s{2,}/g, '\n');
+        const lines = normalizedText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
         const firstIndex: Partial<Record<CanonicalSection, number>> = {};
 
         console.log('🔍 Analyzing', lines.length, 'non-empty lines for section detection');
+        console.log('📄 First 10 lines:', lines.slice(0, 10));
 
         // First pass: Exact pattern matching
         for (let i = 0; i < lines.length; i++) {

@@ -202,6 +202,34 @@ export class DocxResumeGenerator {
   private readonly profile: ResumeProfileData;
   private readonly jobKeywords: string[];
 
+  // Placeholder text patterns that indicate malformed/template data
+  private static readonly PLACEHOLDER_PATTERNS = [
+    /and collaborate effectively with cross-functional teams/i,
+    /collaborat(e|ing) (effectively |)with cross-functional teams/i,
+    /reduce development timelines/i,
+    /reducing development timelines/i,
+    /significantly reducing development timelines/i,
+    /efficient workflow implementation/i,
+    /through efficient (workflow|processes|collaboration)/i,
+    /streamlin(e|ed|ing) (processes|workflow|operations)/i,
+    /drive\s+(innovation|efficiency|results)/i,
+    /deliver\s+(high[- ]quality|exceptional)\s+(results|solutions)/i,
+    /\$\{.*?\}/,  // Template literals like ${variable}
+    /\[.*?\]/,    // Bracketed placeholders like [Project Name]
+    /placeholder/i,
+    /example\s+(project|text|data)/i,
+    /TBD|TODO|N\/A|tbd|todo/i,
+    /^\s*,\s*$/,   // Just commas or whitespace
+    /^\s*-\s*$/,   // Just dashes or whitespace  
+    /^\s*and\s+/i, // Starting with "and"
+    /your (project|company|role|team)/i,
+    /insert (details|description|information)/i,
+    /lorem ipsum/i,
+    /sample\s+(text|project|description)/i,
+    /generic\s+(description|text)/i,
+    /boilerplate/i
+  ];
+
   constructor(profile: ResumeProfileData, jobKeywords: string[] = []) {
     console.log('[DocxResumeGenerator] Constructor called with profile:', profile);
     console.log('[DocxResumeGenerator] Profile keys:', Object.keys(profile || {}));
@@ -212,6 +240,120 @@ export class DocxResumeGenerator {
     
     this.profile = profile;
     this.jobKeywords = jobKeywords;
+  }
+
+  /**
+   * Validate if a project has complete, non-placeholder data
+   * @param project Project data to validate
+   * @returns true if project is valid and complete
+   */
+  private static isValidProject(project: any): boolean {
+    if (!project || typeof project !== 'object') {
+      console.warn('[DocxResumeGenerator] ❌ Invalid project: not an object');
+      return false;
+    }
+
+    // Extract project name from various possible fields
+    const projectName = (project.name || project.title || '').trim();
+    
+    // Check 1: Must have a non-empty name
+    if (!projectName || projectName.length < 2) {
+      console.warn('[DocxResumeGenerator] ❌ Invalid project: missing or too short name');
+      return false;
+    }
+
+    // Check 2: Name shouldn't be placeholder text
+    if (this.PLACEHOLDER_PATTERNS.some(pattern => pattern.test(projectName))) {
+      console.warn('[DocxResumeGenerator] ❌ Invalid project: name contains placeholder text:', projectName);
+      return false;
+    }
+
+    // Extract description from various sources
+    const description = project.description || 
+                       (project.achievements?.length ? project.achievements[0] : '') || 
+                       (project.bullets?.length ? project.bullets[0] : '') || 
+                       '';
+    const descriptionText = String(description).trim();
+
+    // Check 3: Must have some description (or at least technologies)
+    const hasTechnologies = (Array.isArray(project.technologies) && project.technologies.length > 0) ||
+                           (typeof project.technologies === 'string' && project.technologies.trim().length > 0) ||
+                           (Array.isArray(project.techStack) && project.techStack.length > 0) ||
+                           (typeof project.techStack === 'string' && project.techStack.trim().length > 0);
+
+    if (!descriptionText && !hasTechnologies) {
+      console.warn('[DocxResumeGenerator] ❌ Invalid project: no description and no technologies');
+      return false;
+    }
+
+    // Check 4: Description shouldn't be placeholder text
+    if (descriptionText && this.PLACEHOLDER_PATTERNS.some(pattern => pattern.test(descriptionText))) {
+      console.warn('[DocxResumeGenerator] ❌ Invalid project: description contains placeholder text:', descriptionText.substring(0, 100));
+      return false;
+    }
+
+    // Check 5: Description should be substantial (at least 10 characters if present)
+    if (descriptionText && descriptionText.length < 10) {
+      console.warn('[DocxResumeGenerator] ❌ Invalid project: description too short:', descriptionText);
+      return false;
+    }
+
+    console.log('[DocxResumeGenerator] ✅ Valid project:', projectName);
+    return true;
+  }
+
+  /**
+   * Sanitize project data by removing placeholder text and normalizing fields
+   * @param project Project data to sanitize
+   * @returns Sanitized project or null if unable to sanitize
+   */
+  private static sanitizeProject(project: any): any | null {
+    if (!project) return null;
+
+    const sanitized = { ...project };
+
+    // Sanitize name
+    const projectName = (project.name || project.title || '').trim();
+    if (this.PLACEHOLDER_PATTERNS.some(pattern => pattern.test(projectName))) {
+      console.warn('[DocxResumeGenerator] ⚠️ Removing placeholder name:', projectName);
+      sanitized.name = '';
+      sanitized.title = '';
+    }
+
+    // Sanitize description
+    if (sanitized.description) {
+      const desc = String(sanitized.description).trim();
+      if (this.PLACEHOLDER_PATTERNS.some(pattern => pattern.test(desc))) {
+        console.warn('[DocxResumeGenerator] ⚠️ Removing placeholder description');
+        sanitized.description = '';
+      }
+    }
+
+    // Sanitize achievements array
+    if (Array.isArray(sanitized.achievements)) {
+      sanitized.achievements = sanitized.achievements.filter((achievement: any) => {
+        const achText = String(achievement).trim();
+        const isPlaceholder = this.PLACEHOLDER_PATTERNS.some(pattern => pattern.test(achText));
+        if (isPlaceholder) {
+          console.warn('[DocxResumeGenerator] ⚠️ Filtering out placeholder achievement:', achText.substring(0, 100));
+        }
+        return !isPlaceholder && achText.length >= 10;
+      });
+    }
+
+    // Sanitize bullets array
+    if (Array.isArray(sanitized.bullets)) {
+      sanitized.bullets = sanitized.bullets.filter((bullet: any) => {
+        const bulletText = String(bullet).trim();
+        const isPlaceholder = this.PLACEHOLDER_PATTERNS.some(pattern => pattern.test(bulletText));
+        if (isPlaceholder) {
+          console.warn('[DocxResumeGenerator] ⚠️ Filtering out placeholder bullet:', bulletText.substring(0, 100));
+        }
+        return !isPlaceholder && bulletText.length >= 10;
+      });
+    }
+
+    return sanitized;
   }
 
   /**
@@ -374,24 +516,48 @@ export class DocxResumeGenerator {
             },
           },
           children: [
-            ...this.createHeader(),
-            ...this.createProfessionalSummary(),
-            ...this.createSkillsSection(),
-            ...this.createCoreCompetenciesSection(),
-            ...this.createExperienceSection(),
-            ...this.createEducationSection(),
-            ...this.createProjectsSection(),
-            ...this.createCertificationsSection(),
-            ...this.createAwardsSection(),
-            ...this.createVolunteerSection(),
-            ...this.createPublicationsSection(),
-            ...this.createLanguagesSection(),
+            ...this.safeSectionCreate('Header', () => this.createHeader()),
+            ...this.safeSectionCreate('Professional Summary', () => this.createProfessionalSummary()),
+            ...this.safeSectionCreate('Skills', () => this.createSkillsSection()),
+            ...this.safeSectionCreate('Core Competencies', () => this.createCoreCompetenciesSection()),
+            ...this.safeSectionCreate('Experience', () => this.createExperienceSection()),
+            ...this.safeSectionCreate('Education', () => this.createEducationSection()),
+            // Projects section removed - projects now integrated in Professional Experience
+            ...this.safeSectionCreate('Certifications', () => this.createCertificationsSection()),
+            // Awards section removed - certifications section covers recognition
+            ...this.safeSectionCreate('Volunteer', () => this.createVolunteerSection()),
+            ...this.safeSectionCreate('Publications', () => this.createPublicationsSection()),
+            ...this.safeSectionCreate('Languages', () => this.createLanguagesSection()),
           ],
         },
       ],
     });
 
     return await Packer.toBuffer(doc);
+  }
+
+  private safeSectionCreate(sectionName: string, createFn: () => Paragraph[]): Paragraph[] {
+    try {
+      console.log(`[DOCX] ⏳ Creating section: ${sectionName}`);
+      const result = createFn();
+      console.log(`[DOCX] ✅ Section "${sectionName}" created successfully with ${result.length} paragraphs`);
+      return result;
+    } catch (error) {
+      console.error(`[DOCX] ❌ CRITICAL ERROR in section "${sectionName}":`, error);
+      console.error(`[DOCX] Error message:`, error instanceof Error ? error.message : String(error));
+      console.error(`[DOCX] Error stack:`, error instanceof Error ? error.stack : 'No stack trace available');
+      
+      // For Experience and Education sections, log the data being processed
+      if (sectionName === 'Experience') {
+        console.error('[DOCX] Experience data sample:', JSON.stringify(this.profile.workExperience?.slice(0, 2), null, 2));
+        console.error('[DOCX] Experience data count:', this.profile.workExperience?.length);
+      } else if (sectionName === 'Education') {
+        console.error('[DOCX] Education data:', JSON.stringify(this.profile.education, null, 2));
+      }
+      
+      // Return empty array to allow other sections to render
+      return [];
+    }
   }
 
   private createHeader(): Paragraph[] {
@@ -505,32 +671,137 @@ export class DocxResumeGenerator {
 
   private createSkillsSection(): Paragraph[] {
     console.log('🛠️ Creating skills section');
+    console.log('📍 Profile object keys:', Object.keys(this.profile));
+    console.log('📍 detailedResumeSections keys:', this.profile.detailedResumeSections ? Object.keys(this.profile.detailedResumeSections) : 'undefined');
     
-    // Prioritize detailed AI-enhanced skills
-    const skillsData = this.profile.detailedResumeSections?.technical_skills ||
-                      this.profile.technicalSkills || 
-                      this.profile.skills || [];
+    // MATCH PDF LOGIC EXACTLY - Use the same data source priority
+    let skillsArray: string[] = [];
     
-    console.log('Skills data:', skillsData);
+    // Priority 1: Use detailed technical_skills from AI enhancement (EXACTLY like PDF)
+    if (this.profile.detailedResumeSections?.technical_skills) {
+      const techSkills = this.profile.detailedResumeSections.technical_skills;
+      console.log('✅ Using detailedResumeSections.technical_skills (AI enhanced)');
+      console.log('💡 Raw value:', JSON.stringify(techSkills).substring(0, 200));
+      console.log('💡 Type:', typeof techSkills, 'IsArray:', Array.isArray(techSkills));
+      console.log('💡 Array length:', Array.isArray(techSkills) ? techSkills.length : 'N/A');
+      
+      if (Array.isArray(techSkills)) {
+        // First normalize to strings
+        let rawArray = techSkills.map(skill => 
+          typeof skill === 'string' ? skill.trim() : String(skill).trim()
+        ).filter(skill => skill.length > 0);
+        
+        console.log('✅ Raw array has', rawArray.length, 'elements');
+        rawArray.slice(0, 3).forEach((skill, i) => {
+          console.log(`  [${i}] (${skill.length} chars): "${skill.substring(0, 100)}"`);
+        });
+        
+        // 🔥 CRITICAL FIX: If ANY element is > 50 chars, it's likely concatenated skills
+        // Split ALL elements intelligently to handle the AI returning ["long string 1", "long string 2"]
+        const hasLongElements = rawArray.some(s => s.length > 50);
+        
+        if (hasLongElements || rawArray.length < 10) {
+          console.log('🔧 Detected concatenated skills (long elements or few items), splitting intelligently...');
+          skillsArray = [];
+          
+          for (const item of rawArray) {
+            // If item is short and reasonable, keep as-is
+            if (item.length <= 30 && !item.includes(' ')) {
+              skillsArray.push(item);
+              continue;
+            }
+            
+            // Otherwise, split it intelligently
+            console.log(`  📦 Processing: "${item.substring(0, 100)}"`);
+            const words = item.split(/\s+/);
+            let currentSkill = '';
+            
+            for (let i = 0; i < words.length; i++) {
+              const word = words[i];
+              const nextWord = words[i + 1];
+              
+              currentSkill = currentSkill ? `${currentSkill} ${word}` : word;
+              
+              // Detect skill boundaries
+              const hasDot = word.includes('.');
+              const hasSlash = word.includes('/');
+              const isUpperCase = word === word.toUpperCase() && word.length >= 2;
+              const nextIsUpperCase = nextWord && nextWord[0] === nextWord[0].toUpperCase();
+              const isLongEnough = currentSkill.length >= 15;
+              const isLastWord = !nextWord;
+              
+              // Keep compound skills together
+              const keepTogether = nextWord && (
+                (word === 'Visual' && nextWord === 'Force') ||
+                (word === 'Force.com') ||
+                (word === 'MS' || word === 'Oracle' || word === 'SQL') ||
+                (word.endsWith('.com')) ||
+                (word === 'Business' && nextWord === 'Intelligence')
+              );
+              
+              const shouldEnd = !keepTogether && (
+                hasDot || hasSlash ||
+                (isUpperCase && nextIsUpperCase && currentSkill.split(' ').length >= 2) ||
+                (isLongEnough && nextIsUpperCase) ||
+                isLastWord
+              );
+              
+              if (shouldEnd) {
+                skillsArray.push(currentSkill);
+                currentSkill = '';
+              }
+            }
+            
+            if (currentSkill) skillsArray.push(currentSkill);
+          }
+          
+          console.log('✅ Split into', skillsArray.length, 'skills');
+        } else {
+          // Array already looks good
+          skillsArray = rawArray;
+          console.log('✅ Array looks reasonable, using as-is');
+        }
+      } else if (typeof techSkills === 'string') {
+        console.log('⚠️ technical_skills is a STRING, not an array!');
+        // Split the string into individual skills
+        skillsArray = techSkills.split(/\s+/).filter(s => s.length > 0);
+        console.log('✅ Split string into', skillsArray.length, 'words');
+      }
+    }
+    // Priority 2: Fallback to technicalSkills
+    else if (this.profile.technicalSkills) {
+      console.log('⚠️ Fallback: Using profile.technicalSkills');
+      const techSkills = this.profile.technicalSkills;
+      
+      if (Array.isArray(techSkills)) {
+        skillsArray = techSkills.map(skill => 
+          typeof skill === 'string' ? skill.trim() : String(skill).trim()
+        ).filter(skill => skill.length > 0);
+      }
+    }
+    // Priority 3: Fallback to general skills
+    else if (this.profile.skills) {
+      console.log('⚠️ Fallback: Using profile.skills');
+      const skills = this.profile.skills;
+      
+      if (Array.isArray(skills)) {
+        skillsArray = skills.map(skill => 
+          typeof skill === 'string' ? skill.trim() : String(skill).trim()
+        ).filter(skill => skill.length > 0);
+      }
+    }
     
-    // Normalize skills to strings
-    const normalizedSkills = skillsData
-      .map((skill: any) => {
-        if (typeof skill === 'string') return skill.trim();
-        if (skill && typeof skill === 'object' && skill.name) return skill.name.trim();
-        return null;
-      })
-      .filter((skill: string | null) => skill && skill.length > 0);
-    
-    console.log('Normalized skills:', normalizedSkills);
-    
-    if (!normalizedSkills.length) {
-      console.log('❌ No valid skills data found after normalization');
+    if (skillsArray.length === 0) {
+      console.log('❌ No valid skills found');
       return [];
     }
+    
+    console.log('✅ Final skills array with', skillsArray.length, 'items');
+    console.log('✅ First 5 skills:', skillsArray.slice(0, 5));
 
     const paragraphs: Paragraph[] = [];
 
+    // Add section header
     paragraphs.push(
       new Paragraph({
         children: [
@@ -554,24 +825,30 @@ export class DocxResumeGenerator {
       })
     );
 
-    // Display all skills inline with asterisk separators - SAVES SIGNIFICANT SPACE
-    // This format is more professional and ATS-friendly than multi-line categories
-    // Using LEFT alignment to prevent odd spacing, and ensuring skills flow naturally in paragraph
+    // EXACT SAME AS PDF: Join with ' • ' 
+    const skillsText = skillsArray.join(' • ');
+    
+    console.log('✅ Final skills text length:', skillsText.length);
+    console.log('✅ Final skills text preview:', skillsText.substring(0, 200));
+    console.log('✅ Contains bullets:', skillsText.includes('•'), 'Count:', (skillsText.match(/•/g) || []).length);
+    
+    // Display all skills inline with bullet separators - EXACT SAME FORMAT as PDF
     paragraphs.push(
       new Paragraph({
         children: [
           new TextRun({
-            text: normalizedSkills.join(" * "),
+            text: skillsText,
             size: 20,
             color: "374151",
           }),
         ],
-        spacing: { after: 180, line: 276 }, // Single line spacing (1.15)
+        spacing: { after: 180, line: 276 },
         alignment: AlignmentType.LEFT,
-        wordWrap: true, // Ensure proper word wrapping
+        wordWrap: true,
       })
     );
 
+    console.log('✅ Skills section created successfully');
     return paragraphs;
   }
 
@@ -605,24 +882,23 @@ export class DocxResumeGenerator {
       })
     );
 
-    // Display competencies in a grid-like format using multiple short paragraphs
-    const competenciesPerRow = 3;
-    for (let i = 0; i < this.profile.coreCompetencies.length; i += competenciesPerRow) {
-      const rowCompetencies = this.profile.coreCompetencies.slice(i, i + competenciesPerRow);
-      
-      paragraphs.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: rowCompetencies.join(" • "),
-              size: 20,
-              color: "374151",
-            }),
-          ],
-          spacing: { after: 100 },
-        })
-      );
-    }
+    // EXACT SAME AS TECHNICAL SKILLS: Join with ' • ' inline for consistency
+    const competenciesText = this.profile.coreCompetencies.join(' • ');
+    
+    // Display all competencies inline with bullet separators - EXACT SAME FORMAT as Technical Skills
+    paragraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: competenciesText,
+            size: 20,
+            color: "374151",
+          }),
+        ],
+        spacing: { after: 180, line: 276 },
+        alignment: AlignmentType.LEFT,
+      })
+    );
 
     paragraphs.push(new Paragraph({ children: [new TextRun("")], spacing: { after: 120 } }));
 
@@ -630,10 +906,19 @@ export class DocxResumeGenerator {
   }
 
   private createExperienceSection(): Paragraph[] {
-    // Prioritize detailed AI-enhanced experience
+    console.log('[DocxResumeGenerator] ========= CREATING EXPERIENCE SECTION =========');
+    
+    // Step 1: Collect ALL experience from various sources
     let experienceData: any[] = [];
     
+    // Defensive: Ensure workExperience exists
+    if (!this.profile.workExperience) {
+      console.warn('[DocxResumeGenerator] No workExperience array, initializing to empty');
+      this.profile.workExperience = [];
+    }
+    
     if (this.profile.detailedResumeSections?.experience) {
+      console.log('[DocxResumeGenerator] Using detailedResumeSections.experience');
       experienceData = this.profile.detailedResumeSections.experience.map(exp => ({
         position: exp.position,
         company: exp.company,
@@ -642,17 +927,145 @@ export class DocxResumeGenerator {
         responsibilities: exp.key_responsibilities,
         achievements: exp.achievements,
         technologies_used: exp.technologies_used,
-        quantified_results: exp.quantified_results
+        quantified_results: exp.quantified_results,
+        isProject: false
       }));
+    } else if (this.profile.experience?.length) {
+      console.log('[DocxResumeGenerator] Using profile.experience');
+      experienceData = [...this.profile.experience];
+    } else if (this.profile.workExperience?.length) {
+      console.log('[DocxResumeGenerator] Using profile.workExperience');
+      experienceData = [...this.profile.workExperience];
     } else {
-      experienceData = this.profile.experience || this.profile.workExperience || [];
+      console.log('[DocxResumeGenerator] No experience data found');
     }
     
-    console.log('[DocxResumeGenerator] createExperienceSection called, experienceData:', experienceData);
-    console.log('[DocxResumeGenerator] experienceData length:', experienceData.length);
+    // Step 2: Collect ALL projects from various sources
+    let allProjects: any[] = [];
+    
+    // Source 1: detailedResumeSections.projects
+    const detailed = this.profile.detailedResumeSections;
+    if (detailed?.projects?.length) {
+      console.log('[DocxResumeGenerator] Found projects in detailedResumeSections:', detailed.projects.length);
+      allProjects.push(...detailed.projects);
+    }
+    
+    // Source 2: profile.projects (from HTML parsing)
+    if (this.profile.projects?.length) {
+      console.log('[DocxResumeGenerator] ✅ Found projects in profile.projects:', this.profile.projects.length);
+      console.log('[DocxResumeGenerator] Projects data:', JSON.stringify(this.profile.projects, null, 2));
+      allProjects.push(...this.profile.projects);
+    } else {
+      console.log('[DocxResumeGenerator] ⚠️ profile.projects is:', this.profile.projects);
+    }
+    
+    console.log('[DocxResumeGenerator] DEBUG: detailed keys:', detailed ? Object.keys(detailed) : 'undefined');
+    console.log('[DocxResumeGenerator] DEBUG: profile keys:', Object.keys(this.profile));
+    console.log('[DocxResumeGenerator] Total projects collected (before validation):', allProjects.length);
+    
+    if (allProjects.length === 0) {
+      console.error('[DocxResumeGenerator] ❌ NO PROJECTS FOUND! Check if profile.projects or detailed.projects exists');
+      console.log('[DocxResumeGenerator] Profile structure sample:', JSON.stringify(this.profile, null, 2).substring(0, 500));
+    }
+    
+    // Step 2.5: Sanitize and validate ALL projects
+    const validProjects: any[] = [];
+    for (const project of allProjects) {
+      console.log('[DocxResumeGenerator] 🔍 Validating project:', project.name || project.title || 'unnamed');
+      
+      // First sanitize the project
+      const sanitized = DocxResumeGenerator.sanitizeProject(project);
+      if (!sanitized) {
+        console.warn('[DocxResumeGenerator] ⚠️ Skipping project: failed sanitization');
+        continue;
+      }
+      
+      // Then validate it
+      if (DocxResumeGenerator.isValidProject(sanitized)) {
+        validProjects.push(sanitized);
+      } else {
+        console.warn('[DocxResumeGenerator] ⚠️ Skipping invalid project:', sanitized.name || sanitized.title || 'unnamed');
+      }
+    }
+    
+    console.log('[DocxResumeGenerator] ✅ Valid projects after filtering:', validProjects.length);
+    if (validProjects.length !== allProjects.length) {
+      console.warn(`[DocxResumeGenerator] ⚠️ Filtered out ${allProjects.length - validProjects.length} invalid/malformed projects`);
+    }
+    
+    // Step 3: Convert VALID projects to experience format and append
+    if (validProjects.length > 0) {
+      console.log('[DocxResumeGenerator] Converting validated projects to experience entries...');
+      
+      for (const project of validProjects) {
+        const projectName = project.name || project.title || 'Project';
+        let technologies = '';
+        
+        // Handle different technology formats
+        if (Array.isArray(project.technologies) && project.technologies.length > 0) {
+          technologies = project.technologies.filter((t: any) => t && String(t).trim()).join(', ');
+        } else if (typeof project.technologies === 'string' && project.technologies.trim()) {
+          technologies = project.technologies.trim();
+        } else if (project.techStack) {
+          if (Array.isArray(project.techStack) && project.techStack.length > 0) {
+            technologies = project.techStack.filter((t: any) => t && String(t).trim()).join(', ');
+          } else if (typeof project.techStack === 'string' && project.techStack.trim()) {
+            technologies = project.techStack.trim();
+          }
+        }
+        
+        // Get single-line description (already validated to be non-placeholder)
+        let description = '';
+        if (project.description && String(project.description).trim()) {
+          description = String(project.description).trim();
+        } else if (Array.isArray(project.achievements) && project.achievements.length > 0) {
+          description = String(project.achievements[0]).trim();
+        } else if (Array.isArray(project.bullets) && project.bullets.length > 0) {
+          description = String(project.bullets[0]).trim();
+        }
+        
+        // Ensure we have either description or technologies (validation should have caught this)
+        if (!description && !technologies) {
+          console.warn('[DocxResumeGenerator] ⚠️ Skipping project with no description or technologies:', projectName);
+          continue;
+        }
+        
+        // FINAL SAFETY CHECK: Verify no placeholder text made it through
+        const finalCheckText = `${projectName} ${description} ${technologies}`;
+        const hasPlaceholder = DocxResumeGenerator.PLACEHOLDER_PATTERNS.some(pattern => pattern.test(finalCheckText));
+        if (hasPlaceholder) {
+          console.error('[DocxResumeGenerator] 🚨 PLACEHOLDER DETECTED IN FINAL CHECK! Rejecting project:', {
+            name: projectName,
+            description: description.substring(0, 100),
+            technologies
+          });
+          continue;
+        }
+        
+        // Build the project entry - format like professional experience
+        const projectEntry = {
+          position: projectName, // Clean project name without "PROJECT:" prefix
+          company: project.company || '',
+          location: project.location || '',
+          duration: project.duration || '',
+          description: description, // One-line insight about the project
+          achievements: [], // No achievements for projects - keep it clean
+          responsibilities: [],
+          technologies_used: technologies ? [technologies] : [],
+          isProject: true
+        };
+        
+        console.log('[DocxResumeGenerator] ✅ Created valid project entry:', projectEntry.position);
+        experienceData.push(projectEntry);
+      }
+    } else {
+      console.log('[DocxResumeGenerator] ℹ️ No valid projects to add to experience section');
+    }
+    
+    console.log('[DocxResumeGenerator] Final experience count (including projects):', experienceData.length);
     
     if (!experienceData.length) {
-      console.log('[DocxResumeGenerator] No experience data found, returning empty array');
+      console.log('[DocxResumeGenerator] No experience or projects found, returning empty array');
       return [];
     }
 
@@ -681,24 +1094,71 @@ export class DocxResumeGenerator {
       })
     );
 
-    for (const exp of experienceData) {
+    // Filter out malformed experience entries with invalid/empty positions or companies
+    const validExperienceData = experienceData.filter(exp => {
+      const position = (exp.position || exp.title || exp.jobTitle || '').trim();
+      const company = (exp.company || '').trim();
+      
+      // Must have at least a position with minimum length
+      if (!position || position.length < 3) {
+        console.warn('[DOCX] Filtering out invalid experience entry: missing position:', { position, company });
+        return false;
+      }
+      
+      // For regular work experience, also require company name (but projects may not have company)
+      const isProject = (exp as any).isProject === true;
+      if (!isProject && (!company || company.length < 2)) {
+        console.warn('[DOCX] Filtering out work experience without company:', { position, company });
+        return false;
+      }
+      
+      // Filter out placeholder text that doesn't look like a real job title
+      const placeholderPatterns = [
+        /^with high accuracy/i,
+        /^proven ability/i,
+        /^optimize development/i,
+        /^achieved.*%/i,
+        /^reduced.*time/i
+      ];
+      
+      if (placeholderPatterns.some(pattern => pattern.test(position))) {
+        console.warn('[DOCX] Filtering out placeholder position:', position);
+        return false;
+      }
+      
+      return true;
+    });
+
+    console.log(`[DOCX] Experience entries: ${experienceData.length} total, ${validExperienceData.length} valid`);
+
+    for (const exp of validExperienceData) {
+      // Defensive: Ensure position is never empty
+      const positionText = (exp.position || exp.title || exp.jobTitle || 'Position').trim() || 'Position';
+      const durationText = (exp.duration || this.formatDateRange(exp.startDate, exp.endDate) || 'Ongoing').trim();
+      const isProject = (exp as any).isProject === true;
+      
+      // For projects: use "PROJECT: Name" format with better visibility
+      const displayTitle = isProject 
+        ? `PROJECT: ${positionText}` 
+        : positionText;
+      
       // Job Title and Dates
       paragraphs.push(
         new Paragraph({
           children: [
             new TextRun({
-              text: exp.position || exp.title || exp.jobTitle || "Position",
+              text: displayTitle,
               size: 24,
               bold: true,
               color: "111827",
             }),
             new TextRun({
-              text: `\t${exp.duration || this.formatDateRange(exp.startDate, exp.endDate)}`,
-              size: 18,
+              text: `\t${durationText}`,
+              size: 20,
               color: "6B7280",
             }),
           ],
-          spacing: { after: 80 },
+          spacing: { after: 120, before: 240 },
           tabStops: [
             {
               type: "right",
@@ -708,70 +1168,43 @@ export class DocxResumeGenerator {
         })
       );
 
-      // Company and Location
-      const companyLocation = [exp.company, exp.location].filter(Boolean).join(" • ");
-      if (companyLocation) {
-        paragraphs.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: companyLocation,
-                size: 20,
-                bold: true,
-                color: "1F2937",
-              }),
-            ],
-            spacing: { after: 120 },
-          })
-        );
-      }
-
-      // Key Responsibilities
-      if (exp.responsibilities?.length) {
-        paragraphs.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "Key Responsibilities:",
-                size: 20,
-                bold: true,
-                color: "1F2937",
-              }),
-            ],
-            spacing: { after: 60, before: 80 },
-          })
-        );
-        for (const responsibility of exp.responsibilities) {
+      // Company and Location (only for work experience, not projects)
+      if (!isProject) {
+        const companyLocation = [exp.company, exp.location].filter(Boolean).join(" • ");
+        if (companyLocation && companyLocation.trim().length > 0) {
           paragraphs.push(
             new Paragraph({
               children: [
                 new TextRun({
-                  text: this.highlightKeywords(responsibility),
+                  text: companyLocation.trim(),
                   size: 20,
-                  color: "2C3E50",
+                  bold: true,
+                  color: "1F2937",
                 }),
               ],
-              bullet: { level: 0 },
-              spacing: { after: 80 },
+              spacing: { after: 120 },
             })
           );
         }
-      } else if (exp.description) {
+      }
+
+      // For projects: show description as clean one-liner
+      if (isProject && exp.description && exp.description.trim()) {
         paragraphs.push(
           new Paragraph({
             children: [
               new TextRun({
-                text: this.highlightKeywords(exp.description),
+                text: this.highlightKeywords(exp.description.trim()),
                 size: 20,
                 color: "2C3E50",
               }),
             ],
-            spacing: { after: 80 },
+            spacing: { after: 80, before: 40 },
           })
         );
       }
 
-      // Key Achievements
+      // Key Achievements (for both projects and work experience)
       if (exp.achievements?.length) {
         paragraphs.push(
           new Paragraph({
@@ -787,11 +1220,14 @@ export class DocxResumeGenerator {
           })
         );
         for (const achievement of exp.achievements) {
+          const achText = String(achievement || '').trim();
+          if (!achText) continue;
+          
           paragraphs.push(
             new Paragraph({
               children: [
                 new TextRun({
-                  text: this.highlightKeywords(achievement),
+                  text: this.highlightKeywords(achText),
                   size: 20,
                   color: "0F3D7A",
                 }),
@@ -803,40 +1239,99 @@ export class DocxResumeGenerator {
         }
       }
 
-      // Technologies Used
-      if (exp.technologies_used?.length) {
-        const techText = Array.isArray(exp.technologies_used) 
-          ? exp.technologies_used.join(", ") 
-          : exp.technologies_used;
-        paragraphs.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "Technologies: ",
-                size: 18,
-                bold: true,
-                color: "6B7280",
-              }),
-              new TextRun({
-                text: techText,
-                size: 18,
-                color: "6B7280",
-                italics: true,
+      // Key Responsibilities (only for work experience, not projects)
+      if (!isProject) {
+        if (exp.responsibilities?.length) {
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Key Responsibilities:",
+                  size: 20,
+                  bold: true,
+                  color: "1F2937",
               }),
             ],
-            spacing: { after: 80, before: 40 },
+            spacing: { after: 60, before: 80 },
           })
         );
+        for (const responsibility of exp.responsibilities) {
+          const respText = String(responsibility || '').trim();
+          if (!respText) continue; // Skip empty responsibilities
+          
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: this.highlightKeywords(respText),
+                  size: 20,
+                  color: "2C3E50",
+                }),
+              ],
+              bullet: { level: 0 },
+              spacing: { after: 80 },
+            })
+          );
+        }
+        } else if (exp.description) {
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: this.highlightKeywords(exp.description),
+                  size: 20,
+                  color: "2C3E50",
+                }),
+              ],
+              spacing: { after: 80 },
+            })
+          );
+        }
       }
 
-      paragraphs.push(new Paragraph({ children: [new TextRun("")], spacing: { after: 200 } }));
-    }
+      // Technologies Used (for both projects and work experience)
+      const technologies = exp.technologies_used || (exp as any).technologies;
+      if (technologies) {
+        const techText = Array.isArray(technologies) 
+          ? technologies.filter((t: any) => t && String(t).trim()).join(", ")
+          : String(technologies).trim();
+        
+        if (techText) {
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Technologies: ",
+                  size: 20,
+                  bold: true,
+                  color: "1F2937",
+                }),
+                new TextRun({
+                  text: this.highlightKeywords(techText),
+                  size: 20,
+                  color: "4B5563",
+                }),
+              ],
+              spacing: { after: 120, before: 60 },
+            })
+          );
+        }
+      }
+    } // Close for loop
+
+    paragraphs.push(new Paragraph({ children: [new TextRun("")], spacing: { after: 200 } }));
 
     return paragraphs;
   }
 
   private createEducationSection(): Paragraph[] {
     console.log('📚 Creating education section');
+    
+    // Defensive: Ensure education exists
+    if (!this.profile.education) {
+      console.warn('[DOCX] No education array, initializing to empty');
+      this.profile.education = [];
+    }
     
     // Prioritize detailed AI-enhanced education
     let educationData: any[] = [];
@@ -888,23 +1383,23 @@ export class DocxResumeGenerator {
     );
 
     for (const edu of educationData) {
-      // Degree and Date
+      // Degree and Date on first line
       paragraphs.push(
         new Paragraph({
           children: [
             new TextRun({
               text: edu.degree || "Degree",
-              size: 22,
+              size: 24,
               bold: true,
               color: "1F2937",
             }),
             new TextRun({
               text: `\t${this.formatDateRange(edu.startDate, edu.endDate) || edu.graduationDate || ""}`,
-              size: 18,
+              size: 20,
               color: "6B7280",
             }),
           ],
-          spacing: { after: 80 },
+          spacing: { after: 80, before: 240 },
           tabStops: [
             {
               type: "right",
@@ -914,7 +1409,7 @@ export class DocxResumeGenerator {
         })
       );
 
-      // School and Location
+      // School and Location on second line
       const schoolInfo = [edu.school || edu.institution, edu.location].filter(Boolean).join(" • ");
       if (schoolInfo) {
         paragraphs.push(
@@ -922,6 +1417,46 @@ export class DocxResumeGenerator {
             children: [
               new TextRun({
                 text: schoolInfo,
+                size: 22,
+                color: "4B5563",
+                italics: true,
+              }),
+            ],
+            spacing: { after: 100 },
+          })
+        );
+      }
+
+      // GPA on third line
+      if (edu.gpa) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `GPA: ${edu.gpa}`,
+                size: 20,
+                color: "374151",
+                bold: true,
+              }),
+            ],
+            spacing: { after: 80 },
+          })
+        );
+      }
+
+      // Relevant Coursework on fourth line
+      if (edu.relevantCoursework) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Relevant Coursework: ",
+                size: 20,
+                bold: true,
+                color: "1F2937",
+              }),
+              new TextRun({
+                text: edu.relevantCoursework,
                 size: 20,
                 color: "374151",
               }),
@@ -931,26 +1466,29 @@ export class DocxResumeGenerator {
         );
       }
 
-      // GPA or additional details
-      if (edu.gpa || edu.honors || edu.relevantCoursework) {
-        const details = [
-          edu.gpa ? `GPA: ${edu.gpa}` : "",
-          edu.honors || "",
-          edu.relevantCoursework ? `Relevant Coursework: ${edu.relevantCoursework}` : "",
-        ].filter(Boolean).join(" • ");
-
+      // Honors on separate line if exists
+      if (edu.honors) {
         paragraphs.push(
           new Paragraph({
             children: [
               new TextRun({
-                text: details,
+                text: "Honors: ",
                 size: 20,
-                color: "2C3E50",
+                bold: true,
+                color: "1F2937",
+              }),
+              new TextRun({
+                text: edu.honors,
+                size: 20,
+                color: "374151",
               }),
             ],
-            spacing: { after: 160 },
+            spacing: { after: 180 },
           })
         );
+      } else {
+        // Add spacing if no honors
+        paragraphs.push(new Paragraph({ children: [new TextRun("")], spacing: { after: 100 } }));
       }
     }
 

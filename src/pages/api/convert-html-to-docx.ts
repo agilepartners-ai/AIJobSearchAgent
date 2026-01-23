@@ -144,37 +144,53 @@ class ResumeContentParser {
   }
 
   extractEducation(): any[] {
+    console.log('[DOCX Parser] Extracting education...');
     const educationText = this.extractSection(['EDUCATION', 'ACADEMIC BACKGROUND']);
-    if (!educationText) return [];
+    console.log('[DOCX Parser] Education section text:', educationText ? educationText.substring(0, 200) : 'NOT FOUND');
+    
+    if (!educationText) {
+      console.log('[DOCX Parser] No education section found in HTML');
+      return [];
+    }
 
     const entries: any[] = [];
     const lines = educationText.split('\n').filter(l => l.trim());
     let currentEntry: any = null;
 
     const flushEntry = () => {
-      if (currentEntry) entries.push(currentEntry);
+      if (currentEntry && currentEntry.degree) {
+        console.log('[DOCX Parser] Adding education entry:', currentEntry);
+        entries.push(currentEntry);
+      }
       currentEntry = null;
     };
 
     for (const line of lines) {
-      if (/(B\. Tech|Master|Bachelor)/i.test(line)) {
+      // Match degree patterns (case insensitive, handle both "B. Tech" and "BTech")
+      if (/(B\.?\s*Tech|B\.?Tech|Master|Bachelor|MBA|MS|PhD|Associate)/i.test(line)) {
         flushEntry();
-        const dateMatch = line.match(/\b(Expected \d{4}|\d{4})\b/);
+        const dateMatch = line.match(/\b(Expected \d{2}\/\d{4}|Expected \d{4}|\d{4})\b/);
         currentEntry = {
           degree: line.replace(dateMatch ? dateMatch[0] : '', '').trim(),
           school: '',
+          institution: '',
           graduationDate: dateMatch ? dateMatch[0] : '',
           details: ''
         };
       } else if (currentEntry) {
-        if (!currentEntry.school && /(University|Institute|School)/i.test(line)) {
+        if (!currentEntry.school && /(University|Institute|School|College)/i.test(line)) {
           currentEntry.school = line;
+          currentEntry.institution = line;
+        } else if (line.match(/GPA:\s*[\d.]+/i)) {
+          currentEntry.gpa = line;
         } else {
           currentEntry.details = `${currentEntry.details} ${line}`.trim();
         }
       }
     }
     flushEntry();
+    
+    console.log('[DOCX Parser] Extracted education entries:', entries.length);
     return entries;
   }
 
@@ -191,15 +207,21 @@ class ResumeContentParser {
   }
 
   extractProjects(): any[] {
+    console.log('[DOCX Parser] Extracting projects...');
     const projectEntries: any[] = [];
-    const projectsSectionMatch = this.rawHtml.match(/<h2[^>]*>\s*KEY PROJECTS\s*<\/h2>([\s\S]*?)(?=<h2|<section|$)/i);
     
-    if (!projectsSectionMatch || !projectsSectionMatch[1]) {
+    // Try multiple variations of project headings
+    const projectsSectionMatch = this.rawHtml.match(/<h2[^>]*>\s*(KEY PROJECTS|FEATURED PROJECTS|PROJECTS)\s*<\/h2>([\s\S]*?)(?=<h2|<section|$)/i);
+    
+    if (!projectsSectionMatch || !projectsSectionMatch[2]) {
+      console.log('[DOCX Parser] No <h2> projects section found, trying text extraction');
       return this.extractProjectsFromText();
     }
 
-    const projectsHtml = projectsSectionMatch[1];
+    console.log('[DOCX Parser] Found projects section in HTML');
+    const projectsHtml = projectsSectionMatch[2];
     const entryBlocks = projectsHtml.split(/<div[^>]*margin-bottom:\s*15px/).filter(block => block.trim().length > 50);
+    console.log('[DOCX Parser] Found project blocks:', entryBlocks.length);
 
     for (const block of entryBlocks) {
       let title = '';
@@ -231,6 +253,7 @@ class ResumeContentParser {
       if (techMatch) techStack = this.cleanHTML(techMatch[1]);
 
       if (title) {
+        console.log('[DOCX Parser] Adding project:', title);
         projectEntries.push({
           name: title,
           title,
@@ -244,17 +267,24 @@ class ResumeContentParser {
       }
     }
 
+    console.log('[DOCX Parser] Extracted project entries:', projectEntries.length);
     return projectEntries.length > 0 ? projectEntries : this.extractProjectsFromText();
   }
 
   extractProjectsFromText(): any[] {
-    const projectsText = this.extractSection(['KEY PROJECTS', 'PROJECTS']);
-    if (!projectsText) return [];
+    console.log('[DOCX Parser] Extracting projects from text...');
+    const projectsText = this.extractSection(['KEY PROJECTS', 'FEATURED PROJECTS', 'PROJECTS']);
+    if (!projectsText) {
+      console.log('[DOCX Parser] No projects section found in text');
+      return [];
+    }
 
+    console.log('[DOCX Parser] Projects section text:', projectsText.substring(0, 300));
     const entries: any[] = [];
     
     // Try to split by common project indicators or double newlines
     const projectBlocks = projectsText.split(/\n\s*\n/).filter(block => block.trim().length > 20);
+    console.log('[DOCX Parser] Found project blocks from text:', projectBlocks.length);
 
     for (const block of projectBlocks) {
       const lines = block.split('\n').filter(l => l.trim());
@@ -278,6 +308,7 @@ class ResumeContentParser {
       }
       
       if (title) {
+        console.log('[DOCX Parser] Adding text-based project:', title);
         entries.push({
           name: title,
           title,
@@ -289,6 +320,7 @@ class ResumeContentParser {
       }
     }
     
+    console.log('[DOCX Parser] Extracted text-based projects:', entries.length);
     return entries;
   }
 
@@ -749,6 +781,9 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
       const languages = parser.extractLanguages();
       const coreCompetencies = parser.extractCoreCompetencies();
       
+      console.log('[API] ⭐ EXTRACTED PROJECTS FROM HTML:', projects.length);
+      console.log('[API] Projects detail:', JSON.stringify(projects, null, 2));
+      
       console.log('[API] Parsed content:', {
         summary: professionalSummary.substring(0, 100),
         experienceCount: experience.length,
@@ -762,6 +797,13 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
       });
       
       // Create structured profile data for DocxResumeGenerator
+      // 🔥 CRITICAL: Preserve detailedResumeSections from incoming profile if available (AI-enhanced data)
+      console.log('[API] Checking for detailedResumeSections in activeProfile:', !!activeProfile.detailedResumeSections);
+      if (activeProfile.detailedResumeSections) {
+        console.log('[API] detailedResumeSections keys:', Object.keys(activeProfile.detailedResumeSections));
+        console.log('[API] technical_skills:', activeProfile.detailedResumeSections.technical_skills);
+      }
+      
       const resumeProfile = {
         // Basic info from profile
         fullName: String(activeProfile.fullName || activeProfile.full_name || ''),
@@ -769,6 +811,10 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
         phone: String(activeProfile.phone || ''),
         location: String(activeProfile.location || ''),
         linkedIn: String(activeProfile.linkedin || activeProfile.linkedin_url || ''),
+        
+        // 🔥 PRESERVE AI-ENHANCED SECTIONS - Don't overwrite with HTML parsing!
+        // If the incoming profile has detailedResumeSections, use it! It's the AI-enhanced data.
+        detailedResumeSections: activeProfile.detailedResumeSections || undefined,
         
         // Parsed content from HTML
         summary: professionalSummary || String(activeProfile.bio || activeProfile.summary || ''),
@@ -790,7 +836,7 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
           details: String(edu.details || '')
         })),
         
-        // Skills from parsed HTML
+        // Skills from parsed HTML - ONLY use if detailedResumeSections NOT available
         skills: Array.isArray(skillBuckets.all) ? skillBuckets.all.map(String) : 
                 Array.isArray(activeProfile.skills) ? activeProfile.skills.map(String) : [],
         technicalSkills: Array.isArray(skillBuckets.technical) ? skillBuckets.technical.map(String) : 
@@ -807,7 +853,8 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
           technologies: proj.technologies ? String(proj.technologies).split(/[,;]/).map(t => t.trim()) : [],
           duration: String(proj.duration || ''),
           achievements: Array.isArray(proj.achievements) ? proj.achievements.map(String) : 
-                       Array.isArray(proj.bullets) ? proj.bullets.map(String) : []
+                       Array.isArray(proj.bullets) ? proj.bullets.map(String) : [],
+          isProject: true
         })),
         
         // Use parsed data from HTML with fallback to profile data
@@ -885,13 +932,24 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
         achievements: Array.isArray(activeProfile.achievements) ? activeProfile.achievements.map(String) : []
       };
       
-      console.log('[API] Creating DocxResumeGenerator with parsed data');
-      console.log('[API] Resume profile:', resumeProfile);
+      console.log('[API] 🎯 FINAL resumeProfile.projects before DOCX:', resumeProfile.projects?.length || 0);
+      if (resumeProfile.projects?.length) {
+        console.log('[API] Projects sample:', resumeProfile.projects[0]);
+      }
       
-      const generator = new DocxResumeGenerator(resumeProfile, jobKeywords);
-      const buffer = await generator.generateDocument();
-      console.log('[API] Generated document buffer size:', buffer.length);
-      return buffer;
+      console.log('[API] Creating DocxResumeGenerator with parsed data');
+      
+      try {
+        const generator = new DocxResumeGenerator(resumeProfile, jobKeywords);
+        const buffer = await generator.generateDocument();
+        console.log('[API] Generated document buffer size:', buffer.length);
+        return buffer;
+      } catch (docxError) {
+        console.error('[API] DOCX generation failed with parsed profile:', docxError);
+        console.error('[API] Profile workExperience count:', resumeProfile.workExperience?.length);
+        console.error('[API] Profile workExperience:', JSON.stringify(resumeProfile.workExperience, null, 2));
+        throw docxError;
+      }
       
     } catch (parseError) {
       console.error('[API] HTML parsing failed, falling back to simple profile approach:', parseError);
@@ -902,10 +960,16 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
   // Original approach as fallback
   if (profileData) {
     console.log('[API] Using DocxResumeGenerator with profileData:', profileData);
-    const generator = new DocxResumeGenerator(profileData, jobKeywords);
-    const buffer = await generator.generateDocument();
-    console.log('[API] Generated document buffer size:', buffer.length);
-    return buffer;
+    try {
+      const generator = new DocxResumeGenerator(profileData, jobKeywords);
+      const buffer = await generator.generateDocument();
+      console.log('[API] Generated document buffer size:', buffer.length);
+      return buffer;
+    } catch (docxError) {
+      console.error('[API] DOCX generation failed with profileData:', docxError);
+      console.error('[API] profileData keys:', Object.keys(profileData));
+      throw docxError;
+    }
   } else if (html) {
     console.log('[API] Using legacy HTML conversion, html length:', html.length);
     const { convertHtmlToDocxBuffer } = await import('../../services/htmlDocsService');
@@ -933,8 +997,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).send(buffer);
   } catch (error: unknown) {
-    console.error('[convert-html-to-docx] error:', error);
+    console.error('[convert-html-to-docx] CRITICAL ERROR:', error);
+    console.error('[convert-html-to-docx] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('[convert-html-to-docx] Request body keys:', Object.keys(req.body || {}));
     const errorMessage = error instanceof Error ? error.message : 'Conversion failed';
-    return res.status(500).json({ error: errorMessage });
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    return res.status(500).json({ 
+      error: errorMessage,
+      stack: errorStack,
+      details: 'Check server console for full error details'
+    });
   }
 }
