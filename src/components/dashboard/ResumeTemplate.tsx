@@ -423,9 +423,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingTop: 2,
   },
-  achievementsList: {
-    paddingLeft: 4,
-  },
   achievementItem: {
     flexDirection: 'row',
     marginBottom: 3,
@@ -498,42 +495,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Projects styles
-  projectHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  projectDate: {
-    fontSize: 9,
-    color: '#6B7280',
-  },
-  projectAchievementsList: {
-    marginLeft: 4,
-    marginTop: 4,
-  },
-  projectAchievement: {
-    fontSize: 11,
-    lineHeight: 1.4,
-    color: '#374151',
-    marginLeft: 4,
-    flex: 1,
-  },
-  projectTechnologies: {
-    flexDirection: 'row',
-    marginTop: 4,
-  },
-  projectTechLabel: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#1f2937',
-  },
-  projectTechText: {
-    fontSize: 11,
-    color: '#6b7280',
-    flex: 1,
-  },
 
   // Certifications styles
   certificationItem: {
@@ -1973,7 +1934,6 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
     hasDetailedSections,
     detailedKeys: profile.detailedResumeSections ? Object.keys(profile.detailedResumeSections) : 'none',
     detailedProjects: profile.detailedResumeSections?.projects,
-    profileProjects: profile.projects,
     simpleMode
   });
 
@@ -2021,17 +1981,12 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
     }
     
     // Source 2: profile.projects (root level)
-    if (profile.projects?.length) {
-      console.log('🔧 Found projects in profile.projects:', profile.projects.length, profile.projects);
-      allProjects.push(...profile.projects);
-    }
-    
     console.log('🔧 DEBUG: detailed object keys:', Object.keys(detailed));
     console.log('🔧 DEBUG: profile object keys:', Object.keys(profile));
     console.log('🔧 Total projects collected (before validation):', allProjects.length);
     
     if (allProjects.length === 0) {
-      console.error('❌ NO PROJECTS FOUND! Check if profile.projects or detailed.projects exists');
+       console.error('❌ NO PROJECTS FOUND! Check if detailed.projects exists');
       console.log('Profile structure:', JSON.stringify(profile, null, 2).substring(0, 500));
     }
     
