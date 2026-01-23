@@ -17,6 +17,7 @@ interface OptimizationResultsProps {
   results: {
     resume_html: string;
     cover_letter_html: string;
+    aiEnhancements?: any;
   };
   jobDetails: {
     title: string;
@@ -369,6 +370,12 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
     }
   };
 
+  // Helper function to generate DOCX filename based on job details (matching PDF naming pattern)
+  const getDocxFilename = (documentType: 'resume' | 'cover-letter') => {
+    const companySlug = jobDetails.company?.replace(/\s+/g, '-') || 'company';
+    return `ai-enhanced-${documentType}-${companySlug}.docx`;
+  };
+
   // 🚀 NEW: Powerful DOCX generation using PDF-style parsing approach
   const downloadAsDocxPowerful = async (profile: UserProfileData | any, jobKeywords: string[] = [], filename: string) => {
     console.log('[OptimizationResults] downloadAsDocxPowerful called (PDF-style), filename=', filename);
@@ -669,7 +676,22 @@ const extractProfileFromHtml = (html: string) => {
 };
 
 // Use actual user profile data if available, otherwise fall back to extracted data
-const resumeProfile = userProfile || extractProfileFromHtml(results.resume_html);
+let resumeProfile = userProfile || extractProfileFromHtml(results.resume_html);
+
+// 🔥 CRITICAL FIX: Merge AI-enhanced detailedResumeSections into profile for PDF/DOCX generation
+// Both PDF and DOCX need this data explicitly passed in the profile object
+if (results.aiEnhancements?.detailedResumeSections) {
+  console.log('✅ [OptimizationResults] Merging AI-enhanced detailedResumeSections into profile');
+  console.log('✅ [OptimizationResults] detailedResumeSections keys:', Object.keys(results.aiEnhancements.detailedResumeSections));
+  console.log('✅ [OptimizationResults] projects count:', results.aiEnhancements.detailedResumeSections.projects?.length || 0);
+  
+  resumeProfile = {
+    ...resumeProfile,
+    detailedResumeSections: results.aiEnhancements.detailedResumeSections
+  };
+} else {
+  console.warn('⚠️ [OptimizationResults] No aiEnhancements.detailedResumeSections available in results');
+}
 
 // Function to modify HTML content to include user's name
 const modifyHtmlWithProfile = (htmlContent: string, profile: { fullName?: string }) => {
@@ -877,9 +899,22 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
                   </button>
                   <button
                     onClick={() => {
-                      const profile = userProfile || extractProfileFromHtml(results.resume_html);
+                      let profile = userProfile || extractProfileFromHtml(results.resume_html);
+                      
+                      // ⭐ CRITICAL: Create new profile object with detailedResumeSections (don't mutate)
+                      if (profile && results.aiEnhancements?.detailedResumeSections) {
+                        profile = {
+                          ...profile,
+                          detailedResumeSections: results.aiEnhancements.detailedResumeSections
+                        };
+                        console.log('[DOCX Download] ✅ Added detailedResumeSections with projects:', 
+                          results.aiEnhancements.detailedResumeSections.projects?.length || 0);
+                      } else {
+                        console.warn('[DOCX Download] ⚠️ No detailedResumeSections available in results.aiEnhancements');
+                      }
+                      
                       const jobKeywords = analysisData?.keywordAnalysis?.coveredKeywords || [];
-                      const filename = activeDocument === 'resume' ? 'ai-enhanced-resume.docx' : 'ai-enhanced-cover-letter.docx';
+                      const filename = activeDocument === 'resume' ? getDocxFilename('resume') : getDocxFilename('cover-letter');
                       
                       if (activeDocument === 'resume' && profile) {
                         downloadAsDocxPowerful(profile, jobKeywords, filename);
@@ -1066,23 +1101,35 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
                 console.log('[DEBUG] userProfile:', userProfile);
                 console.log('[DEBUG] results.resume_html length:', results.resume_html?.length);
                 
-                const profile = userProfile || extractProfileFromHtml(results.resume_html);
+                let profile = userProfile || extractProfileFromHtml(results.resume_html);
                 console.log('[DEBUG] Profile to use for DOCX:', profile);
+                
+                // ⭐ CRITICAL: Create new profile object with detailedResumeSections (don't mutate)
+                if (profile && results.aiEnhancements?.detailedResumeSections) {
+                  profile = {
+                    ...profile,
+                    detailedResumeSections: results.aiEnhancements.detailedResumeSections
+                  };
+                  console.log('[DOCX Download 2] ✅ Added detailedResumeSections with projects:', 
+                    results.aiEnhancements.detailedResumeSections.projects?.length || 0);
+                } else {
+                  console.warn('[DOCX Download 2] ⚠️ No detailedResumeSections available');
+                }
                 
                 const jobKeywords = analysisData?.keywordAnalysis?.coveredKeywords || [];
                 console.log('[DEBUG] Job keywords:', jobKeywords);
                 
                 if (profile) {
                   // Use powerful generator for resume
-                  downloadAsDocxPowerful(profile, jobKeywords, 'ai-enhanced-resume-professional.docx');
+                  downloadAsDocxPowerful(profile, jobKeywords, getDocxFilename('resume'));
                 } else {
                   console.warn('[DEBUG] No profile available, falling back to HTML conversion');
                   // Fallback for resume
-                  downloadAsDocx(modifiedResumeHtml, 'ai-enhanced-resume.docx');
+                  downloadAsDocx(modifiedResumeHtml, getDocxFilename('resume'));
                 }
                 
                 // Always use HTML conversion for cover letter (for now)
-                downloadAsDocx(modifiedCoverLetterHtml, 'ai-enhanced-cover-letter.docx');
+                downloadAsDocx(modifiedCoverLetterHtml, getDocxFilename('cover-letter'));
               }}
               className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-6 py-3 rounded-lg font-medium transition-all hover:shadow-lg flex items-center gap-2"
             >

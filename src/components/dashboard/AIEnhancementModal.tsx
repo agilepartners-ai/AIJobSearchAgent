@@ -131,11 +131,24 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   }, [jobDescription, dispatch, persistedJobDescription]);
 
   // Helper: convert HTML string to a PDF data URL using @react-pdf/renderer and the existing PerfectHTMLToPDF
-  const htmlStringToPdfDataUrl = async (html: string): Promise<string> => {
+  const htmlStringToPdfDataUrl = async (html: string, aiEnhancements?: any): Promise<string> => {
     if (typeof window === 'undefined') throw new Error('Client-side PDF generation only');
 
-    // Ensure we have a profile object for the ResumeTemplate
-    const profile = resolvedProfile ?? { fullName: '', email: '', phone: '', location: '' } as any;
+    // Create a new profile object to avoid mutating immutable state
+    const baseProfile = resolvedProfile ?? { fullName: '', email: '', phone: '', location: '' };
+    
+    // ⭐ CRITICAL: Create new object with detailedResumeSections (don't mutate)
+    const profile = aiEnhancements?.detailedResumeSections ? {
+      ...baseProfile,
+      detailedResumeSections: aiEnhancements.detailedResumeSections
+    } : { ...baseProfile };
+    
+    if (aiEnhancements?.detailedResumeSections) {
+      console.log('[PDF Generation] ✅ Passing detailedResumeSections with projects:', 
+        aiEnhancements.detailedResumeSections.projects?.length || 0);
+    } else {
+      console.warn('[PDF Generation] ⚠️ No detailedResumeSections available');
+    }
 
     const doc = (
       <PerfectHTMLToPDF htmlContent={html} profile={profile} jobKeywords={[]} />
@@ -740,8 +753,8 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       try {
         // Convert generated HTML to PDF client-side and send base64 data URLs to the API
         console.log('[uploadPDFs] Starting PDF generation...');
-        const resumeDataUrl = await htmlStringToPdfDataUrl(detailedResumeHtml);
-        const coverDataUrl = await htmlStringToPdfDataUrl(detailedCoverLetterHtml);
+        const resumeDataUrl = await htmlStringToPdfDataUrl(detailedResumeHtml, optimizationResults.aiEnhancements);
+        const coverDataUrl = await htmlStringToPdfDataUrl(detailedCoverLetterHtml, optimizationResults.aiEnhancements);
         
         console.log('[uploadPDFs] PDFs generated, sizes:', {
           resume: resumeDataUrl?.length || 0,
@@ -850,6 +863,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         results={{
           resume_html: detailedResumeHtml,
           cover_letter_html: detailedCoverLetterHtml,
+          aiEnhancements: optimizationResults.aiEnhancements,
         }}
         jobDetails={{
           title: applicationData?.position || 'Position',

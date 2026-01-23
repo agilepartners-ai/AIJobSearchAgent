@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold'
   },
   experienceItem: {
-    marginBottom: 6, // Reduced from 8 to 6 for tighter spacing
+    marginBottom: 6, // Standard spacing for work experience
   },
   jobTitleRow: {
     flexDirection: 'row',
@@ -394,6 +394,83 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  // Project-specific styles with proper spacing
+  experienceItemContainer: {
+    marginBottom: 14,
+    paddingBottom: 6,
+  },
+  projectContent: {
+    paddingLeft: 2,
+  },
+  projectHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+    paddingBottom: 2,
+  },
+  descriptionBlock: {
+    marginBottom: 8,
+    paddingBottom: 2,
+  },
+  projectDescriptionText: {
+    fontSize: 10,
+    lineHeight: 1.4,
+    color: '#374151',
+    marginBottom: 0,
+  },
+  achievementsBlock: {
+    marginBottom: 8,
+    paddingTop: 2,
+  },
+  achievementsList: {
+    paddingLeft: 4,
+  },
+  achievementItem: {
+    flexDirection: 'row',
+    marginBottom: 3,
+    alignItems: 'flex-start',
+  },
+  bulletMarker: {
+    width: 12,
+    fontSize: 9,
+    color: '#2563EB',
+    marginRight: 4,
+    marginTop: 1,
+  },
+  achievementText: {
+    flex: 1,
+    fontSize: 10,
+    lineHeight: 1.4,
+    color: '#374151',
+  },
+  technologiesBlock: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 6,
+    paddingTop: 4,
+    borderTop: '1 solid #e5e7eb',
+  },
+  technologiesLabelProject: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginRight: 6,
+  },
+  technologiesTextProject: {
+    fontSize: 10,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    flex: 1,
+    lineHeight: 1.3,
+  },
+  sectionLabelProject: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+
   // Education styles
   educationHeader: {
     flexDirection: 'row',
@@ -635,6 +712,156 @@ interface ParsedProject {
   bullets?: string[];
   techStack?: string;
 }
+
+// ============================================================================
+// PROJECT VALIDATION UTILITIES (Same as docxResumeGenerator.ts)
+// ============================================================================
+
+/** Placeholder text patterns that indicate malformed/template data */
+const PLACEHOLDER_PATTERNS = [
+  /and collaborate effectively with cross-functional teams/i,
+  /collaborat(e|ing) (effectively |)with cross-functional teams/i,
+  /reduce development timelines/i,
+  /reducing development timelines/i,
+  /significantly reducing development timelines/i,
+  /efficient workflow implementation/i,
+  /through efficient (workflow|processes|collaboration)/i,
+  /streamlin(e|ed|ing) (processes|workflow|operations)/i,
+  /drive\s+(innovation|efficiency|results)/i,
+  /deliver\s+(high[- ]quality|exceptional)\s+(results|solutions)/i,
+  /\$\{.*?\}/,  // Template literals like ${variable}
+  /\[.*?\]/,    // Bracketed placeholders like [Project Name]
+  /placeholder/i,
+  /example\s+(project|data|text)/i,
+  /TBD|TODO|N\/A|tbd|todo/i,
+  /^\s*,\s*$/,   // Just commas or whitespace
+  /^\s*-\s*$/,   // Just dashes or whitespace
+  /^\s*and\s+/i, // Starting with "and"
+  /your (project|company|role|team)/i,
+  /insert (details|description|information)/i,
+  /lorem ipsum/i,
+  /sample\s+(text|project|description)/i,
+  /generic\s+(description|text)/i,
+  /boilerplate/i
+];
+
+/**
+ * Validate if a project has complete, non-placeholder data
+ * @param project Project data to validate
+ * @returns true if project is valid and complete
+ */
+function isValidProject(project: any): boolean {
+  if (!project || typeof project !== 'object') {
+    console.warn('[ResumeTemplate] ❌ Invalid project: not an object');
+    return false;
+  }
+
+  // Extract project name from various possible fields
+  const projectName = (project.name || project.title || '').trim();
+  
+  // Check 1: Must have a non-empty name
+  if (!projectName || projectName.length < 2) {
+    console.warn('[ResumeTemplate] ❌ Invalid project: missing or too short name');
+    return false;
+  }
+
+  // Check 2: Name shouldn't be placeholder text
+  if (PLACEHOLDER_PATTERNS.some(pattern => pattern.test(projectName))) {
+    console.warn('[ResumeTemplate] ❌ Invalid project: name contains placeholder text:', projectName);
+    return false;
+  }
+
+  // Extract description from various sources
+  const description = project.description || 
+                     (project.achievements?.length ? project.achievements[0] : '') || 
+                     (project.bullets?.length ? project.bullets[0] : '') || 
+                     '';
+  const descriptionText = String(description).trim();
+
+  // Check 3: Must have some description (or at least technologies)
+  const hasTechnologies = (Array.isArray(project.technologies) && project.technologies.length > 0) ||
+                         (typeof project.technologies === 'string' && project.technologies.trim().length > 0) ||
+                         (Array.isArray(project.techStack) && project.techStack.length > 0) ||
+                         (typeof project.techStack === 'string' && project.techStack.trim().length > 0);
+
+  if (!descriptionText && !hasTechnologies) {
+    console.warn('[ResumeTemplate] ❌ Invalid project: no description and no technologies');
+    return false;
+  }
+
+  // Check 4: Description shouldn't be placeholder text
+  if (descriptionText && PLACEHOLDER_PATTERNS.some(pattern => pattern.test(descriptionText))) {
+    console.warn('[ResumeTemplate] ❌ Invalid project: description contains placeholder text:', descriptionText.substring(0, 100));
+    return false;
+  }
+
+  // Check 5: Description should be substantial (at least 10 characters if present)
+  if (descriptionText && descriptionText.length < 10) {
+    console.warn('[ResumeTemplate] ❌ Invalid project: description too short:', descriptionText);
+    return false;
+  }
+
+  console.log('[ResumeTemplate] ✅ Valid project:', projectName);
+  return true;
+}
+
+/**
+ * Sanitize project data by removing placeholder text and normalizing fields
+ * @param project Project data to sanitize
+ * @returns Sanitized project or null if unable to sanitize
+ */
+function sanitizeProject(project: any): any | null {
+  if (!project) return null;
+
+  const sanitized = { ...project };
+
+  // Sanitize name
+  const projectName = (project.name || project.title || '').trim();
+  if (PLACEHOLDER_PATTERNS.some(pattern => pattern.test(projectName))) {
+    console.warn('[ResumeTemplate] ⚠️ Removing placeholder name:', projectName);
+    sanitized.name = '';
+    sanitized.title = '';
+  }
+
+  // Sanitize description
+  if (sanitized.description) {
+    const desc = String(sanitized.description).trim();
+    if (PLACEHOLDER_PATTERNS.some(pattern => pattern.test(desc))) {
+      console.warn('[ResumeTemplate] ⚠️ Removing placeholder description');
+      sanitized.description = '';
+    }
+  }
+
+  // Sanitize achievements array
+  if (Array.isArray(sanitized.achievements)) {
+    sanitized.achievements = sanitized.achievements.filter((achievement: any) => {
+      const achText = String(achievement).trim();
+      const isPlaceholder = PLACEHOLDER_PATTERNS.some(pattern => pattern.test(achText));
+      if (isPlaceholder) {
+        console.warn('[ResumeTemplate] ⚠️ Filtering out placeholder achievement:', achText.substring(0, 100));
+      }
+      return !isPlaceholder && achText.length >= 10;
+    });
+  }
+
+  // Sanitize bullets array
+  if (Array.isArray(sanitized.bullets)) {
+    sanitized.bullets = sanitized.bullets.filter((bullet: any) => {
+      const bulletText = String(bullet).trim();
+      const isPlaceholder = PLACEHOLDER_PATTERNS.some(pattern => pattern.test(bulletText));
+      if (isPlaceholder) {
+        console.warn('[ResumeTemplate] ⚠️ Filtering out placeholder bullet:', bulletText.substring(0, 100));
+      }
+      return !isPlaceholder && bulletText.length >= 10;
+    });
+  }
+
+  return sanitized;
+}
+
+// ============================================================================
+// END PROJECT VALIDATION UTILITIES
+// ============================================================================
 
 class ResumeContentParser {
   private rawHtml: string;
@@ -1335,6 +1562,24 @@ class ResumeContentParser {
       console.log('📄 Found CORE COMPETENCIES HTML section, length:', competenciesHtml.length);
       console.log('📄 HTML Preview:', competenciesHtml.substring(0, 500));
       
+      // Strategy 0: Extract from paragraph with bullet separators (NEW - matches Technical Skills format)
+      const paragraphMatch = competenciesHtml.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+      if (paragraphMatch && paragraphMatch[1]) {
+        const paragraphText = this.cleanHTML(paragraphMatch[1], { simple: true }).trim();
+        // Split by bullet separator
+        if (paragraphText.includes('•')) {
+          const competencies = paragraphText
+            .split('•')
+            .map(comp => comp.trim())
+            .filter(comp => comp.length > 2);
+          
+          if (competencies.length > 0) {
+            console.log(`✅ Found ${competencies.length} competencies from paragraph with bullets:`, competencies);
+            return competencies;
+          }
+        }
+      }
+      
       // Strategy 1: Extract from list items (most common in your HTML)
       const listItemMatches = competenciesHtml.match(/<li[^>]*>([\s\S]*?)<\/li>/gi);
       if (listItemMatches && listItemMatches.length > 0) {
@@ -1724,9 +1969,18 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
   const hasDetailedSections = profile.detailedResumeSections && 
     Object.keys(profile.detailedResumeSections).length > 0;
 
+  console.log('🔍 PROFILE DEBUG:', {
+    hasDetailedSections,
+    detailedKeys: profile.detailedResumeSections ? Object.keys(profile.detailedResumeSections) : 'none',
+    detailedProjects: profile.detailedResumeSections?.projects,
+    profileProjects: profile.projects,
+    simpleMode
+  });
+
   if (hasDetailedSections && !simpleMode) {
     console.log('✅ Using detailed AI-enhanced sections from profile');
     const detailed = profile.detailedResumeSections!;
+    console.log('🔍 DETAILED SECTIONS PROJECTS:', detailed.projects);
     
     // Use detailed professional summary
     if (detailed.professional_summary) {
@@ -1755,6 +2009,126 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
         achievements: exp.achievements || [],
         technologies_used: exp.technologies_used || []
       }));
+    }
+    
+    // COLLECT ALL PROJECTS FROM ALL SOURCES
+    const allProjects: any[] = [];
+    
+    // Source 1: detailedResumeSections.projects
+    if (detailed.projects?.length) {
+      console.log('🔧 Found projects in detailedResumeSections:', detailed.projects.length, detailed.projects);
+      allProjects.push(...detailed.projects);
+    }
+    
+    // Source 2: profile.projects (root level)
+    if (profile.projects?.length) {
+      console.log('🔧 Found projects in profile.projects:', profile.projects.length, profile.projects);
+      allProjects.push(...profile.projects);
+    }
+    
+    console.log('🔧 DEBUG: detailed object keys:', Object.keys(detailed));
+    console.log('🔧 DEBUG: profile object keys:', Object.keys(profile));
+    console.log('🔧 Total projects collected (before validation):', allProjects.length);
+    
+    if (allProjects.length === 0) {
+      console.error('❌ NO PROJECTS FOUND! Check if profile.projects or detailed.projects exists');
+      console.log('Profile structure:', JSON.stringify(profile, null, 2).substring(0, 500));
+    }
+    
+    // VALIDATE AND SANITIZE ALL PROJECTS
+    const validProjects: any[] = [];
+    for (const proj of allProjects) {
+      console.log('[ResumeTemplate] 🔍 Validating project:', proj.name || proj.title || 'unnamed');
+      
+      // First sanitize the project
+      const sanitized = sanitizeProject(proj);
+      if (!sanitized) {
+        console.warn('[ResumeTemplate] ⚠️ Skipping project: failed sanitization');
+        continue;
+      }
+      
+      // Then validate it
+      if (isValidProject(sanitized)) {
+        validProjects.push(sanitized);
+      } else {
+        console.warn('[ResumeTemplate] ⚠️ Skipping invalid project:', sanitized.name || sanitized.title || 'unnamed');
+      }
+    }
+    
+    console.log('[ResumeTemplate] ✅ Valid projects after filtering:', validProjects.length);
+    if (validProjects.length !== allProjects.length) {
+      console.warn(`[ResumeTemplate] ⚠️ Filtered out ${allProjects.length - validProjects.length} invalid/malformed projects`);
+    }
+    
+    // MERGE VALID PROJECTS INTO EXPERIENCE
+    if (validProjects.length > 0) {
+      console.log('🔧 Converting validated projects to experience entries...');
+      for (const proj of validProjects) {
+        const projectName = proj.name || proj.title || 'Project';
+        let technologies = '';
+        
+        // Handle different technology formats
+        if (Array.isArray(proj.technologies) && proj.technologies.length > 0) {
+          technologies = proj.technologies.filter((t: any) => t && String(t).trim()).join(', ');
+        } else if (typeof proj.technologies === 'string' && proj.technologies.trim()) {
+          technologies = proj.technologies.trim();
+        } else if (proj.techStack) {
+          if (Array.isArray(proj.techStack) && proj.techStack.length > 0) {
+            technologies = proj.techStack.filter((t: any) => t && String(t).trim()).join(', ');
+          } else if (typeof proj.techStack === 'string' && proj.techStack.trim()) {
+            technologies = proj.techStack.trim();
+          }
+        }
+        
+        // Get single-line description (already validated to be non-placeholder)
+        let description = '';
+        if (proj.description && String(proj.description).trim()) {
+          description = String(proj.description).trim();
+        } else if (Array.isArray(proj.achievements) && proj.achievements.length > 0) {
+          description = String(proj.achievements[0]).trim();
+        } else if (Array.isArray(proj.bullets) && proj.bullets.length > 0) {
+          description = String(proj.bullets[0]).trim();
+        }
+        
+        // Ensure we have either description or technologies (validation should have caught this)
+        if (!description && !technologies) {
+          console.warn('[ResumeTemplate] ⚠️ Skipping project with no description or technologies:', projectName);
+          continue;
+        }
+        
+        // FINAL SAFETY CHECK: Verify no placeholder text made it through
+        const finalCheckText = `${projectName} ${description} ${technologies}`;
+        const hasPlaceholder = PLACEHOLDER_PATTERNS.some(pattern => pattern.test(finalCheckText));
+        if (hasPlaceholder) {
+          console.error('[ResumeTemplate] 🚨 PLACEHOLDER DETECTED IN FINAL CHECK! Rejecting project:', {
+            name: projectName,
+            description: description.substring(0, 100),
+            technologies
+          });
+          continue;
+        }
+        
+        const projectEntry = {
+          title: projectName, // Clean project name
+          position: projectName,
+          company: proj.company || '',
+          dates: proj.duration || '',
+          location: proj.location || '',
+          description: description, // One-line insight
+          responsibilities: [],
+          achievements: proj.achievements || [],  // COPY ACHIEVEMENTS FROM PROJECT
+          technologies_used: technologies ? [technologies] : [],
+          technologies: proj.technologies?.join(', ') || technologies || '',  // COPY TECHNOLOGIES
+          isProject: true
+        };
+        
+        console.log('🔧 Created valid project entry:', projectEntry.title, '- Achievements:', projectEntry.achievements.length);
+        experience.push(projectEntry);
+      }
+      // Clear projects array since they're now in experience
+      projects = [];
+    } else {
+      console.log('[ResumeTemplate] ℹ️ No valid projects to add to experience section');
     }
     
     // Use detailed education
@@ -1841,6 +2215,119 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
       certificationsData = parser.extractCertifications();
       awardsData = parser.extractAwards();
       volunteerData = parser.extractVolunteerExperience();
+      
+      // COLLECT ALL PROJECTS FROM ALL SOURCES
+      const allProjects: any[] = [];
+      
+      // Source 1: Parsed projects from HTML
+      if (projects.length > 0) {
+        console.log('🔧 Found projects from HTML parser:', projects.length);
+        allProjects.push(...projects);
+      }
+      
+      // Source 2: profile.projects (root level) - might have been passed separately
+      if (profile.projects?.length) {
+        console.log('🔧 Found projects in profile.projects:', profile.projects.length);
+        allProjects.push(...profile.projects);
+      }
+      
+      console.log('🔧 Total parsed projects collected (before validation):', allProjects.length);
+      
+      // VALIDATE AND SANITIZE ALL PARSED PROJECTS
+      const validProjects: any[] = [];
+      for (const proj of allProjects) {
+        console.log('[ResumeTemplate] 🔍 Validating parsed project:', proj.name || proj.title || 'unnamed');
+        
+        // First sanitize the project
+        const sanitized = sanitizeProject(proj);
+        if (!sanitized) {
+          console.warn('[ResumeTemplate] ⚠️ Skipping parsed project: failed sanitization');
+          continue;
+        }
+        
+        // Then validate it
+        if (isValidProject(sanitized)) {
+          validProjects.push(sanitized);
+        } else {
+          console.warn('[ResumeTemplate] ⚠️ Skipping invalid parsed project:', sanitized.name || sanitized.title || 'unnamed');
+        }
+      }
+      
+      console.log('[ResumeTemplate] ✅ Valid parsed projects after filtering:', validProjects.length);
+      if (validProjects.length !== allProjects.length) {
+        console.warn(`[ResumeTemplate] ⚠️ Filtered out ${allProjects.length - validProjects.length} invalid/malformed parsed projects`);
+      }
+      
+      // MERGE VALID PARSED PROJECTS INTO EXPERIENCE
+      if (validProjects.length > 0) {
+        console.log('🔧 Converting validated parsed projects to experience entries...');
+        for (const proj of validProjects) {
+          const projectName = proj.name || proj.title || 'Project';
+          let technologies = '';
+          
+          // Handle different technology formats
+          if (Array.isArray(proj.technologies) && proj.technologies.length > 0) {
+            technologies = proj.technologies.filter((t: any) => t && String(t).trim()).join(', ');
+          } else if (typeof proj.technologies === 'string' && proj.technologies.trim()) {
+            technologies = proj.technologies.trim();
+          } else if (proj.techStack) {
+            if (Array.isArray(proj.techStack) && proj.techStack.length > 0) {
+              technologies = proj.techStack.filter((t: any) => t && String(t).trim()).join(', ');
+            } else if (typeof proj.techStack === 'string' && proj.techStack.trim()) {
+              technologies = proj.techStack.trim();
+            }
+          }
+          
+          // Get single-line description (already validated to be non-placeholder)
+          let description = '';
+          if (proj.description && String(proj.description).trim()) {
+            description = String(proj.description).trim();
+          } else if (Array.isArray(proj.achievements) && proj.achievements.length > 0) {
+            description = String(proj.achievements[0]).trim();
+          } else if (Array.isArray(proj.bullets) && proj.bullets.length > 0) {
+            description = String(proj.bullets[0]).trim();
+          }
+          
+          // Ensure we have either description or technologies (validation should have caught this)
+          if (!description && !technologies) {
+            console.warn('[ResumeTemplate] ⚠️ Skipping parsed project with no description or technologies:', projectName);
+            continue;
+          }
+          
+          // FINAL SAFETY CHECK: Verify no placeholder text made it through
+          const finalCheckText = `${projectName} ${description} ${technologies}`;
+          const hasPlaceholder = PLACEHOLDER_PATTERNS.some(pattern => pattern.test(finalCheckText));
+          if (hasPlaceholder) {
+            console.error('[ResumeTemplate] 🚨 PLACEHOLDER DETECTED IN FINAL CHECK (parsed)! Rejecting project:', {
+              name: projectName,
+              description: description.substring(0, 100),
+              technologies
+            });
+            continue;
+          }
+          
+          const projectEntry = {
+            title: projectName, // Clean project name
+            position: projectName,
+            company: proj.company || '',
+            dates: proj.duration || '',
+            location: proj.location || '',
+            description: description, // One-line insight
+            responsibilities: [],
+            achievements: [],
+            technologies_used: technologies ? [technologies] : [],
+            isProject: true
+          };
+          
+          console.log('🔧 Created valid parsed project entry:', projectEntry.title);
+          experience.push(projectEntry);
+        }
+        // Clear projects array since they're now in experience
+        projects = [];
+      } else {
+        console.log('[ResumeTemplate] ℹ️ No valid parsed projects to add to experience section');
+      }
+      
       // Note: publications parsing not implemented in parser, would need to add
     } catch (error) {
       console.error('Error parsing resume content:', error);
@@ -2018,72 +2505,17 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
     </View>
   );
 
-  // Core Competencies section - Display as bullet points
+  // Core Competencies section - inline format with dots (matching Technical Skills format)
   const coreCompetenciesSection = coreCompetencies.length > 0 && (
     <View style={styles.section} key="core-competencies">
       <Text style={styles.sectionTitle}>CORE COMPETENCIES</Text>
-      {coreCompetencies
-        .flatMap(competency => {
-          // Ensure competency is a valid non-empty string
-          if (!competency || typeof competency !== 'string') {
-            console.log('⚠️ Skipping invalid competency:', competency);
-            return [];
-          }
-          const trimmed = competency.trim();
-          
-          // PRIORITY: Check for **Name:** pattern (markdown bold with colon)
-          // This matches patterns like "**Project Leadership:** description text"
-          const markdownBoldPattern = /\*\*([^*]+?)\*\*:\s*([^*]+?)(?=\s*\*\*|$)/g;
-          const markdownMatches = [];
-          let match;
-          
-          while ((match = markdownBoldPattern.exec(trimmed)) !== null) {
-            const competencyName = match[1].trim();
-            const competencyDesc = match[2].trim().replace(/\s+/g, ' ');
-            const fullCompetency = `${competencyName}: ${competencyDesc}`;
-            markdownMatches.push(fullCompetency);
-          }
-          
-          if (markdownMatches.length > 0) {
-            console.log(`✅ Extracted ${markdownMatches.length} markdown-formatted competencies`);
-            return markdownMatches;
-          }
-          
-          // If this is a very long competency (likely a paragraph), split it intelligently
-          if (trimmed.length > 200) {
-            console.log('📝 Long competency detected, attempting to split:', trimmed.substring(0, 100));
-            
-            // Try splitting by periods followed by capital letters (sentence boundaries)
-            const sentences = trimmed.split(/\.\s+(?=[A-Z])/).map(s => s.trim()).filter(s => s.length > 15);
-            if (sentences.length > 1) {
-              console.log(`✂️ Split into ${sentences.length} sentences`);
-              return sentences.map(s => s.endsWith('.') ? s : s + '.');
-            }
-            
-            // Try splitting by common separators
-            const parts = trimmed.split(/[;•·]\s*/).map(s => s.trim()).filter(s => s.length > 15);
-            if (parts.length > 1) {
-              console.log(`✂️ Split into ${parts.length} parts`);
-              return parts;
-            }
-            
-            // If can't split, return as-is but it will be formatted better
-            return [trimmed];
-          }
-          
-          if (trimmed.length < 10) {
-            console.log('⚠️ Skipping short competency:', trimmed);
-            return [];
-          }
-          return [trimmed];
-        })
-        .filter((comp): comp is string => comp !== null && comp.length > 0)
-        .map((competency, index) => (
-          <View key={index} style={styles.bulletContainer}>
-            <Text style={styles.bulletPoint}>•</Text>
-            <Text style={styles.bulletText}>{competency}</Text>
-          </View>
-        ))}
+      <View style={styles.skillsContainer}>
+        <Text style={styles.skillsParagraph}>
+          {coreCompetencies
+            .filter((comp): comp is string => comp !== null && typeof comp === 'string' && comp.trim().length > 0)
+            .join(' • ')}
+        </Text>
+      </View>
     </View>
   );
 
@@ -2252,64 +2684,127 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
   const experienceSection = !simpleMode && safeExperience.length > 0 && (
     <View key="experience" style={styles.section}>
       <Text style={styles.sectionTitle}>PROFESSIONAL EXPERIENCE</Text>
-      {safeExperience.map((exp, index) => (
-        <View key={index} style={styles.experienceItem}>
-          <View style={styles.jobTitleRow}>
-            <Text style={styles.jobTitle}>{exp.title}</Text>
-            <Text style={styles.jobDates}>{exp.dates}</Text>
-          </View>
-          <View style={styles.companyRow}>
-            <Text style={styles.companyName}>{exp.company}</Text>
-            {exp.location && <Text style={styles.jobLocation}>{exp.location}</Text>}
-          </View>
-          
-          {/* Key Responsibilities Section */}
-          {exp.responsibilities && exp.responsibilities.length > 0 && (
-            <View style={styles.responsibilitySection}>
-              <Text style={styles.responsibilityLabel}>Key Responsibilities:</Text>
-              <View style={styles.responsibilityList}>
-                {exp.responsibilities
-                  .filter((resp: string) => resp && resp.trim().length > 0)
-                  .map((resp: string, respIndex: number) => (
-                    <View key={respIndex} style={styles.bulletContainer}>
-                      <Text style={styles.bulletPoint}>•</Text>
-                      {renderBulletSegments(resp)}
-                    </View>
-                  ))}
+      {safeExperience.map((exp, index) => {
+        console.log(`[PDF Render] Experience ${index + 1}: ${exp.title}, isProject: ${(exp as any).isProject}, has achievements: ${exp.achievements?.length || 0}`);
+        return (
+        <View 
+          key={index} 
+          wrap={true}
+          style={(exp as any).isProject ? styles.experienceItemContainer : styles.experienceItem}
+        >
+          {/* Project formatting: "PROJECT: Name" */}
+          {(exp as any).isProject ? (
+            <View style={styles.projectContent}>
+              {/* Project title row */}
+              <View style={styles.projectHeader}>
+                <Text style={styles.jobTitle}>
+                  PROJECT: {exp.title || (exp as any).name}
+                </Text>
+                <Text style={styles.jobDates}>{exp.dates || 'Ongoing'}</Text>
               </View>
+              
+              {/* Project description */}
+              {(exp as any).description && (
+                <View style={styles.descriptionBlock}>
+                  <Text style={styles.projectDescriptionText}>
+                    {(exp as any).description}
+                  </Text>
+                </View>
+              )}
+              
+              {/* Key Achievements - Bullet List */}
+              {exp.achievements && exp.achievements.length > 0 && (
+                <View style={styles.achievementsBlock}>
+                  <Text style={styles.sectionLabelProject}>Key Achievements:</Text>
+                  <View style={styles.achievementsList}>
+                    {exp.achievements
+                      .filter((ach: string) => ach && ach.trim().length > 0)
+                      .map((ach: string, achIndex: number) => (
+                        <View key={achIndex} style={styles.achievementItem}>
+                          <Text style={styles.bulletMarker}>•</Text>
+                          <Text style={styles.achievementText}>{ach}</Text>
+                        </View>
+                      ))}
+                  </View>
+                </View>
+              )}
+              
+              {/* Technologies */}
+              {(exp.technologies_used || (exp as any).technologies) && (
+                <View style={styles.technologiesBlock}>
+                  <Text style={styles.technologiesLabelProject}>Technologies: </Text>
+                  <Text style={styles.technologiesTextProject}>
+                    {Array.isArray(exp.technologies_used) 
+                      ? exp.technologies_used.join(', ')
+                      : Array.isArray((exp as any).technologies)
+                      ? (exp as any).technologies.join(', ')
+                      : exp.technologies_used || (exp as any).technologies}
+                  </Text>
+                </View>
+              )}
             </View>
-          )}
-          
-          {/* Key Achievements Section */}
-          {exp.achievements && exp.achievements.length > 0 && (
-            <View style={styles.responsibilitySection}>
-              <Text style={styles.responsibilityLabel}>Key Achievements:</Text>
-              <View style={styles.achievementsList}>
-                {exp.achievements
-                  .filter((ach: string) => ach && ach.trim().length > 0)
-                  .map((ach: string, achIndex: number) => (
-                    <View key={achIndex} style={styles.bulletContainer}>
-                      <Text style={styles.bulletPoint}>•</Text>
-                      <Text style={styles.achievement}>{ach}</Text>
-                    </View>
-                  ))}
+          ) : (
+            <>
+              {/* Work Experience formatting */}
+              <View style={styles.jobTitleRow}>
+                <Text style={styles.jobTitle}>{exp.title}</Text>
+                <Text style={styles.jobDates}>{exp.dates}</Text>
               </View>
-            </View>
-          )}
-          
-          {/* Technologies Used Section */}
-          {exp.technologies_used && (
-            <View style={styles.technologiesSection}>
-              <Text style={styles.technologiesLabel}>Technologies: </Text>
-              <Text style={styles.technologiesText}>
-                {Array.isArray(exp.technologies_used) 
-                  ? exp.technologies_used.join(', ') 
-                  : exp.technologies_used}
-              </Text>
-            </View>
+              <View style={styles.companyRow}>
+                <Text style={styles.companyName}>{exp.company}</Text>
+                {exp.location && <Text style={styles.jobLocation}>{exp.location}</Text>}
+              </View>
+              
+              {/* Key Responsibilities Section */}
+              {exp.responsibilities && exp.responsibilities.length > 0 && (
+                <View style={styles.responsibilitySection}>
+                  <Text style={styles.responsibilityLabel}>Key Responsibilities:</Text>
+                  <View style={styles.responsibilityList}>
+                    {exp.responsibilities
+                      .filter((resp: string) => resp && resp.trim().length > 0)
+                      .map((resp: string, respIndex: number) => (
+                        <View key={respIndex} style={styles.bulletContainer}>
+                          <Text style={styles.bulletPoint}>•</Text>
+                          {renderBulletSegments(resp)}
+                        </View>
+                      ))}
+                  </View>
+                </View>
+              )}
+              
+              {/* Key Achievements Section */}
+              {exp.achievements && exp.achievements.length > 0 && (
+                <View style={styles.responsibilitySection}>
+                  <Text style={styles.responsibilityLabel}>Key Achievements:</Text>
+                  <View style={styles.achievementsList}>
+                    {exp.achievements
+                      .filter((ach: string) => ach && ach.trim().length > 0)
+                      .map((ach: string, achIndex: number) => (
+                        <View key={achIndex} style={styles.bulletContainer}>
+                          <Text style={styles.bulletPoint}>•</Text>
+                          <Text style={styles.achievement}>{ach}</Text>
+                        </View>
+                      ))}
+                  </View>
+                </View>
+              )}
+              
+              {/* Technologies Used Section for work experience */}
+              {exp.technologies_used && (
+                <View style={styles.technologiesSection}>
+                  <Text style={styles.technologiesLabel}>Technologies: </Text>
+                  <Text style={styles.technologiesText}>
+                    {Array.isArray(exp.technologies_used) 
+                      ? exp.technologies_used.join(', ') 
+                      : exp.technologies_used}
+                  </Text>
+                </View>
+              )}
+            </>
           )}
         </View>
-      ))}
+        );
+      })}
     </View>
   );
 
@@ -2323,7 +2818,7 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
         {coreCompetenciesSection}
         {experienceSection}
         {educationSection}
-        {keyProjectsSection}
+        {/* Projects section removed - projects now integrated in Professional Experience */}
         {certificationsSection}
         {awardsSection}
         {volunteerSection}
