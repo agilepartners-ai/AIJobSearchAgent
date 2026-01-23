@@ -409,6 +409,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingBottom: 2,
   },
+  projectDate: {
+    fontSize: 9,
+    color: '#6B7280',
+  },
   descriptionBlock: {
     marginBottom: 8,
     paddingBottom: 2,
@@ -418,6 +422,33 @@ const styles = StyleSheet.create({
     lineHeight: 1.4,
     color: '#374151',
     marginBottom: 0,
+  },
+  projectAchievementsList: {
+    marginLeft: 4,
+    marginTop: 4,
+  },
+  projectAchievement: {
+    fontSize: 10,
+    lineHeight: 1.4,
+    color: '#374151',
+    flex: 1,
+  },
+  projectTechnologies: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 6,
+  },
+  projectTechLabel: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginRight: 6,
+  },
+  projectTechText: {
+    fontSize: 10,
+    color: '#6b7280',
+    flex: 1,
+    lineHeight: 1.3,
   },
   achievementsBlock: {
     marginBottom: 8,
@@ -2178,12 +2209,6 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
       if (projects.length > 0) {
         console.log('🔧 Found projects from HTML parser:', projects.length);
         allProjects.push(...projects);
-      }
-      
-      // Source 2: profile.projects (root level) - might have been passed separately
-      if (profile.projects?.length) {
-        console.log('🔧 Found projects in profile.projects:', profile.projects.length);
-        allProjects.push(...profile.projects);
       }
       
       console.log('🔧 Total parsed projects collected (before validation):', allProjects.length);

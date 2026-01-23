@@ -764,7 +764,7 @@ export class DocxResumeGenerator {
       } else if (typeof techSkills === 'string') {
         console.log('⚠️ technical_skills is a STRING, not an array!');
         // Split the string into individual skills
-        skillsArray = techSkills.split(/\s+/).filter(s => s.length > 0);
+        skillsArray = String(techSkills).split(/\s+/).filter(s => s.length > 0);
         console.log('✅ Split string into', skillsArray.length, 'words');
       }
     }

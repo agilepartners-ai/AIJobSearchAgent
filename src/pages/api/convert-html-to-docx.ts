@@ -798,10 +798,11 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
       
       // Create structured profile data for DocxResumeGenerator
       // 🔥 CRITICAL: Preserve detailedResumeSections from incoming profile if available (AI-enhanced data)
-      console.log('[API] Checking for detailedResumeSections in activeProfile:', !!activeProfile.detailedResumeSections);
-      if (activeProfile.detailedResumeSections) {
-        console.log('[API] detailedResumeSections keys:', Object.keys(activeProfile.detailedResumeSections));
-        console.log('[API] technical_skills:', activeProfile.detailedResumeSections.technical_skills);
+      console.log('[API] Checking for detailedResumeSections in activeProfile:', !!(activeProfile as any)?.detailedResumeSections);
+      const detailedSections = (activeProfile as any)?.detailedResumeSections;
+      if (detailedSections) {
+        console.log('[API] detailedResumeSections keys:', Object.keys(detailedSections));
+        console.log('[API] technical_skills:', detailedSections.technical_skills);
       }
       
       const resumeProfile = {
