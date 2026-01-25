@@ -1,4 +1,4 @@
-import { createConversation, createConversation as createConversationApi } from "@/api";
+import { createConversation as createConversationApi } from "@/api";
 import {
   DialogWrapper,
   AnimatedTextBlockWrapper,
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { apiTokenAtom } from "@/store/tokens";
 import { quantum } from 'ldrs';
 import gloriaVideo from "@/assets/video/gloria.mp4";
+import { sanitizeErrorMessage } from "@/utils/tokenErrorHandler";
 
 // Register the quantum loader
 quantum.register();
@@ -59,12 +60,12 @@ const useCreateConversationMutation = () => {
         // Recursively retry
         return createConversationRequest(retryAttempt + 1);
       } else if (isTokenExpired && retryAttempt >= MAX_RETRY_ATTEMPTS) {
-        // Max retries reached, show error
+        // Max retries reached, show professional error
         console.error("Max retry attempts reached for token expiration");
         setError("Unable to establish connection. Please refresh the page.");
       } else {
-        // Other error, show it
-        setError(errorStr);
+        // Other error, sanitize it before showing
+        setError(sanitizeErrorMessage(errorStr));
       }
     } finally {
       setIsLoading(false);

@@ -648,92 +648,117 @@ class ResumeContentParser {
   }
 
   extractCoreCompetencies(): string[] {
-    // First try structured HTML extraction - standard HTML with h2 tags
+    console.log('[DOCX Parser] 🔍 Extracting core competencies...');
+    
+    // FIRST: Try to extract from HTML structure for most accurate results
     const competenciesSectionMatch = this.rawHtml.match(/<h2[^>]*>\s*CORE\s*COMPETENCIES\s*<\/h2>([\s\S]*?)(?=<h2|<\/section>|<\/div>\s*<\/div>\s*$|$)/i);
     
     if (competenciesSectionMatch) {
       const competenciesHtml = competenciesSectionMatch[1];
-      const competencies: string[] = [];
+      console.log('[DOCX Parser] 📄 Found CORE COMPETENCIES HTML section, length:', competenciesHtml.length);
+      console.log('[DOCX Parser] 📄 HTML Preview:', competenciesHtml.substring(0, 500));
       
-      console.log('[DOCX Parser] Found CORE COMPETENCIES section, length:', competenciesHtml.length);
+      // Strategy 0: Extract from paragraph with bullet separators (PRIMARY - matches Technical Skills format)
+      const paragraphMatch = competenciesHtml.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
+      if (paragraphMatch && paragraphMatch[1]) {
+        // Clean HTML but preserve the bullet separators
+        let paragraphText = paragraphMatch[1]
+          .replace(/<[^>]*>/g, ' ')  // Remove all HTML tags
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/\s+/g, ' ')  // Normalize whitespace
+          .trim();
+        
+        // Split by bullet separator (• character)
+        if (paragraphText.includes('•')) {
+          const competencies = paragraphText
+            .split('•')
+            .map(comp => comp.trim())
+            .filter(comp => comp.length > 1);  // Accept even short competencies like "Git"
+          
+          if (competencies.length > 0) {
+            console.log(`[DOCX Parser] ✅ Found ${competencies.length} competencies from paragraph with bullets:`, competencies);
+            return competencies.slice(0, 12);
+          }
+        }
+        
+        // Fallback: If no bullets found but text exists, try other separators
+        if (paragraphText.length > 0) {
+          // Try splitting by common separators: pipe, comma, semicolon
+          for (const separator of ['|', ',', ';']) {
+            if (paragraphText.includes(separator)) {
+              const competencies = paragraphText
+                .split(separator)
+                .map(comp => comp.trim())
+                .filter(comp => comp.length > 1);
+              
+              if (competencies.length > 0) {
+                console.log(`[DOCX Parser] ✅ Found ${competencies.length} competencies from paragraph with '${separator}' separator:`, competencies);
+                return competencies.slice(0, 12);
+              }
+            }
+          }
+        }
+      }
       
-      // Try list items first
+      // Strategy 1: Extract from list items
       const listItems = competenciesHtml.match(/<li[^>]*>([^<]+)<\/li>/gi);
       if (listItems && listItems.length > 0) {
+        const competencies: string[] = [];
         listItems.forEach(li => {
           const text = this.cleanHTML(li).trim();
-          if (text && text.length > 2) {
+          if (text && text.length > 1) {
             competencies.push(text);
           }
         });
-      }
-      
-      // If no list items, try divs/spans with competency data
-      if (competencies.length === 0) {
-        const textMatches = competenciesHtml.match(/<(?:div|span|p)[^>]*class="[^"]*competenc[^"]*"[^>]*>([^<]+)<\/(?:div|span|p)>/gi);
-        if (textMatches && textMatches.length > 0) {
-          textMatches.forEach(textTag => {
-            const text = this.cleanHTML(textTag).trim();
-            // Filter out empty strings and the section title itself
-            if (text && text.length > 2 && !text.match(/CORE\s*COMPETENCIES/i)) {
-              competencies.push(text);
-            }
-          });
+        
+        if (competencies.length > 0) {
+          console.log(`[DOCX Parser] ✅ Found ${competencies.length} competencies from list items:`, competencies);
+          return competencies.slice(0, 12);
         }
-      }
-      
-      // If still no matches, try any text content in the section
-      if (competencies.length === 0) {
-        const allTextMatches = competenciesHtml.match(/<(?:div|span|p)[^>]*>([^<]+)<\/(?:div|span|p)>/gi);
-        if (allTextMatches && allTextMatches.length > 0) {
-          allTextMatches.forEach(textTag => {
-            const text = this.cleanHTML(textTag).trim();
-            if (text && text.length > 2 && !text.match(/CORE\s*COMPETENCIES/i)) {
-              // Split by common separators if text contains multiple competencies
-              const items = text.split(/[•|]/);
-              items.forEach(item => {
-                const trimmed = item.trim();
-                if (trimmed.length > 2) {
-                  competencies.push(trimmed);
-                }
-              });
-            }
-          });
-        }
-      }
-      
-      if (competencies.length > 0) {
-        console.log(`[DOCX Parser] Extracted ${competencies.length} core competencies from HTML structure:`, competencies);
-        return competencies.slice(0, 12);
       }
     }
     
-    // Fallback to text-based extraction
+    // FINAL FALLBACK: Try text-based extraction from the entire content
+    console.log('[DOCX Parser] ⚠️ HTML-based extraction failed, trying text-based fallback...');
     const competenciesText = this.extractSection(['CORE COMPETENCIES', 'SOFT SKILLS', 'KEY COMPETENCIES', 'COMPETENCIES']);
-    if (!competenciesText) {
-      console.log('[DOCX Parser] No core competencies section found');
-      return [];
-    }
-
-    const competencies: string[] = [];
-    const lines = competenciesText.split('\n').filter(l => l.trim());
     
-    for (const line of lines) {
-      const cleanLine = line.trim().replace(/^[•\-*]\s*/, '');
-      if (cleanLine.length > 2) {
-        // Split by common separators
-        const items = cleanLine.split(/[,;|]/);
-        items.forEach(item => {
-          const trimmed = item.trim();
-          if (trimmed.length > 2) {
-            competencies.push(trimmed);
+    if (competenciesText && competenciesText.trim().length > 0) {
+      console.log('[DOCX Parser] 📝 Found text section, length:', competenciesText.length);
+      
+      // Try splitting by bullet separator first
+      if (competenciesText.includes('•')) {
+        const competencies = competenciesText
+          .split('•')
+          .map(comp => comp.trim())
+          .filter(comp => comp.length > 1);
+        
+        if (competencies.length > 0) {
+          console.log(`[DOCX Parser] ✅ Found ${competencies.length} competencies from text with bullets:`, competencies);
+          return competencies.slice(0, 12);
+        }
+      }
+      
+      // Try other separators
+      for (const separator of ['|', ',', ';', '\n']) {
+        if (competenciesText.includes(separator)) {
+          const competencies = competenciesText
+            .split(separator)
+            .map(comp => comp.trim())
+            .filter(comp => comp.length > 1 && !comp.match(/^(CORE|COMPETENCIES|SKILLS|KEY)$/i));
+          
+          if (competencies.length > 0) {
+            console.log(`[DOCX Parser] ✅ Found ${competencies.length} competencies from text with '${separator}' separator:`, competencies);
+            return competencies.slice(0, 12);
           }
-        });
+        }
       }
     }
 
-    console.log(`[DOCX Parser] Extracted ${competencies.length} core competencies from text parsing:`, competencies);
-    return competencies.slice(0, 12);
+    console.log('[DOCX Parser] ❌ No core competencies found using any strategy');
+    return [];
   }
 }
 
@@ -843,8 +868,11 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
         technicalSkills: Array.isArray(skillBuckets.technical) ? skillBuckets.technical.map(String) : 
                         Array.isArray(skillBuckets.all) ? skillBuckets.all.map(String) : 
                         Array.isArray(activeProfile.skills) ? activeProfile.skills.map(String) : [],
+        // Core Competencies with multiple fallbacks - SAME LOGIC AS PDF
         coreCompetencies: coreCompetencies.length > 0 ? coreCompetencies.map(String) :
-                         Array.isArray(skillBuckets.soft) ? skillBuckets.soft.map(String) : [],
+                         Array.isArray(skillBuckets.soft) && skillBuckets.soft.length > 0 ? skillBuckets.soft.map(String) :
+                         Array.isArray(activeProfile.coreCompetencies) && activeProfile.coreCompetencies.length > 0 ? activeProfile.coreCompetencies.map(String) :
+                         Array.isArray(activeProfile.softSkills) && activeProfile.softSkills.length > 0 ? activeProfile.softSkills.map(String) : [],
         
         // Projects from parsed HTML
         projects: projects.map((proj: Record<string, unknown>) => ({
@@ -938,6 +966,17 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
         console.log('[API] Projects sample:', resumeProfile.projects[0]);
       }
       
+      // Log which source was used for core competencies
+      console.log('[API] 📋 Core Competencies:');
+      console.log('[API]   - From extraction: ', coreCompetencies.length);
+      console.log('[API]   - From skillBuckets.soft: ', skillBuckets.soft.length);
+      console.log('[API]   - From profile.coreCompetencies: ', Array.isArray(activeProfile?.coreCompetencies) ? activeProfile.coreCompetencies.length : 0);
+      console.log('[API]   - From profile.softSkills: ', Array.isArray(activeProfile?.softSkills) ? activeProfile.softSkills.length : 0);
+      console.log('[API]   - FINAL count in resumeProfile: ', resumeProfile.coreCompetencies?.length || 0);
+      if (resumeProfile.coreCompetencies?.length) {
+        console.log('[API]   - Sample: ', resumeProfile.coreCompetencies.slice(0, 3));
+      }
+      
       console.log('[API] Creating DocxResumeGenerator with parsed data');
       
       try {
@@ -953,8 +992,22 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
       }
       
     } catch (parseError) {
-      console.error('[API] HTML parsing failed, falling back to simple profile approach:', parseError);
-      // Fall back to simple profile approach
+      console.error('[API] HTML parsing/DOCX generation failed with PDF-style approach:', parseError);
+      console.error('[API] Error message:', parseError instanceof Error ? parseError.message : String(parseError));
+      // Fall back to simple HTML conversion if we have htmlContent
+      if (activeHtml) {
+        console.log('[API] Falling back to simple HTML conversion...');
+        try {
+          const { convertHtmlToDocxBuffer } = await import('../../services/htmlDocsService');
+          const buffer = await convertHtmlToDocxBuffer(activeHtml, { pageWidthPx: 1200 });
+          console.log('[API] Legacy HTML conversion succeeded');
+          return buffer;
+        } catch (legacyError) {
+          console.error('[API] Legacy HTML conversion also failed:', legacyError);
+          throw parseError; // Throw original error
+        }
+      }
+      throw parseError;
     }
   }
   
