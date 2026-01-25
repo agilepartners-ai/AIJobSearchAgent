@@ -410,7 +410,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
       if (!resp.ok) {
         const txt = await resp.text().catch(() => '');
         console.error('[OptimizationResults] PDF-style conversion API failed', resp.status, txt);
-        throw new Error('PDF-style DOCX generation failed');
+        throw new Error(`PDF-style DOCX generation failed with status ${resp.status}: ${txt}`);
       }
 
       console.log('[OptimizationResults] PDF-style conversion API succeeded, reading blob');
@@ -427,9 +427,9 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
       console.log('[OptimizationResults] powerful DOCX download started for', filename);
     } catch (error) {
       console.error('[OptimizationResults] Error creating powerful DOCX:', error);
-      // Fallback to the old method
-      console.log('[OptimizationResults] Falling back to HTML conversion...');
-      const htmlContent = getCleanHTMLForDocs(results.resume_html, profile, jobKeywords);
+      // Fallback to the simpler HTML-only method
+      console.log('[OptimizationResults] Falling back to simple HTML conversion...');
+      const htmlContent = activeDocument === 'resume' ? modifiedResumeHtml : modifiedCoverLetterHtml;
       await downloadAsDocx(htmlContent, filename);
     }
   };
@@ -448,7 +448,8 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
       if (!resp.ok) {
         const txt = await resp.text().catch(() => '');
         console.error('[OptimizationResults] conversion API failed', resp.status, txt);
-        throw new Error('Conversion API failed');
+        const errorMsg = txt ? `Conversion API failed: ${txt}` : `Conversion API failed with status ${resp.status}`;
+        throw new Error(errorMsg);
       }
 
       console.log('[OptimizationResults] conversion API succeeded, reading blob');
@@ -465,6 +466,8 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
       console.log('[OptimizationResults] download started for', filename);
     } catch (error) {
       console.error('[OptimizationResults] Error creating DOCX via server:', error);
+      // Show user-friendly error message
+      alert(`Failed to generate DOCX: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again or download as PDF.`);
       // Fallback to text download
       const plainText = content.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
       const blob = new Blob([plainText], { type: 'text/plain' });
@@ -476,6 +479,7 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      console.log('[OptimizationResults] Fallback: plain text downloaded instead');
     }
   };
 

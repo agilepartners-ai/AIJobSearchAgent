@@ -853,7 +853,12 @@ export class DocxResumeGenerator {
   }
 
   private createCoreCompetenciesSection(): Paragraph[] {
+    console.log('[DOCX Generator] Creating Core Competencies section...');
+    console.log('[DOCX Generator] coreCompetencies:', this.profile.coreCompetencies);
+    console.log('[DOCX Generator] coreCompetencies length:', this.profile.coreCompetencies?.length || 0);
+    
     if (!this.profile.coreCompetencies?.length) {
+      console.warn('[DOCX Generator] ⚠️ No Core Competencies found - section will be omitted from DOCX!');
       return [];
     }
 
@@ -884,6 +889,7 @@ export class DocxResumeGenerator {
 
     // EXACT SAME AS TECHNICAL SKILLS: Join with ' • ' inline for consistency
     const competenciesText = this.profile.coreCompetencies.join(' • ');
+    console.log('[DOCX Generator] ✅ Core Competencies text:', competenciesText.substring(0, 100));
     
     // Display all competencies inline with bullet separators - EXACT SAME FORMAT as Technical Skills
     paragraphs.push(
@@ -900,8 +906,7 @@ export class DocxResumeGenerator {
       })
     );
 
-    paragraphs.push(new Paragraph({ children: [new TextRun("")], spacing: { after: 120 } }));
-
+    console.log('[DOCX Generator] ✅ Core Competencies section created successfully');
     return paragraphs;
   }
 

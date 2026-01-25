@@ -1,4 +1,4 @@
-import { isTokenExpiredError, checkTokenExpired } from "@/utils/tokenErrorHandler";
+import { isTokenExpiredError, checkTokenExpired, sanitizeErrorMessage, getProfessionalTokenErrorMessage } from "@/utils/tokenErrorHandler";
 import { TokenExpiredError } from "./createConversation";
 
 export const endConversation = async (
@@ -19,7 +19,7 @@ export const endConversation = async (
     if (!response.ok) {
       // Check if it's a token expiration error
       if (checkTokenExpired(response)) {
-        throw new TokenExpiredError("API token has expired. Please refresh the page.");
+        throw new TokenExpiredError(getProfessionalTokenErrorMessage());
       }
       
       // Check response body for token expiration indicators
@@ -27,17 +27,17 @@ export const endConversation = async (
         const errorData = await response.json();
         const errorText = JSON.stringify(errorData);
         if (isTokenExpiredError(errorText)) {
-          throw new TokenExpiredError("API token has expired. Please refresh the page.");
+          throw new TokenExpiredError(getProfessionalTokenErrorMessage());
         }
-      } catch (e) {
+        throw new Error(sanitizeErrorMessage(errorText));
+      } catch (_e: unknown) {
         // If JSON parse fails, check response text
         const errorText = await response.text();
         if (isTokenExpiredError(errorText)) {
-          throw new TokenExpiredError("API token has expired. Please refresh the page.");
+          throw new TokenExpiredError(getProfessionalTokenErrorMessage());
         }
+        throw new Error(sanitizeErrorMessage(errorText));
       }
-      
-      throw new Error("Failed to end conversation");
     }
 
     return null;

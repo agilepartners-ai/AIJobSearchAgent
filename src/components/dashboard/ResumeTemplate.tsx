@@ -1547,27 +1547,54 @@ class ResumeContentParser {
     console.log('🔍 Extracting core competencies...');
     
     // FIRST: Try to extract from HTML structure for most accurate results
-    const competenciesSectionMatch = this.rawHtml.match(/<h2[^>]*>\s*CORE COMPETENCIES\s*<\/h2>([\s\S]*?)(?=<h2|<section|$)/i);
+    const competenciesSectionMatch = this.rawHtml.match(/<h2[^>]*>\s*CORE\s*COMPETENCIES\s*<\/h2>([\s\S]*?)(?=<h2|<section|<\/section>|$)/i);
     
     if (competenciesSectionMatch) {
       const competenciesHtml = competenciesSectionMatch[1];
       console.log('📄 Found CORE COMPETENCIES HTML section, length:', competenciesHtml.length);
       console.log('📄 HTML Preview:', competenciesHtml.substring(0, 500));
       
-      // Strategy 0: Extract from paragraph with bullet separators (NEW - matches Technical Skills format)
+      // Strategy 0: Extract from paragraph with bullet separators (PRIMARY - matches Technical Skills format)
       const paragraphMatch = competenciesHtml.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
       if (paragraphMatch && paragraphMatch[1]) {
-        const paragraphText = this.cleanHTML(paragraphMatch[1], { simple: true }).trim();
-        // Split by bullet separator
+        // Clean HTML but preserve the bullet separators
+        let paragraphText = paragraphMatch[1]
+          .replace(/<[^>]*>/g, ' ')  // Remove all HTML tags
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/\s+/g, ' ')  // Normalize whitespace
+          .trim();
+        
+        // Split by bullet separator (• character)
         if (paragraphText.includes('•')) {
           const competencies = paragraphText
             .split('•')
             .map(comp => comp.trim())
-            .filter(comp => comp.length > 2);
+            .filter(comp => comp.length > 1);  // Accept even short competencies like "Git"
           
           if (competencies.length > 0) {
             console.log(`✅ Found ${competencies.length} competencies from paragraph with bullets:`, competencies);
             return competencies;
+          }
+        }
+        
+        // Fallback: If no bullets found but text exists, try other separators
+        if (paragraphText.length > 0) {
+          // Try splitting by common separators: pipe, comma, semicolon
+          for (const separator of ['|', ',', ';']) {
+            if (paragraphText.includes(separator)) {
+              const competencies = paragraphText
+                .split(separator)
+                .map(comp => comp.trim())
+                .filter(comp => comp.length > 1);
+              
+              if (competencies.length > 0) {
+                console.log(`✅ Found ${competencies.length} competencies from paragraph with '${separator}' separator:`, competencies);
+                return competencies;
+              }
+            }
           }
         }
       }
@@ -1698,8 +1725,44 @@ class ResumeContentParser {
       }
     }
     
-    // FALLBACK: Return empty array
-    console.log('⚠️ No competencies found using any strategy');
+    // FINAL FALLBACK: Try text-based extraction from the entire content
+    console.log('⚠️ HTML-based extraction failed, trying text-based fallback...');
+    const competenciesTextSection = this.extractSection(['CORE COMPETENCIES', 'SOFT SKILLS', 'KEY COMPETENCIES', 'COMPETENCIES']);
+    
+    if (competenciesTextSection && competenciesTextSection.trim().length > 0) {
+      console.log('📝 Found text section, length:', competenciesTextSection.length);
+      console.log('📝 Text preview:', competenciesTextSection.substring(0, 200));
+      
+      // Try splitting by bullet separator first
+      if (competenciesTextSection.includes('•')) {
+        const competencies = competenciesTextSection
+          .split('•')
+          .map(comp => comp.trim())
+          .filter(comp => comp.length > 1);
+        
+        if (competencies.length > 0) {
+          console.log(`✅ Found ${competencies.length} competencies from text with bullets:`, competencies);
+          return competencies;
+        }
+      }
+      
+      // Try other separators
+      for (const separator of ['|', ',', ';', '\n']) {
+        if (competenciesTextSection.includes(separator)) {
+          const competencies = competenciesTextSection
+            .split(separator)
+            .map(comp => comp.trim())
+            .filter(comp => comp.length > 1 && !comp.match(/^(CORE|COMPETENCIES|SKILLS|KEY)$/i));
+          
+          if (competencies.length > 0) {
+            console.log(`✅ Found ${competencies.length} competencies from text with '${separator}' separator:`, competencies);
+            return competencies;
+          }
+        }
+      }
+    }
+    
+    console.log('❌ No competencies found using any strategy (HTML or text-based)');
     return [];
   }
 
@@ -2341,11 +2404,12 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
   };
 
   const highlightKeywords = (text: string) => {
+    // DISABLED for PDF rendering - the « » symbols don't look professional in PDFs
+    // Keywords are still matched in achievements but symbols are not shown
     if (!projectKeywordHighlight || !jobKeywords.length) return text;
-    const escaped = jobKeywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).filter(Boolean);
-    if (!escaped.length) return text;
-    const regex = new RegExp(`\\b(${escaped.join('|')})\\b`, 'ig');
-    return text.replace(regex, m => `«${m}»`);
+    // For PDF, we return the text as-is without the visual highlighting symbols
+    // This allows semantic highlighting via styling while keeping the text clean
+    return text;
   };
 
   const fallbackExperience = experience;
@@ -2486,6 +2550,26 @@ const PerfectHTMLToPDF: React.FC<PerfectPDFProps> = ({
   );
 
   // Core Competencies section - inline format with dots (matching Technical Skills format)
+  // Log competencies for debugging
+  console.log(`[PDF Render] Core Competencies count BEFORE fallback: ${coreCompetencies.length}`);
+  
+  // IMPORTANT: Apply the same fallback logic as DOCX - use multiple sources
+  // 1. First try extracted coreCompetencies
+  if (coreCompetencies.length === 0) {
+    // 2. Fallback to skillBuckets.soft (soft skills category)
+    if (skillBuckets.soft.length > 0) {
+      console.log(`[PDF Render] Core Competencies empty, using skillBuckets.soft fallback (${skillBuckets.soft.length} items)`);
+      coreCompetencies = skillBuckets.soft;
+    }
+  }
+  
+  console.log(`[PDF Render] Core Competencies count AFTER fallback: ${coreCompetencies.length}`);
+  if (coreCompetencies.length > 0) {
+    console.log(`[PDF Render] Core Competencies data:`, coreCompetencies.slice(0, 5));
+  } else {
+    console.warn('⚠️ [PDF Render] No Core Competencies found in any source - section will be omitted from PDF!');
+  }
+  
   const coreCompetenciesSection = coreCompetencies.length > 0 && (
     <View style={styles.section} key="core-competencies">
       <Text style={styles.sectionTitle}>CORE COMPETENCIES</Text>
