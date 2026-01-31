@@ -469,8 +469,9 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
         applicationData
       );
 
-      // Download the generated DOCX
-      const blob = new Blob([buffer], { 
+      // Download the generated DOCX - convert Buffer to Uint8Array for browser compatibility
+      const uint8Array = new Uint8Array(buffer);
+      const blob = new Blob([uint8Array], { 
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
       });
       const url = URL.createObjectURL(blob);
