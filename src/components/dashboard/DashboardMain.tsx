@@ -628,11 +628,12 @@ const Dashboard: React.FC = () => {
       )}
       {showAIEnhancementModal && (
         <AIEnhancementModal
-          jobDescription={selectedJobDescription?.description || ''}
+          jobDescription={selectedJobDescription?.description || editingApplication?.job_description || ''}
           applicationData={{
             id: editingApplication?.id || '',
-            position: selectedJobDescription?.title || '',
-            company_name: selectedJobDescription?.company || ''
+            position: editingApplication?.position || selectedJobDescription?.title || '',
+            company_name: editingApplication?.company_name || selectedJobDescription?.company || '',
+            location: editingApplication?.location || undefined
           }}
           onSave={(resumeUrl: string, coverLetterUrl: string) => {
             if (editingApplication) {
