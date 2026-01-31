@@ -19,6 +19,12 @@ interface OptimizationResultsProps {
     resume_html: string;
     cover_letter_html: string;
     aiEnhancements?: any;
+    applicationData?: {
+      company_name?: string;
+      position?: string;
+      location?: string;
+      [key: string]: any;
+    };
   };
   jobDetails: {
     title: string;
