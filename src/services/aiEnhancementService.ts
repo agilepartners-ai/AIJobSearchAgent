@@ -319,7 +319,13 @@ CRITICAL INSTRUCTIONS FOR PROFESSIONAL SUMMARY:
 
     // Create system prompt for detailed AI enhancement
     private static createDetailedSystemPrompt(): string {
-        return `You are an expert resume writer and career strategist with deep expertise in creating comprehensive, ATS-optimized professional documents. Your task is to analyze a resume against a job description and create detailed, polished content.
+        return `You are an expert resume writer and career strategist with deep expertise in creating comprehensive, ATS-optimized professional documents. Your task is to analyze a resume against a job description and create detailed, polished content INCLUDING A MANDATORY COVER LETTER.
+
+⚠️ ABSOLUTE MANDATORY REQUIREMENTS:
+1. You MUST generate the "detailed_cover_letter" object in your response - it is NOT optional
+2. The detailed_cover_letter MUST contain all three paragraphs: opening_paragraph, body_paragraph, and closing_paragraph
+3. Each paragraph MUST explicitly mention the company name and position title from the job application context
+4. NEVER leave detailed_cover_letter empty or omit it - this will cause the application to fail
 
 ⚠️ CRITICAL RULES - NEVER VIOLATE THESE:
 1. NEVER add synthetic, fabricated, or invented data
@@ -461,9 +467,9 @@ You must respond with a valid JSON object containing the following structure:
       ]
     },
     "detailed_cover_letter": {
-      "opening_paragraph": "Engaging 4-5 sentence introduction that expresses genuine interest in the position, briefly mentions the company, and highlights REAL achievements from the resume",
-      "body_paragraph": "Substantial 8-10 sentence paragraph that demonstrates understanding of the role and tells a compelling story using REAL experience from the resume with concrete examples",
-      "closing_paragraph": "Professional 3-4 sentence conclusion expressing enthusiasm, indicating next steps, and thanking them for their consideration"
+      "opening_paragraph": "Engaging 4-5 sentence introduction that explicitly mentions the company name and position title. Express genuine interest and highlight ONE REAL achievement from the resume. DO NOT include contact information (email, phone, address) in this paragraph.",
+      "body_paragraph": "Substantial 8-10 sentence paragraph that naturally weaves in the company name. Tell a compelling story using REAL experience from the resume with concrete examples that align with the company's needs. DO NOT include contact information in this paragraph.",
+      "closing_paragraph": "Professional 3-4 sentence conclusion that mentions the company name naturally. Express enthusiasm, indicate next steps, and thank them for their consideration. DO NOT include contact information in this paragraph."
     },
     "cover_letter_outline": {
       "opening": "Express genuine interest in the role and company, mentioning a specific reason why you're excited",
@@ -473,11 +479,33 @@ You must respond with a valid JSON object containing the following structure:
   }
 }
 
+⚠️ CRITICAL - YOU MUST ALWAYS GENERATE detailed_cover_letter:
+- The detailed_cover_letter object is REQUIRED and must NEVER be empty or omitted
+- opening_paragraph MUST be 4-5 sentences explicitly mentioning company name and position
+- body_paragraph MUST be 8-10 sentences with company name woven in naturally  
+- closing_paragraph MUST be 3-4 sentences mentioning company name
+- NO_CONTACT_INFO: NEVER include email, phone, or address in ANY paragraph - contact details are in the header
+
+⚠️ CRITICAL COVER LETTER QUALITY RULES:
+1. EXPLICITLY mention the COMPANY NAME and POSITION TITLE from job application context in all three paragraphs naturally
+2. NEVER use vague quantifiers like "significant percentages", "substantial improvements", "considerable impact"
+3. PROHIBIT generic corporate phrases: "proven track record", "perfect candidate", "ideal fit", "strategic objectives"
+4. REQUIRE specific, authentic language with concrete examples from the actual resume
+5. Use action verbs and measurable achievements ONLY if they exist in the source resume
+6. Avoid clichés and template language - write personalized, genuine content
+7. Connect specific resume experiences to the company's mission and role requirements
+8. If metrics don't exist in resume, use descriptive accomplishments instead of inventing numbers
+9. Opening paragraph MUST explicitly reference the company name and position title
+10. Body paragraph MUST weave company name naturally when discussing how skills align with their needs
+11. Closing paragraph MUST mention company name when expressing enthusiasm to contribute
+12. DO NOT include contact information (email, phone, address) in any paragraph - contact details will be added separately in the header
+
 Focus on:
 1. ACCURACY: Use only real information from the source resume
 2. CONSOLIDATION: Combine overlapping content to save space
 3. NO INVENTION: Never add synthetic data, metrics, or placeholder text
 4. SPECIFICITY: Use concrete examples from the actual resume
+5. AUTHENTICITY: Write in a professional but genuine voice, avoiding corporate jargon
 5. ATS OPTIMIZATION: Incorporate job-specific keywords naturally where they genuinely apply
 6. READABILITY: Keep content concise and impactful`;
     }
@@ -603,9 +631,27 @@ Make sure all content is:
     }
 
     // Helper to compose final user prompt (header + fixed context)
-    private static buildFinalUserPrompt(header: string, resumeText: string, jobDescription: string): string {
+    private static buildFinalUserPrompt(
+        header: string, 
+        resumeText: string, 
+        jobDescription: string,
+        companyName?: string,
+        position?: string,
+        location?: string
+    ): string {
         const hdr = (header || '').trim();
-        return `${hdr}
+        
+        // Build job application context section if data is available
+        let jobContextSection = '';
+        if (companyName || position || location) {
+            jobContextSection = `\n\nJOB APPLICATION CONTEXT (Use this information throughout the cover letter):
+`;
+            if (companyName) jobContextSection += `- Company Name: ${companyName}\n`;
+            if (position) jobContextSection += `- Position Title: ${position}\n`;
+            if (location) jobContextSection += `- Location: ${location}\n`;
+        }
+        
+        return `${hdr}${jobContextSection}
 
 Use this for context:
 JOB DESCRIPTION:
@@ -760,11 +806,12 @@ ${resumeText}`;
     static async enhanceWithOpenAI(
         resumeText: string,
         jobDescription: string,
-        options: AIEnhancementOptions = {}
+        options: AIEnhancementOptions = {},
+        applicationData?: { company_name?: string; position?: string; location?: string }
     ): Promise<AIEnhancementResponse> {
         // If Gemini provider requested, delegate to Gemini implementation
         if (this.isGeminiProvider(options.modelType)) {
-            return this.enhanceWithGemini(resumeText, jobDescription, options);
+            return this.enhanceWithGemini(resumeText, jobDescription, options, applicationData);
         }
 
         // Add: detect sections for stub path too (used in metadata/UI)
@@ -839,7 +886,8 @@ ${resumeText}`;
     private static async enhanceWithGemini(
         resumeText: string,
         jobDescription: string,
-        options: AIEnhancementOptions = {}
+        options: AIEnhancementOptions = {},
+        applicationData?: { company_name?: string; position?: string; location?: string }
     ): Promise<AIEnhancementResponse> {
         try {
             console.log('Starting detailed Gemini resume enhancement with retry mechanism...');
@@ -889,7 +937,14 @@ ${resumeText}`;
             const dynamicDirective = AIEnhancementService.createDynamicSectionDirective(sectionsToUse);
             const userHeaderWithDirective = `${userHeader}\n\n${dynamicDirective}`;
 
-            const userContent = AIEnhancementService.buildFinalUserPrompt(userHeaderWithDirective, resumeText, jobDescription);
+            const userContent = AIEnhancementService.buildFinalUserPrompt(
+                userHeaderWithDirective, 
+                resumeText, 
+                jobDescription,
+                applicationData?.company_name,
+                applicationData?.position,
+                applicationData?.location
+            );
 
             // Combine system and user prompts into a single user message for Gemini
             const payload = {
@@ -1259,6 +1314,16 @@ ${resumeText}`;
                 console.log('🔍 AI RESPONSE - First project:', aiResults.enhancements.detailed_resume_sections.projects[0]);
             }
 
+            // 🔍 DEBUG: Log what the AI actually returned for cover letter
+            console.log('🔍 AI RESPONSE - detailed_cover_letter:', aiResults.enhancements?.detailed_cover_letter);
+            console.log('🔍 AI RESPONSE - detailed_cover_letter keys:', Object.keys(aiResults.enhancements?.detailed_cover_letter || {}));
+            console.log('🔍 AI RESPONSE - Is cover letter empty?:', Object.keys(aiResults.enhancements?.detailed_cover_letter || {}).length === 0);
+            if (aiResults.enhancements?.detailed_cover_letter) {
+                console.log('🔍 AI RESPONSE - opening_paragraph length:', aiResults.enhancements.detailed_cover_letter.opening_paragraph?.length || 0);
+                console.log('🔍 AI RESPONSE - body_paragraph length:', aiResults.enhancements.detailed_cover_letter.body_paragraph?.length || 0);
+                console.log('🔍 AI RESPONSE - closing_paragraph length:', aiResults.enhancements.detailed_cover_letter.closing_paragraph?.length || 0);
+            }
+
             const enhancementResponse: AIEnhancementResponse = {
                 success: true,
                 analysis: {
@@ -1287,7 +1352,28 @@ ${resumeText}`;
                         closing: aiResults.enhancements?.cover_letter_outline?.closing || ''
                     },
                     detailed_resume_sections: aiResults.enhancements?.detailed_resume_sections || {},
-                    detailed_cover_letter: aiResults.enhancements?.detailed_cover_letter || {}
+                    // NEW: Detailed cover letter
+                    detailed_cover_letter: aiResults.enhancements?.detailed_cover_letter && 
+                        Object.keys(aiResults.enhancements.detailed_cover_letter).length > 0
+                        ? (() => {
+                            console.log('✅ [aiEnhancementService] Using AI-generated detailed_cover_letter');
+                            console.log('✅ [aiEnhancementService] Keys:', Object.keys(aiResults.enhancements.detailed_cover_letter));
+                            return aiResults.enhancements.detailed_cover_letter;
+                        })()
+                        : (() => {
+                            console.warn('⚠️ [aiEnhancementService] LLM returned empty detailed_cover_letter, using FALLBACK mechanism');
+                            console.log('⚠️ [aiEnhancementService] Company:', applicationData?.company_name);
+                            console.log('⚠️ [aiEnhancementService] Position:', applicationData?.position);
+                            return {
+                                // Fallback: Generate basic cover letter from available data
+                                opening_paragraph: aiResults.enhancements?.cover_letter_outline?.opening || 
+                                    `I am writing to express my strong interest in the ${applicationData?.position || 'position'} at ${applicationData?.company_name || 'your company'}. ${compactSummary || 'As an experienced professional, I am confident I can contribute to your team.'}`,
+                                body_paragraph: aiResults.enhancements?.cover_letter_outline?.body || 
+                                    `My background and experience align well with the requirements for the ${applicationData?.position || 'position'} at ${applicationData?.company_name || 'your organization'}. Throughout my career, I have developed strong skills and expertise that would enable me to make meaningful contributions to your team's success.`,
+                                closing_paragraph: aiResults.enhancements?.cover_letter_outline?.closing || 
+                                    `I am excited about the opportunity to contribute to ${applicationData?.company_name || 'your organization'} and would welcome the chance to discuss how my experience aligns with your needs. Thank you for considering my application, and I look forward to speaking with you soon.`
+                            };
+                        })(),
                 },
                 metadata: {
                     model_used: modelId,

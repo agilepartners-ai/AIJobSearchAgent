@@ -2207,6 +2207,255 @@ export class DocxResumeGenerator {
 
     return paragraphs;
   }
+
+  /**
+   * Generate a professional DOCX cover letter document
+   * @param detailedCoverLetter The cover letter content from AI
+   * @param userProfile User profile data (name, email, phone, location)
+   * @param applicationData Job application details (company, position, location)
+   * @returns Promise<Buffer> DOCX document buffer
+   */
+  public static async generateCoverLetterDocx(
+    detailedCoverLetter: {
+      opening_paragraph?: string;
+      body_paragraph?: string;
+      closing_paragraph?: string;
+    },
+    userProfile: {
+      fullName?: string;
+      name?: string;
+      email?: string;
+      phone?: string;
+      location?: string;
+    },
+    applicationData: {
+      company_name?: string;
+      position?: string;
+      location?: string;
+    }
+  ): Promise<Buffer> {
+    const name = userProfile.fullName || userProfile.name || 'Your Name';
+    const email = userProfile.email || 'email@example.com';
+    const phone = userProfile.phone || '';
+    const userLocation = userProfile.location || '';
+    
+    const companyName = applicationData.company_name || 'Company Name';
+    const position = applicationData.position || 'Position Title';
+    const companyLocation = applicationData.location || 'Company Location';
+
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    const doc = new Document({
+      creator: "AI Job Search Agent",
+      title: `${name} - Cover Letter - ${position} at ${companyName}`,
+      description: `Cover letter for ${position} position at ${companyName}`,
+      sections: [
+        {
+          properties: {
+            page: {
+              margin: {
+                top: convertInchesToTwip(1),
+                right: convertInchesToTwip(1),
+                bottom: convertInchesToTwip(1),
+                left: convertInchesToTwip(1),
+              },
+            },
+          },
+          children: [
+            // Header - Name
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: name,
+                  bold: true,
+                  size: 28,
+                  color: "1F2937",
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 120 },
+            }),
+
+            // Contact Information
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `${email}${phone ? ` • ${phone}` : ''}${userLocation ? ` • ${userLocation}` : ''}`,
+                  size: 22,
+                  color: "6B7280",
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 360 },
+            }),
+
+            // Date
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: currentDate,
+                  size: 22,
+                  color: "6B7280",
+                }),
+              ],
+              alignment: AlignmentType.LEFT,
+              spacing: { after: 240 },
+            }),
+
+            // Employer Information
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Hiring Manager",
+                  size: 22,
+                  color: "374151",
+                }),
+              ],
+              spacing: { after: 80 },
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: companyName,
+                  size: 22,
+                  color: "374151",
+                }),
+              ],
+              spacing: { after: 80 },
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: companyLocation,
+                  size: 22,
+                  color: "374151",
+                }),
+              ],
+              spacing: { after: 240 },
+            }),
+
+            // Subject Line
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Re: Application for ${position}`,
+                  bold: true,
+                  size: 22,
+                  color: "374151",
+                }),
+              ],
+              spacing: { after: 240 },
+            }),
+
+            // Salutation
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Dear Hiring Manager,",
+                  size: 22,
+                  color: "374151",
+                }),
+              ],
+              spacing: { after: 240 },
+            }),
+
+            // Opening Paragraph
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: detailedCoverLetter.opening_paragraph ||
+                    `I am writing to express my strong interest in the ${position} role at ${companyName}. Based on my background and experience, I am confident that I can contribute meaningfully to your team's success.`,
+                  size: 22,
+                  color: "374151",
+                }),
+              ],
+              alignment: AlignmentType.JUSTIFIED,
+              spacing: { after: 240, line: 360 },
+            }),
+
+            // Body Paragraph
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: detailedCoverLetter.body_paragraph ||
+                    `My experience aligns well with the requirements for this role. I have developed relevant skills and competencies that would enable me to contribute effectively to ${companyName}. I am particularly drawn to this opportunity because it aligns with my professional goals and interests.`,
+                  size: 22,
+                  color: "374151",
+                }),
+              ],
+              alignment: AlignmentType.JUSTIFIED,
+              spacing: { after: 240, line: 360 },
+            }),
+
+            // Closing Paragraph
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: detailedCoverLetter.closing_paragraph ||
+                    `I would welcome the opportunity to discuss how my background and skills can contribute to ${companyName}'s success. Thank you for your time and consideration. I look forward to hearing from you.`,
+                  size: 22,
+                  color: "374151",
+                }),
+              ],
+              alignment: AlignmentType.JUSTIFIED,
+              spacing: { after: 360, line: 360 },
+            }),
+
+            // Sign-off
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Sincerely,",
+                  size: 22,
+                  color: "374151",
+                }),
+              ],
+              spacing: { after: 240 },
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: name,
+                  size: 22,
+                  color: "374151",
+                }),
+              ],
+              spacing: { after: 360 },
+            }),
+
+            // Footer
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Tailored for ${position} at ${companyName}.`,
+                  size: 18,
+                  color: "9CA3AF",
+                  italics: true,
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              border: {
+                top: {
+                  color: "E5E7EB",
+                  space: 1,
+                  style: BorderStyle.SINGLE,
+                  size: 6,
+                },
+              },
+              spacing: { before: 240 },
+            }),
+          ],
+        },
+      ],
+    });
+
+    return await Packer.toBuffer(doc);
+  }
 }
 
 export default DocxResumeGenerator;

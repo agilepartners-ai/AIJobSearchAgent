@@ -12,17 +12,25 @@ import { UserProfileData } from '../../services/profileService';
 import { ProfileService } from '../../services/profileService';
 import { AuthService } from '../../services/authService';
 import { FirebaseDBService } from '../../services/firebaseDBService';
+import DocxResumeGenerator from '../../services/docxResumeGenerator';
 
 interface OptimizationResultsProps {
   results: {
     resume_html: string;
     cover_letter_html: string;
     aiEnhancements?: any;
+    applicationData?: {
+      company_name?: string;
+      position?: string;
+      location?: string;
+      [key: string]: any;
+    };
   };
   jobDetails: {
     title: string;
     company: string;
     description: string;
+    location?: string;
   };
   analysisData?: {
     matchScore: number;
@@ -143,8 +151,24 @@ const styles = StyleSheet.create({
 });
 
 
-// Cover Letter PDF Document Component with reliable HTML parsing
+// Cover Letter PDF Document Component with direct data usage
 const CoverLetterPDFDocument: React.FC<{ content: string; jobDetails: any; resultsData?: any }> = ({ content, jobDetails, resultsData }) => {
+  console.log('[CoverLetterPDFDocument] ===== PDF GENERATION START =====');
+  console.log('[CoverLetterPDFDocument] resultsData keys:', Object.keys(resultsData || {}));
+  console.log('[CoverLetterPDFDocument] aiEnhancements:', resultsData?.aiEnhancements);
+  console.log('[CoverLetterPDFDocument] detailed_cover_letter:', resultsData?.aiEnhancements?.detailed_cover_letter);
+  console.log('[CoverLetterPDFDocument] jobDetails (from prop):', jobDetails);
+  console.log('[CoverLetterPDFDocument] applicationData (from resultsData):', resultsData?.applicationData);
+  
+  // PRIORITY: Extract job details from applicationData (database source) instead of prop
+  const normalizedJobDetails = {
+    company_name: resultsData?.applicationData?.company_name || jobDetails?.company || 'Company Name',
+    position: resultsData?.applicationData?.position || jobDetails?.title || 'Position Title',
+    location: resultsData?.applicationData?.location || jobDetails?.location || ''
+  };
+  
+  console.log('[CoverLetterPDFDocument] 🎯 Normalized jobDetails:', normalizedJobDetails);
+  
   // Parse HTML content to extract cover letter data
   const parseCoverLetterData = (htmlContent: string) => {
     const tempDiv = document.createElement('div');
@@ -166,20 +190,46 @@ const CoverLetterPDFDocument: React.FC<{ content: string; jobDetails: any; resul
 
     const contactInfo = [email, phone, location].filter(Boolean).join(' • ');
 
-    // Extract paragraphs - look for div elements with substantial content
-    const allDivs = Array.from(tempDiv.querySelectorAll('div'));
-    const paragraphs = allDivs
-      .filter(div => {
-        const text = div.textContent?.trim() || '';
-        return text.length > 20 && // Substantial content
-               !div.querySelector('h1') && // Not the header
-               !text.includes('Hiring Manager') && // Not employer info
-               !text.includes('Re:') && // Not subject line
-               !text.includes('Dear') && // Not salutation
-               !text.includes('Sincerely'); // Not closing
-      })
-      .map(div => div.textContent?.trim())
-      .filter(Boolean) as string[];
+    // PRIORITY: Use detailed_cover_letter from resultsData if available
+    let paragraphs: string[] = [];
+    const detailed_cover_letter = resultsData?.aiEnhancements?.detailed_cover_letter;
+    
+    if (detailed_cover_letter && Object.keys(detailed_cover_letter).length > 0) {
+      console.log('[CoverLetterPDFDocument] ✅ Using detailed_cover_letter from aiEnhancements');
+      console.log('[CoverLetterPDFDocument] opening_paragraph:', detailed_cover_letter.opening_paragraph);
+      console.log('[CoverLetterPDFDocument] body_paragraph:', detailed_cover_letter.body_paragraph);
+      console.log('[CoverLetterPDFDocument] closing_paragraph:', detailed_cover_letter.closing_paragraph);
+      
+      // Use the three paragraphs from detailed_cover_letter
+      if (detailed_cover_letter.opening_paragraph) {
+        paragraphs.push(detailed_cover_letter.opening_paragraph);
+      }
+      if (detailed_cover_letter.body_paragraph) {
+        paragraphs.push(detailed_cover_letter.body_paragraph);
+      }
+      if (detailed_cover_letter.closing_paragraph) {
+        paragraphs.push(detailed_cover_letter.closing_paragraph);
+      }
+    } else {
+      console.warn('[CoverLetterPDFDocument] ⚠️ detailed_cover_letter not found, falling back to HTML parsing');
+      // FALLBACK: Extract paragraphs from HTML - look for div elements with substantial content
+      const allDivs = Array.from(tempDiv.querySelectorAll('div'));
+      paragraphs = allDivs
+        .filter(div => {
+          const text = div.textContent?.trim() || '';
+          return text.length > 20 && // Substantial content
+                 !div.querySelector('h1') && // Not the header
+                 !text.includes('Hiring Manager') && // Not employer info
+                 !text.includes('Re:') && // Not subject line
+                 !text.includes('Dear') && // Not salutation
+                 !text.includes('Sincerely'); // Not closing
+        })
+        .map(div => div.textContent?.trim())
+        .filter(Boolean) as string[];
+    }
+    
+    console.log('[CoverLetterPDFDocument] Final paragraphs count:', paragraphs.length);
+    console.log('[CoverLetterPDFDocument] ===== PDF GENERATION END =====');
 
     return {
       name,
@@ -210,17 +260,17 @@ const CoverLetterPDFDocument: React.FC<{ content: string; jobDetails: any; resul
             Hiring Manager
           </Text>
           <Text style={{ fontSize: 11, lineHeight: 1.4, color: '#000000' }}>
-            {jobDetails.company_name || 'Company Name'}
+            {normalizedJobDetails.company_name}
           </Text>
           <Text style={{ fontSize: 11, lineHeight: 1.4, color: '#000000' }}>
-            {jobDetails.location || 'Company Location'}
+            {normalizedJobDetails.location || 'Company Location'}
           </Text>
         </View>
 
         {/* Subject Line */}
         <View style={{ marginBottom: 15 }}>
           <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#000000' }}>
-            Re: Application for {jobDetails.position || 'Position Title'}
+            Re: Application for {normalizedJobDetails.position}
           </Text>
         </View>
 
@@ -374,6 +424,72 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
   const getDocxFilename = (documentType: 'resume' | 'cover-letter') => {
     const companySlug = jobDetails.company?.replace(/\s+/g, '-') || 'company';
     return `ai-enhanced-${documentType}-${companySlug}.docx`;
+  };
+
+  // 🚀 NEW: Professional cover letter DOCX generation using DocxResumeGenerator
+  const downloadCoverLetterAsDocxPowerful = async (filename: string) => {
+    console.log('[OptimizationResults] downloadCoverLetterAsDocxPowerful called, filename=', filename);
+    
+    try {
+      // Extract cover letter content from AI enhancements
+      const detailedCoverLetter = results?.aiEnhancements?.detailed_cover_letter || {
+        opening_paragraph: '',
+        body_paragraph: '',
+        closing_paragraph: ''
+      };
+
+      // Get user profile data
+      const profile = userProfile || extractProfileFromHtml(results.resume_html);
+      const userProfileData = {
+        fullName: profile?.fullName || profile?.name || 'Your Name',
+        name: profile?.fullName || profile?.name || 'Your Name',
+        email: profile?.email || 'email@example.com',
+        phone: profile?.phone || '',
+        location: profile?.location || ''
+      };
+
+      // Get application data - CRITICAL: Use results.applicationData which has the actual job application details
+      // DO NOT use jobDetails prop which is from job search, not database!
+      const applicationData = {
+        company_name: results?.applicationData?.company_name || jobDetails?.company || 'Company Name',
+        position: results?.applicationData?.position || jobDetails?.title || 'Position Title',
+        location: results?.applicationData?.location || jobDetails?.location || ''
+      };
+
+      console.log('[OptimizationResults] Generating professional cover letter DOCX...');
+      console.log('[OptimizationResults] Cover letter content:', detailedCoverLetter);
+      console.log('[OptimizationResults] User profile:', userProfileData);
+      console.log('[OptimizationResults] Application data from results.applicationData:', results?.applicationData);
+      console.log('[OptimizationResults] Application data being passed to DOCX:', applicationData);
+
+      // Generate professional DOCX using the new static method
+      const buffer = await DocxResumeGenerator.generateCoverLetterDocx(
+        detailedCoverLetter,
+        userProfileData,
+        applicationData
+      );
+
+      // Download the generated DOCX - convert Buffer to Uint8Array for browser compatibility
+      const uint8Array = new Uint8Array(buffer);
+      const blob = new Blob([uint8Array], { 
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename.endsWith('.docx') ? filename : filename + '.docx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      console.log('✅ [OptimizationResults] Professional cover letter DOCX downloaded:', filename);
+    } catch (error) {
+      console.error('[OptimizationResults] Error creating professional cover letter DOCX:', error);
+      // Fallback to HTML conversion
+      console.log('[OptimizationResults] Falling back to simple HTML conversion...');
+      await downloadAsDocx(modifiedCoverLetterHtml, filename);
+    }
   };
 
   // 🚀 NEW: Powerful DOCX generation using PDF-style parsing approach
@@ -922,6 +1038,9 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
                       
                       if (activeDocument === 'resume' && profile) {
                         downloadAsDocxPowerful(profile, jobKeywords, filename);
+                      } else if (activeDocument === 'cover-letter') {
+                        // Use professional generator for cover letter
+                        downloadCoverLetterAsDocxPowerful(filename);
                       } else {
                         downloadAsDocx(
                           activeDocument === 'resume' ? modifiedResumeHtml : modifiedCoverLetterHtml,
@@ -1132,8 +1251,8 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
                   downloadAsDocx(modifiedResumeHtml, getDocxFilename('resume'));
                 }
                 
-                // Always use HTML conversion for cover letter (for now)
-                downloadAsDocx(modifiedCoverLetterHtml, getDocxFilename('cover-letter'));
+                // Use professional generator for cover letter
+                downloadCoverLetterAsDocxPowerful(getDocxFilename('cover-letter'));
               }}
               className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-6 py-3 rounded-lg font-medium transition-all hover:shadow-lg flex items-center gap-2"
             >

@@ -49,6 +49,14 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   onSave,
   onClose
 }) => {
+  // Log props received at component entry
+  console.log('[AIEnhancementModal] ===== COMPONENT PROPS =====');
+  console.log('[AIEnhancementModal] applicationData received:', applicationData);
+  console.log('[AIEnhancementModal] company_name:', applicationData?.company_name);
+  console.log('[AIEnhancementModal] position:', applicationData?.position);
+  console.log('[AIEnhancementModal] location:', applicationData?.location);
+  console.log('[AIEnhancementModal] ================================');
+  
   const dispatch = useAppDispatch();
   const {
     selectedFileMeta,
@@ -475,6 +483,11 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
             setExtractionProgress(stage);
             setProgressPercentage(percentage);
           }
+        },
+        {
+          company_name: applicationData?.company_name,
+          position: applicationData?.position,
+          location: applicationData?.location
         }
       );
 
@@ -546,7 +559,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           sectionRecommendations: enhancementResult.analysis.section_recommendations,
           // Add detailed sections
           detailedResumeSections: enhancementResult.enhancements.detailed_resume_sections || {},
-          detailedCoverLetter: enhancementResult.enhancements.detailed_cover_letter || {}
+          detailed_cover_letter: enhancementResult.enhancements.detailed_cover_letter || {}
         },
 
         // Enhanced metadata
@@ -581,8 +594,12 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         extractedText: resumeText
       };
 
-      console.log('✅ Setting optimization results:', optimizationResults);
-      console.log('✅ About to show results screen...');
+      console.log('✅ [handleAIEnhance] Setting optimization results');
+      console.log('✅ [handleAIEnhance] applicationData being stored:', applicationData);
+      console.log('✅ [handleAIEnhance] applicationData.company_name:', applicationData?.company_name);
+      console.log('✅ [handleAIEnhance] applicationData.position:', applicationData?.position);
+      console.log('✅ [handleAIEnhance] applicationData.location:', applicationData?.location);
+      console.log('✅ [handleAIEnhance] About to show results screen...');
 
       // Set results first
       dispatch(setOptimizationResults(optimizationResults));
@@ -680,6 +697,11 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           fileId: documentId,
           userPromptOverride: customPrompt.trim() || aiPrompt,
           systemPromptOverride: systemPrompt
+        },
+        {
+          company_name: applicationData?.company_name,
+          position: applicationData?.position,
+          location: applicationData?.location
         }
       );
 
@@ -1791,9 +1813,66 @@ const generateDetailedResumeHTML = (results: any): string => {
   `;
 };
 
+// Helper function to strip contact information from text
+const stripContactInfo = (text: string): string => {
+  if (!text) return text;
+  
+  // Remove lines that are just contact info (email, phone, location on one line)
+  const lines = text.split('\n').filter(line => {
+    const trimmed = line.trim();
+    // Skip lines that look like contact info
+    if (/^[\w.-]+@[\w.-]+\.[a-z]{2,}(\s*[•·]\s*[\d\s()+-]+)?(\s*[•·]\s*\w+)?$/i.test(trimmed)) {
+      return false;
+    }
+    return true;
+  });
+  
+  return lines.join('\n').trim();
+};
+
 const generateDetailedCoverLetterHTML = (results: any): string => {
-  const coverLetter = results.aiEnhancements?.detailedCoverLetter || {};
-  const jobDetails = results.applicationData || {};
+  console.log('[generateDetailedCoverLetterHTML] ===== DEBUGGING START =====');
+  console.log('[generateDetailedCoverLetterHTML] Full results keys:', Object.keys(results || {}));
+  console.log('[generateDetailedCoverLetterHTML] applicationData:', results.applicationData);
+  console.log('[generateDetailedCoverLetterHTML] applicationData keys:', Object.keys(results.applicationData || {}));
+  console.log('[generateDetailedCoverLetterHTML] applicationData.company_name:', results.applicationData?.company_name);
+  console.log('[generateDetailedCoverLetterHTML] applicationData.position:', results.applicationData?.position);
+  console.log('[generateDetailedCoverLetterHTML] applicationData.location:', results.applicationData?.location);
+  console.log('[generateDetailedCoverLetterHTML] aiEnhancements:', results.aiEnhancements);
+  console.log('[generateDetailedCoverLetterHTML] detailed_cover_letter:', results.aiEnhancements?.detailed_cover_letter);
+  console.log('[generateDetailedCoverLetterHTML] 🔍 DETAILED COVER LETTER KEYS:', Object.keys(results.aiEnhancements?.detailed_cover_letter || {}));
+  console.log('[generateDetailedCoverLetterHTML] 🔍 IS EMPTY?:', Object.keys(results.aiEnhancements?.detailed_cover_letter || {}).length === 0);
+  console.log('[generateDetailedCoverLetterHTML] 🔍 opening_paragraph:', results.aiEnhancements?.detailed_cover_letter?.opening_paragraph);
+  console.log('[generateDetailedCoverLetterHTML] 🔍 body_paragraph:', results.aiEnhancements?.detailed_cover_letter?.body_paragraph);
+  console.log('[generateDetailedCoverLetterHTML] 🔍 closing_paragraph:', results.aiEnhancements?.detailed_cover_letter?.closing_paragraph);
+  
+  const coverLetter = results.aiEnhancements?.detailed_cover_letter || {};
+  
+  // Extract job details from multiple sources as fallback
+  const jobDetails = {
+    company_name: results.applicationData?.company_name || 
+                  results.applicationData?.companyName || 
+                  results.jobDetails?.company ||
+                  '',
+    position: results.applicationData?.position || 
+              results.applicationData?.positionTitle ||
+              results.jobDetails?.title ||
+              '',
+    location: results.applicationData?.location || 
+              results.applicationData?.companyLocation ||
+              results.jobDetails?.location ||
+              ''
+  };
+  
+  console.log('[generateDetailedCoverLetterHTML] Extracted jobDetails:', jobDetails);
+  console.log('[generateDetailedCoverLetterHTML] ===== DEBUGGING END =====');
+  
+  console.log('[generateDetailedCoverLetterHTML] Extracted coverLetter:', coverLetter);
+  console.log('[generateDetailedCoverLetterHTML] Extracted jobDetails:', jobDetails);
+  console.log('[generateDetailedCoverLetterHTML] jobDetails.company_name:', jobDetails.company_name);
+  console.log('[generateDetailedCoverLetterHTML] jobDetails.position:', jobDetails.position);
+  console.log('[generateDetailedCoverLetterHTML] jobDetails.location:', jobDetails.location);
+  
   // prefer profile -> auth user -> parsed resume -> placeholder
   const profile = results.detailedUserProfile || {};
   const authUser = results.user || {};
@@ -1827,13 +1906,12 @@ const generateDetailedCoverLetterHTML = (results: any): string => {
       <header style="text-align: center; margin-bottom: 30px;">
         <h1 style="font-size: 22px; margin-bottom: 8px; color: #1f2937; font-weight: 600;">${name}</h1>
         <div style="font-size: 13px; color: #6b7280;">
-          <div>${email}${phone ? ` • ${phone}` : ''}</div>
-          ${location ? `<div>${location}</div>` : ''}
+          ${email}${phone ? ` • ${phone}` : ''}${location ? ` • ${location}` : ''}
         </div>
       </header>
 
       <!-- Date -->
-      <div style="margin-bottom: 25px; text-align: right;">
+      <div style="margin-bottom: 25px; text-align: left;">
         <p style="font-size: 13px; color: #6b7280; margin: 0;">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
       </div>
 
@@ -1841,15 +1919,15 @@ const generateDetailedCoverLetterHTML = (results: any): string => {
       <div style="margin-bottom: 25px;">
         <p style="font-size: 13px; color: #374151; margin: 0; line-height: 1.4;">
           Hiring Manager<br>
-          ${jobDetails.company_name || 'Company Name'}<br>
-          ${jobDetails.location || 'Company Location'}
+          ${jobDetails.company_name || '[Company Name - Please update in application form]'}<br>
+          ${jobDetails.location || '[Location - Please update in application form]'}
         </p>
       </div>
 
       <!-- Subject Line -->
       <div style="margin-bottom: 20px;">
         <p style="font-size: 13px; color: #374151; margin: 0;">
-          <strong>Re: Application for ${jobDetails.position || 'Position Title'}</strong>
+          <strong>Re: Application for ${jobDetails.position || '[Position - Please update in application form]'}</strong>
         </p>
       </div>
 
@@ -1861,27 +1939,21 @@ const generateDetailedCoverLetterHTML = (results: any): string => {
       <!-- Opening Paragraph -->
       <div style="margin-bottom: 20px;">
         <p style="font-size: 13px; line-height: 1.6; text-align: justify; color: #374151; margin: 0;">
-          ${coverLetter.opening_paragraph ||
-    `I am writing to express my strong interest in the ${jobDetails.position || 'Position Title'} role at ${jobDetails.company_name || 'Company Name'}. With my comprehensive background in relevant technologies and proven track record of delivering exceptional results, I am excited about the opportunity to contribute to your team's continued success. My experience aligns perfectly with your requirements, and I am particularly drawn to this position because of its potential for professional growth and the company's reputation for innovation. Having researched your organization extensively, I am confident that my skills and passion make me an ideal candidate for this role.`
-    }
+          ${stripContactInfo(coverLetter.opening_paragraph) || `I am writing to express my strong interest in the ${jobDetails.position || 'Position Title'} role at ${jobDetails.company_name || 'Company Name'}. Based on my background and experience, I am confident that I can contribute meaningfully to your team's success.`}
         </p>
       </div>
 
       <!-- Body Paragraph -->
       <div style="margin-bottom: 20px;">
         <p style="font-size: 13px; line-height: 1.6; text-align: justify; color: #374151; margin: 0;">
-          ${coverLetter.body_paragraph ||
-    `Throughout my career, I have developed extensive expertise in key areas that directly align with your job requirements. In my previous roles, I have successfully led cross-functional teams, implemented innovative solutions that improved efficiency by significant percentages, and consistently delivered projects on time and within budget. My technical skills encompass the full range of technologies mentioned in your job posting, and I have applied these in real-world scenarios to drive measurable business outcomes. For example, I spearheaded initiatives that resulted in substantial cost savings, improved user satisfaction scores, and enhanced system performance metrics. I am particularly excited about the opportunity to bring my passion for problem-solving and my collaborative approach to your dynamic team, where I can contribute to achieving your organization's strategic objectives while continuing to grow professionally. My experience in stakeholder management, agile methodologies, and continuous improvement positions me well to make an immediate impact in this role.`
-    }
+          ${stripContactInfo(coverLetter.body_paragraph) || `My experience aligns well with the requirements for this role. I have developed relevant skills and competencies that would enable me to contribute effectively to ${jobDetails.company_name || 'your organization'}. I am particularly drawn to this opportunity because it aligns with my professional goals and interests.`}
         </p>
       </div>
 
       <!-- Closing Paragraph -->
       <div style="margin-bottom: 25px;">
         <p style="font-size: 13px; line-height: 1.6; text-align: justify; color: #374151; margin: 0;">
-          ${coverLetter.closing_paragraph ||
-    `I am eager to discuss how my background, skills, and enthusiasm can contribute to ${jobDetails.company_name || 'your company'}'s continued success. I would welcome the opportunity to speak with you about how I can add value to your team and help achieve your business goals. Thank you for your time and consideration. I look forward to hearing from you soon and am available at your convenience for an interview.`
-    }
+          ${stripContactInfo(coverLetter.closing_paragraph) || `I would welcome the opportunity to discuss how my background and skills can contribute to ${jobDetails.company_name || 'your team'}'s success. Thank you for your time and consideration. I look forward to hearing from you.`}
         </p>
       </div>
 
