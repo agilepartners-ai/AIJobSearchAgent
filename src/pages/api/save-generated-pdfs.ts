@@ -200,52 +200,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const uploadAndGetUrl = async (buffer: Buffer, filename: string) => {
       const file = bucket.file(filename);
-      try {
-        // If file already exists in the bucket, avoid overwriting and reuse it
-        const [exists] = await file.exists();
-        if (exists) {
-          console.info('[save-generated-pdfs] File already exists in storage, reusing:', filename);
-        } else {
-          await file.save(buffer, { contentType: 'application/pdf' });
-          console.info('[save-generated-pdfs] File saved to storage:', filename);
-        }
 
-        // Return a signed URL (read) valid for 30 days
-        // Use Date object for better compatibility with Firebase v4 signing
-        try {
-          const expirationDate = new Date();
-          expirationDate.setDate(expirationDate.getDate() + 30); // 30 days from now
-          
-          console.log('[save-generated-pdfs] Generating signed URL with expiration:', expirationDate.toISOString());
-          
-          const [signedUrl] = await file.getSignedUrl({
-            version: 'v4',
-            action: 'read',
-            expires: expirationDate,
-          });
-          
-          console.log('[save-generated-pdfs] Signed URL generated successfully');
-          return signedUrl;
-        } catch (e: any) {
-          console.error('[save-generated-pdfs] getSignedUrl failed:', e.message);
-          console.warn('[save-generated-pdfs] Falling back to public URL or gs:// path');
-          
-          // Try to make the file public as a fallback
-          try {
-            await file.makePublic();
-            const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
-            console.log('[save-generated-pdfs] Using public URL:', publicUrl);
-            return publicUrl;
-          } catch (publicError) {
-            console.warn('[save-generated-pdfs] Could not make file public, returning gs:// path');
-            return `gs://${bucket.name}/${filename}`;
-          }
-        }
+      try {
+        // 🔁 ALWAYS overwrite the file
+        await file.save(buffer, {
+          contentType: 'application/pdf',
+          resumable: false,
+          metadata: {
+            cacheControl: 'no-store', // prevent CDN caching old versions
+          },
+        });
+
+        console.info('[save-generated-pdfs] File overwritten in storage:', filename);
+
+        // Generate signed URL (30 days)
+        // v4 signed URLs have a hard max of 7 days
+        const expirationDate = new Date(Date.now() + 6.5 * 24 * 60 * 60 * 1000); // 6.5 days (safe margin)
+
+        const [signedUrl] = await file.getSignedUrl({
+          version: 'v4',
+          action: 'read',
+          expires: expirationDate,
+        });
+        return signedUrl;
+
+
+        return signedUrl;
       } catch (e) {
-        console.error('[save-generated-pdfs] uploadAndGetUrl error for', filename, e);
+        console.error('[save-generated-pdfs] uploadAndGetUrl failed for', filename, e);
         throw e;
       }
     };
+
 
     const resumeFilename = `ApplicationDocuments/${jobApplicationId}_resume.pdf`;
     const coverLetterFilename = `ApplicationDocuments/${jobApplicationId}_coverletter.pdf`;
