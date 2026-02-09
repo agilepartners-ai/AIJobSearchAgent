@@ -102,6 +102,7 @@ const LoginForm: React.FC = () => {
               </label>
               <input
                 id="email"
+                data-testid="login-email"
                 type="email"
                 required
                 value={email}
@@ -117,6 +118,7 @@ const LoginForm: React.FC = () => {
               <div className="relative">
                 <input
                   id="password"
+                  data-testid="login-password"
                   type={showPassword ? "text" : "password"}
                   required
                   value={password}
@@ -163,6 +165,7 @@ const LoginForm: React.FC = () => {
 
           <button
             type="submit"
+            data-testid="login-submit"
             disabled={loading}
             className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-medium text-white bg-gradient-to-r from-blue-600/90 to-purple-600/90 hover:from-blue-600 hover:to-purple-600 dark:from-blue-700/90 dark:to-purple-700/90 dark:hover:from-blue-700 dark:hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 backdrop-blur-sm transition-all hover:shadow-blue-500/20 hover:shadow-xl"
           >
