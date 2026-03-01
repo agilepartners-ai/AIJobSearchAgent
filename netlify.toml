@@ -2,11 +2,16 @@
   command = "npm run build"
   publish = ".next"
   base = "/"
+  
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
   CI = "false"
   NEXT_PUBLIC_ENABLE_ENHANCEMENT_TRACKING = "true"
+  
+# Timeout and retry settings for git operations
+[build.processing]
+  skip_go_digest_check = false
 
 # Optional: Custom headers for security
 [[headers]]
@@ -26,3 +31,7 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Git settings for improved reliability
+[context.production.environment]
+  GIT_LFS_SKIP_SMUDGE = "1"

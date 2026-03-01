@@ -376,10 +376,11 @@ export class DocxResumeGenerator {
               size: 28,
               bold: true,
               color: "1F2937",
+              font: "Calibri", // Professional ATS-compatible font
             },
             paragraph: {
               spacing: {
-                after: 240,
+                after: 160, // Reduced from 240 to 160 (8pt to ~5.3pt)
               },
               alignment: AlignmentType.CENTER,
             },
@@ -395,18 +396,19 @@ export class DocxResumeGenerator {
               bold: true,
               color: "1F2937",
               allCaps: true,
+              font: "Calibri",
             },
             paragraph: {
               spacing: {
-                before: 240,
-                after: 120,
+                before: 160, // Reduced from 240 to 160
+                after: 80, // Reduced from 120 to 80
               },
               border: {
                 bottom: {
-                  color: "E5E7EB",
+                  color: "2563EB", // Changed to blue for premium look
                   space: 1,
                   style: BorderStyle.SINGLE,
-                  size: 6,
+                  size: 8, // Slightly thicker from 6 to 8
                 },
               },
             },
@@ -419,10 +421,11 @@ export class DocxResumeGenerator {
             run: {
               size: 22,
               color: "374151",
+              font: "Calibri",
             },
             paragraph: {
               spacing: {
-                line: 276,
+                line: 230, // Tightened from 276 to 230 for 1.15 line-height
               },
               alignment: AlignmentType.CENTER,
             },
@@ -436,10 +439,11 @@ export class DocxResumeGenerator {
               size: 24,
               bold: true,
               color: "111827",
+              font: "Calibri",
             },
             paragraph: {
               spacing: {
-                after: 80,
+                after: 60, // Reduced from 80 to 60
               },
             },
           },
@@ -452,10 +456,11 @@ export class DocxResumeGenerator {
               size: 20,
               bold: true,
               color: "1F2937",
+              font: "Calibri",
             },
             paragraph: {
               spacing: {
-                after: 80,
+                after: 60, // Reduced from 80 to 60
               },
             },
           },
@@ -467,10 +472,12 @@ export class DocxResumeGenerator {
             run: {
               size: 20,
               color: "2C3E50",
+              font: "Calibri",
             },
             paragraph: {
               spacing: {
-                after: 80,
+                after: 60, // Reduced from 80 to 60
+                line: 230, // Added tight line spacing (1.15 equivalent)
               },
               indent: {
                 left: convertInchesToTwip(0.3),
@@ -508,10 +515,10 @@ export class DocxResumeGenerator {
           properties: {
             page: {
               margin: {
-                top: convertInchesToTwip(1),
-                right: convertInchesToTwip(1),
-                bottom: convertInchesToTwip(1),
-                left: convertInchesToTwip(1),
+                top: convertInchesToTwip(0.8), // Reduced from 1 to 0.8 inch for compact layout
+                right: convertInchesToTwip(0.8),
+                bottom: convertInchesToTwip(0.8),
+                left: convertInchesToTwip(0.8),
               },
             },
           },
@@ -572,10 +579,11 @@ export class DocxResumeGenerator {
             size: 56,
             bold: true,
             color: "1F2937",
+            font: "Calibri",
           }),
         ],
         alignment: AlignmentType.CENTER,
-        spacing: { after: 120 },
+        spacing: { after: 80 }, // Reduced from 120 to 80
       })
     );
 
@@ -599,10 +607,11 @@ export class DocxResumeGenerator {
               text: contactInfo.join(" • "),
               size: 22,
               color: "374151",
+              font: "Calibri",
             }),
           ],
           alignment: AlignmentType.CENTER,
-          spacing: { after: 400 },
+          spacing: { after: 200 }, // Reduced from 400 to 200
         })
       );
     }
@@ -619,7 +628,7 @@ export class DocxResumeGenerator {
             size: 12,
           },
         },
-        spacing: { after: 300 },
+        spacing: { after: 160 }, // Reduced from 300 to 160
       })
     );
 
@@ -643,9 +652,10 @@ export class DocxResumeGenerator {
             bold: true,
             color: "1F2937",
             allCaps: true,
+            font: "Calibri",
           }),
         ],
-        spacing: { before: 240, after: 120 },
+        spacing: { before: 160, after: 80 }, // Reduced from 240/120 to 160/80
         border: {
           bottom: {
             color: "2563EB",
@@ -661,9 +671,10 @@ export class DocxResumeGenerator {
             text: summary,
             size: 22,
             color: "374151",
+            font: "Calibri",
           }),
         ],
-        spacing: { after: 240, line: 300 },
+        spacing: { after: 160, line: 230 }, // Reduced from 240 to 160, line from 300 to 230 for 1.15
         alignment: AlignmentType.JUSTIFIED,
       }),
     ];
@@ -2258,10 +2269,10 @@ export class DocxResumeGenerator {
           properties: {
             page: {
               margin: {
-                top: convertInchesToTwip(1),
-                right: convertInchesToTwip(1),
-                bottom: convertInchesToTwip(1),
-                left: convertInchesToTwip(1),
+                top: convertInchesToTwip(0.8), // Reduced from 1 to 0.8 inch for compact layout
+                right: convertInchesToTwip(0.8),
+                bottom: convertInchesToTwip(0.8),
+                left: convertInchesToTwip(0.8),
               },
             },
           },
@@ -2274,6 +2285,7 @@ export class DocxResumeGenerator {
                   bold: true,
                   size: 28,
                   color: "1F2937",
+                  font: "Calibri",
                 }),
               ],
               alignment: AlignmentType.CENTER,
