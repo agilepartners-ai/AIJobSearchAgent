@@ -9,24 +9,25 @@ const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
     backgroundColor: '#FFFFFF',
-    padding: 40,
+    padding: 32, // Reduced from 40 to 32 for tighter margins
     fontFamily: 'Helvetica',
     fontSize: 10.5,
-    lineHeight: 1.4,
+    lineHeight: 1.15, // Tightened from 1.4 to 1.15 for compact layout
     color: '#000000',
   },
 
   // Header styles
   header: {
-    marginBottom: 16, // Reduced from 20 to 16
+    marginBottom: 4, // Further reduced to tighten gap before first section
     borderBottom: '2 solid #2563EB',
-    paddingBottom: 15, // Reduced from 15 to 12
+    paddingBottom: 4, // Reduced to tighten gap between contact line and divider
   },
   name: {
     fontSize: 26,
     fontWeight: 'bold',
     color: '#1F2937',
-    marginBottom: 16, // Increased from 10 to 16 for more space between name and contact info
+    marginBottom: 4, // Further reduced for tighter name/contact gap
+    lineHeight: 1.15,
     textAlign: 'center',
     letterSpacing: 0.6,
   },
@@ -34,44 +35,47 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#374151',
     textAlign: 'center',
-    marginBottom: 6,
-    lineHeight: 1.3,
+    marginBottom: 2,
+    lineHeight: 1.1,
   },
   contactLine: {
     flexDirection: 'row',
     justifyContent: 'center',
     flexWrap: 'wrap',
-    marginBottom: 3,
+    marginTop: 0,
+    marginBottom: 1,
   },
   section: {
-    marginBottom: 6, // Reduced from 10 to 6 for tighter spacing
+    marginBottom: 4, // Reduced from 6 to 4 for tighter spacing
+    paddingTop: 4, // Added padding for separation
+    borderTop: '1 solid #E5E7EB', // Added separator line between sections
   },
   sectionTitle: {
     fontSize: 13,
     fontWeight: 'bold',
     color: '#1F2937',
     textTransform: 'uppercase',
-    borderBottom: '1 solid #E5E7EB',
-    paddingBottom: 3,
-    marginBottom: 4, // Reduced from 6 to 4
+    borderBottom: '1.5 solid #2563EB', // Enhanced separator with blue color
+    paddingBottom: 2, // Reduced from 3 to 2
+    marginBottom: 3, // Reduced from 4 to 3
     letterSpacing: 0.7,
   },
   summaryContainer: {
-    marginBottom: 8, // Reduced from 10 to 8 for better spacing
+    marginBottom: 6, // Reduced from 8 to 6 for compact layout
   },
   summaryText: {
     fontSize: 10.2,
-    lineHeight: 1.35,
-    marginBottom: 3,
+    lineHeight: 1.15, // Tightened from 1.35 to 1.15
+    marginBottom: 2, // Reduced from 3 to 2
     color: '#374151',
     textAlign: 'justify'
   },
   competencyParagraph: {
     fontSize: 9.5,
-    lineHeight: 1.4,
+    lineHeight: 1.15, // Tightened from 1.4 to 1.15
     color: '#374151',
     textAlign: 'justify',
-    marginBottom: 3,
+    marginBottom: 2, // Reduced from 3 to 2
   },
   skillGroupRow: {
     flexDirection: 'row',
@@ -107,16 +111,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold'
   },
   experienceItem: {
-    marginBottom: 6, // Standard spacing for work experience
+    marginBottom: 5, // Reduced from 6 to 5 for tighter spacing
   },
   jobTitleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 2,
+    marginBottom: 1.5, // Reduced from 2 to 1.5
   },
   jobTitle: {
     fontSize: 11.5,
-    fontWeight: 'bold',
+    fontWeight: 'bold', // Already bold for prominence
     color: '#111827',
     flex: 1,
     paddingRight: 6,
@@ -128,11 +132,11 @@ const styles = StyleSheet.create({
   companyRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 2,
+    marginBottom: 1.5, // Reduced from 2 to 1.5
   },
   companyName: {
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: 'bold', // Already bold for prominence
     color: '#1F2937',
   },
   jobLocation: {
@@ -141,7 +145,7 @@ const styles = StyleSheet.create({
   },
   bulletContainer: {
     flexDirection: 'row',
-    marginBottom: 2,
+    marginBottom: 1.5, // Reduced from 2 to 1.5 for tighter bullets
     alignItems: 'flex-start',
   },
   bulletPoint: {
@@ -153,7 +157,7 @@ const styles = StyleSheet.create({
   bulletText: {
     flex: 1,
     fontSize: 9.2,
-    lineHeight: 1.28,
+    lineHeight: 1.15, // Tightened from 1.28 to 1.15
     color: '#2C3E50',
     textAlign: 'justify'
   },
@@ -162,16 +166,16 @@ const styles = StyleSheet.create({
     color: '#0F3D7A'
   },
   educationItem: {
-    marginBottom: 4, // Reduced from 6 to 4 for tighter spacing
+    marginBottom: 4, // Compact spacing for education items
   },
   degreeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 2,
+    marginBottom: 1.5, // Reduced from 2 to 1.5
   },
   degree: {
     fontSize: 11,
-    fontWeight: 'bold',
+    fontWeight: 'bold', // Already bold for prominence
     color: '#1F2937',
     flex: 1,
     paddingRight: 6,
@@ -191,12 +195,12 @@ const styles = StyleSheet.create({
     color: '#2C3E50',
   },
   projectItem: {
-    marginBottom: 6, // Reduced from 8 to 6 for tighter spacing
+    marginBottom: 5, // Reduced from 6 to 5 for tighter spacing
   },
   projectTitleLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 2,
+    marginBottom: 1.5, // Reduced from 2 to 1.5
   },
   keyword: {
     backgroundColor: '#FEF9C3',
@@ -222,7 +226,7 @@ const styles = StyleSheet.create({
   },
   projectTitle: {
     fontSize: 11,
-    fontWeight: 'bold',
+    fontWeight: 'bold', // Already bold for prominence
     color: '#1F2937',
   },
   projectDuration: {
@@ -231,15 +235,15 @@ const styles = StyleSheet.create({
   },
   projectDescription: {
     fontSize: 10,
-    lineHeight: 1.3,
+    lineHeight: 1.15, // Tightened from 1.3 to 1.15
     color: '#374151',
-    marginBottom: 4,
+    marginBottom: 3, // Reduced from 4 to 3
     textAlign: 'justify',
   },
   projectBulletRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 2,
+    marginBottom: 1.5, // Reduced from 2 to 1.5
   },
   projectBulletMarker: {
     width: 10,
@@ -250,7 +254,7 @@ const styles = StyleSheet.create({
   projectBulletText: {
     flex: 1,
     fontSize: 9.5,
-    lineHeight: 1.3,
+    lineHeight: 1.15, // Tightened from 1.3 to 1.15
     color: '#2C3E50',
     textAlign: 'justify',
   },

@@ -155,10 +155,10 @@ const HTMLResumeTemplate: React.FC<HTMLResumeTemplateProps> = ({
     <title>${finalProfile.name} - Resume</title>
     <style>
         body {
-            font-family: 'Calibri', 'Arial', sans-serif;
-            line-height: 1.6;
+            font-family: 'Calibri', 'Arial', 'Helvetica', sans-serif; /* Calibri prioritized */
+            line-height: 1.15; /* Tightened from 1.6 to 1.15 for compact layout */
             margin: 0;
-            padding: 40px;
+            padding: 30px; /* Reduced from 40px to 30px for tighter margins (~0.4 inch) */
             color: #333333;
             background-color: #ffffff;
             font-size: 11pt;
@@ -166,31 +166,35 @@ const HTMLResumeTemplate: React.FC<HTMLResumeTemplateProps> = ({
         
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 6px;
             border-bottom: 2px solid #2563EB;
-            padding-bottom: 20px;
+            padding-bottom: 4px;
         }
         
         .name {
             font-size: 28pt;
             font-weight: bold;
             color: #1F2937;
-            margin-bottom: 12px;
+            margin-bottom: 4px; /* Further reduced for tighter name/contact gap */
+            line-height: 1.15;
             letter-spacing: 0.5pt;
         }
         
         .contact-info {
             font-size: 11pt;
             color: #374151;
-            line-height: 1.4;
+            line-height: 1.1;
+            margin-top: 0;
         }
         
         .contact-line {
-            margin-bottom: 4px;
+            margin-bottom: 1px;
         }
         
         .section {
-            margin-bottom: 24px;
+            margin-bottom: 12px; /* Reduced from 24px to 12px for compact layout */
+            padding-top: 6px; /* Added separator spacing */
+            border-top: 1px solid #E5E7EB; /* Added subtle separator line between sections */
             page-break-inside: avoid;
         }
         
@@ -199,16 +203,16 @@ const HTMLResumeTemplate: React.FC<HTMLResumeTemplateProps> = ({
             font-weight: bold;
             color: #1F2937;
             text-transform: uppercase;
-            border-bottom: 1px solid #E5E7EB;
-            padding-bottom: 4px;
-            margin-bottom: 12px;
+            border-bottom: 1.5px solid #2563EB; /* Enhanced with blue color and thicker border */
+            padding-bottom: 3px; /* Reduced from 4px to 3px */
+            margin-bottom: 8px; /* Reduced from 12px to 8px */
             letter-spacing: 0.8pt;
         }
         
         .summary-text {
             font-size: 11pt;
-            line-height: 1.5;
-            margin-bottom: 8px;
+            line-height: 1.15; /* Tightened from 1.5 to 1.15 */
+            margin-bottom: 6px; /* Reduced from 8px to 6px */
             color: #374151;
             text-align: justify;
         }
@@ -216,25 +220,25 @@ const HTMLResumeTemplate: React.FC<HTMLResumeTemplateProps> = ({
         .skills-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 8px;
-            margin-bottom: 16px;
+            gap: 6px; /* Reduced from 8px to 6px */
+            margin-bottom: 10px; /* Reduced from 16px to 10px */
         }
         
         .skill-group {
-            margin-bottom: 8px;
+            margin-bottom: 6px; /* Reduced from 8px to 6px */
         }
         
         .skill-group-label {
             font-weight: bold;
             color: #1F2937;
-            margin-bottom: 4px;
+            margin-bottom: 3px; /* Reduced from 4px to 3px */
             font-size: 10pt;
         }
         
         .skills-list {
             display: flex;
             flex-wrap: wrap;
-            gap: 4px;
+            gap: 3px; /* Reduced from 4px to 3px */
         }
         
         .skill-item {
@@ -254,12 +258,12 @@ const HTMLResumeTemplate: React.FC<HTMLResumeTemplateProps> = ({
         }
         
         .experience-item {
-            margin-bottom: 20px;
+            margin-bottom: 12px; /* Reduced from 20px to 12px for compact layout */
             page-break-inside: avoid;
         }
         
         .job-header {
-            margin-bottom: 4px;
+            margin-bottom: 3px; /* Reduced from 4px to 3px */
         }
         
         .job-title {
@@ -527,10 +531,10 @@ export const getCleanHTMLForDocs = (
     <title>${finalProfile.name} - Resume</title>
     <style>
         body {
-            font-family: 'Calibri', 'Arial', sans-serif;
-            line-height: 1.6;
+            font-family: 'Calibri', 'Arial', 'Helvetica', sans-serif; /* Calibri prioritized */
+            line-height: 1.15; /* Tightened from 1.6 to 1.15 for compact layout */
             margin: 0;
-            padding: 40px;
+            padding: 30px; /* Reduced from 40px to 30px for tighter margins (~0.4 inch) */
             color: #333333;
             background-color: #ffffff;
             font-size: 11pt;
@@ -538,23 +542,25 @@ export const getCleanHTMLForDocs = (
         
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 6px;
             border-bottom: 2px solid #2563EB;
-            padding-bottom: 20px;
+            padding-bottom: 4px;
         }
         
         .name {
             font-size: 28pt;
             font-weight: bold;
             color: #1F2937;
-            margin-bottom: 12px;
+            margin-bottom: 4px;
+            line-height: 1.15;
             letter-spacing: 0.5pt;
         }
         
         .contact-info {
             font-size: 11pt;
             color: #374151;
-            line-height: 1.4;
+            line-height: 1.15;
+            margin-top: 0;
         }
         
         .contact-line {
