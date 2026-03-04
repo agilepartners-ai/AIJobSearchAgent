@@ -4,8 +4,26 @@ import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
 import { UserProfileData } from '../../services/profileService';
 import { postProcessExperienceBullets, dedupeSkills } from '../../utils/resumeUtils';
 
+const enforceBlackTextColor = (target: unknown): unknown => {
+  if (Array.isArray(target)) {
+    return target.map((item) => enforceBlackTextColor(item));
+  }
+
+  if (target && typeof target === 'object') {
+    const normalized: Record<string, unknown> = {};
+    Object.entries(target as Record<string, unknown>).forEach(([key, value]) => {
+      normalized[key] = key === 'color' && typeof value === 'string'
+        ? '#000000'
+        : enforceBlackTextColor(value);
+    });
+    return normalized;
+  }
+
+  return target;
+};
+
 // Enhanced styles for maximum ATS compatibility and professional appearance
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(enforceBlackTextColor({
   page: {
     flexDirection: 'column',
     backgroundColor: '#FFFFFF',
@@ -673,7 +691,7 @@ const styles = StyleSheet.create({
     color: '#374151',
     lineHeight: 1.4,
   },
-});
+}) as any);
 
 interface ParsedExperience {
   title: string;
