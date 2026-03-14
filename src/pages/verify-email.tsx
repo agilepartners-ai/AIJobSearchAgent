@@ -67,14 +67,16 @@ const VerifyEmailPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white/10 rounded-2xl p-8 border border-white/20 text-center">
-        <h1 className="text-2xl font-bold text-white mb-3">Verify your email</h1>
-        <p className="text-blue-100 mb-4">
-          We’ve sent a verification link to{' '}
-          <span className="font-semibold">{user?.email}</span>. Click the link in that email, then
-          come back here and press “I’ve verified my email”.
-        </p>
+  <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+    <div className="w-full max-w-md bg-white/10 rounded-2xl p-8 border border-white/20 text-center">
+      <h1 className="text-2xl font-bold text-white mb-3">Verify your email</h1>
+      <p className="text-blue-100 mb-4">
+        We’ve sent a verification link to{' '}
+        <span className="font-semibold">{user?.email}</span>. Please click the link in that email to
+        verify your account. If you don’t see it, check your spam or junk folder. Once verified,
+        return here and press “I’ve verified my email”.
+      </p>
+
 
         {error && (
           <div className="mb-4 text-sm text-red-200 bg-red-500/20 border border-red-500/40 rounded-lg p-3">
