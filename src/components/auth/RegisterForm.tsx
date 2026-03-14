@@ -78,11 +78,8 @@ const RegisterForm: React.FC = () => {
       }
 
       // 3️⃣ Route them into the verification flow
-      if (formattedPhone) {
-        router.push('/verify-phone');
-      } else {
-        router.push('/verify-email');
-      }
+      router.push('/verify-email');
+      
     } catch (err: any) {
       setError(err.message || 'Failed to create account');
     } finally {
@@ -142,7 +139,7 @@ const RegisterForm: React.FC = () => {
                 placeholder="Enter your email"
               />
             </div>
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <label htmlFor="phone" className="block text-sm font-medium text-white dark:text-blue-100">
                 Phone number (optional)
               </label>
@@ -157,7 +154,7 @@ const RegisterForm: React.FC = () => {
               <p className="mt-1 text-sm text-blue-200/80 dark:text-blue-200/60">
                 Enter your 10-digit phone number. US numbers only (+1 will be added automatically)
               </p>
-            </div>
+            </div> */}
             <div className="space-y-2">
               <label htmlFor="password" className="block text-sm font-medium text-white dark:text-blue-100">
                 Password
