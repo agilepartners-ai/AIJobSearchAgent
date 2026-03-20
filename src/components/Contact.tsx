@@ -33,7 +33,7 @@ const Contact: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">Email Support</h3>
-                  <p className="text-gray-600 dark:text-gray-300">support@myjobsearchagent.com</p>
+                  <p className="text-gray-600 dark:text-gray-300">support@agilepartners-ai.com</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">24/7 response within 2 hours</p>
                 </div>
               </div>

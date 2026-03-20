@@ -108,11 +108,10 @@ const TavusWidget: React.FC<{ videoUrl: string }> = ({ videoUrl }) => {
 // Use local video file from public directory
 const TAVUS_VIDEO_URL = "/e3db768fa0.mp4";
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Video, User, LogOut, LayoutDashboard, Loader, ExternalLink, ArrowLeft, Crown } from 'lucide-react';
+import { Video, User, LogOut, LayoutDashboard, Loader, ExternalLink, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { getAuth, signOut } from 'firebase/auth';
 import { createConversation as createInterviewConversation } from '../../services/interviewService';
-import UpgradeModal from '../dashboard/UpgradeModal';
 
 const AIInterviewPage: React.FC = () => {
   const router = useRouter();
@@ -121,7 +120,6 @@ const AIInterviewPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [conversationData, setConversationData] = useState<any>(null);
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   // Extract job context from URL search params
   const jobTitle = searchParams.get('jobTitle') || '';
@@ -145,39 +143,6 @@ const AIInterviewPage: React.FC = () => {
     }
   };
 
-  const handleUpgrade = () => {
-    setIsUpgradeModalOpen(true);
-  };
-
-  const handleUpgradeConfirm = async () => {
-    if (!user) {
-      console.error("User not authenticated for upgrade.");
-      return;
-    }
-    try {
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId: user.id, email: user.email }),
-      });
-
-      const { checkoutUrl, error } = await response.json();
-
-      if (error) throw new Error(error);
-      
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl;
-      } else {
-        alert('Could not create checkout session.');
-      }
-    } catch (error: any) {
-      console.error('Error during upgrade confirmation:', error);
-      alert(error.message || 'An error occurred during the upgrade process.');
-    }
-    setIsUpgradeModalOpen(false);
-  };
   const createConversation = async () => {
     setLoading(true);
     setError('');
@@ -255,14 +220,6 @@ const AIInterviewPage: React.FC = () => {
               >
                 <LayoutDashboard size={14} />
                 <span>Dashboard</span>
-              </button>
-              <button
-                onClick={handleUpgrade}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-all text-sm font-medium shadow-lg hover:shadow-xl transform hover:scale-105 relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 opacity-0 group-hover:opacity-20 transition-opacity"></div>
-                <Crown size={16} className="relative z-10" />
-                <span className="relative z-10 font-semibold">Upgrade Pro</span>
               </button>
               <button 
                 onClick={handleSignOut}
@@ -417,13 +374,6 @@ const AIInterviewPage: React.FC = () => {
         </div>
       </main>
     </div>
-
-    <UpgradeModal
-      isOpen={isUpgradeModalOpen}
-      onClose={() => setIsUpgradeModalOpen(false)}
-      onConfirm={handleUpgradeConfirm}
-      userProfile={userProfile}
-    />
     </>
   );
 };
