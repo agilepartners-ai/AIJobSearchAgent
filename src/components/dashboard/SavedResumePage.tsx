@@ -12,7 +12,6 @@ interface SavedResumePageProps {
   onJobPreferences: () => void;
   onUpdateProfile: () => void;
   onFindMoreJobs?: () => void;
-  onUpgrade: () => void;
   userProfile: any;
 }
 
@@ -22,7 +21,6 @@ const SavedResumePage: React.FC<SavedResumePageProps> = ({
   onJobPreferences,
   onUpdateProfile,
   onFindMoreJobs,
-  onUpgrade,
   userProfile
 }) => {
   const [applications, setApplications] = useState<JobApplication[]>([]);
@@ -131,7 +129,6 @@ const SavedResumePage: React.FC<SavedResumePageProps> = ({
         onFindMoreJobs={onFindMoreJobs}
         onAddApplication={onAddApplication}
         onSavedResume={() => {}} // Already on saved resume page
-        onUpgrade={onUpgrade}
       />
 
       <main className="ml-64 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

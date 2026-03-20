@@ -1,12 +1,11 @@
 import React from 'react';
-import { Search, Plus, Crown, BookOpen, LayoutDashboard } from 'lucide-react';
+import { Search, Plus, BookOpen, LayoutDashboard } from 'lucide-react';
 
 interface LeftSidebarProps {
   onDashboard?: () => void;
   onFindMoreJobs?: () => void;
   onAddApplication: () => void;
   onSavedResume: () => void;
-  onUpgrade: () => void;
 }
 
 const LeftSidebar: React.FC<LeftSidebarProps> = ({
@@ -14,7 +13,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   onFindMoreJobs,
   onAddApplication,
   onSavedResume,
-  onUpgrade,
 }) => {
   return (
     <div className="fixed left-0 top-0 h-full w-64 bg-gray-800 dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700 z-30">
@@ -66,14 +64,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
             >
               <BookOpen size={20} />
               <span>Saved Resume</span>
-            </button>
-
-            <button
-              onClick={onUpgrade}
-              className="w-full bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-lg flex items-center gap-3 transition-all text-sm font-semibold"
-            >
-              <Crown size={20} />
-              <span>Upgrade Pro</span>
             </button>
           </nav>
         </div>

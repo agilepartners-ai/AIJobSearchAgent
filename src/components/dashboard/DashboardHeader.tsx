@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Search, LogOut, User, Settings, ChevronDown, Menu, X, Crown } from 'lucide-react';
+import { Plus, Search, LogOut, User, Settings, ChevronDown, Menu, X } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import UpgradeModal from './UpgradeModal';
 
 interface UserProfileData {
   full_name?: string;
@@ -27,7 +26,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   const router = useRouter();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -37,33 +35,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     } catch (error) {
       console.error('Error signing out:', error);
     }
-  };
-
-  const handleUpgrade = () => {
-    setIsUpgradeModalOpen(true);
-  };
-
-  const handleUpgradeConfirm = async () => {
-    try {
-      const originalBeforeUnload = window.onbeforeunload;
-      window.onbeforeunload = null;
-      
-      const auth = getAuth();
-      const currentUser = auth.currentUser;
-
-      if (currentUser && currentUser.uid) {
-        const paymentUrl = `https://pay.rev.cat/sandbox/evfhfhevsehbykku/${currentUser.uid}`;
-        window.location.href = paymentUrl;
-      } else {
-        window.onbeforeunload = originalBeforeUnload;
-        alert('Please log in to upgrade your subscription.');
-        router.push('/login');
-      }
-    } catch (error) {
-      console.error('Error getting user for upgrade:', error);
-      alert('There was an error processing your request. Please try again.');
-    }
-    setIsUpgradeModalOpen(false);
   };
 
   const toggleProfileDropdown = () => {
@@ -201,13 +172,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             </div>
           )}
       </header>
-
-      <UpgradeModal
-        isOpen={isUpgradeModalOpen}
-        onClose={() => setIsUpgradeModalOpen(false)}
-        onConfirm={handleUpgradeConfirm}
-        userProfile={userProfile}
-      />
     </>
   );
 };

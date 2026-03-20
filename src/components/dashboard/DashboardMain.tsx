@@ -432,12 +432,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleUpgrade = () => {
-    // Open upgrade URL in same tab for better user experience
-    const paymentUrl = `https://pay.rev.cat/sandbox/evfhfhevsehbykku/${user?.id}`;
-    window.location.href = paymentUrl;
-  };
-
   const handleDashboard = () => {
     setShowSavedResumePage(false);
   };
@@ -488,7 +482,6 @@ const Dashboard: React.FC = () => {
         onJobPreferences={handleJobPreferences}
         onUpdateProfile={handleUpdateProfile}
         onFindMoreJobs={handleFindMoreJobs}
-        onUpgrade={handleUpgrade}
         userProfile={userProfile}
       />
     );
@@ -510,7 +503,6 @@ const Dashboard: React.FC = () => {
         onFindMoreJobs={handleFindMoreJobs}
         onAddApplication={handleAddApplication}
         onSavedResume={handleSavedResume}
-        onUpgrade={handleUpgrade}
       />
 
       {/* Main Content Area - Accounts for header and sidebar */}
