@@ -606,31 +606,31 @@ const OptimizationResults: React.FC<OptimizationResultsProps> = ({ results, jobD
   const getScoreBadge = (score: number) => {
     if (score >= 85) {
       return {
-        className: 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200',
-        icon: <Target className="text-green-600" size={24} />,
+        className: 'bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/40 dark:to-emerald-900/40 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700',
+        icon: <Target className="text-green-600 dark:text-green-400" size={24} />,
         label: 'Excellent Match',
-        color: 'text-green-600',
+        color: 'text-green-600 dark:text-green-400',
       };
     } else if (score >= 70) {
       return {
-        className: 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border-blue-200',
-        icon: <CheckCircle className="text-blue-600" size={24} />,
+        className: 'bg-gradient-to-r from-blue-100 to-cyan-100 dark:from-blue-900/40 dark:to-cyan-900/40 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-700',
+        icon: <CheckCircle className="text-blue-600 dark:text-blue-400" size={24} />,
         label: 'Good Match',
-        color: 'text-blue-600',
+        color: 'text-blue-600 dark:text-blue-400',
       };
     } else if (score >= 50) {
       return {
-        className: 'bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border-yellow-200',
-        icon: <TrendingUp className="text-yellow-600" size={24} />,
+        className: 'bg-gradient-to-r from-yellow-100 to-amber-100 dark:from-yellow-900/40 dark:to-amber-900/40 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700',
+        icon: <TrendingUp className="text-yellow-600 dark:text-yellow-400" size={24} />,
         label: 'Fair Match',
-        color: 'text-yellow-600',
+        color: 'text-yellow-600 dark:text-yellow-400',
       };
     } else {
       return {
-        className: 'bg-gradient-to-r from-red-100 to-pink-100 text-red-800 border-red-200',
-        icon: <AlertCircle className="text-red-600" size={24} />,
+        className: 'bg-gradient-to-r from-red-100 to-pink-100 dark:from-red-900/40 dark:to-pink-900/40 text-red-800 dark:text-red-200 border-red-200 dark:border-red-700',
+        icon: <AlertCircle className="text-red-600 dark:text-red-400" size={24} />,
         label: 'Needs Improvement',
-        color: 'text-red-600',
+        color: 'text-red-600 dark:text-red-400',
       };
     }
   };
@@ -960,7 +960,7 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowPDFPreview(!showPDFPreview)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-700 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-00 dark:hover:bg-gray-600 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 dark:hover:text-white transition-colors"
                 >
                   <Eye size={16} />
                   {showPDFPreview ? 'Hide Preview' : 'Show Preview'}
@@ -969,12 +969,12 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
             </div>
 
             {/* Document Tabs */}
-            <div className="flex bg-gray-700 dark:bg-gray-700 rounded-lg p-1">
+            <div className="flex bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setActiveDocument('resume')}
                 className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${activeDocument === 'resume'
-                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-800 dark:hover:text-white'
                   }`}
               >
                 <FileText className="h-4 w-4 inline mr-2" />
@@ -983,8 +983,8 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
               <button
                 onClick={() => setActiveDocument('cover-letter')}
                 className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${activeDocument === 'cover-letter'
-                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-800 dark:hover:text-white'
                   }`}
               >
                 <Award className="h-4 w-4 inline mr-2" />
@@ -1001,7 +1001,7 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
               <div className="mb-4"></div>
 
               {/* Download Options */}
-              <div className="flex-1 bg-gray-50 dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-5 shadow-sm">
+              <div className="flex-1 bg-gray-50 dark:bg-gray-700/50 rounded-xl border-2 border-gray-200 dark:border-gray-600 p-5 shadow-sm">
                 <h4 className="font-bold text-gray-900 dark:text-white text-base mb-4 flex items-center gap-2">
                   <Download size={18} className="text-blue-600 dark:text-blue-400" />
                   Download Options
@@ -1114,7 +1114,7 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
         </div>
 
         {/* Keyword Analysis */}
-        <div className="bg-[#1f2937] rounded-xl p-6 border border-[#1f2937]">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             🔍 Keyword Analysis
           </h3>
@@ -1127,12 +1127,12 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {analysisResults.keywordAnalysis.coveredKeywords.length > 0 && (
               <div>
-                <h4 className="font-medium text-green-700 dark:text-green-400 mb-3">✅ Covered Keywords</h4>
+                <h4 className="font-medium text-green-700 dark:text-green-300 mb-3">✅ Covered Keywords</h4>
                 <div className="flex flex-wrap gap-2">
                   {analysisResults.keywordAnalysis.coveredKeywords.map((keyword, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1 bg-[rgb(22,163,74)] text-white rounded-full text-sm font-medium"
+                      className="px-3 py-1 bg-green-600 dark:bg-green-700 text-white rounded-full text-sm font-medium"
                     >
                       {keyword}
                     </span>
@@ -1143,12 +1143,12 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
 
             {analysisResults.keywordAnalysis.missingKeywords.length > 0 && (
               <div>
-                <h4 className="font-medium text-red-700 dark:text-red-400 mb-3">❌ Missing Keywords</h4>
+                <h4 className="font-medium text-red-700 dark:text-red-300 mb-3">❌ Missing Keywords</h4>
                 <div className="flex flex-wrap gap-2">
                   {analysisResults.keywordAnalysis.missingKeywords.map((keyword, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1 bg-[rgb(185,28,28)] text-white rounded-full text-sm font-medium"
+                      className="px-3 py-1 bg-red-700 dark:bg-red-800 text-white rounded-full text-sm font-medium"
                     >
                       {keyword}
                     </span>
@@ -1205,7 +1205,7 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
         </div>
 
         {/* Action Buttons */}
-        <div className="bg-[#1f2937] rounded-xl p-6 text-center border border-[#1f2937]">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 text-center border border-gray-200 dark:border-gray-700 shadow-sm">
           <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">🚀 Next Steps</h4>
           <p className="text-gray-600 dark:text-gray-300 mb-6">
             Your AI-optimized documents are ready! Download them in your preferred format and use them for your job applications.

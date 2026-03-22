@@ -213,6 +213,14 @@
     @apply bg-gray-800;
   }
 
+  .bg-gray-100 {
+    @apply bg-gray-700;
+  }
+
+  .bg-gray-200 {
+    @apply bg-gray-600;
+  }
+
   .text-gray-900 {
     @apply text-white;
   }
@@ -262,6 +270,14 @@
 
 .dark .bg-white {
   @apply bg-gray-800;
+}
+
+.dark .bg-gray-100 {
+  @apply bg-gray-700;
+}
+
+.dark .bg-gray-200 {
+  @apply bg-gray-600;
 }
 
 .dark .text-gray-900 {
