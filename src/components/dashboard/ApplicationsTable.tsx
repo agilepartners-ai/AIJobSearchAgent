@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { 
-  Search, Filter, Edit3, Eye, Trash2, ExternalLink, ChevronLeft, ChevronRight, Briefcase, Sparkles, LayoutGrid, LayoutList 
+  Search, Filter, Edit3, Eye, Trash2, ExternalLink, ChevronLeft, ChevronRight, Briefcase, Sparkles, LayoutGrid, LayoutList, ArrowUpDown, ArrowUp, ArrowDown 
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { JobApplication } from '../../services/firebaseJobApplicationService';
@@ -36,12 +36,68 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRightState, setCanScrollRightState] = useState(true);
   
+  // Sorting state
+  type SortField = 'company' | 'position' | 'status' | 'date' | 'updated';
+  const [sortField, setSortField] = useState<SortField>('updated');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  
   const filteredApplications = applications.filter(app => {
     const matchesSearch = (app.position || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (app.company_name || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Sorting logic
+  const sortedApplications = useMemo(() => {
+    const sorted = [...filteredApplications];
+    sorted.sort((a, b) => {
+      let aVal: string = '';
+      let bVal: string = '';
+      switch (sortField) {
+        case 'company':
+          aVal = (a.company_name || '').toLowerCase();
+          bVal = (b.company_name || '').toLowerCase();
+          break;
+        case 'position':
+          aVal = (a.position || '').toLowerCase();
+          bVal = (b.position || '').toLowerCase();
+          break;
+        case 'status':
+          aVal = (a.status || '').toLowerCase();
+          bVal = (b.status || '').toLowerCase();
+          break;
+        case 'date':
+          aVal = a.application_date || '';
+          bVal = b.application_date || '';
+          break;
+        case 'updated':
+          aVal = a.updated_at || '';
+          bVal = b.updated_at || '';
+          break;
+      }
+      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [filteredApplications, sortField, sortOrder]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const renderSortIcon = (field: SortField) => {
+    if (sortField !== field) return <ArrowUpDown size={14} className="ml-1 opacity-40" />;
+    return sortOrder === 'asc'
+      ? <ArrowUp size={14} className="ml-1" />
+      : <ArrowDown size={14} className="ml-1" />;
+  };
   
   // Update scroll button states
   const updateScrollButtons = () => {
@@ -230,7 +286,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                     WebkitOverflowScrolling: 'touch'
                   }}
                 >
-                  {filteredApplications.map((application) => (
+                  {sortedApplications.map((application) => (
                     <div
                       key={application.id}
                       className="relative flex-shrink-0 bg-white dark:bg-gray-700 rounded-xl shadow-lg transition-all duration-300 border border-gray-200 dark:border-gray-600 cursor-pointer flex flex-col h-[calc(100vh-22rem)]"
@@ -393,9 +449,9 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
             </div>
 
             {/* Carousel Indicators - Compact Design */}
-            {filteredApplications.length > 3 && (
+            {sortedApplications.length > 3 && (
               <div className="flex items-center justify-center gap-1.5 py-3">
-                {Array.from({ length: Math.ceil(filteredApplications.length / 3) }).map((_, pageIndex) => {
+                {Array.from({ length: Math.ceil(sortedApplications.length / 3) }).map((_, pageIndex) => {
                   const isActive = currentIndex === pageIndex;
                   return (
                     <button
@@ -420,7 +476,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                   );
                 })}
                 <span className="ml-2 text-xs text-gray-500 dark:text-gray-400 font-medium">
-                  {currentIndex + 1} / {Math.ceil(filteredApplications.length / 3)}
+                  {currentIndex + 1} / {Math.ceil(sortedApplications.length / 3)}
                 </span>
               </div>
             )}
@@ -442,20 +498,20 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 applications-table">
               <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
-                    Company
+                  <th onClick={() => handleSort('company')} className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider cursor-pointer select-none hover:bg-white/10 transition-colors">
+                    <span className="flex items-center">Company{renderSortIcon('company')}</span>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
-                    Position
+                  <th onClick={() => handleSort('position')} className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider cursor-pointer select-none hover:bg-white/10 transition-colors">
+                    <span className="flex items-center">Position{renderSortIcon('position')}</span>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
-                    Status
+                  <th onClick={() => handleSort('status')} className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider cursor-pointer select-none hover:bg-white/10 transition-colors">
+                    <span className="flex items-center">Status{renderSortIcon('status')}</span>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
-                    Applied Date
+                  <th onClick={() => handleSort('date')} className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider cursor-pointer select-none hover:bg-white/10 transition-colors">
+                    <span className="flex items-center">Applied Date{renderSortIcon('date')}</span>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
-                    Last Updated
+                  <th onClick={() => handleSort('updated')} className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider cursor-pointer select-none hover:bg-white/10 transition-colors">
+                    <span className="flex items-center">Last Updated{renderSortIcon('updated')}</span>
                   </th>
                   <th className="px-6 py-4 text-left text-sm font-bold uppercase tracking-wider">
                     Actions
@@ -463,7 +519,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredApplications.map((application, index) => (
+                {sortedApplications.map((application, index) => (
                   <tr 
                     key={application.id} 
                     className={`hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
