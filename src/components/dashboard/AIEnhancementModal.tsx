@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { X, Download, FileText, CheckCircle, AlertCircle, Target, TrendingUp, Award, Brain, Settings, Upload, HardDrive, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react';
-import OptimizationResults from './OptimizationResults';
+import OptimizationResults, { CoverLetterPDFDocument } from './OptimizationResults';
 import { ResumeExtractionService } from '../../services/resumeExtractionService';
 import { AIEnhancementService } from '../../services/aiEnhancementService';
 import { UserProfileData, ProfileService } from '../../services/profileService';
@@ -139,22 +139,36 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   }, [jobDescription, dispatch, persistedJobDescription]);
 
   // Helper: convert HTML string to a PDF data URL using @react-pdf/renderer and the existing PerfectHTMLToPDF
-  const htmlStringToPdfDataUrl = async (html: string, aiEnhancements?: any): Promise<string> => {
+  const htmlStringToPdfDataUrl = async (html: string, aiEnhancements?: any, forceCleanProfile?: boolean): Promise<string> => {
     if (typeof window === 'undefined') throw new Error('Client-side PDF generation only');
 
     // Create a new profile object to avoid mutating immutable state
     const baseProfile = resolvedProfile ?? { fullName: '', email: '', phone: '', location: '' };
     
-    // ⭐ CRITICAL: Create new object with detailedResumeSections (don't mutate)
-    const profile = aiEnhancements?.detailedResumeSections ? {
-      ...baseProfile,
-      detailedResumeSections: aiEnhancements.detailedResumeSections
-    } : { ...baseProfile };
-    
-    if (aiEnhancements?.detailedResumeSections) {
-      console.log('[PDF Generation] ✅ Passing detailedResumeSections with projects:', 
-        aiEnhancements.detailedResumeSections.projects?.length || 0);
+    // ⭐ CRITICAL: For cover letter, force a clean profile without detailedResumeSections
+    let profile: any;
+    if (forceCleanProfile) {
+      // ⭐ CRITICAL: Create a completely clean profile for cover letter
+      // Ensure NO detailedResumeSections are included
+      profile = {
+        fullName: baseProfile.fullName || '',
+        email: baseProfile.email || '',
+        phone: baseProfile.phone || '',
+        location: baseProfile.location || '',
+      };
+      console.log('[PDF Generation] 🔒 FORCE CLEAN PROFILE FOR COVER LETTER - No detailedResumeSections included');
+    } else if (aiEnhancements?.detailedResumeSections) {
+      // ⭐ CRITICAL: Create new object with detailedResumeSections (don't mutate)
+      profile = {
+        ...baseProfile,
+        detailedResumeSections: aiEnhancements.detailedResumeSections
+      };
+      if (aiEnhancements?.detailedResumeSections) {
+        console.log('[PDF Generation] ✅ Passing detailedResumeSections with projects:', 
+          aiEnhancements.detailedResumeSections.projects?.length || 0);
+      }
     } else {
+      profile = { ...baseProfile };
       console.warn('[PDF Generation] ⚠️ No detailedResumeSections available');
     }
 
@@ -216,6 +230,55 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       } catch (retryErr) {
         console.error('Renderer retry with remote fonts failed:', retryErr);
         throw new Error('Failed to generate PDF in the browser. See console logs for details.');
+      }
+    }
+  };
+
+  // ⭐ NEW: Convert cover letter PDF to data URL using CoverLetterPDFDocument (SAME as frontend display)
+  const coverLetterPdfToPdfDataUrl = async (detailedCoverLetterHtml: string, resultsData: any): Promise<string> => {
+    if (typeof window === 'undefined') throw new Error('Client-side PDF generation only');
+
+    const blobToDataUrl = (b: Blob) => new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(String(reader.result));
+      reader.onerror = (e) => reject(e);
+      reader.readAsDataURL(b);
+    });
+
+    // Use the SAME CoverLetterPDFDocument component that displays correctly in frontend
+    const doc = (
+      <CoverLetterPDFDocument 
+        content={detailedCoverLetterHtml}
+        jobDetails={{
+          title: applicationData?.position || 'Position Title',
+          company: applicationData?.company_name || 'Company Name',
+          description: '',
+          location: applicationData?.location || ''
+        }}
+        resultsData={resultsData}
+      />
+    );
+
+    try {
+      console.log('[PDF Generation] 🎯 Generating cover letter PDF using CoverLetterPDFDocument (same as frontend display)');
+      const asPdf = pdf(doc);
+      const blob: Blob = await asPdf.toBlob();
+      return await blobToDataUrl(blob);
+    } catch (err) {
+      console.error('Cover letter PDF generation failed:', err);
+      try {
+        Font.register({
+          family: 'Inter', fonts: [
+            { src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2', fontWeight: 'normal' },
+            { src: 'https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2', fontWeight: 'bold' }
+          ]
+        });
+        const asPdf2 = pdf(doc);
+        const blob2: Blob = await asPdf2.toBlob();
+        return await blobToDataUrl(blob2);
+      } catch (retryErr) {
+        console.error('Cover letter PDF retry failed:', retryErr);
+        throw new Error('Failed to generate cover letter PDF');
       }
     }
   };
@@ -775,8 +838,14 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
       try {
         // Convert generated HTML to PDF client-side and send base64 data URLs to the API
         console.log('[uploadPDFs] Starting PDF generation...');
-        const resumeDataUrl = await htmlStringToPdfDataUrl(detailedResumeHtml, optimizationResults.aiEnhancements);
-        const coverDataUrl = await htmlStringToPdfDataUrl(detailedCoverLetterHtml, optimizationResults.aiEnhancements);
+        const resumeDataUrl = await htmlStringToPdfDataUrl(detailedResumeHtml, optimizationResults.aiEnhancements, false);
+        
+        // ⭐ CRITICAL FIX: Use CoverLetterPDFDocument (same component as frontend display) for cover letter
+        // This ensures uploaded cover letter matches what's displayed in the preview
+        const coverDataUrl = await coverLetterPdfToPdfDataUrl(detailedCoverLetterHtml, {
+          aiEnhancements: optimizationResults.aiEnhancements,
+          applicationData: applicationData
+        });
         
         console.log('[uploadPDFs] PDFs generated, sizes:', {
           resume: resumeDataUrl?.length || 0,
