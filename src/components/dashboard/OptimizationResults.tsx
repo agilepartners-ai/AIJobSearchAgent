@@ -1267,3 +1267,4 @@ const modifiedCoverLetterHtml = modifyHtmlWithProfile(results.cover_letter_html,
 };
 
 export default OptimizationResults;
+export { CoverLetterPDFDocument };
