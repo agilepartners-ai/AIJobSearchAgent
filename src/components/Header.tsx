@@ -9,104 +9,166 @@ const Header: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      const offset = window.scrollY;
-      if (offset > 50) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const navLinks = [
+    { label: 'Workflow', href: '#workflow' },
+    { label: 'About', href: '#about' },
+    { label: 'Contact', href: '#contact' },
+    { label: 'FAQ', href: '#faq' },
+    { label: 'Live Demo', href: '#workflow' },
+  ];
+
   return (
-    <header 
-      className={`fixed w-full z-[60] transition-all duration-300 ${
-        scrolled 
-          ? 'bg-gray-900/95 backdrop-blur-sm shadow-lg py-4' 
-          : 'bg-transparent py-6'
-      }`}
+    <header
+      className="fixed w-full z-[60] transition-all duration-500"
+      style={{
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        background: scrolled ? 'rgba(13,13,13,0.88)' : 'rgba(13,13,13,0.4)',
+        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.08)' : '1px solid transparent',
+        boxShadow: scrolled ? '0 1px 32px rgba(0,0,0,0.4)' : 'none',
+      }}
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between">
-          {/* Left side - Main Logo and Powered By Logo */}
-          <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4 lg:space-x-5">
-            <Link href="/" className="flex items-center space-x-2">
-              <img 
-                src="/AGENT_Logo.png" 
-                alt="AIJobSearchAgent" 
-                className="h-6 sm:h-7 md:h-10 lg:h-11 w-auto transition-all duration-300"
+      {/* 3-column layout: Logo | Nav Center | CTAs */}
+      <div className="w-full px-4 sm:px-6">
+        <div
+          className="grid items-center"
+          style={{
+            height: scrolled ? '60px' : '72px',
+            transition: 'height 0.4s ease',
+            gridTemplateColumns: '1fr auto 1fr',
+          }}
+        >
+          {/* LEFT — Logo */}
+          <div className="flex items-center">
+            <Link href="/" className="flex items-center">
+              <img
+                src="/AGENT_Logo.png"
+                alt="AIJobSearchAgent"
+                className="w-auto transition-all duration-300"
+                style={{ height: scrolled ? '34px' : '42px' }}
               />
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            {['Workflow', 'About', 'Contact'].map((item) => (
-              <a 
-                key={item} 
-                href={`#${item.toLowerCase().replace(' ', '-')}`}
-                className={`font-medium transition-colors ${
-                  scrolled 
-                    ? 'text-white/90 hover:text-white' 
-                    : 'text-white/90 hover:text-white'
-                }`}
+          {/* CENTER — Nav links */}
+          <nav className="hidden md:flex items-center gap-6">
+            {navLinks.map(item => (
+              <a
+                key={item.label}
+                href={item.href}
+                className="font-medium text-sm whitespace-nowrap transition-colors duration-200"
+                style={{ color: 'rgba(255,255,255,0.65)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#ffffff')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.65)')}
               >
-                {item}
+                {item.label === 'Live Demo' ? (
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    {item.label}
+                  </span>
+                ) : item.label}
               </a>
             ))}
-            <Link 
-              href="/login" 
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2.5 rounded-lg font-medium hover:shadow-lg transition-all hover:-translate-y-0.5"
+          </nav>
+
+          {/* RIGHT — CTAs */}
+          <div className="hidden md:flex items-center gap-3 justify-end">
+            <Link
+              href="/login"
+              className="font-semibold px-4 py-2 rounded-lg text-sm transition-all duration-200 hover:-translate-y-px"
+              style={{
+                color: 'rgba(255,255,255,0.85)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                background: 'rgba(255,255,255,0.05)',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.1)';
+                (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.3)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)';
+                (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.18)';
+              }}
             >
               Sign In
             </Link>
-          </nav>
+            <Link
+              href="/register"
+              className="font-semibold px-4 py-2 rounded-lg text-white text-sm transition-all duration-200 hover:-translate-y-px"
+              style={{
+                background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                boxShadow: '0 2px 12px rgba(124,58,237,0.3)',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(124,58,237,0.5)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 12px rgba(124,58,237,0.3)';
+              }}
+            >
+              Get Started
+            </Link>
+          </div>
 
-          {/* Mobile Navigation Toggle */}
-          <button 
-            onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden p-2 rounded-lg focus:outline-none"
-            aria-label="Toggle Menu"
-          >
-            {isOpen ? (
-              <X className={`transition-colors ${scrolled ? 'text-white' : 'text-white'}`} size={24} />
-            ) : (
-              <Menu className={`transition-colors ${scrolled ? 'text-white' : 'text-white'}`} size={24} />
-            )}
-          </button>
+          {/* Mobile toggle */}
+          <div className="md:hidden flex justify-end col-start-3">
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="p-2 rounded-lg"
+              style={{ color: 'rgba(255,255,255,0.8)' }}
+              aria-label="Toggle menu"
+            >
+              {isOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile menu */}
       <div
-        className={`md:hidden bg-gray-900/95 backdrop-blur-sm border-t border-gray-700 transition-all duration-300 ease-in-out ${
-          isOpen ? 'block opacity-100' : 'hidden opacity-0'
-        }`}
+        className="md:hidden transition-all duration-300 overflow-hidden"
+        style={{
+          maxHeight: isOpen ? '480px' : '0',
+          background: 'rgba(13,13,13,0.96)',
+          backdropFilter: 'blur(12px)',
+          borderTop: isOpen ? '1px solid rgba(255,255,255,0.08)' : 'none',
+        }}
       >
-        <div className="container mx-auto px-4 py-4 space-y-4 min-h-[50vh]">
-          {['Workflow', 'About', 'Contact'].map((item) => (
-            <a 
-              key={item} 
-              href={`#${item.toLowerCase().replace(' ', '-')}`}
-              className="block py-2 text-white/90 hover:text-white font-medium transition-colors"
+        <div className="px-4 sm:px-6 py-6 flex flex-col gap-3">
+          {navLinks.map(item => (
+            <a
+              key={item.label}
+              href={item.href}
+              className="text-base font-medium py-2 transition-colors"
+              style={{ color: 'rgba(255,255,255,0.7)' }}
               onClick={() => setIsOpen(false)}
             >
-              {item}
+              {item.label}
             </a>
           ))}
-          <Link 
-            href="/login" 
-            className="block w-full sm:w-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium text-center transition-all"
-            onClick={() => setIsOpen(false)}
-          >
-            Sign In
-          </Link>
+          <div className="flex flex-col gap-3 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+            <Link
+              href="/login"
+              className="w-full text-center py-3 rounded-xl font-semibold text-sm"
+              style={{ color: 'rgba(255,255,255,0.85)', border: '1px solid rgba(255,255,255,0.15)' }}
+              onClick={() => setIsOpen(false)}
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/register"
+              className="w-full text-center py-3 rounded-xl font-semibold text-white text-sm"
+              style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}
+              onClick={() => setIsOpen(false)}
+            >
+              Get Started Free
+            </Link>
+          </div>
         </div>
       </div>
     </header>

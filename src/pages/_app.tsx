@@ -42,7 +42,7 @@ function MyApp({ Component, pageProps }: AppProps) {
     // Listen for Firebase auth state changes to detect logouts
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       const currentPath = router.pathname;
-      const publicPaths = ['/login', '/register', '/verify-phone', '/', '/forgot-password'];
+      const publicPaths = ['/login', '/register', '/verify-phone', '/', '/forgot-password', '/privacy-policy', '/terms-of-service'];
       
       // If user is logged out and not on a public page, redirect to login
       if (!user && !publicPaths.includes(currentPath)) {
