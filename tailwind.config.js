@@ -30,7 +30,16 @@ export default {
           800: '#1e40af',
           900: '#1e3a8a',
           950: '#172554',
-        }
+        },
+        surface: {
+          deep: '#0D0D0D',
+          purple: '#110E1F',
+          mid: '#141414',
+        },
+      },
+      fontFamily: {
+        display: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       spacing: {
         '18': '4.5rem',

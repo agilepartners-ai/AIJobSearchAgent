@@ -1,6 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ===== Global Type Scale ===== */
+@layer base {
+  h1 {
+    font-size: 64px;
+    line-height: 1.05;
+    font-weight: 800;
+    font-family: 'Plus Jakarta Sans', Inter, sans-serif;
+    letter-spacing: -0.03em;
+  }
+  h2 {
+    font-size: 42px;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  h3 {
+    font-size: 24px;
+    line-height: 1.3;
+    font-weight: 600;
+  }
+  body {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  @media (max-width: 768px) {
+    h1 { font-size: 40px; }
+    h2 { font-size: 30px; }
+  }
+  @media (max-width: 480px) {
+    h1 { font-size: 32px; }
+    h2 { font-size: 26px; }
+  }
+}
+
+/* ===== Bounce chevron for scroll indicator ===== */
+@keyframes bounce-chevron {
+  0%, 100% { transform: translateY(0); opacity: 0.35; }
+  50% { transform: translateY(8px); opacity: 0.6; }
+}
+.animate-bounce-chevron {
+  animation: bounce-chevron 1.4s ease-in-out infinite;
+}
+
+/* ===== Stat counter animation ===== */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.stat-appear {
+  animation: count-up 0.6s ease-out forwards;
+}
+
+/* ===== Custom scrollbar ===== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0D0D0D;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.4);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.7);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 58, 237, 0.4) #0D0D0D;
+}
 
 :root {
   --primary-50: #eff6ff;

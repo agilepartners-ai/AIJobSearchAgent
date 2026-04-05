@@ -97,7 +97,7 @@ const Profile: React.FC = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto px-0">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <button
@@ -118,7 +118,7 @@ const Profile: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-4xl mx-auto px-0 py-8">
         {error && (
           <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-lg mb-6">
             {error}

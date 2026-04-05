@@ -197,7 +197,18 @@ const RegisterForm: React.FC = () => {
             {loading ? 'Creating account...' : 'Create account'}
           </button>
           
-          <div className="mt-6 text-center">
+          <p className="text-center text-xs text-blue-200/60 dark:text-blue-300/50 mt-1">
+            By creating an account, you agree to our{' '}
+            <Link href="/terms-of-service" className="text-blue-300 hover:text-white underline underline-offset-2 transition-colors">
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link href="/privacy-policy" className="text-blue-300 hover:text-white underline underline-offset-2 transition-colors">
+              Privacy Policy
+            </Link>
+          </p>
+
+          <div className="mt-5 text-center">
             <Link href="/login" className="text-blue-200 dark:text-blue-300 hover:text-white dark:hover:text-white transition-colors">
               Already have an account? <span className="font-medium">Sign in</span>
             </Link>
