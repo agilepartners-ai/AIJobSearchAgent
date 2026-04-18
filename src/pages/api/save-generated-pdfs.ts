@@ -70,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const db = admin.firestore();
-    const bucket = admin.storage().bucket();
+    const bucket = admin.storage().bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
 
     console.log('🚀 Processing incoming payload (PDF blobs or HTML)');
 
@@ -225,7 +225,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return signedUrl;
 
 
-        return signedUrl;
       } catch (e) {
         console.error('[save-generated-pdfs] uploadAndGetUrl failed for', filename, e);
         throw e;
@@ -288,6 +287,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error('[save-generated-pdfs] Firestore update failed:', e);
       return res.status(500).json({ error: 'Failed to update Firestore with PDF URLs' });
     }
+
+    // ✅ Increment daily usage AFTER successful generation + save
+    const today = new Date().toISOString().split('T')[0];
+
+    await db
+      .collection('users')
+      .doc(userId)
+      .collection('usage')
+      .doc(today)
+      .set(
+        {
+          total_generations: admin.firestore.FieldValue.increment(1),
+          last_updated: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+    console.log('📊 Usage incremented for user:', userId);
 
     return res.status(200).json({
       message: 'PDFs uploaded and Firestore updated',
