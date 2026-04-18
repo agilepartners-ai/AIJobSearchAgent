@@ -449,16 +449,42 @@ const Dashboard: React.FC = () => {
     dispatch(setShowJobDescriptionModal(true));
   };
 
-  const handleLoadAIEnhanced = (application: JobApplication) => {
+  const handleLoadAIEnhanced = async (application: JobApplication) => {
     console.log('[handleLoadAIEnhanced] application:', application);
-    dispatch(setSelectedJobDescription({
-      title: application.position,
-      company: application.company_name,
-      description: application.job_description || ''
-    }));
-    dispatch(setEditingApplication(application));
-    
-    dispatch(setShowAIEnhancementModal(true));
+
+    try {
+      // 🔍 Check limit BEFORE doing anything
+      const res = await fetch('/api/enhance-with-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id }),
+      });
+
+      const data = await res.json();
+
+      // 🚫 Block if limit reached
+      if (!res.ok) {
+        showError(
+          'Daily Limit Reached 🚫',
+          'You’ve reached your daily limit of 25 AI resume/cover letter generations. Please try again tomorrow.'
+        );
+        return;
+      }
+
+      // ✅ Continue ONLY if allowed
+      dispatch(setSelectedJobDescription({
+        title: application.position,
+        company: application.company_name,
+        description: application.job_description || ''
+      }));
+
+      dispatch(setEditingApplication(application));
+      dispatch(setShowAIEnhancementModal(true));
+
+    } catch (err) {
+      console.error('Error checking usage limit:', err);
+      showError('Error', 'Something went wrong. Please try again.');
+    }
   };
 
   // While auth state is loading, show a full-page loader
