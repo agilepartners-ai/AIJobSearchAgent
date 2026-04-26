@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import DocxResumeGenerator from '../../services/docxResumeGenerator';
+import DocxResumeGenerator, { getDocxTemplate } from '../../services/docxResumeGenerator';
 
 // Copy of ResumeContentParser from ResumeTemplate.tsx for DOCX generation
 class ResumeContentParser {
@@ -771,10 +771,11 @@ interface GenerateDocxRequest {
   twoColumnSkills?: boolean;
   emphasizeMetrics?: boolean;
   filename?: string;
+  templateId?: string;
 }
 
-async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buffer> {
-  const { profileData, profile, htmlContent, html, jobKeywords = [] } = requestBody;
+async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<any> {
+  const { profileData, profile, htmlContent, html, jobKeywords = [], templateId } = requestBody;
   
   console.log('[API] generateDocxBuffer called with:', { 
     hasProfileData: !!profileData, 
@@ -980,9 +981,9 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
       console.log('[API] Creating DocxResumeGenerator with parsed data');
       
       try {
-        const generator = new DocxResumeGenerator(resumeProfile, jobKeywords);
-        const buffer = await generator.generateDocument();
-        console.log('[API] Generated document buffer size:', buffer.length);
+        const generator = getDocxTemplate(templateId || 'karlsson', resumeProfile, jobKeywords);
+        const buffer = await generator.generateDocument() as any;
+        console.log('[API] Generated document buffer size:', buffer.length || buffer.size || 0);
         return buffer;
       } catch (docxError) {
         console.error('[API] DOCX generation failed with parsed profile:', docxError);
@@ -1015,9 +1016,9 @@ async function generateDocxBuffer(requestBody: GenerateDocxRequest): Promise<Buf
   if (profileData) {
     console.log('[API] Using DocxResumeGenerator with profileData:', profileData);
     try {
-      const generator = new DocxResumeGenerator(profileData, jobKeywords);
-      const buffer = await generator.generateDocument();
-      console.log('[API] Generated document buffer size:', buffer.length);
+      const generator = getDocxTemplate(templateId || 'karlsson', profileData as any, jobKeywords);
+      const buffer = await generator.generateDocument() as any;
+      console.log('[API] Generated document buffer size:', buffer.length || buffer.size || 0);
       return buffer;
     } catch (docxError) {
       console.error('[API] DOCX generation failed with profileData:', docxError);
@@ -1047,7 +1048,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     res.setHeader('Content-Disposition', `attachment; filename="${outName}"`);
-    res.setHeader('Content-Length', buffer.length.toString());
+    res.setHeader('Content-Length', (buffer.length || buffer.size || 0).toString());
 
     return res.status(200).send(buffer);
   } catch (error: unknown) {

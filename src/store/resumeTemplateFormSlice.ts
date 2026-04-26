@@ -1,17 +1,18 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { TemplateId } from '../components/resume-templates/types';
 
 interface ResumeTemplateFormState {
   formData: any;
   expandedSections: string[];
   formatChoice: string;
-  selectedTemplate: string;
+  selectedTemplateId: TemplateId;
 }
 
 const initialState: ResumeTemplateFormState = {
   formData: {},
   expandedSections: ['personal', 'education', 'experience', 'skills', 'template'],
   formatChoice: 'docs',
-  selectedTemplate: 'modern',
+  selectedTemplateId: 'karlsson',
 };
 
 const resumeTemplateFormSlice = createSlice({
@@ -27,8 +28,8 @@ const resumeTemplateFormSlice = createSlice({
     setFormatChoice(state, action: PayloadAction<string>) {
       state.formatChoice = action.payload;
     },
-    setSelectedTemplate(state, action: PayloadAction<string>) {
-      state.selectedTemplate = action.payload;
+    setSelectedTemplate(state, action: PayloadAction<TemplateId>) {
+      state.selectedTemplateId = action.payload;
     },
     resetResumeTemplateForm() {
       return initialState;

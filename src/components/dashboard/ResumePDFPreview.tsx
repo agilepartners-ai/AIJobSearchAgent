@@ -1,8 +1,8 @@
 "use client";
 import React from 'react';
-import { BlobProvider } from '@react-pdf/renderer';
-import { PerfectHTMLToPDF } from './ResumeTemplate';
-import type { UserProfileData } from '../../services/profileService';
+import type { UserProfileData } from '@/services/profileService';
+import { useAppSelector } from '@/store/hooks';
+import { TEMPLATE_REGISTRY } from '@/lib/templateRegistry';
 
 interface ResumePDFPreviewProps {
   resumeHtml: string;
@@ -20,25 +20,15 @@ interface ResumePDFPreviewProps {
   errorFallback?: React.ReactNode;
 }
 
-/**
- * Unified PDF preview component.
- * - If a previously generated pdfUrl is given (e.g. fetched from Firestore Storage), it is embedded directly.
- * - Otherwise we generate a Blob on the client using @react-pdf/renderer (BlobProvider) and show it in an iframe.
- * This avoids issues where <PDFViewer> sometimes renders blank in Next.js / dark mode containers.
- */
 const ResumePDFPreview: React.FC<ResumePDFPreviewProps> = ({
-  resumeHtml,
   profile,
-  jobKeywords = [],
-  emphasizeMetrics = true,
-  twoColumnSkills = true,
   pdfUrl,
   fallbackPdfUrl,
   className = '',
   height = '100%',
-  loadingFallback = <div className="flex items-center justify-center h-full text-sm text-gray-500">Generating PDF…</div>,
-  errorFallback = <div className="flex items-center justify-center h-full text-sm text-red-500">Failed to render PDF</div>
 }) => {
+  const selectedTemplateId = useAppSelector((state) => state.resumeTemplateForm.selectedTemplateId);
+
   if (pdfUrl) {
     return (
       <iframe
@@ -50,47 +40,14 @@ const ResumePDFPreview: React.FC<ResumePDFPreviewProps> = ({
     );
   }
 
+  const SelectedTemplate = TEMPLATE_REGISTRY[selectedTemplateId ?? 'karlsson']?.fullComponent || TEMPLATE_REGISTRY.karlsson.fullComponent;
+
   return (
-    <BlobProvider
-      document={
-        <PerfectHTMLToPDF
-          htmlContent={resumeHtml}
-          profile={profile}
-          jobKeywords={jobKeywords}
-          twoColumnSkills={twoColumnSkills}
-          emphasizeMetrics={emphasizeMetrics}
-        />
-      }
-    >
-      {({ url, loading, error }) => {
-        if (loading) return loadingFallback;
-        if (error || !url) {
-          if (error) {
-            // eslint-disable-next-line no-console
-            console.error('[ResumePDFPreview] Failed to render PDF', error);
-          }
-          if (fallbackPdfUrl) {
-            return (
-              <iframe
-                title="Fallback Resume PDF"
-                src={fallbackPdfUrl}
-                className={"w-full rounded border " + className}
-                style={{ height, background: '#fff' }}
-              />
-            );
-          }
-          return errorFallback;
-        }
-        return (
-          <iframe
-            title="Resume PDF Preview"
-            src={url + '#toolbar=0'}
-            className={"w-full rounded border " + className}
-            style={{ height, background: '#fff' }}
-          />
-        );
-      }}
-    </BlobProvider>
+    <div className={`overflow-auto flex justify-center bg-gray-100 ${className}`} style={{ height }}>
+      <div id="resume-preview-root" className="bg-white shadow-lg m-4 transform scale-90 origin-top">
+        <SelectedTemplate data={profile} isPreview={false} />
+      </div>
+    </div>
   );
 };
 

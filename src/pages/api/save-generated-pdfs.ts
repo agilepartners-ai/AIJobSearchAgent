@@ -21,6 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Optional: server-fetchable URLs pointing to generated PDFs (http(s) accessible)
       resumePdfUrl,
       coverLetterPdfUrl,
+      templateId,
     } = req.body || {};
 
     console.log('📦 Request body keys:', Object.keys(req.body || {}));
@@ -29,6 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       hasJobApplicationId: !!jobApplicationId,
       resumeSize: resumePdfBase64?.length || 0,
       coverLetterSize: coverLetterPdfBase64?.length || 0,
+      templateId: templateId || 'not provided',
     });
 
     if (!jobApplicationId) {

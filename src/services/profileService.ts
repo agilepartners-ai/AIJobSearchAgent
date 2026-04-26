@@ -45,11 +45,13 @@ export interface UserProfileData {
   linkedin?: string;
   github?: string;
   portfolio?: string;
+  website?: string;
 
   // Optional Fields You Already Had
   resume_url?: string;
   cover_letter_template?: string;
   subscription_status?: string;
+  selectedTemplateId?: string;
 
   // Detailed AI-enhanced sections from aiEnhancementService
   detailedResumeSections?: {

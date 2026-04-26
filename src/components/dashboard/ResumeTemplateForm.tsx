@@ -7,6 +7,7 @@ import {
   setSelectedTemplate,
   resetResumeTemplateForm
 } from '../../store/resumeTemplateFormSlice';
+import { TEMPLATE_REGISTRY } from '../../lib/templateRegistry';
 import { X, Plus, Minus, User, GraduationCap, Briefcase, Wrench, Rocket, Award, Globe, Star, Palette, FileText, Download } from 'lucide-react';
 
 interface ParsedResume {
@@ -75,15 +76,10 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
   const formData = useAppSelector((state) => state.resumeTemplateForm.formData);
   const expandedSections = useAppSelector((state) => state.resumeTemplateForm.expandedSections);
   const formatChoice = useAppSelector((state) => state.resumeTemplateForm.formatChoice);
-  const selectedTemplate = useAppSelector((state) => state.resumeTemplateForm.selectedTemplate);
+  const selectedTemplateId = useAppSelector((state) => state.resumeTemplateForm.selectedTemplateId);
 
-  // Mock templates data
-  const templates = [
-    { id: 'modern', name: 'Modern Professional', preview: '/api/placeholder/200/250' },
-    { id: 'classic', name: 'Classic Traditional', preview: '/api/placeholder/200/250' },
-    { id: 'creative', name: 'Creative Design', preview: '/api/placeholder/200/250' },
-    { id: 'minimal', name: 'Minimal Clean', preview: '/api/placeholder/200/250' }
-  ];
+  // Load templates from registry
+  const templates = Object.values(TEMPLATE_REGISTRY);
 
   // (Removed duplicate useEffect that caused syntax error)
   // Only initialize form data on first mount, not every time parsedResume changes
@@ -177,7 +173,7 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
     onGenerate({
       ...formData,
       format_choice: formatChoice,
-      template: selectedTemplate
+      template: selectedTemplateId
     });
     dispatch(resetResumeTemplateForm());
   };
@@ -932,37 +928,42 @@ const ResumeTemplateForm: React.FC<ResumeTemplateFormProps> = ({
                     <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                       🎨 Choose Template Style {formatChoice === 'docs' ? '(for Word Documents)' : '(for PDF)'}
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {templates.map((template) => (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {templates.map((template) => {
+                        const Preview = template.previewComponent;
+                        return (
                         <label
                           key={template.id}
-                          className={`border rounded-lg overflow-hidden cursor-pointer transition-all hover:shadow-lg ${
-                            selectedTemplate === template.id
-                              ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800'
+                          className={`block border rounded-xl overflow-hidden cursor-pointer transition-all hover:shadow-xl ${
+                            selectedTemplateId === template.id
+                              ? 'border-blue-500 ring-2 ring-blue-500 dark:ring-blue-400'
                               : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
                           }`}
                         >
-                          <div className="h-40 bg-gray-100 dark:bg-gray-600 flex items-center justify-center">
-                            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
-                              {template.name.charAt(0)}
+                          <div className="h-64 bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden relative">
+                            {/* Live mini preview with scaling */}
+                            <div className="absolute top-0 left-0 origin-top-left transform scale-[0.25]" style={{ width: '794px', height: '1123px', pointerEvents: 'none' }}>
+                              <Preview data={parsedResume as any} isPreview={true} />
                             </div>
                           </div>
-                          <div className="p-3">
-                            <input
-                              type="radio"
-                              name="template"
-                              value={template.id}
-                              checked={selectedTemplate === template.id}
-                              onChange={(e) => dispatch(setSelectedTemplate(e.target.value))}
-                              className="mr-2"
-                            />
-                            <span className="font-medium text-gray-900 dark:text-white">{template.name}</span>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              Professional layout {formatChoice === 'docs' ? '(Word compatible)' : '(PDF format)'}
+                          <div className="p-4 bg-white dark:bg-gray-800">
+                            <div className="flex items-center mb-1">
+                              <input
+                                type="radio"
+                                name="template"
+                                value={template.id}
+                                checked={selectedTemplateId === template.id}
+                                onChange={(e) => dispatch(setSelectedTemplate(e.target.value as any))}
+                                className="mr-3 w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                              />
+                              <span className="font-bold text-gray-900 dark:text-white">{template.name}</span>
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 pl-7">
+                              {template.description}
                             </p>
                           </div>
                         </label>
-                      ))}
+                      )})}
                     </div>
                   </div>
                 )}
