@@ -1,39 +1,34 @@
+# Dependencies
 node_modules
+package-lock.json
+
+# Build output
+.next
 dist
+out
+*.tsbuildinfo
+build-output.txt
+
+# Environment
 .env
 .env.*
 !.env.example
+
+# Python virtualenv (e2e test tooling — local only, never commit)
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Editor / OS
 .DS_Store
-
-
-# Debug files
-*debug*.js
-*debug*.ts
-debug-*
-*-debug.*
-
-# Test files
-*test*.js
-*test*.ts
-test-*
-*-test.*
-
-# SQL migration files (keep only in database folder)
-*.sql
-
-# Development documentation
-*FIX*.md
-*SUMMARY*.md
-*.docx
-
-# Temporary files
+Thumbs.db
+*~
 *.tmp
 *.temp
 
-# Team updates folder
+# Local scratch
 latest updates from team/
-*~
 
-# Others
-.next
-package-lock.json
+tmp-generated/
