@@ -1,0 +1,64 @@
+% ---------------------------------------------------------------------------
+% Resume macros. This is the entire vocabulary available to the AI.
+% Every macro here is covered by a golden-file test in latex.test.ts.
+% ---------------------------------------------------------------------------
+
+% Robust empty-argument test. \ifx\relax#1\relax only works for single-token
+% arguments; \detokenize handles multi-word text correctly.
+\newcommand{\resifempty}[3]{\if\relax\detokenize{#1}\relax #2\else #3\fi}
+
+\newcommand{\resdot}{\;\textcolor{accent}{\textbullet}\;}
+
+% \resheader{Full Name}{contact line}
+% Separate contact items with \resdot.
+\newcommand{\resheader}[2]{%
+  \begin{center}
+    {\LARGE\bfseries #1}\par
+    \vspace{3pt}
+    {\small #2}\par
+  \end{center}
+  \vspace{-4pt}
+}
+
+% Shared entry renderer: bold title, optional subtitle, right-aligned dates,
+% optional location line underneath.
+\newcommand{\resentry}[4]{%
+  \needspace{3\baselineskip}%
+  \vspace{3pt}%
+  \resentryline{\textbf{#1}\resifempty{#2}{}{ --- #2}}{\textit{#4}}%
+  \resifempty{#3}{}{\vspace{-2pt}{\small\itshape #3}\par}%
+  \vspace{2pt}%
+}
+
+% \resrole{Position}{Company}{Location}{Dates}
+\newcommand{\resrole}[4]{\resentry{#1}{#2}{#3}{#4}}
+
+% \resedu{Degree}{Institution}{Location}{Dates}
+\newcommand{\resedu}[4]{\resentry{#1}{#2}{#3}{#4}}
+
+% \resproject{Name}{Tech stack}{Dates}
+\newcommand{\resproject}[3]{%
+  \needspace{3\baselineskip}%
+  \vspace{3pt}%
+  \resentryline{\textbf{#1}\resifempty{#2}{}{ {\small\textit{(#2)}}}}{\textit{#3}}%
+  \vspace{2pt}%
+}
+
+% \rescert{Name}{Issuer}{Date}
+\newcommand{\rescert}[3]{%
+  \resentryline{\textbf{#1}\resifempty{#2}{}{ --- #2}}{\textit{#3}}%
+  \vspace{2pt}%
+}
+
+% \resskills{Category}{comma, separated, values}
+\newcommand{\resskills}[2]{%
+  \noindent\textbf{#1:} #2\par
+  \vspace{3pt}%
+}
+
+% \resline{free-standing paragraph} — professional summary, section blurbs
+\newcommand{\resline}[1]{\noindent #1\par}
+
+% Bullet list. Use \resitem for each bullet.
+\newenvironment{reslist}{\begin{itemize}}{\end{itemize}\vspace{2pt}}
+\newcommand{\resitem}[1]{\item #1}

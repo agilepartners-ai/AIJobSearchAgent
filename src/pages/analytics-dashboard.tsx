@@ -2,7 +2,6 @@ import React from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { FirebaseDBService } from '../services/firebaseDBService';
 import { TrendingUp, Award, BarChart3, ArrowLeft, Calendar } from 'lucide-react';
-import type { EnhancementAnalytics } from '../services/aiEnhancementService';
 import { useRouter } from 'next/router';
 
 export default function AnalyticsDashboard() {

@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToastContext } from '../ui/ToastProvider';
 import DashboardHeader from './DashboardHeader';
 import LeftSidebar from './LeftSidebar';
+import { refreshDocumentUrl } from '../../services/documentService';
 
 interface SavedResumePageProps {
   onBack: () => void;
@@ -28,6 +29,7 @@ const SavedResumePage: React.FC<SavedResumePageProps> = ({
   const [error, setError] = useState('');
   const [activeDocumentType, setActiveDocumentType] = useState<'resume' | 'cover_letter'>('resume');
   const [previewStates, setPreviewStates] = useState<{ [key: string]: boolean }>({});
+  const [refreshedUrls, setRefreshedUrls] = useState<Record<string, string>>({});
 
   const { user, loading: authLoading } = useAuth();
   const { showError } = useToastContext();
@@ -83,12 +85,58 @@ const SavedResumePage: React.FC<SavedResumePageProps> = ({
   };
 
   const getDocumentUrl = (application: JobApplication) => {
-    if (activeDocumentType === 'resume') {
-      return application.resume_url;
-    } else {
-      return application.cover_letter_url;
-    }
+    const stored =
+      activeDocumentType === 'resume' ? application.resume_url : application.cover_letter_url;
+
+    // Signed URLs expire after a week, so a stored one may already be dead.
+    // If we have the storage path, prefer a freshly minted URL.
+    return refreshedUrls[`${application.id}:${activeDocumentType}`] ?? stored;
   };
+
+  const getDocumentPath = (application: JobApplication): string | undefined =>
+    activeDocumentType === 'resume'
+      ? (application as { resume_path?: string }).resume_path
+      : (application as { cover_letter_path?: string }).cover_letter_path;
+
+  /**
+   * Re-sign every visible document's URL on load.
+   *
+   * Documents are stored with a v4 signed URL, which Google caps at 7 days.
+   * Anything generated before then stopped opening entirely. Applications
+   * saved before this change have no stored path and fall back to whatever
+   * URL was persisted.
+   */
+  useEffect(() => {
+    const paths = applications
+      .map((app) => [app.id, getDocumentPath(app)] as const)
+      .filter((entry): entry is readonly [string, string] => Boolean(entry[1]));
+
+    if (paths.length === 0) return;
+
+    let cancelled = false;
+    void Promise.all(
+      paths.map(async ([id, path]): Promise<[string, string] | null> => {
+        try {
+          return [`${id}:${activeDocumentType}`, await refreshDocumentUrl(path)];
+        } catch {
+          // A document may have been deleted from storage; leave the stored URL.
+          return null;
+        }
+      }),
+    ).then((results) => {
+      if (cancelled) return;
+      const fresh: Record<string, string> = {};
+      for (const entry of results) {
+        if (entry) fresh[entry[0]] = entry[1];
+      }
+      setRefreshedUrls((prev) => ({ ...prev, ...fresh }));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [applications, activeDocumentType]);
 
   const hasDocument = (application: JobApplication) => {
     return getDocumentUrl(application) !== null;
