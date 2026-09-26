@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, useMemo, ReactNode } from 'react';
 import { ToastContainer, useToast } from './Toast';
 
 interface ToastContextType {
@@ -24,9 +24,14 @@ interface ToastProviderProps {
 
 export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   const { toasts, removeToast, showSuccess, showError, showInfo, showWarning } = useToast();
+  // One stable object: a new one per render re-rendered every consumer on every toast.
+  const value = useMemo(
+    () => ({ showSuccess, showError, showInfo, showWarning }),
+    [showSuccess, showError, showInfo, showWarning],
+  );
 
   return (
-    <ToastContext.Provider value={{ showSuccess, showError, showInfo, showWarning }}>
+    <ToastContext.Provider value={value}>
       {children}
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
     </ToastContext.Provider>

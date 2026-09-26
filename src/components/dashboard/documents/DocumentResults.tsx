@@ -7,6 +7,8 @@ import {
   Download,
   FileText,
   Lightbulb,
+  Loader2,
+  PencilRuler,
   RefreshCw,
   Target,
 } from 'lucide-react';
@@ -17,12 +19,20 @@ import {
   OpenProjectInOverleafButton,
 } from './OpenInOverleafButton';
 import { downloadText, type GeneratedDocuments } from '../../../services/documentService';
+import { resumeFromMacroBody } from '../../../lib/resume/import/fromMacros';
+import { saveResume } from '../../../services/resumeService';
 
 interface DocumentResultsProps {
   documents: GeneratedDocuments;
   jobDetails: { title: string; company: string };
   onBack: () => void;
   onRegenerate: () => void;
+  /** Shown when the Studio could not be opened automatically. */
+  notice?: string;
+  /** Signed-in user, needed to save an imported resume. */
+  uid?: string | null;
+  /** Hands the new resume to the Resume Studio. */
+  onOpenInStudio?: (resumeId: string) => void;
 }
 
 type DocumentTab = 'resume' | 'coverLetter';
@@ -40,6 +50,9 @@ const DocumentResults: React.FC<DocumentResultsProps> = ({
   jobDetails,
   onBack,
   onRegenerate,
+  notice,
+  uid,
+  onOpenInStudio,
 }) => {
   const [tab, setTab] = useState<DocumentTab>('resume');
   const [view, setView] = useState<ViewMode>('preview');
@@ -55,6 +68,33 @@ const DocumentResults: React.FC<DocumentResultsProps> = ({
   const pdfUrl = override?.url ?? (isResume ? documents.resumeUrl : documents.coverLetterUrl);
   const filename = isResume ? 'resume.tex' : 'cover_letter.tex';
   const { analysis } = documents;
+
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState(notice ?? '');
+
+  /**
+   * Hand the generated resume to the editor. The AI writes against a closed
+   * macro contract, so the body parses back into a ResumeDocument — and from
+   * there any template renders it, because templates are data over that same
+   * shape rather than separate LaTeX files.
+   */
+  const openInStudio = async () => {
+    if (!uid || !onOpenInStudio) return;
+    setImporting(true);
+    setImportError('');
+    try {
+      const resume = resumeFromMacroBody(overrides.resume?.tex ?? documents.resumeTex, {
+        title: `${jobDetails.title} – ${jobDetails.company}`.trim(),
+        jobTitle: jobDetails.title,
+      });
+      await saveResume(uid, resume);
+      onOpenInStudio(resume.id);
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : 'Could not open this resume in the editor.');
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const handleRecompiled = (url: string, source: string) => {
     setOverrides((prev) => ({ ...prev, [tab]: { url, tex: source } }));
@@ -162,6 +202,18 @@ const DocumentResults: React.FC<DocumentResultsProps> = ({
                 Download .tex
               </button>
 
+              {isResume && uid && onOpenInStudio && (
+                <button
+                  type="button"
+                  onClick={openInStudio}
+                  disabled={importing}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 font-medium text-white transition-colors hover:bg-indigo-700 disabled:opacity-60"
+                >
+                  {importing ? <Loader2 size={18} className="animate-spin" /> : <PencilRuler size={18} />}
+                  Edit in Resume Studio
+                </button>
+              )}
+
               <OpenInOverleafButton tex={tex} filename={filename} />
 
               <OpenProjectInOverleafButton
@@ -176,8 +228,13 @@ const DocumentResults: React.FC<DocumentResultsProps> = ({
               />
             </div>
 
+            {importError && (
+              <p className="mt-3 text-sm text-red-600 dark:text-red-400">{importError}</p>
+            )}
+
             <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-              Opening in Overleaf creates a new project in your Overleaf account, where you can edit
+              “Edit in Resume Studio” turns this document back into editable sections, so you can
+              restyle it with any template. Opening in Overleaf creates a new project in your Overleaf account, where you can edit
               and recompile it. You will be asked to sign in if you are not already.
             </p>
           </section>

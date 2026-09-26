@@ -12,6 +12,8 @@ import {
   X,
 } from 'lucide-react';
 import DocumentResults from './documents/DocumentResults';
+import dynamic from 'next/dynamic';
+import type { LoaderMode } from '../../lib/ai/loaderPhases';
 import {
   DocumentServiceError,
   generateDocuments,
@@ -19,6 +21,14 @@ import {
 } from '../../services/documentService';
 import { extractTextFromPDF, validatePDFFile } from '../../utils/pdfUtils';
 import type { UserProfileData } from '../../services/profileService';
+import { useAuth } from '../../hooks/useAuth';
+import { flowLog } from '../../lib/flowLog';
+import { newId } from '../../lib/resume/ids';
+import { clearPending, isConnectionLoss, startPending } from '../../lib/generation/pending';
+import { findByGenerationId, listResumes } from '../../services/resumeService';
+import { pollFor } from '../../lib/generation/poll';
+import { resumeToPlainText } from '../../lib/resume/export/toText';
+import type { ResumeDocument } from '../../lib/resume/schema';
 
 /**
  * Upload a resume, generate tailored LaTeX documents.
@@ -27,6 +37,12 @@ import type { UserProfileData } from '../../services/profileService';
  * @react-pdf/renderer and uploaded them. All of that now happens server-side
  * behind /api/documents/generate; the modal's job is collecting the input.
  */
+
+// The orb engine is ~50 KB and only matters once someone clicks Generate, so it
+// is not part of the dashboard's first load. It is prefetched when this dialog
+// opens (see the effect below), so it is ready by the time it is needed.
+const loadThinkingScreen = () => import('../ai/AiThinkingScreen');
+const AiThinkingScreen = dynamic(loadThinkingScreen, { ssr: false });
 
 interface AIEnhancementModalProps {
   jobDescription: string;
@@ -40,6 +56,8 @@ interface AIEnhancementModalProps {
   detailedUserProfile?: UserProfileData | null;
   onSave: (resumeUrl: string, coverLetterUrl: string) => void;
   onClose: () => void;
+  /** Open a resume in the Resume Studio; the dashboard closes this modal. */
+  onOpenInStudio?: (resumeId: string) => void;
 }
 
 const MIN_RESUME_CHARS = 50;
@@ -58,11 +76,25 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   detailedUserProfile,
   onSave,
   onClose,
+  onOpenInStudio,
 }) => {
+  const { user } = useAuth();
   const [resumeText, setResumeText] = useState('');
   const [fileName, setFileName] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [showManualInput, setShowManualInput] = useState(false);
+  const [studioResumes, setStudioResumes] = useState<ResumeDocument[]>([]);
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    listResumes(user.id)
+      // Tailored copies are outputs; offer the base resumes to start from.
+      .then((list) => !cancelled && setStudioResumes(list.filter((r) => !r.ai).slice(0, 6)))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
   const [manualText, setManualText] = useState('');
   const [showJobDescription, setShowJobDescription] = useState(true);
 
@@ -70,6 +102,26 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
   const [documents, setDocuments] = useState<GeneratedDocuments | null>(null);
+  const [fallbackNotice, setFallbackNotice] = useState('');
+  // Which full-screen loader is showing: working, opening the Studio, or looking for a
+  // résumé after the connection dropped.
+  const [overlayMode, setOverlayMode] = useState<LoaderMode>('generating');
+  useEffect(() => {
+    void loadThinkingScreen();
+  }, []);
+  // If the dashboard has not closed this modal a few seconds after a hand-off,
+  // something went wrong with navigation: never leave the user behind a spinner.
+  const [handedOff, setHandedOff] = useState(false);
+  useEffect(() => {
+    if (!handedOff) return;
+    const timer = setTimeout(() => {
+      flowLog(undefined, 'modal:handoff-stuck');
+      setGenerating(false);
+      setProgress('');
+      setError('Your resume is ready in the Resume Studio. If it did not open, choose Resume Studio in the sidebar.');
+    }, 10_000);
+    return () => clearTimeout(timer);
+  }, [handedOff]);
   const [tip, setTip] = useState(LOADER_TIPS[0]);
 
   // Rotate loader tips; generation takes 10-30s so a static message gets stale.
@@ -87,7 +139,9 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   useEffect(() => {
     if (documents && !savedRef.current) {
       savedRef.current = true;
-      onSave(documents.resumeUrl, documents.coverLetterUrl);
+      if (documents.resumeUrl && documents.coverLetterUrl) {
+        onSave(documents.resumeUrl, documents.coverLetterUrl);
+      }
     }
   }, [documents, onSave]);
 
@@ -131,7 +185,34 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
     async (text: string) => {
       setGenerating(true);
       setError('');
+      setOverlayMode('generating');
       setProgress('Sending your resume to the AI…');
+      let handedOff = false;
+      // One id per attempt: the same string appears in the browser console, the
+      // server log and any error shown, and makes a retry idempotent server-side.
+      const requestId = newId(12);
+      startPending({ requestId, jobTitle: applicationData?.position || 'Position', company: applicationData?.company_name || 'Company' });
+
+      const handOff = (resumeId: string, result?: GeneratedDocuments) => {
+        savedRef.current = true;
+        handedOff = true;
+        setHandedOff(true);
+        setOverlayMode('opening');
+        setProgress('Opening your resume in the Studio…');
+        flowLog(requestId, 'modal:handoff', { resumeId });
+        // Open first. Saving the application's links fires toasts and reloads
+        // the table; that must never sit in front of, or race with, opening
+        // the résumé the user is waiting for.
+        onOpenInStudio?.(resumeId);
+        clearPending();
+        if (result?.resumeUrl && result.coverLetterUrl) {
+          try {
+            onSave(result.resumeUrl, result.coverLetterUrl);
+          } catch (saveError) {
+            flowLog(requestId, 'modal:save-links-failed', { message: saveError instanceof Error ? saveError.message : String(saveError) });
+          }
+        }
+      };
 
       try {
         // Progress is coarse because the work happens in one server request.
@@ -142,6 +223,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         );
 
         const result = await generateDocuments({
+          requestId,
           resumeText: text,
           jobDescription,
           jobApplicationId: applicationData?.id || undefined,
@@ -162,20 +244,56 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
         });
 
         clearTimeout(timer);
+
+        // The server saved the résumé for the Studio before answering, so the
+        // only step left is to open it. The old results screen is never shown
+        // in between: switching screens is what made this feel broken.
+        if (result.resumeId && onOpenInStudio) {
+          handOff(result.resumeId, result);
+          return;
+        }
+        flowLog(requestId, 'modal:fallback-results', { reason: 'no resumeId in response' });
+        clearPending();
+
+        // Only if the server could not save it: show the documents rather than
+        // lose a finished generation, and say why.
+        setFallbackNotice('We could not open this in the Resume Studio automatically, but your documents are ready below.');
         setDocuments(result);
       } catch (err) {
         console.error('[AIEnhancementModal] Generation failed:', err);
+
+        // A dropped connection is not a failed generation. The server keeps going
+        // after the browser stops listening (a dev hot-reload does exactly this),
+        // so keep the pending record and go and look for the résumé.
+        const connectionLost = err instanceof DocumentServiceError && isConnectionLoss(err.status);
+        if (connectionLost && user?.id && onOpenInStudio) {
+          flowLog(requestId, 'modal:connection-lost');
+          setProgress('Connection interrupted — checking whether your resume finished…');
+          setOverlayMode('recovering');
+          const found = await pollFor(() => findByGenerationId(user.id, requestId), { timeoutMs: 120_000, intervalMs: 3_000 });
+          if (found) {
+            flowLog(requestId, 'modal:found-after-loss', { resumeId: found.id });
+            handOff(found.id);
+            return;
+          }
+          flowLog(requestId, 'modal:not-found-after-loss');
+        }
+        if (!connectionLost) clearPending();
         setError(
           err instanceof DocumentServiceError
-            ? err.message
+            ? `${err.message}${err.requestId ? ` (ref ${err.requestId})` : ''}`
             : 'Document generation failed. Please try again.',
         );
       } finally {
-        setGenerating(false);
-        setProgress('');
+        // After a hand-off the overlay stays until the dashboard closes this
+        // modal, so there is no flash of the form underneath.
+        if (!handedOff) {
+          setGenerating(false);
+          setProgress('');
+        }
       }
     },
-    [applicationData, detailedUserProfile, jobDescription],
+    [applicationData, detailedUserProfile, jobDescription, onOpenInStudio, onSave],
   );
 
   const effectiveText = (showManualInput ? manualText : resumeText).trim();
@@ -190,6 +308,9 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
           company: applicationData?.company_name || 'Company',
         }}
         onBack={onClose}
+        notice={fallbackNotice}
+        uid={user?.id ?? null}
+        onOpenInStudio={onOpenInStudio}
         onRegenerate={() => {
           setDocuments(null);
           savedRef.current = false;
@@ -202,28 +323,7 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white dark:bg-gray-800">
-        {generating && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-white/70 backdrop-blur-sm">
-            <div className="m-4 w-full max-w-md rounded-xl border border-gray-600 bg-gray-800 p-8 shadow-2xl">
-              <div className="flex flex-col items-center gap-6">
-                <span className="relative flex h-20 w-20 items-center justify-center">
-                  <span className="absolute inline-flex h-20 w-20 animate-ping rounded-full bg-blue-400 opacity-30" />
-                  <span className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg">
-                    <Brain className="text-white" size={40} />
-                  </span>
-                </span>
-
-                <div className="space-y-3 text-center">
-                  <h3 className="text-xl font-bold text-white">Building your documents</h3>
-                  <p className="text-sm font-medium text-blue-300">{progress}</p>
-                  <p className="rounded-lg border border-gray-600 bg-gray-700 px-4 py-3 text-xs leading-relaxed text-gray-200">
-                    {tip}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {generating && <AiThinkingScreen mode={overlayMode} tip={tip} />}
 
         <div className="flex items-center justify-between border-b border-gray-200 p-6 dark:border-gray-700">
           <div className="flex items-center gap-3">
@@ -284,6 +384,37 @@ const AIEnhancementModal: React.FC<AIEnhancementModalProps> = ({
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {studioResumes.length > 0 && (
+            <div>
+              <p className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <FileText size={16} />
+                Tailor a resume from your Studio
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {studioResumes.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => {
+                      setResumeText(resumeToPlainText(r));
+                      setFileName(r.title);
+                      setShowManualInput(false);
+                      setError('');
+                    }}
+                    className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                      fileName === r.title && resumeText
+                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300'
+                        : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {r.title}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">…or upload a file below.</p>
             </div>
           )}
 

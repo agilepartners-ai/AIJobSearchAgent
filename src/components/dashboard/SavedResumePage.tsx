@@ -3,27 +3,13 @@ import { FileText, Download, Eye, EyeOff, ArrowLeft, Briefcase, MapPin, Calendar
 import { JobApplication, FirebaseJobApplicationService } from '../../services/firebaseJobApplicationService';
 import { useAuth } from '../../hooks/useAuth';
 import { useToastContext } from '../ui/ToastProvider';
-import DashboardHeader from './DashboardHeader';
-import LeftSidebar from './LeftSidebar';
 import { refreshDocumentUrl } from '../../services/documentService';
 
-interface SavedResumePageProps {
-  onBack: () => void;
-  onAddApplication: () => void;
-  onJobPreferences: () => void;
-  onUpdateProfile: () => void;
-  onFindMoreJobs?: () => void;
-  userProfile: any;
-}
-
-const SavedResumePage: React.FC<SavedResumePageProps> = ({
-  onBack,
-  onAddApplication,
-  onJobPreferences,
-  onUpdateProfile,
-  onFindMoreJobs,
-  userProfile
-}) => {
+/**
+ * Saved documents. Rendered inside the dashboard shell, which supplies the
+ * header and navigation, so this component draws only its own content.
+ */
+const SavedResumePage: React.FC = () => {
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -152,7 +138,7 @@ const SavedResumePage: React.FC<SavedResumePageProps> = ({
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-xl text-gray-600 dark:text-gray-400">
@@ -164,22 +150,8 @@ const SavedResumePage: React.FC<SavedResumePageProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <DashboardHeader
-        userProfile={userProfile}
-        onAddApplication={onAddApplication}
-        onJobPreferences={onJobPreferences}
-        onUpdateProfile={onUpdateProfile}
-      />
-
-      <LeftSidebar
-        onDashboard={onBack}
-        onFindMoreJobs={onFindMoreJobs}
-        onAddApplication={onAddApplication}
-        onSavedResume={() => {}} // Already on saved resume page
-      />
-
-      <main className="ml-64 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="h-full overflow-y-auto">
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         {/* Header */}
         <div className="bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-8">
           <div className="flex items-center justify-between">

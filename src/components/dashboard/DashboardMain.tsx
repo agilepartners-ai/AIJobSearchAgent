@@ -15,9 +15,15 @@ import {
   setSelectedJobDescription
 } from '../../store/dashboardSlice';
 import { useRouter } from 'next/navigation';
-import DashboardHeader from './DashboardHeader';
-import LeftSidebar from './LeftSidebar';
-import ApplicationsTable from './ApplicationsTable';
+// The pages router exposes the query string; next/navigation's does not.
+import { useRouter as usePagesRouter } from 'next/router';
+import { motion } from 'framer-motion';
+import { Loader2, Menu } from 'lucide-react';
+import Sidebar, { type DashboardView } from './Sidebar';
+import ProfileMenu from './ProfileMenu';
+import OverviewView from './views/OverviewView';
+import ResumeStudioView from './views/ResumeStudioView';
+import AnalyticsView from './views/AnalyticsView';
 import JobDescriptionModal from './JobDescriptionModal';
 import ApplicationModal from './ApplicationModal';
 import JobPreferencesModal from './JobPreferencesModal';
@@ -28,6 +34,9 @@ import SavedResumePage from './SavedResumePage';
 import { JobApplication, ApplicationStats, FirebaseJobApplicationService } from '../../services/firebaseJobApplicationService';
 import { JobSearchService } from '../../services/jobSearchService';
 import { useAuth } from '../../hooks/useAuth';
+import { flowLog } from '../../lib/flowLog';
+import { clearPending, isOrphaned, readPending, PENDING_TTL_MS } from '../../lib/generation/pending';
+import { findByGenerationId } from '../../services/resumeService';
 import { useToastContext } from '../ui/ToastProvider';
 
 // Local type definitions to match service expectations
@@ -67,7 +76,7 @@ const Dashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showSavedResumePage, setShowSavedResumePage] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [stats, setStats] = useState<ApplicationStats>({
     total: 0,
     interviews: 0,
@@ -85,8 +94,9 @@ const Dashboard: React.FC = () => {
     needsEmailVerification,
   } = useAuth();
 
-  const { showSuccess, showError } = useToastContext();
+  const { showSuccess, showError, showInfo } = useToastContext();
   const router = useRouter();
+  const pagesRouter = usePagesRouter();
 
   const loadApplications = async () => {
     if (!user) {
@@ -188,21 +198,69 @@ const Dashboard: React.FC = () => {
       setLoading(false);
     });
 
-  }, [user, authLoading, needsEmailVerification, router]);
+    // `router` is deliberately not a dependency: it changes identity on every
+    // navigation, so every view switch reloaded the applications and flashed the
+    // loader. The effect only needs to re-run when the user or their auth state does.
+  }, [user, authLoading, needsEmailVerification]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Development only. Next compiles an API route the first time it is called,
+  // and that first compile makes the dev client do a full page reload, which
+  // used to land in the middle of the user's first generation. Touching the
+  // routes as soon as the dashboard loads moves that one-time reload to page
+  // load, where it costs nothing.
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') return;
+    void fetch('/api/documents/generate').catch(() => undefined);
+    void fetch('/api/documents/compile').catch(() => undefined);
+  }, []);
+
+  // A generation that was running when the page reloaded still finishes on the
+  // server (the résumé is saved and the quota is spent). Wait for it and open
+  // it, instead of leaving the user on an empty form to start again.
+  useEffect(() => {
+    if (!user?.id || authLoading) return;
+    const pending = readPending();
+    if (!pending || !isOrphaned(pending)) return;
+
+    flowLog(pending.requestId, 'recover:start', { ageMs: Date.now() - pending.startedAt });
+    // The modal's open state is persisted, so after a reload it reopens as an
+    // empty form. Close it: the résumé it was creating is being recovered.
+    dispatch(setShowAIEnhancementModal(false));
+    showInfo('Finishing your resume…', `We are still preparing your resume for ${pending.jobTitle}.`);
+    let stopped = false;
+
+    const poll = async () => {
+      while (!stopped && Date.now() - pending.startedAt < PENDING_TTL_MS) {
+        try {
+          const found = await findByGenerationId(user.id, pending.requestId);
+          if (found) {
+            flowLog(pending.requestId, 'recover:found', { resumeId: found.id });
+            clearPending();
+            dispatch(setShowAIEnhancementModal(false));
+            void pagesRouter.push(`/dashboard?view=resumes&resume=${found.id}&new=1`, undefined, { shallow: true });
+            return;
+          }
+        } catch (error) {
+          flowLog(pending.requestId, 'recover:poll-error', { message: error instanceof Error ? error.message : String(error) });
+        }
+        await new Promise((resolve) => setTimeout(resolve, 3_000));
+      }
+      if (!stopped) {
+        flowLog(pending.requestId, 'recover:gave-up');
+        clearPending();
+        showError('That resume did not finish', 'Nothing was kept from that attempt. Please try generating it again.');
+      }
+    };
+    void poll();
+    return () => {
+      stopped = true;
+    };
+    // Runs once per signed-in session; the record is cleared when it resolves.
+  }, [user?.id, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAddApplication = () => {
-    // If we're on SavedResumePage, navigate back to dashboard first
-    if (showSavedResumePage) {
-      setShowSavedResumePage(false);
-      // Use setTimeout to ensure navigation completes before opening modal
-      setTimeout(() => {
-        dispatch(setEditingApplication(null));
-        dispatch(setShowModal(true));
-      }, 100);
-    } else {
-      dispatch(setEditingApplication(null));
-      dispatch(setShowModal(true));
-    }
+    dispatch(setEditingApplication(null));
+    dispatch(setShowModal(true));
   };
 
   const handleJobPreferences = () => {
@@ -420,28 +478,7 @@ const Dashboard: React.FC = () => {
   };
 
   const handleFindMoreJobs = () => {
-    // If we're on SavedResumePage, navigate back to dashboard first
-    if (showSavedResumePage) {
-      setShowSavedResumePage(false);
-      // Use setTimeout to ensure navigation completes before opening modal
-      setTimeout(() => {
-        dispatch(setShowJobSearchModal(true));
-      }, 100);
-    } else {
-      dispatch(setShowJobSearchModal(true));
-    }
-  };
-
-  const handleDashboard = () => {
-    setShowSavedResumePage(false);
-  };
-
-  const handleSavedResume = () => {
-    setShowSavedResumePage(true);
-  };
-
-  const handleBackFromSavedResume = () => {
-    setShowSavedResumePage(false);
+    dispatch(setShowJobSearchModal(true));
   };
 
   const handleViewJobDescription = (job: { title: string; company: string; description: string }) => {
@@ -463,137 +500,112 @@ const Dashboard: React.FC = () => {
     dispatch(setShowAIEnhancementModal(true));
   };
 
-  // While auth state is loading, show a full-page loader
+  // Views live in the URL so a refresh, or a link from elsewhere, lands where
+  // the user expects: /dashboard?view=resumes.
+  const view = ((): DashboardView => {
+    const q = typeof pagesRouter.query.view === 'string' ? pagesRouter.query.view : '';
+    return (['overview', 'resumes', 'documents', 'analytics'] as DashboardView[]).includes(q as DashboardView)
+      ? (q as DashboardView)
+      : 'overview';
+  })();
+
+  const setView = (next: DashboardView) => {
+    void pagesRouter.push(next === 'overview' ? '/dashboard' : `/dashboard?view=${next}`, undefined, { shallow: true });
+  };
+
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-[#050505]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-xl text-gray-600 dark:text-gray-400">Loading Dashboard...</p>
+          <Loader2 className="mx-auto mb-3 animate-spin text-indigo-600" size={28} />
+          <p className="text-sm text-slate-500">Loading your dashboard…</p>
         </div>
       </div>
     );
   }
 
-  // Show Saved Resume Page if active
-  if (showSavedResumePage) {
-    return (
-      <SavedResumePage
-        onBack={handleBackFromSavedResume}
-        onAddApplication={handleAddApplication}
-        onJobPreferences={handleJobPreferences}
-        onUpdateProfile={handleUpdateProfile}
-        onFindMoreJobs={handleFindMoreJobs}
-        userProfile={userProfile}
-      />
-    );
-  }
+  const TITLES: Record<DashboardView, string> = {
+    overview: 'Applications',
+    resumes: 'Resume Studio',
+    documents: 'Saved documents',
+    analytics: 'Analytics',
+  };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
-      {/* Fixed Header at Top */}
-      <DashboardHeader
-        userProfile={userProfile}
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-[#050505]">
+      <Sidebar
+        view={view}
+        onView={setView}
+        onFindJobs={handleFindMoreJobs}
         onAddApplication={handleAddApplication}
-        onJobPreferences={handleJobPreferences}
-        onUpdateProfile={handleUpdateProfile}
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
       />
 
-      {/* Sidebar - Hidden on mobile, fixed on desktop */}
-      <LeftSidebar
-        onDashboard={handleDashboard}
-        onFindMoreJobs={handleFindMoreJobs}
-        onAddApplication={handleAddApplication}
-        onSavedResume={handleSavedResume}
-      />
+      <div className="flex min-w-0 flex-1 flex-col md:ml-60">
+        <header className="flex shrink-0 items-center gap-3 border-b border-slate-200/70 bg-white/80 px-4 py-3 backdrop-blur-xl dark:border-white/[0.07] dark:bg-[#0a0a0b]/85">
+          <button onClick={() => setMenuOpen(true)} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 md:hidden dark:hover:bg-slate-800" aria-label="Open menu">
+            <Menu size={18} />
+          </button>
+          <h1 className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">{TITLES[view]}</h1>
+          <div className="ml-auto flex items-center gap-1.5">
+            <ProfileMenu
+              name={userProfile?.full_name ?? user?.email ?? 'Account'}
+              onProfile={handleUpdateProfile}
+              onPreferences={handleJobPreferences}
+            />
+          </div>
+        </header>
 
-      {/* Main Content Area - Accounts for header and sidebar */}
-      <main className="flex-1 flex flex-col overflow-hidden md:ml-64 pt-14 sm:pt-16">
-          
-          {/* Loading State */}
-          {loading && (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-lg font-medium text-gray-600 dark:text-gray-400">Loading Dashboard...</p>
-              </div>
+        <main className="min-h-0 flex-1 overflow-hidden">
+          {error && view === 'overview' && (
+            <div className="mx-4 mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-300">
+              {error}
             </div>
           )}
 
-          {/* Error State */}
-          {error && !loading && (
-            <div className="m-4 p-4 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-700">
-              <p className="font-medium">⚠️ {error}</p>
-            </div>
-          )}
-
-          {/* Main Dashboard Content - Compact, No Scroll */}
-          {!loading && !error && (
-            <div className="flex-1 flex flex-col overflow-hidden p-2 sm:p-3 md:p-4 gap-2 sm:gap-3">
-              
-              {/* Welcome Banner - Compact for Mobile */}
-              {combinedListings.some(job => job.id.startsWith('workflow-')) && (
-                <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-2 sm:p-3 flex-shrink-0 shadow-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 backdrop-blur rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-lg sm:text-xl">✓</span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-sm sm:text-base font-bold truncate">Welcome to Your Dashboard!</h3>
-                      <p className="text-xs sm:text-sm text-white/90 hidden sm:block">
-                        {combinedListings.filter(job => job.id.startsWith('workflow-')).length} jobs loaded and ready to apply
-                      </p>
-                    </div>
+          {/* No exit animation: AnimatePresence's mode="wait" would hold the
+              whole view subtree until a frame lands, and a throttled frame
+              then freezes it. */}
+          <motion.div
+            key={view}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="h-full"
+          >
+              {view === 'overview' &&
+                (loading ? (
+                  <div className="flex h-full items-center justify-center text-sm text-slate-500">
+                    <Loader2 className="mr-2 animate-spin" size={16} /> Loading applications…
                   </div>
-                </div>
-              )}
-
-              {/* Stats Cards - Compact Grid */}
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3 flex-shrink-0">
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200 dark:border-gray-700">
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Total</div>
-                  <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</div>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200 dark:border-gray-700">
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Applied</div>
-                  <div className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.applied}</div>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200 dark:border-gray-700">
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Pending</div>
-                  <div className="text-lg sm:text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pending}</div>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200 dark:border-gray-700">
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Interview</div>
-                  <div className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.interviews}</div>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200 dark:border-gray-700">
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Offers</div>
-                  <div className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400">{stats.offers}</div>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-2 sm:p-3 shadow-sm border border-gray-200 dark:border-gray-700">
-                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Rejected</div>
-                  <div className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400">{stats.rejected}</div>
-                </div>
-              </div>
-
-              {/* Applications Table - Takes Remaining Space */}
-              <div className="flex-1 overflow-hidden min-h-0">
-                <ApplicationsTable
-                  applications={[...applications, ...combinedListings].map(app => ({ ...app, updated_at: app.updated_at ?? '' }))}
-                  searchTerm={searchTerm}
-                  statusFilter={statusFilter}
-                  onSearchTermChange={setSearchTerm}
-                  onStatusFilterChange={setStatusFilter}
-                  onEditApplication={handleEditApplication}
-                  onViewJobDescription={handleViewJobDescription}
-                  onDeleteApplication={handleDeleteApplication}
-                  onUpdateApplicationStatus={handleUpdateApplicationStatus}
-                  onLoadAIEnhanced={handleLoadAIEnhanced}
+                ) : (
+                  <OverviewView
+                    stats={stats}
+                    applications={[...applications, ...combinedListings]}
+                    searchTerm={searchTerm}
+                    statusFilter={statusFilter}
+                    onSearchTermChange={setSearchTerm}
+                    onStatusFilterChange={setStatusFilter}
+                    onEditApplication={handleEditApplication}
+                    onViewJobDescription={handleViewJobDescription}
+                    onDeleteApplication={handleDeleteApplication}
+                    onUpdateApplicationStatus={handleUpdateApplicationStatus}
+                    onLoadAIEnhanced={handleLoadAIEnhanced}
+                  />
+                ))}
+              {view === 'resumes' && user && (
+                <ResumeStudioView
+                  uid={user.id}
+                  openId={typeof pagesRouter.query.resume === 'string' ? pagesRouter.query.resume : null}
+                  fresh={pagesRouter.query.new === '1'}
                 />
-              </div>
-            </div>
-          )}
-      </main>
+              )}
+              {view === 'documents' && <SavedResumePage />}
+              {view === 'analytics' && user && <AnalyticsView uid={user.id} />}
+          </motion.div>
+        </main>
+      </div>
 
       {/* Modals */}
       <JobDescriptionModal
@@ -609,17 +621,8 @@ const Dashboard: React.FC = () => {
           onClose={() => dispatch(setShowModal(false))}
         />
       )}
-      {showJobPreferencesModal && (
-        <JobPreferencesModal
-          onClose={() => dispatch(setShowJobPreferencesModal(false))}
-        />
-      )}
-
-      {showProfileModal && (
-        <ProfileModal
-          onClose={() => dispatch(setShowProfileModal(false))}
-        />
-      )}
+      {showJobPreferencesModal && <JobPreferencesModal onClose={() => dispatch(setShowJobPreferencesModal(false))} />}
+      {showProfileModal && <ProfileModal onClose={() => dispatch(setShowProfileModal(false))} />}
       {showAIEnhancementModal && (
         <AIEnhancementModal
           jobDescription={selectedJobDescription?.description || editingApplication?.job_description || ''}
@@ -635,6 +638,10 @@ const Dashboard: React.FC = () => {
             }
           }}
           onClose={() => dispatch(setShowAIEnhancementModal(false))}
+          onOpenInStudio={(resumeId) => {
+            dispatch(setShowAIEnhancementModal(false));
+            void pagesRouter.push(`/dashboard?view=resumes&resume=${resumeId}&new=1`, undefined, { shallow: true });
+          }}
         />
       )}
       {showJobSearchModal && (
