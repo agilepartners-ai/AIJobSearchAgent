@@ -12,6 +12,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { handleAuthError, isAuthenticationError, redirectToLogin } from '../utils/authErrorHandler';
 import '../index.css';
 import '../styles/dashboard-responsive.css';
+// Resume preview fonts (from TeX Live 2025, matching the PDF). Files load only when used.
+import '../styles/resume-fonts.css';
 
 // Initialize services based on configuration
 EmailService.initializeProvider();
@@ -45,7 +47,9 @@ function MyApp({ Component, pageProps }: AppProps) {
       const publicPaths = ['/login', '/register', '/verify-phone', '/', '/forgot-password', '/privacy-policy', '/terms-of-service'];
       
       // If user is logged out and not on a public page, redirect to login
-      if (!user && !publicPaths.includes(currentPath)) {
+      // Development harness pages (not built in production) are usable signed out.
+      const isDevHarness = process.env.NODE_ENV !== 'production' && currentPath.startsWith('/dev/');
+      if (!user && !publicPaths.includes(currentPath) && !isDevHarness) {
         console.log('User session ended, redirecting to login');
         redirectToLogin('expired');
       }
