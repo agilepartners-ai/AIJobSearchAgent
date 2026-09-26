@@ -39,11 +39,24 @@ const app = (id: string, position: string, company: string, status: JobApplicati
   ...extra,
 });
 
+const DESCRIPTION = `About the role
+We are looking for a senior engineer to own our checkout experience end to end.
+
+What you will do
+- Build and ship React and TypeScript features used by millions of shoppers
+- Partner with design and backend teams on GraphQL APIs
+- Raise the bar on testing, performance and accessibility
+
+What we are looking for
+- 5+ years of professional frontend experience
+- Strong React, TypeScript and testing habits (Jest, Cypress)
+- Experience with performance profiling and monitoring`;
+
 const SAMPLE: JobApplication[] = [
-  app('1', 'Senior React Software Engineer (Remote)', 'Repisodic', 'not_applied', '2026-09-26'),
-  app('2', 'React JS Developer (Full Time)', 'The Dignify Solutions', 'applied', '2026-09-19'),
-  app('3', 'Senior React/Node Developer', 'FullStack Labs', 'interviewing', '2026-09-13'),
-  app('4', 'Sr. Software Engineer, Backend', 'Pinterest', 'offered', '2026-09-10', { remote_option: false, location: 'San Francisco, CA' }),
+  app('1', 'Senior React Software Engineer (Remote)', 'Repisodic', 'not_applied', '2026-09-26', { location: 'Philadelphia, PA', salary_range: '$140k - $170k', employment_type: 'Full-time', job_description: DESCRIPTION, source: 'job_search' }),
+  app('2', 'React JS Developer (Full Time) - 100% Remote', 'The Dignify Solutions', 'applied', '2026-09-19', { location: 'New York, NY', employment_type: 'Full-time', job_description: DESCRIPTION, contact_person: 'Maya Chen', contact_email: 'maya@dignify.example', resume_url: 'https://example.com/r.pdf', cover_letter_url: 'https://example.com/c.pdf', notes: 'Recruiter said to expect a call next week.' }),
+  app('3', 'Senior React/Node Developer - Remote - USA', 'FullStack Labs', 'interviewing', '2026-09-13', { location: 'Cheyenne, WY', job_description: DESCRIPTION, interview_date: '2026-10-02' }),
+  app('4', 'Sr. Software Engineer, Backend', 'Pinterest', 'offered', '2026-09-10', { remote_option: false, location: 'San Francisco, CA', salary_range: '$190k+', job_description: DESCRIPTION }),
   app('5', 'Frontend Engineer', 'Northwind', 'rejected', '2026-09-02', { job_posting_url: null, job_description: null }),
 ];
 

@@ -1,17 +1,20 @@
 /**
- * The applications list.
+ * The applications workspace, laid out the way LinkedIn Jobs is: a list on the
+ * left, and the selected job in full on the right.
  *
- * One row per application, in a near-black, low-contrast palette that matches
- * the AI loader: white text at three opacities, hairline borders, and a single
- * filled button (the AI action). Status is a small dot plus a plain label
- * rather than a coloured badge, so nothing competes for attention with the one
- * thing worth doing next. There is no carousel: a list scans faster, holds more
- * on screen, and works the same on a phone.
+ * Each row carries what a recruiter's inbox would: a company tile, the role,
+ * company · location, small facts (remote, type, salary) and a status chip. The
+ * right pane shows the whole job (description, dates, contact, notes, the
+ * documents you generated) with the two actions that matter, Apply and Tailor
+ * résumé, at the top.
+ *
+ * Deliberately static: no animation, no carousel. Colour is limited to a
+ * muted tint on the status chip and on each company's tile, so state is
+ * readable at a glance without anything shouting.
  */
-import { format } from 'date-fns';
-import { motion } from 'framer-motion';
-import { ArrowUpRight, Check, Eye, Pencil, Search, Sparkles, Trash2, X } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { format, formatDistanceToNow } from 'date-fns';
+import { ArrowUpRight, Building2, Check, Eye, FileText, Mail, MapPin, Pencil, Search, Sparkles, Trash2, User, Wallet, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { JobApplication } from '../../services/firebaseJobApplicationService';
 
 interface ApplicationsTableProps {
@@ -29,24 +32,19 @@ interface ApplicationsTableProps {
 
 type Status = JobApplication['status'];
 
-/** Label and dot for each real status. Muted on purpose; only outcomes get a hue. */
-const STATUS: Record<Status, { label: string; dot: string }> = {
-  not_applied: { label: 'To apply', dot: 'bg-white/30' },
-  applied: { label: 'Applied', dot: 'bg-white/80' },
-  interviewing: { label: 'Interviewing', dot: 'bg-sky-300/80' },
-  offered: { label: 'Offer', dot: 'bg-emerald-300/80' },
-  accepted: { label: 'Accepted', dot: 'bg-emerald-300/80' },
-  rejected: { label: 'Rejected', dot: 'bg-white/20' },
-  declined: { label: 'Declined', dot: 'bg-white/20' },
+const STATUS: Record<Status, { label: string; chip: string }> = {
+  not_applied: { label: 'To apply', chip: 'bg-slate-100 text-slate-600 dark:bg-white/[0.07] dark:text-white/60' },
+  applied: { label: 'Applied', chip: 'bg-sky-50 text-sky-700 dark:bg-sky-400/[0.14] dark:text-sky-300' },
+  interviewing: { label: 'Interviewing', chip: 'bg-violet-50 text-violet-700 dark:bg-violet-400/[0.14] dark:text-violet-300' },
+  offered: { label: 'Offer', chip: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/[0.14] dark:text-emerald-300' },
+  accepted: { label: 'Accepted', chip: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/[0.14] dark:text-emerald-300' },
+  rejected: { label: 'Rejected', chip: 'bg-rose-50 text-rose-700 dark:bg-rose-400/[0.10] dark:text-rose-300/90' },
+  declined: { label: 'Declined', chip: 'bg-slate-100 text-slate-500 dark:bg-white/[0.05] dark:text-white/45' },
 };
 
 const STATUS_ORDER: Status[] = ['not_applied', 'applied', 'interviewing', 'offered', 'accepted', 'rejected', 'declined'];
 
-/**
- * The filter groups statuses people think of together. (It used to offer
- * "interview" and "offer", which no application ever has, so those filters
- * always came back empty.)
- */
+/** Groups of statuses people think of together. */
 const FILTERS: { id: string; label: string; match: (s: Status) => boolean }[] = [
   { id: 'all', label: 'All', match: () => true },
   { id: 'not_applied', label: 'To apply', match: (s) => s === 'not_applied' },
@@ -58,14 +56,53 @@ const FILTERS: { id: string; label: string; match: (s: Status) => boolean }[] = 
 
 type Sort = 'recent' | 'company' | 'status';
 
-const dateLabel = (value: string | null): string => {
+const stampOf = (a: JobApplication) => a.updated_at || a.application_date || a.created_at || '';
+
+function ago(value: string | null | undefined): string {
   if (!value) return '';
   const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? '' : format(d, 'MMM d');
-};
+  return Number.isNaN(d.getTime()) ? '' : formatDistanceToNow(d, { addSuffix: true });
+}
 
-const iconButton =
-  'rounded-lg p-2 text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/40';
+function day(value: string | null | undefined): string {
+  if (!value) return '';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '' : format(d, 'MMM d, yyyy');
+}
+
+/** A stable hue per company, so the same company always gets the same tile. */
+function hueOf(name: string): number {
+  let h = 0;
+  for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return h;
+}
+
+function CompanyTile({ name, size = 44 }: { name: string; size?: number }) {
+  const hue = hueOf(name || '?');
+  const letters = (name || '?')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase();
+  return (
+    <span
+      aria-hidden
+      className="flex shrink-0 items-center justify-center rounded-lg font-semibold"
+      style={{ width: size, height: size, fontSize: size * 0.36, background: `hsl(${hue} 32% 24%)`, color: `hsl(${hue} 70% 82%)` }}
+    >
+      {letters}
+    </span>
+  );
+}
+
+const Chip = ({ children }: { children: React.ReactNode }) => (
+  <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600 dark:bg-white/[0.06] dark:text-white/60">{children}</span>
+);
+
+const ghost =
+  'inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-white/75 dark:hover:bg-white/[0.06]';
 
 const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   applications,
@@ -80,8 +117,9 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   onLoadAIEnhanced,
 }) => {
   const [sort, setSort] = useState<Sort>('recent');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   // Deleting takes two clicks: a single mis-click must not remove an application.
-  const [confirming, setConfirming] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   const filter = FILTERS.find((f) => f.id === statusFilter) ?? FILTERS[0];
 
@@ -92,13 +130,16 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
         filter.match(a.status ?? 'not_applied') &&
         (!q || (a.position ?? '').toLowerCase().includes(q) || (a.company_name ?? '').toLowerCase().includes(q)),
     );
-    const stamp = (a: JobApplication) => a.updated_at || a.application_date || '';
     return list.sort((a, b) => {
       if (sort === 'company') return (a.company_name ?? '').localeCompare(b.company_name ?? '');
       if (sort === 'status') return STATUS_ORDER.indexOf(a.status ?? 'not_applied') - STATUS_ORDER.indexOf(b.status ?? 'not_applied');
-      return stamp(b).localeCompare(stamp(a));
+      return stampOf(b).localeCompare(stampOf(a));
     });
   }, [applications, filter, searchTerm, sort]);
+
+  // Keep a valid selection: the first row when nothing (or something filtered out) is selected.
+  const selected = rows.find((a) => a.id === selectedId) ?? rows[0] ?? null;
+  useEffect(() => setConfirming(false), [selected?.id]);
 
   const countFor = (f: (typeof FILTERS)[number]) => applications.filter((a) => f.match(a.status ?? 'not_applied')).length;
 
@@ -110,9 +151,12 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   };
 
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-white/[0.08] dark:bg-[#0a0a0b]" aria-label="Applications">
+    <section
+      className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-white/[0.08] dark:bg-[#0c0c0e]"
+      aria-label="Applications"
+    >
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-4 py-3 dark:border-white/[0.07]">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-slate-200 px-4 py-3 dark:border-white/[0.07]">
         <label className="relative min-w-[200px] flex-1 sm:max-w-xs">
           <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/35" />
           <input
@@ -124,7 +168,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
           />
         </label>
 
-        <div className="flex flex-wrap gap-1" role="tablist" aria-label="Filter by status">
+        <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Filter by status">
           {FILTERS.map((f) => {
             const active = f.id === filter.id;
             return (
@@ -133,14 +177,13 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                 role="tab"
                 aria-selected={active}
                 onClick={() => onStatusFilterChange(f.id)}
-                className={`rounded-full px-3 py-1 text-xs transition-colors ${
+                className={`rounded-full border px-3 py-1 text-xs ${
                   active
-                    ? 'bg-slate-900 text-white dark:bg-white/10 dark:text-white'
-                    : 'text-slate-500 hover:text-slate-900 dark:text-white/45 dark:hover:text-white/80'
+                    ? 'border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-black'
+                    : 'border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:text-white/55 dark:hover:bg-white/[0.05]'
                 }`}
               >
-                {f.label}
-                <span className="ml-1.5 tabular-nums opacity-50">{countFor(f)}</span>
+                {f.label} <span className="tabular-nums opacity-60">{countFor(f)}</span>
               </button>
             );
           })}
@@ -151,7 +194,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as Sort)}
-            className="rounded-md border border-slate-200 bg-transparent px-2 py-1 text-xs text-slate-700 outline-none dark:border-white/10 dark:bg-[#0a0a0b] dark:text-white/80"
+            className="rounded-md border border-slate-200 bg-transparent px-2 py-1 text-xs text-slate-700 outline-none dark:border-white/10 dark:bg-[#0c0c0e] dark:text-white/80"
           >
             <option value="recent">Recent</option>
             <option value="company">Company</option>
@@ -160,50 +203,105 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
         </label>
       </div>
 
-      {/* Rows */}
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {rows.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center px-6 py-16 text-center">
-            <p className="text-sm text-slate-700 dark:text-white/80">
-              {applications.length === 0 ? 'No applications yet' : 'No matches'}
-            </p>
-            <p className="mt-1 max-w-xs text-xs text-slate-500 dark:text-white/40">
-              {applications.length === 0
-                ? 'Use Find jobs to save a role, or Add application to enter one yourself.'
-                : 'Try a different search or filter.'}
-            </p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-slate-100 dark:divide-white/[0.06]">
+      {rows.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
+          <Building2 size={28} className="mb-3 text-slate-300 dark:text-white/20" />
+          <p className="text-sm text-slate-700 dark:text-white/80">{applications.length === 0 ? 'No applications yet' : 'No matches'}</p>
+          <p className="mt-1 max-w-xs text-xs text-slate-500 dark:text-white/40">
+            {applications.length === 0 ? 'Use Find jobs to save a role, or Add application to enter one yourself.' : 'Try a different search or filter.'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(340px,440px)_minmax(0,1fr)]">
+          {/* List */}
+          <ul className="min-h-0 divide-y divide-slate-100 overflow-y-auto border-slate-200 dark:divide-white/[0.06] dark:border-white/[0.07] lg:border-r" role="listbox" aria-label="Jobs">
             {rows.map((a) => {
               const status = a.status ?? 'not_applied';
-              const meta = [dateLabel(a.application_date), a.location, a.remote_option ? 'Remote' : ''].filter(Boolean).join(' · ');
-              const askingDelete = confirming === a.id;
+              const active = a.id === selected?.id;
+              const facts = [a.remote_option ? 'Remote' : '', a.employment_type, a.salary_range].filter(Boolean) as string[];
               return (
-                <motion.li
-                  key={a.id}
-                  layout="position"
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                  className="group grid grid-cols-1 items-center gap-x-4 gap-y-2 px-4 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-white/[0.025] md:grid-cols-[minmax(0,1fr)_auto_auto]"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-900 dark:text-white/90">{a.position || 'Untitled role'}</p>
-                    <p className="truncate text-xs text-slate-500 dark:text-white/45">
-                      {a.company_name || 'Unknown company'}
-                      {meta && <span className="text-slate-400 dark:text-white/30"> · {meta}</span>}
+                <li key={a.id} role="option" aria-selected={active}>
+                  <button
+                    onClick={() => {
+                      setSelectedId(a.id);
+                      // Below the two-pane breakpoint there is no detail pane; open the description instead.
+                      if (typeof window !== 'undefined' && window.innerWidth < 1024 && a.job_description) {
+                        onViewJobDescription({ title: a.position || '', company: a.company_name || '', description: a.job_description });
+                      }
+                    }}
+                    className={`flex w-full gap-3 border-l-2 px-4 py-3.5 text-left ${
+                      active
+                        ? 'border-l-slate-900 bg-slate-50 dark:border-l-white dark:bg-white/[0.05]'
+                        : 'border-l-transparent hover:bg-slate-50 dark:hover:bg-white/[0.03]'
+                    }`}
+                  >
+                    <CompanyTile name={a.company_name || ''} />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-start justify-between gap-2">
+                        <span className="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-white/95">{a.position || 'Untitled role'}</span>
+                        <span className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS[status].chip}`}>{STATUS[status].label}</span>
+                      </span>
+                      <span className="mt-0.5 block truncate text-xs text-slate-600 dark:text-white/60">{a.company_name || 'Unknown company'}</span>
+                      <span className="block truncate text-xs text-slate-500 dark:text-white/40">{[a.location, ago(a.application_date || a.created_at)].filter(Boolean).join(' · ')}</span>
+                      {facts.length > 0 && (
+                        <span className="mt-2 flex flex-wrap gap-1.5">
+                          {facts.map((f) => (
+                            <Chip key={f}>{f}</Chip>
+                          ))}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Detail */}
+          {selected && (
+            <article className="hidden min-h-0 flex-col overflow-hidden lg:flex" aria-label="Job details">
+              <div className="border-b border-slate-200 px-6 py-5 dark:border-white/[0.07]">
+                <div className="flex items-start gap-4">
+                  <CompanyTile name={selected.company_name || ''} size={56} />
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-lg font-semibold leading-snug text-slate-900 dark:text-white">{selected.position || 'Untitled role'}</h2>
+                    <p className="mt-0.5 text-sm text-slate-600 dark:text-white/60">
+                      {selected.company_name || 'Unknown company'}
+                      {selected.location && <span className="text-slate-400 dark:text-white/35"> · {selected.location}</span>}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-white/40">
+                      Added {ago(selected.application_date || selected.created_at) || 'recently'}
+                      {selected.source && ` · via ${selected.source.replace(/_/g, ' ')}`}
                     </p>
                   </div>
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS[selected.status ?? 'not_applied'].chip}`}>
+                    {STATUS[selected.status ?? 'not_applied'].label}
+                  </span>
+                </div>
 
-                  <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-white/60">
-                    <span className={`h-1.5 w-1.5 rounded-full ${STATUS[status].dot}`} aria-hidden />
-                    <span className="sr-only">Status</span>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  {onLoadAIEnhanced && (
+                    <button
+                      onClick={() => onLoadAIEnhanced(selected)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
+                    >
+                      <Sparkles size={15} />
+                      Tailor resume
+                    </button>
+                  )}
+                  {selected.job_posting_url && (
+                    <button onClick={() => apply(selected)} className={ghost}>
+                      {selected.status === 'not_applied' ? 'Apply' : 'Open posting'}
+                      <ArrowUpRight size={14} />
+                    </button>
+                  )}
+                  <label className="ml-1 flex items-center gap-2 text-xs text-slate-500 dark:text-white/45">
+                    Status
                     <select
-                      value={status}
-                      onChange={(e) => onUpdateApplicationStatus?.(a.id, e.target.value)}
+                      value={selected.status ?? 'not_applied'}
+                      onChange={(e) => onUpdateApplicationStatus?.(selected.id, e.target.value)}
                       disabled={!onUpdateApplicationStatus}
-                      className="cursor-pointer rounded bg-transparent py-0.5 pr-1 text-xs outline-none hover:text-slate-900 dark:bg-[#0a0a0b] dark:hover:text-white"
+                      className="rounded-md border border-slate-200 bg-transparent px-2 py-1.5 text-sm text-slate-800 outline-none dark:border-white/10 dark:bg-[#0c0c0e] dark:text-white/85"
                     >
                       {STATUS_ORDER.map((s) => (
                         <option key={s} value={s}>
@@ -213,69 +311,117 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                     </select>
                   </label>
 
-                  <div className="flex items-center gap-1 md:justify-end">
-                    {a.job_posting_url && (
+                  <span className="ml-auto flex items-center gap-1">
+                    {selected.job_description && (
                       <button
-                        onClick={() => apply(a)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-700 transition-colors hover:bg-slate-100 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/[0.06] dark:hover:text-white"
+                        onClick={() => onViewJobDescription({ title: selected.position || '', company: selected.company_name || '', description: selected.job_description || '' })}
+                        className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-800 dark:text-white/40 dark:hover:bg-white/[0.06] dark:hover:text-white"
+                        aria-label="Open description in a window"
+                        title="Open description in a window"
                       >
-                        {status === 'not_applied' ? 'Apply' : 'Open'}
-                        <ArrowUpRight size={13} />
+                        <Eye size={16} />
                       </button>
                     )}
-                    {onLoadAIEnhanced && (
-                      <button
-                        onClick={() => onLoadAIEnhanced(a)}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-black"
-                      >
-                        <Sparkles size={13} />
-                        Tailor resume
-                      </button>
-                    )}
-
-                    {a.job_description && (
-                      <button
-                        onClick={() => onViewJobDescription({ title: a.position || '', company: a.company_name || '', description: a.job_description || '' })}
-                        className={iconButton}
-                        aria-label="View job description"
-                        title="View job description"
-                      >
-                        <Eye size={15} />
-                      </button>
-                    )}
-                    <button onClick={() => onEditApplication(a)} className={iconButton} aria-label="Edit application" title="Edit">
-                      <Pencil size={15} />
+                    <button
+                      onClick={() => onEditApplication(selected)}
+                      className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-800 dark:text-white/40 dark:hover:bg-white/[0.06] dark:hover:text-white"
+                      aria-label="Edit application"
+                      title="Edit"
+                    >
+                      <Pencil size={16} />
                     </button>
-
-                    {askingDelete ? (
-                      <span className="flex items-center gap-1 rounded-lg bg-white/[0.06] pl-2 text-xs text-white/70" role="alert">
-                        Delete?
+                    {confirming ? (
+                      <span className="flex items-center gap-1 rounded-lg bg-rose-50 pl-2 text-xs text-rose-700 dark:bg-rose-400/10 dark:text-rose-300" role="alert">
+                        Delete this application?
                         <button
                           onClick={() => {
-                            setConfirming(null);
-                            onDeleteApplication(a.id);
+                            setConfirming(false);
+                            onDeleteApplication(selected.id);
                           }}
-                          className={`${iconButton} text-rose-300/80 hover:text-rose-200`}
+                          className="rounded p-2 hover:bg-rose-100 dark:hover:bg-rose-400/10"
                           aria-label="Confirm delete"
                         >
                           <Check size={15} />
                         </button>
-                        <button onClick={() => setConfirming(null)} className={iconButton} aria-label="Keep application">
+                        <button onClick={() => setConfirming(false)} className="rounded p-2 hover:bg-rose-100 dark:hover:bg-rose-400/10" aria-label="Keep application">
                           <X size={15} />
                         </button>
                       </span>
                     ) : (
-                      <button onClick={() => setConfirming(a.id)} className={iconButton} aria-label="Delete application" title="Delete">
-                        <Trash2 size={15} />
+                      <button
+                        onClick={() => setConfirming(true)}
+                        className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-rose-600 dark:text-white/40 dark:hover:bg-white/[0.06] dark:hover:text-rose-300"
+                        aria-label="Delete application"
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
                       </button>
                     )}
+                  </span>
+                </div>
+              </div>
+
+              <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+                {/* Facts */}
+                <dl className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
+                  {[
+                    { icon: <MapPin size={14} />, label: 'Location', value: selected.location, extra: selected.remote_option ? 'Remote' : '' },
+                    { icon: <Building2 size={14} />, label: 'Type', value: selected.employment_type },
+                    { icon: <Wallet size={14} />, label: 'Salary', value: selected.salary_range },
+                    { icon: <User size={14} />, label: 'Contact', value: selected.contact_person },
+                    { icon: <Mail size={14} />, label: 'Email', value: selected.contact_email },
+                    { icon: <FileText size={14} />, label: 'Applied on', value: selected.status !== 'not_applied' ? day(selected.application_date) : '' },
+                    { icon: <FileText size={14} />, label: 'Interview', value: day(selected.interview_date) },
+                    { icon: <FileText size={14} />, label: 'Follow up', value: day(selected.follow_up_date) },
+                  ]
+                    .filter((f) => f.value || f.extra)
+                    .map((f) => (
+                      <div key={f.label} className="flex items-start gap-2.5">
+                        <span className="mt-0.5 text-slate-400 dark:text-white/30">{f.icon}</span>
+                        <div className="min-w-0">
+                          <dt className="text-xs text-slate-500 dark:text-white/40">{f.label}</dt>
+                          <dd className="break-words text-slate-800 dark:text-white/85">{[f.value, f.extra].filter(Boolean).join(' · ')}</dd>
+                        </div>
+                      </div>
+                    ))}
+                </dl>
+
+                {/* Generated documents */}
+                {(selected.resume_url || selected.cover_letter_url) && (
+                  <div className="mt-6 flex flex-wrap gap-2">
+                    {selected.resume_url && (
+                      <a href={selected.resume_url} target="_blank" rel="noopener noreferrer" className={ghost}>
+                        <FileText size={14} /> Tailored resume
+                      </a>
+                    )}
+                    {selected.cover_letter_url && (
+                      <a href={selected.cover_letter_url} target="_blank" rel="noopener noreferrer" className={ghost}>
+                        <Mail size={14} /> Cover letter
+                      </a>
+                    )}
                   </div>
-                </motion.li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+                )}
+
+                {selected.notes && (
+                  <section className="mt-6">
+                    <h3 className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-white/40">Notes</h3>
+                    <p className="mt-1.5 whitespace-pre-line text-sm text-slate-700 dark:text-white/70">{selected.notes}</p>
+                  </section>
+                )}
+
+                <section className="mt-6">
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-white/40">About the job</h3>
+                  {selected.job_description ? (
+                    <p className="mt-1.5 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-slate-700 dark:text-white/70">{selected.job_description}</p>
+                  ) : (
+                    <p className="mt-1.5 text-sm text-slate-500 dark:text-white/40">No description saved. Use Edit to paste one, so Tailor resume can match against it.</p>
+                  )}
+                </section>
+              </div>
+            </article>
+          )}
+        </div>
+      )}
 
       <div className="border-t border-slate-100 px-4 py-2 text-xs text-slate-400 dark:border-white/[0.06] dark:text-white/30">
         {rows.length === applications.length ? `${rows.length} ${rows.length === 1 ? 'application' : 'applications'}` : `${rows.length} of ${applications.length}`}

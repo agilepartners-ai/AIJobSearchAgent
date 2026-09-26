@@ -532,7 +532,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-[#050505]">
+    <div className="fixed inset-0 flex overflow-hidden bg-slate-50 dark:bg-[#050505]">
       <Sidebar
         view={view}
         onView={setView}
