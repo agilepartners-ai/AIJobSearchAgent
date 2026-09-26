@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Lets a production build run in its own folder (NEXT_DIST_DIR=.next-check) without
+  // touching the .next that a running dev server is using; building over it breaks the dev server.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   // Disable standalone output on Windows to avoid symlink EPERM during local builds; keep for others.
   output: process.platform === 'win32' ? undefined : 'standalone',
 

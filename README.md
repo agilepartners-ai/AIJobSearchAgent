@@ -36,7 +36,7 @@ An AI-powered job search application built with Next.js, React, and TypeScript t
 Before running this project, make sure you have:
 
 - **Node.js** (version 18 or higher)
-- **npm** or **yarn** package manager
+- **pnpm** package manager (`corepack enable`) — not npm, see docs/SETUP.md
 - **Git** for version control
 - **Firebase account** (for authentication)
 
@@ -56,7 +56,7 @@ cd MyJobSearchAgent
 
 ```bash
 # Install all dependencies
-npm install
+pnpm install
 
 
 ```
@@ -69,7 +69,7 @@ npm install
 Fill it in, then verify with:
 
 ```bash
-npm run check:env
+pnpm check:env
 ```
 
 That makes a real call against Gemini, Texapi and Firebase, so a bad key fails there
@@ -106,10 +106,8 @@ directly on the service survives.
 
 ```bash
 # Start development server
-npm run dev
+pnpm dev
 
-# Or using yarn
-yarn dev
 ```
 
 The application will be available at `http://localhost:3000`
@@ -120,26 +118,24 @@ The application will be available at `http://localhost:3000`
 
 ```bash
 # Create production build
-npm run build
+pnpm build
 
-# Or using yarn
-yarn build
 ```
 
 ### Preview Production Build
 
 ```bash
-npm run build && npm run start
+pnpm build && pnpm start
 ```
 
 ### Tests
 
 ```bash
 # Unit tests (offline, fast)
-npm test
+pnpm test
 
 # Also run the live LaTeX compilation tests
-TEXAPI_KEY=your_key npm test
+TEXAPI_KEY=your_key pnpm test
 ```
 
 ## 📁 Project Structure
@@ -194,7 +190,7 @@ POST /api/documents/generate   ← authenticated; claims 1 of 25 daily generatio
 
 **To restyle every generated document**, edit `src/server/latex/templates/common.tex` (page setup,
 colours, section headings) or `resume.macros.tex` / `coverletter.macros.tex` (entry layout). Run
-`npm test` afterwards — the golden-file tests compile the template and check the PDF's text layer,
+`pnpm test` afterwards — the golden-file tests compile the template and check the PDF's text layer,
 which is what catches a macro that silently swallows its content.
 
 **If you add or rename a macro**, update `src/server/ai/prompts/system.md` and the allowlist in
@@ -333,22 +329,22 @@ git rebase -i HEAD~3
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Start development server
-npm run dev
+pnpm dev
 
 # Build for production
-npm run build
+pnpm build
 
 # Preview production build
-npm run preview
+pnpm start
 
 # Run linter
-npm run lint
+pnpm lint
 
 # Run linter with auto-fix
-npm run lint --fix
+pnpm lint --fix
 ```
 
 ## 🔄 Application Workflow
@@ -442,7 +438,7 @@ The project is configured for automatic deployment to Netlify:
 
 1. **Connect Repository**: Link your GitHub repository to Netlify
 2. **Build Settings**: 
-   - Build command: `npm run build`
+   - Build command: `pnpm build`
    - Publish directory: `dist`
    - Node version: 18
 3. **Environment Variables**: Add your Firebase config to Netlify environment variables:
@@ -459,7 +455,7 @@ The project is configured for automatic deployment to Netlify:
 
 ```bash
 # Build and deploy manually
-npm run build
+pnpm build
 npx netlify deploy --prod --dir=dist
 ```
 
@@ -467,13 +463,13 @@ npx netlify deploy --prod --dir=dist
 
 ```bash
 # Run tests (when configured)
-npm test
+pnpm test
 
 # Run tests in watch mode
-npm test -- --watch
+pnpm test:watch
 
 # Run tests with coverage
-npm test -- --coverage
+pnpm test --coverage
 ```
 
 ## 🔍 Debugging
@@ -495,7 +491,7 @@ This project embeds fonts for high-fidelity PDF generation using `@react-pdf/ren
     - Start the dev server:
 
       ```bash
-      npm run dev
+      pnpm dev
       ```
 
     - Run the AI Resume Enhancement workflow in the app. When the enhancement finishes the UI will convert the generated HTML into a PDF using the embedded fonts and upload the PDF to Firebase Storage.
@@ -523,20 +519,20 @@ Notes:
 
 ```bash
 # Start with debugging enabled
-npm run dev -- --debug
+pnpm dev --debug
 
 # Check for TypeScript errors
 npx tsc --noEmit
 
 # Analyze bundle size
-npm run build -- --analyze
+pnpm build --analyze
 ```
 
 ## 🚀 Performance Optimization
 
 - **Code Splitting**: Implemented with React.lazy()
 - **Image Optimization**: WebP format with fallbacks
-- **Bundle Analysis**: Use `npm run build -- --analyze`
+- **Bundle Analysis**: Use `pnpm build --analyze`
 - **Caching**: Service worker for offline capabilities
 - **Minification**: Automatic with Next.js build
 

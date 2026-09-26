@@ -32,3 +32,12 @@ Thumbs.db
 latest updates from team/
 
 tmp-generated/
+
+# Competitor research captures: never commit, never serve from public/
+research/
+
+
+
+# isolated production-build check
+.next-check/
+.next-preview/

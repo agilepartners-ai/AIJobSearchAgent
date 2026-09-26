@@ -8,10 +8,14 @@ in the Firebase console.
 ## 1. Install
 
 ```bash
-npm install
+pnpm install
 ```
 
 Node 18+ required (Node 20 or 22 recommended).
+
+This project uses **pnpm** (`pnpm-lock.yaml`). Do not run `npm install`: npm cannot read the
+`node_modules` layout pnpm creates and fails with `Cannot read properties of null (reading 'matches')`.
+If you do not have pnpm: `corepack enable`.
 
 ---
 
@@ -115,7 +119,7 @@ Delete the downloaded JSON afterwards, or move it well outside the repo.
 ## 3. Verify
 
 ```bash
-npm run check:env
+pnpm check:env
 ```
 
 This does not just check that variables exist — it makes a real call against each
@@ -146,7 +150,7 @@ Fix anything marked `FAIL` before continuing. `SKIP` is fine — those are optio
 ## 4. Run
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Open <http://localhost:3000>.
