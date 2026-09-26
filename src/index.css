@@ -277,121 +277,72 @@
   }
 }
 
-/* Enhanced dark mode support for better contrast */
+/*
+ * Dark-mode fallback for components written before `dark:` variants worked.
+ *
+ * Every selector is wrapped in :where(), which makes it zero-specificity: it
+ * darkens an element that carries no dark styling of its own, and loses to any
+ * component that states what it wants — including every dark: utility. Without
+ * :where() these rules sit after Tailwind's output and silently win, which is
+ * what left new screens half-light.
+ */
 @media (prefers-color-scheme: dark) {
-  .bg-gray-50 {
+  :where(.bg-gray-50) {
     @apply bg-gray-900;
   }
 
-  .bg-white {
+  :where(.bg-white) {
     @apply bg-gray-800;
   }
 
-  .bg-gray-100 {
+  :where(.bg-gray-100) {
     @apply bg-gray-700;
   }
 
-  .bg-gray-200 {
+  :where(.bg-gray-200) {
     @apply bg-gray-600;
   }
 
-  .text-gray-900 {
+  :where(.text-gray-900) {
     @apply text-white;
   }
 
-  .text-gray-800 {
+  :where(.text-gray-800) {
     @apply text-gray-100;
   }
 
-  .text-gray-700 {
+  :where(.text-gray-700) {
     @apply text-gray-200;
   }
 
-  .text-gray-600 {
+  :where(.text-gray-600) {
     @apply text-gray-300;
   }
 
-  .text-gray-500 {
+  :where(.text-gray-500) {
     @apply text-gray-400;
   }
 
-  .border-gray-200 {
+  :where(.border-gray-200) {
     @apply border-gray-700;
   }
 
-  .border-gray-300 {
+  :where(.border-gray-300) {
     @apply border-gray-600;
   }
 
-  .border-gray-100 {
+  :where(.border-gray-100) {
     @apply border-gray-800;
   }
 
-  /* Form elements in dark mode */
-  input, textarea, select {
+  /* Form controls that style themselves opt out by setting their own colours. */
+  :where(input, textarea, select) {
     @apply bg-gray-700 border-gray-600 text-white;
   }
 
-  input:focus, textarea:focus, select:focus {
+  :where(input, textarea, select):focus {
     @apply ring-blue-400 border-blue-400;
   }
-}
-
-/* Manual dark mode overrides */
-.dark .bg-gray-50 {
-  @apply bg-gray-900;
-}
-
-.dark .bg-white {
-  @apply bg-gray-800;
-}
-
-.dark .bg-gray-100 {
-  @apply bg-gray-700;
-}
-
-.dark .bg-gray-200 {
-  @apply bg-gray-600;
-}
-
-.dark .text-gray-900 {
-  @apply text-white;
-}
-
-.dark .text-gray-800 {
-  @apply text-gray-100;
-}
-
-.dark .text-gray-700 {
-  @apply text-gray-200;
-}
-
-.dark .text-gray-600 {
-  @apply text-gray-300;
-}
-
-.dark .text-gray-500 {
-  @apply text-gray-400;
-}
-
-.dark .border-gray-200 {
-  @apply border-gray-700;
-}
-
-.dark .border-gray-300 {
-  @apply border-gray-600;
-}
-
-.dark .border-gray-100 {
-  @apply border-gray-800;
-}
-
-.dark input, .dark textarea, .dark select {
-  @apply bg-gray-700 border-gray-600 text-white;
-}
-
-.dark input:focus, .dark textarea:focus, .dark select:focus {
-  @apply ring-blue-400 border-blue-400;
 }
 
 /* Line clamp utilities */

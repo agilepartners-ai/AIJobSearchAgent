@@ -1,0 +1,74 @@
+% ---------------------------------------------------------------------------
+% Shared preamble for every generated document.
+%
+% This file is fixed and hand-maintained. The AI never writes preamble code —
+% it only produces a document body built from the macros defined in
+% resume.macros.tex / coverletter.macros.tex. That is what makes compiles
+% deterministic.
+%
+% Constraints this preamble is designed around:
+%   - pdflatex (Texapi's default engine)
+%   - ATS parsers: real text in a single column, no text inside graphics,
+%     no multi-column layout for body content, standard section ordering
+%   - every package used here is present on Texapi (verified by compiling)
+% ---------------------------------------------------------------------------
+\documentclass[11pt,letterpaper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=0.6in]{geometry}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage{parskip}
+\usepackage{needspace}
+
+% parskip defaults to a full line gap between paragraphs, which is far too
+% airy for a resume — it pushed location lines and skill rows apart. Spacing
+% is managed explicitly by the entry macros instead.
+\setlength{\parskip}{0pt plus 0.5pt}
+\setlength{\parsep}{0pt}
+
+\definecolor{accent}{HTML}{2563EB}
+\definecolor{bodytext}{HTML}{111111}
+
+\hypersetup{
+  colorlinks=true,
+  urlcolor=accent,
+  linkcolor=accent,
+  pdfborder={0 0 0}
+}
+
+\color{bodytext}
+\pagenumbering{gobble}
+\setlength{\parindent}{0pt}
+\raggedright
+\raggedbottom
+
+% Section headings: uppercase, accent-coloured, with a rule underneath.
+\titleformat{\section}
+  {\normalsize\bfseries\scshape\color{accent}}
+  {}{0em}{}[{\color{accent}\titlerule[0.8pt]}]
+\titlespacing*{\section}{0pt}{10pt}{5pt}
+
+% Tight, predictable list spacing. Resumes live or die on vertical rhythm.
+\setlist[itemize]{
+  leftmargin=1.1em,
+  labelsep=0.45em,
+  itemsep=1.5pt,
+  topsep=3pt,
+  parsep=0pt,
+  partopsep=0pt,
+  label=\textbullet
+}
+
+% A left-aligned title with a right-aligned date on the same baseline.
+% Used by every entry macro so alignment is consistent across sections.
+\newcommand{\resentryline}[2]{%
+  \noindent\begin{minipage}[t]{0.72\textwidth}\raggedright #1\end{minipage}%
+  \hfill%
+  \begin{minipage}[t]{0.26\textwidth}\raggedleft #2\end{minipage}\par%
+}

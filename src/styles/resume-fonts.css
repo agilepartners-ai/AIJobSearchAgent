@@ -1,0 +1,51 @@
+/* Resume preview fonts: subset woff2 built from the TeX Live 2025 font packages
+ * Texapi compiles with, so preview glyph metrics match the PDF. Licences: public/fonts/resume/LICENSES.md. */
+
+@font-face{font-family:"RF Source Sans";src:url("/fonts/resume/sourcesans/regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Source Sans";src:url("/fonts/resume/sourcesans/bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Source Sans";src:url("/fonts/resume/sourcesans/italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Source Sans";src:url("/fonts/resume/sourcesans/bolditalic.woff2") format("woff2");font-weight:700;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Source Serif";src:url("/fonts/resume/sourceserif/regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Source Serif";src:url("/fonts/resume/sourceserif/bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Source Serif";src:url("/fonts/resume/sourceserif/italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Source Serif";src:url("/fonts/resume/sourceserif/bolditalic.woff2") format("woff2");font-weight:700;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Alegreya";src:url("/fonts/resume/alegreya/regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Alegreya";src:url("/fonts/resume/alegreya/bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Alegreya";src:url("/fonts/resume/alegreya/italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Alegreya";src:url("/fonts/resume/alegreya/bolditalic.woff2") format("woff2");font-weight:700;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF EB Garamond";src:url("/fonts/resume/ebgaramond/regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF EB Garamond";src:url("/fonts/resume/ebgaramond/bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF EB Garamond";src:url("/fonts/resume/ebgaramond/italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF EB Garamond";src:url("/fonts/resume/ebgaramond/bolditalic.woff2") format("woff2");font-weight:700;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Inter";src:url("/fonts/resume/inter/regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Inter";src:url("/fonts/resume/inter/bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Inter";src:url("/fonts/resume/inter/italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Inter";src:url("/fonts/resume/inter/bolditalic.woff2") format("woff2");font-weight:700;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Roboto";src:url("/fonts/resume/roboto/regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Roboto";src:url("/fonts/resume/roboto/bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Roboto";src:url("/fonts/resume/roboto/italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Roboto";src:url("/fonts/resume/roboto/bolditalic.woff2") format("woff2");font-weight:700;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Lato";src:url("/fonts/resume/lato/regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Lato";src:url("/fonts/resume/lato/bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Lato";src:url("/fonts/resume/lato/italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Lato";src:url("/fonts/resume/lato/bolditalic.woff2") format("woff2");font-weight:700;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF IBM Plex Sans";src:url("/fonts/resume/plexsans/regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF IBM Plex Sans";src:url("/fonts/resume/plexsans/bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF IBM Plex Sans";src:url("/fonts/resume/plexsans/italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF IBM Plex Sans";src:url("/fonts/resume/plexsans/bolditalic.woff2") format("woff2");font-weight:700;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Nunito";src:url("/fonts/resume/nunito/regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Nunito";src:url("/fonts/resume/nunito/bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Nunito";src:url("/fonts/resume/nunito/italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Nunito";src:url("/fonts/resume/nunito/bolditalic.woff2") format("woff2");font-weight:700;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Merriweather";src:url("/fonts/resume/merriweather/regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Merriweather";src:url("/fonts/resume/merriweather/bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Merriweather";src:url("/fonts/resume/merriweather/italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Merriweather";src:url("/fonts/resume/merriweather/bolditalic.woff2") format("woff2");font-weight:700;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Raleway";src:url("/fonts/resume/raleway/regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Raleway";src:url("/fonts/resume/raleway/bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Raleway";src:url("/fonts/resume/raleway/italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Raleway";src:url("/fonts/resume/raleway/bolditalic.woff2") format("woff2");font-weight:700;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Open Sans";src:url("/fonts/resume/opensans/regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Open Sans";src:url("/fonts/resume/opensans/bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap;}
+@font-face{font-family:"RF Open Sans";src:url("/fonts/resume/opensans/italic.woff2") format("woff2");font-weight:400;font-style:italic;font-display:swap;}
+@font-face{font-family:"RF Open Sans";src:url("/fonts/resume/opensans/bolditalic.woff2") format("woff2");font-weight:700;font-style:italic;font-display:swap;}

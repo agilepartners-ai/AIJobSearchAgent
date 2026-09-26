@@ -23,14 +23,6 @@ steps:
       - 'NEXT_PUBLIC_JSEARCH_API_HOST=${_NEXT_PUBLIC_JSEARCH_API_HOST}'
       - '--build-arg'
       - 'NEXT_PUBLIC_TAVUS_API_KEY=${_NEXT_PUBLIC_TAVUS_API_KEY}'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_RESUME_API_BASE_URL=${_NEXT_PUBLIC_RESUME_API_BASE_URL}'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_RESUME_API_MODEL_TYPE=${_NEXT_PUBLIC_RESUME_API_MODEL_TYPE}'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_RESUME_API_MODEL=${_NEXT_PUBLIC_RESUME_API_MODEL}'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_OPENAI_API_KEY=${_NEXT_PUBLIC_OPENAI_API_KEY}'
       - '-t'
       - '${_GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:${COMMIT_SHA}'
       - '-f'
@@ -61,8 +53,20 @@ steps:
       - '--allow-unauthenticated'
       - '--port'
       - '8080'
-      - '--set-env-vars'
-      - 'PORT=8080,NEXT_PUBLIC_OPENAI_API_KEY=${_NEXT_PUBLIC_OPENAI_API_KEY}'
+      # --update-* merges rather than replacing, so anything configured directly
+      # on the service is preserved across deploys.
+      - '--update-env-vars'
+      - 'PORT=8080,NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${_NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}'
+      # Server-side secrets. These are read at request time by the document
+      # generation routes and must NEVER be build args — baking them into the
+      # image would expose them to anyone who can pull it.
+      #
+      # Requires these Secret Manager secrets to exist, and the Cloud Run
+      # service account to hold roles/secretmanager.secretAccessor:
+      #   gemini-api-key, texapi-key,
+      #   firebase-project-id, firebase-client-email, firebase-private-key
+      - '--update-secrets'
+      - 'GEMINI_API_KEY=gemini-api-key:latest,TEXAPI_KEY=texapi-key:latest,FIREBASE_PROJECT_ID=firebase-project-id:latest,FIREBASE_CLIENT_EMAIL=firebase-client-email:latest,FIREBASE_PRIVATE_KEY=firebase-private-key:latest'
       - '--memory'
       - '1Gi'
       - '--cpu'
@@ -71,8 +75,10 @@ steps:
       - '0'
       - '--max-instances'
       - '10'
+      # Generation is Gemini + two LaTeX compiles, plus a possible 20s
+      # rate-limit re-check and one regeneration retry. 300s was too tight.
       - '--timeout'
-      - '300'
+      - '600'
     id: 'deploy-to-cloudrun'
 
 # Substitution variables (can be overridden in trigger or command line)
@@ -91,11 +97,6 @@ substitutions:
   _NEXT_PUBLIC_JSEARCH_API_KEY: ''
   _NEXT_PUBLIC_JSEARCH_API_HOST: ''
   _NEXT_PUBLIC_TAVUS_API_KEY: ''
-  _NEXT_PUBLIC_RESUME_API_BASE_URL: ''
-  _NEXT_PUBLIC_RESUME_API_MODEL_TYPE: ''
-  _NEXT_PUBLIC_RESUME_API_MODEL: ''
-  _NEXT_PUBLIC_OPENAI_API_KEY: ''
-  
 
 
 # Configure build options

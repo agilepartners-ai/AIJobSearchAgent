@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { CheckCircle, AlertCircle, Info, X } from 'lucide-react';
 
 export interface ToastProps {
@@ -108,30 +108,23 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onRemove
 export const useToast = () => {
   const [toasts, setToasts] = useState<ToastProps[]>([]);
 
-  const addToast = (toast: Omit<ToastProps, 'id' | 'onClose'>) => {
+  // These functions must keep the same identity across renders. Components put
+  // them in effect dependency lists; when they were re-created every render,
+  // each toast (shown, then dismissed) re-ran those effects, e.g. re-opening a
+  // resume and unmounting the editor mid-edit.
+  const removeToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  }, []);
+
+  const addToast = useCallback((toast: Omit<ToastProps, 'id' | 'onClose'>) => {
     const id = Math.random().toString(36).substr(2, 9);
     setToasts(prev => [...prev, { ...toast, id, onClose: removeToast }]);
-  };
+  }, [removeToast]);
 
-  const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  };
-
-  const showSuccess = (title: string, message?: string) => {
-    addToast({ type: 'success', title, message });
-  };
-
-  const showError = (title: string, message?: string) => {
-    addToast({ type: 'error', title, message });
-  };
-
-  const showInfo = (title: string, message?: string) => {
-    addToast({ type: 'info', title, message });
-  };
-
-  const showWarning = (title: string, message?: string) => {
-    addToast({ type: 'warning', title, message });
-  };
+  const showSuccess = useCallback((title: string, message?: string) => addToast({ type: 'success', title, message }), [addToast]);
+  const showError = useCallback((title: string, message?: string) => addToast({ type: 'error', title, message }), [addToast]);
+  const showInfo = useCallback((title: string, message?: string) => addToast({ type: 'info', title, message }), [addToast]);
+  const showWarning = useCallback((title: string, message?: string) => addToast({ type: 'warning', title, message }), [addToast]);
 
   return {
     toasts,

@@ -2,12 +2,14 @@
 
 This is not part of Hackathorn. It is for production release
 
-An AI-powered job search application built with NEXT_PUBLIC.js, React, and TypeScript that helps users find, apply to, and manage job applications efficiently.
+An AI-powered job search application built with Next.js, React, and TypeScript that helps users find, apply to, and manage job applications efficiently.
 
 ## 🚀 Features
 
 - **AI-Enhanced Job Search**: Intelligent job matching based on user preferences
-- **Resume Optimization**: AI-powered resume enhancement and template selection
+- **LaTeX Document Generation**: The AI writes your tailored resume and cover letter directly as
+  LaTeX, which is compiled to a real PDF server-side. You get the PDF, the editable `.tex` source,
+  and one-click **Open in Overleaf**.
 - **Application Tracking**: Comprehensive dashboard to track job applications
 - **Profile Management**: User profile creation and management
 - **Authentication**: Secure login/registration with Firebase
@@ -17,21 +19,24 @@ An AI-powered job search application built with NEXT_PUBLIC.js, React, and TypeS
 ## 🛠️ Tech Stack
 
 - **Frontend**: React 18 + TypeScript
-- **Framework**: NEXT_PUBLIC.js
+- **Framework**: Next.js
 - **Styling**: Tailwind CSS
 - **Authentication**: Firebase
 - **Routing**: React Router DOM
 - **Icons**: Lucide React
 - **Date Handling**: date-fns
 - **Phone Validation**: libphonenumber-js
-- **Deployment**: Netlify
+- **AI**: Google Gemini (server-side only)
+- **Document rendering**: LaTeX, compiled via [Texapi](https://texapi.ovh)
+- **Testing**: Vitest
+- **Deployment**: Netlify / Google Cloud Run
 
 ## 📋 Prerequisites
 
 Before running this project, make sure you have:
 
 - **Node.js** (version 18 or higher)
-- **npm** or **yarn** package manager
+- **pnpm** package manager (`corepack enable`) — not npm, see docs/SETUP.md
 - **Git** for version control
 - **Firebase account** (for authentication)
 
@@ -51,37 +56,61 @@ cd MyJobSearchAgent
 
 ```bash
 # Install all dependencies
-npm install
+pnpm install
 
 
 ```
 
 ### 3. Environment Setup
 
-Create a `.env` file in the root directory and add your Firebase configuration:
+**→ Full walkthrough: [docs/SETUP.md](docs/SETUP.md)**
 
-```env
-NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_auth_domain
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-NEXT_PUBLIC_JSEARCH_API_KEY=Your jsearch api
-NEXT_PUBLIC_JSEARCH_API_HOST=your host api
+`.env.local` is already in the project root with every variable laid out and commented.
+Fill it in, then verify with:
+
+```bash
+pnpm check:env
 ```
+
+That makes a real call against Gemini, Texapi and Firebase, so a bad key fails there
+rather than when a user clicks Generate.
+
+Document generation needs three server-side secrets on top of the Firebase client config:
+
+| Variable | Purpose |
+|---|---|
+| `GEMINI_API_KEY` | Writes the LaTeX. **Not** `NEXT_PUBLIC_` — that would ship the key to every browser. |
+| `TEXAPI_KEY` | Compiles LaTeX to PDF. Get one at [texapi.ovh](https://texapi.ovh). |
+| `FIREBASE_PRIVATE_KEY` + `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PROJECT_ID` | Admin SDK: verifies users, stores documents, enforces the daily quota. |
+
+See `.env.example` for the complete list.
+
+#### Deploying to Cloud Run
+
+`ci-cd-cloudrun/cloudbuild.yaml` pulls the server-side secrets from Secret Manager rather than
+build args, so they never end up inside the image. Create them once:
+
+```bash
+for s in gemini-api-key texapi-key firebase-project-id firebase-client-email firebase-private-key; do
+  gcloud secrets create "$s" --replication-policy=automatic
+done
+# then add a version to each, e.g.
+printf '%s' "$GEMINI_API_KEY" | gcloud secrets versions add gemini-api-key --data-file=-
+```
+
+Grant the Cloud Run service account `roles/secretmanager.secretAccessor`. Deploys use
+`--update-env-vars` / `--update-secrets`, which merge rather than replace, so anything you set
+directly on the service survives.
 
 ### 4. Run Development Server
 
 ```bash
 # Start development server
-npm run dev
+pnpm dev
 
-# Or using yarn
-yarn dev
 ```
 
-The application will be available at `http://localhost:5173`
+The application will be available at `http://localhost:3000`
 
 ## 🏗️ Build and Deployment
 
@@ -89,45 +118,91 @@ The application will be available at `http://localhost:5173`
 
 ```bash
 # Create production build
-npm run build
+pnpm build
 
-# Or using yarn
-yarn build
 ```
 
 ### Preview Production Build
 
 ```bash
-# Preview the production build locally
-npm run preview
+pnpm build && pnpm start
+```
 
-# Or using yarn
-yarn preview
+### Tests
+
+```bash
+# Unit tests (offline, fast)
+pnpm test
+
+# Also run the live LaTeX compilation tests
+TEXAPI_KEY=your_key pnpm test
 ```
 
 ## 📁 Project Structure
 
 ```
 MyJobSearchAgent/
-├── public/                 # Static assets
+├── public/                       # Static assets
+├── docs/
+│   └── self-hosted-latex-compiler.md   # Fallback plan if Texapi is outgrown
 ├── src/
-│   ├── components/        # React components
-│   │   ├── auth/         # Authentication components
-│   │   ├── dashboard/    # Dashboard components
-│   │   ├── forms/        # Form components
-│   │   └── applications/ # Job application components
-│   ├── hooks/            # Custom React hooks
-│   ├── lib/              # External library configurations
-│   ├── services/         # API and service functions
-│   ├── types/            # TypeScript type definitions
-│   ├── utils/            # Utility functions
-│   └── test/             # Test files
-├── package.json          # Dependencies and scripts
-├── NEXT_PUBLIC.config.js        # NEXT_PUBLIC.js configuration
-├── tailwind.config.js    # Tailwind CSS configuration
-├── tsconfig.json         # TypeScript configuration
-└── netlify.toml          # Netlify deployment configuration
+│   ├── server/                   # Server-only — never imported by a component
+│   │   ├── latex/
+│   │   │   ├── templates/        # The document templates (.tex) — edit these to restyle
+│   │   │   ├── sanitize.ts       # Validates & repairs AI-generated LaTeX
+│   │   │   ├── buildDocument.ts  # preamble + AI body -> complete .tex
+│   │   │   └── compile/          # LatexCompiler interface + Texapi implementation
+│   │   ├── ai/
+│   │   │   ├── prompts/system.md # The prompt — the macro contract lives here
+│   │   │   ├── gemini.ts         # Gemini client with retry/backoff
+│   │   │   └── generateLatex.ts  # Orchestration: generate -> validate -> compile
+│   │   └── firebase/             # Admin init, storage, daily quota
+│   ├── pages/api/documents/      # generate | compile | url
+│   ├── components/               # React components
+│   │   ├── auth/                 # Authentication
+│   │   ├── dashboard/            # Dashboard
+│   │   │   └── documents/        # Results view, Overleaf button, LaTeX editor
+│   │   └── forms/                # Form components
+│   ├── hooks/ lib/ services/ types/ utils/
+├── tests/e2e/                    # Selenium/pytest end-to-end tests
+├── vitest.config.mts             # Unit test configuration
+├── next.config.mjs               # Next.js configuration
+└── netlify.toml                  # Netlify deployment configuration
 ```
+
+## 📄 How document generation works
+
+```
+resume text + job description
+        │
+        ▼
+POST /api/documents/generate   ← authenticated; claims 1 of 25 daily generations
+        │
+        ├─ Gemini writes a LaTeX *body* using a fixed macro vocabulary
+        ├─ sanitize.ts rejects unsafe commands and repairs unescaped % & $ # ^
+        ├─ buildDocument.ts prepends the hand-written preamble
+        ├─ Texapi compiles it to PDF
+        └─ .tex and .pdf are uploaded to Firebase Storage
+        │
+        ▼
+ UI: PDF preview │ Download PDF │ Download .tex │ Edit LaTeX │ Open in Overleaf
+```
+
+**To restyle every generated document**, edit `src/server/latex/templates/common.tex` (page setup,
+colours, section headings) or `resume.macros.tex` / `coverletter.macros.tex` (entry layout). Run
+`pnpm test` afterwards — the golden-file tests compile the template and check the PDF's text layer,
+which is what catches a macro that silently swallows its content.
+
+**If you add or rename a macro**, update `src/server/ai/prompts/system.md` and the allowlist in
+`sanitize.ts` too. A test enforces that all three stay in sync — they must, because Texapi returns
+no compile log, so a mismatch would fail every generation with no diagnostic.
+
+### Open in Overleaf
+
+Overleaf's [`/docs` endpoint](https://www.overleaf.com/devs) is an *import* endpoint, not a compile
+API: it creates a project in the user's Overleaf account and opens it in a new tab. Nothing comes
+back to us, which is why the app compiles its own PDFs. The button POSTs (rather than linking) so
+document size is never constrained by URL length.
 
 ## 🌿 Git Workflow & CLI Commands
 
@@ -254,22 +329,22 @@ git rebase -i HEAD~3
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Start development server
-npm run dev
+pnpm dev
 
 # Build for production
-npm run build
+pnpm build
 
 # Preview production build
-npm run preview
+pnpm start
 
 # Run linter
-npm run lint
+pnpm lint
 
 # Run linter with auto-fix
-npm run lint --fix
+pnpm lint --fix
 ```
 
 ## 🔄 Application Workflow
@@ -363,7 +438,7 @@ The project is configured for automatic deployment to Netlify:
 
 1. **Connect Repository**: Link your GitHub repository to Netlify
 2. **Build Settings**: 
-   - Build command: `npm run build`
+   - Build command: `pnpm build`
    - Publish directory: `dist`
    - Node version: 18
 3. **Environment Variables**: Add your Firebase config to Netlify environment variables:
@@ -380,7 +455,7 @@ The project is configured for automatic deployment to Netlify:
 
 ```bash
 # Build and deploy manually
-npm run build
+pnpm build
 npx netlify deploy --prod --dir=dist
 ```
 
@@ -388,13 +463,13 @@ npx netlify deploy --prod --dir=dist
 
 ```bash
 # Run tests (when configured)
-npm test
+pnpm test
 
 # Run tests in watch mode
-npm test -- --watch
+pnpm test:watch
 
 # Run tests with coverage
-npm test -- --coverage
+pnpm test --coverage
 ```
 
 ## 🔍 Debugging
@@ -416,7 +491,7 @@ This project embeds fonts for high-fidelity PDF generation using `@react-pdf/ren
     - Start the dev server:
 
       ```bash
-      npm run dev
+      pnpm dev
       ```
 
     - Run the AI Resume Enhancement workflow in the app. When the enhancement finishes the UI will convert the generated HTML into a PDF using the embedded fonts and upload the PDF to Firebase Storage.
@@ -444,22 +519,22 @@ Notes:
 
 ```bash
 # Start with debugging enabled
-npm run dev -- --debug
+pnpm dev --debug
 
 # Check for TypeScript errors
 npx tsc --noEmit
 
 # Analyze bundle size
-npm run build -- --analyze
+pnpm build --analyze
 ```
 
 ## 🚀 Performance Optimization
 
 - **Code Splitting**: Implemented with React.lazy()
 - **Image Optimization**: WebP format with fallbacks
-- **Bundle Analysis**: Use `npm run build -- --analyze`
+- **Bundle Analysis**: Use `pnpm build --analyze`
 - **Caching**: Service worker for offline capabilities
-- **Minification**: Automatic with NEXT_PUBLIC.js build
+- **Minification**: Automatic with Next.js build
 
 ## 🔒 Security
 

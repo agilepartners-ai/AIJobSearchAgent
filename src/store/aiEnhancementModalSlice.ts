@@ -1,34 +1,22 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-interface FileMeta {
-  name: string;
-  type: string;
-  size: number;
-  lastModified: number;
-}
-
+/**
+ * Modal open/close state only.
+ *
+ * This slice used to persist the uploaded file as base64, plus the full
+ * optimization result object, into localStorage via redux-persist. That meant
+ * a multi-megabyte resume and an entire generated document set were written to
+ * disk on every change. Documents now live in component state and in Firebase
+ * Storage, so only the trigger state belongs here.
+ */
 export interface AIEnhancementModalState {
   isOpen: boolean;
   jobDescription: string;
-  selectedFileMeta: FileMeta | null;
-  selectedFileContent: string | null; // base64
-  cloudProvider: string;
-  cloudFileUrl: string;
-  error: string;
-  showResults: boolean;
-  optimizationResults: any;
 }
 
 const initialState: AIEnhancementModalState = {
   isOpen: false,
   jobDescription: '',
-  selectedFileMeta: null,
-  selectedFileContent: null,
-  cloudProvider: '',
-  cloudFileUrl: '',
-  error: '',
-  showResults: false,
-  optimizationResults: null,
 };
 
 const aiEnhancementModalSlice = createSlice({
@@ -39,32 +27,8 @@ const aiEnhancementModalSlice = createSlice({
       state.isOpen = true;
       state.jobDescription = action.payload.jobDescription;
     },
-    closeModal(state) {
+    closeModal() {
       return { ...initialState };
-    },
-    setSelectedFile(state, action: PayloadAction<{ meta: FileMeta; content: string }>) {
-      state.selectedFileMeta = action.payload.meta;
-      state.selectedFileContent = action.payload.content;
-      state.cloudProvider = '';
-      state.cloudFileUrl = '';
-    },
-    setCloudProvider(state, action: PayloadAction<string>) {
-      state.cloudProvider = action.payload;
-      state.selectedFileMeta = null;
-      state.selectedFileContent = null;
-      state.cloudFileUrl = '';
-    },
-    setCloudFileUrl(state, action: PayloadAction<string>) {
-      state.cloudFileUrl = action.payload;
-    },
-    setError(state, action: PayloadAction<string>) {
-      state.error = action.payload;
-    },
-    setShowResults(state, action: PayloadAction<boolean>) {
-      state.showResults = action.payload;
-    },
-    setOptimizationResults(state, action: PayloadAction<any>) {
-      state.optimizationResults = action.payload;
     },
     resetState() {
       return { ...initialState };
@@ -72,16 +36,5 @@ const aiEnhancementModalSlice = createSlice({
   },
 });
 
-export const {
-  openModal,
-  closeModal,
-  setSelectedFile,
-  setCloudProvider,
-  setCloudFileUrl,
-  setError,
-  setShowResults,
-  setOptimizationResults,
-  resetState,
-} = aiEnhancementModalSlice.actions;
-
+export const { openModal, closeModal, resetState } = aiEnhancementModalSlice.actions;
 export default aiEnhancementModalSlice.reducer;

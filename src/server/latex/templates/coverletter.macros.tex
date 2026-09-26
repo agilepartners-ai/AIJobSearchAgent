@@ -1,0 +1,42 @@
+% ---------------------------------------------------------------------------
+% Cover letter macros. Same discipline as the resume: the AI writes only
+% \clpara bodies and the structural calls, never raw LaTeX.
+% ---------------------------------------------------------------------------
+
+\newcommand{\clifempty}[3]{\if\relax\detokenize{#1}\relax #2\else #3\fi}
+
+\newcommand{\cldot}{\;\textcolor{accent}{\textbullet}\;}
+
+% \clheader{Full Name}{contact line}
+\newcommand{\clheader}[2]{%
+  \begin{center}
+    {\LARGE\bfseries #1}\par
+    \vspace{3pt}
+    {\small #2}\par
+  \end{center}
+  {\color{accent}\rule{\textwidth}{0.8pt}}\par
+  \vspace{10pt}
+}
+
+% \clmeta{Date}{Company}{Location} — location may be empty
+\newcommand{\clmeta}[3]{%
+  \noindent #1\par
+  \vspace{8pt}
+  \noindent\textbf{#2}\par
+  \clifempty{#3}{}{\noindent #3\par}%
+  \vspace{10pt}
+}
+
+% \clgreeting{Dear Hiring Manager,}
+\newcommand{\clgreeting}[1]{\noindent #1\par\vspace{6pt}}
+
+% \clpara{one paragraph of the letter}
+\newcommand{\clpara}[1]{\noindent #1\par\vspace{7pt}}
+
+% \clsignoff{Sincerely,}{Full Name}
+\newcommand{\clsignoff}[2]{%
+  \vspace{6pt}
+  \noindent #1\par
+  \vspace{16pt}
+  \noindent\textbf{#2}\par
+}

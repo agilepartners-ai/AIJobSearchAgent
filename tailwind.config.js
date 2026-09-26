@@ -6,7 +6,9 @@ export default {
     './app/**/*.{js,ts,jsx,tsx}',
     './components/**/*.{js,ts,jsx,tsx}',
   ],
-  darkMode: 'class',
+  // The app follows the operating system: nothing sets a .dark class, and
+  // index.css already switches on prefers-color-scheme.
+  darkMode: 'media',
   theme: {
     screens: {
       'xs': '475px',

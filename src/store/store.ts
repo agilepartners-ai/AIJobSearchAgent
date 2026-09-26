@@ -1,7 +1,6 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import applicationModalReducer from './applicationModalSlice';
 import dashboardReducer from './dashboardSlice';
-import resumeTemplateFormReducer from './resumeTemplateFormSlice';
 import aiEnhancementModalReducer from './aiEnhancementModalSlice';
 import { persistStore, persistReducer } from 'redux-persist';
 import createWebStorage from 'redux-persist/lib/storage/createWebStorage';
@@ -25,14 +24,13 @@ const customStorage = typeof window !== 'undefined' ? createWebStorage('local') 
 const rootReducer = combineReducers({
   applicationModal: applicationModalReducer,
   dashboard: dashboardReducer,
-  resumeTemplateForm: resumeTemplateFormReducer,
   aiEnhancementModal: aiEnhancementModalReducer,
 });
 
 const persistConfig = {
   key: 'root',
   storage: customStorage,
-  whitelist: ['applicationModal', 'dashboard', 'resumeTemplateForm', 'aiEnhancementModal']
+  whitelist: ['applicationModal', 'dashboard', 'aiEnhancementModal']
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
