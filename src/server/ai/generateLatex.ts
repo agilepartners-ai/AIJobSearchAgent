@@ -12,7 +12,7 @@ import path from 'path';
 import { buildDocument } from '../latex/buildDocument';
 import { LatexValidationError } from '../latex/sanitize';
 import { getCompiler, LatexCompileError } from '../latex/compile';
-import { generateText } from './gemini';
+import { generateText, type TokenUsage } from './gemini';
 
 const PROMPT_PATH = path.join(process.cwd(), 'src', 'server', 'ai', 'prompts', 'system.md');
 
@@ -61,8 +61,11 @@ export interface GeneratedDocuments {
   analysis: Analysis;
   resumeTex: string;
   coverLetterTex: string;
-  resumePdf: Buffer;
-  coverLetterPdf: Buffer;
+  /** Null when the compile service was down: the LaTeX is still valid and usable. */
+  resumePdf: Buffer | null;
+  coverLetterPdf: Buffer | null;
+  /** Whether the PDFs were produced, and why not when they were not. */
+  compile: { ok: boolean; note?: string };
 }
 
 const EMPTY_ANALYSIS: Analysis = {
@@ -104,6 +107,7 @@ function buildUserPrompt(
   job: JobContext,
   profile: ContactProfile,
   correction?: string,
+  supplement?: string,
 ): string {
   // Models have no reliable sense of the current date and will invent one for
   // the cover letter — an observed run dated a 2026 letter "May 18, 2024".
@@ -127,6 +131,16 @@ function buildUserPrompt(
     "## Candidate's current resume",
     resumeText.trim(),
   ];
+
+  if (supplement?.trim()) {
+    parts.push(
+      '',
+      "## Additional facts from the candidate's other saved resumes",
+      'Retrieved as relevant to this job. Use one only if it strengthens this application and the',
+      'current resume does not already say it. Same rule as everywhere: never invent or embellish.',
+      supplement.trim(),
+    );
+  }
 
   if (correction) {
     parts.push(
@@ -198,6 +212,54 @@ function parseAnalysis(block: string): Analysis {
 }
 
 /**
+ * Compile both documents to PDF. This can never fail a generation.
+ *
+ * The résumé the user works on is the Studio document, rendered by our own
+ * serializer, so these PDFs only feed the saved links on an application. A
+ * compile service that is down, slow, rate-limited (Texapi reports rate limits
+ * as 422) or that rejects one document must therefore cost the user nothing but
+ * a missing link. The wait is bounded so it cannot stall the response.
+ */
+export async function compileDocuments(
+  resumeTex: string,
+  coverLetterTex: string,
+  timeoutMs = Number(process.env.COMPILE_TIMEOUT_MS) || 30_000,
+): Promise<Pick<GeneratedDocuments, 'resumePdf' | 'coverLetterPdf' | 'compile'>> {
+  const compiler = getCompiler();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new LatexCompileError(`Compile took longer than ${timeoutMs}ms.`)), timeoutMs);
+  });
+  try {
+    const [resume, coverLetter] = await Promise.race([
+      Promise.all([compiler.compile(resumeTex), compiler.compile(coverLetterTex)]),
+      timeout,
+    ]);
+    return { resumePdf: resume.pdf, coverLetterPdf: coverLetter.pdf, compile: { ok: true } };
+  } catch (error) {
+    const note =
+      error instanceof LatexCompileError
+        ? `${error.message}${error.status ? ` (HTTP ${error.status})` : ''}`
+        : error instanceof Error
+          ? error.message
+          : 'unknown compile error';
+    console.warn(`[generateDocuments] PDF compile unavailable; continuing without PDFs: ${note}`);
+    return { resumePdf: null, coverLetterPdf: null, compile: { ok: false, note } };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export interface GenerateDocumentsOptions {
+  /** Set false to skip PDF compilation and do it later with compileDocuments(). */
+  compile?: boolean;
+  /** Facts retrieved from the account's other résumés (see server/rag). */
+  supplement?: string;
+  /** Receives the tokens each model call used, for the cost ledger. */
+  onUsage?: (usage: TokenUsage) => void;
+}
+
+/**
  * Generate both documents and compile them.
  *
  * Retries once when the model produces LaTeX we reject. Note there is no
@@ -210,14 +272,15 @@ export async function generateDocuments(
   jobDescription: string,
   job: JobContext = {},
   profile: ContactProfile = {},
+  options: GenerateDocumentsOptions = {},
 ): Promise<GeneratedDocuments> {
-  const compiler = getCompiler();
   let correction: string | undefined;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const raw = await generateText({
       systemPrompt: systemPrompt(),
-      userPrompt: buildUserPrompt(resumeText, jobDescription, job, profile, correction),
+      userPrompt: buildUserPrompt(resumeText, jobDescription, job, profile, correction, options.supplement),
+      onUsage: options.onUsage,
     });
 
     let resumeTex: string;
@@ -227,6 +290,11 @@ export async function generateDocuments(
     try {
       const sections = splitSections(raw);
       analysis = parseAnalysis(sections.analysis);
+      if (analysis === EMPTY_ANALYSIS) {
+        // The documents are still good, but the user will see a 0% score with no
+        // advice. Log what the model actually sent so this can be diagnosed.
+        console.warn(`[generateDocuments] Analysis block was empty or unparseable: ${JSON.stringify(sections.analysis.slice(0, 300))}`);
+      }
       // buildDocument sanitizes; it throws LatexValidationError on bad input.
       resumeTex = buildDocument(sections.resume, 'resume');
       coverLetterTex = buildDocument(sections.coverLetter, 'coverLetter');
@@ -240,18 +308,11 @@ export async function generateDocuments(
       throw error;
     }
 
-    const [resumePdf, coverLetterPdf] = await Promise.all([
-      compiler.compile(resumeTex),
-      compiler.compile(coverLetterTex),
-    ]);
-
-    return {
-      analysis,
-      resumeTex,
-      coverLetterTex,
-      resumePdf: resumePdf.pdf,
-      coverLetterPdf: coverLetterPdf.pdf,
-    };
+    if (options.compile === false) {
+      return { analysis, resumeTex, coverLetterTex, resumePdf: null, coverLetterPdf: null, compile: { ok: false, note: 'skipped' } };
+    }
+    const compiled = await compileDocuments(resumeTex, coverLetterTex);
+    return { analysis, resumeTex, coverLetterTex, ...compiled };
   }
 
   // Unreachable: the loop either returns or throws.

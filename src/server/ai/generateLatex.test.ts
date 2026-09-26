@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { __setCompiler } from '../latex/compile';
+import { __setCompiler, LatexCompileError } from '../latex/compile';
 import type { LatexCompiler } from '../latex/compile';
 import { LatexValidationError } from '../latex/sanitize';
 
@@ -150,5 +150,54 @@ describe('generateDocuments', () => {
 
     const prompt = generateTextMock.mock.calls[0][0].userPrompt as string;
     expect(prompt).not.toContain('Verified contact details');
+  });
+});
+
+describe('generateDocuments when the compile service misbehaves', () => {
+  const failWith = (error: Error): LatexCompiler => ({ name: 'down', compile: async () => { throw error; } });
+
+  beforeEach(() => {
+    generateTextMock.mockReset();
+    generateTextMock.mockResolvedValue(response());
+  });
+
+  it.each([
+    ['unreachable', new LatexCompileError('Could not reach the LaTeX compile service.')],
+    ['a 5xx', new LatexCompileError('LaTeX compile service returned 503.', 503)],
+  ])('still returns the LaTeX when the service is %s', async (_name, error) => {
+    __setCompiler(failWith(error));
+    const result = await generateDocuments('a resume that is long enough to pass', 'a job');
+    expect(result.resumePdf).toBeNull();
+    expect(result.coverLetterPdf).toBeNull();
+    expect(result.resumeTex).toContain('\\resheader{Jane Doe}');
+    expect(result.analysis.match_score).toBe(82);
+  });
+
+  it('still returns the résumé when the compiler rejects a document (Texapi reports rate limits as 422)', async () => {
+    // The Studio renders the résumé itself, so PDFs only feed saved links. A 422
+    // used to discard a finished, already-charged generation.
+    __setCompiler(failWith(new LatexCompileError('The LaTeX document failed to compile.', 422)));
+    const result = await generateDocuments('a resume that is long enough to pass', 'a job');
+    expect(result.resumePdf).toBeNull();
+    expect(result.compile.ok).toBe(false);
+    expect(result.compile.note).toContain('422');
+    expect(result.resumeTex).toContain(String.raw`\resheader{Jane Doe}`);
+  });
+
+  it('can skip compiling entirely, so the résumé can be saved before any PDF work', async () => {
+    let compiled = 0;
+    __setCompiler({ name: 'counting', compile: async () => { compiled += 1; return { pdf: Buffer.from('%PDF') }; } });
+    const result = await generateDocuments('a resume that is long enough to pass', 'a job', {}, {}, { compile: false });
+    expect(compiled).toBe(0);
+    expect(result.resumePdf).toBeNull();
+    expect(result.resumeTex).toContain(String.raw`\resheader{Jane Doe}`);
+  });
+
+  it('gives up waiting on a compiler that never answers', async () => {
+    __setCompiler({ name: 'hung', compile: () => new Promise(() => undefined) });
+    const { compileDocuments } = await import('./generateLatex');
+    const out = await compileDocuments('a', 'b', 40);
+    expect(out.compile.ok).toBe(false);
+    expect(out.compile.note).toMatch(/longer than 40ms/);
   });
 });

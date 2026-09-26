@@ -87,22 +87,24 @@ const present = (name) => {
 // ---------------------------------------------------------------------------
 // Checks
 // ---------------------------------------------------------------------------
+/** Split a comma/space/newline separated key list, dropping blanks and placeholders. */
+function keysOf(listName, singleName) {
+  const raw = `${process.env[listName] ?? ''},${process.env[singleName] ?? ''}`;
+  const keys = raw
+    .split(/[\s,;]+/)
+    .map((k) => k.trim().replace(/^["']|["']$/g, ''))
+    .filter((k) => k && !/^(your[_-]|changeme|xxx|<)/i.test(k));
+  return Array.from(new Set(keys));
+}
+
 async function checkGemini() {
   section('Gemini (writes the LaTeX)');
 
-  if (!present('GEMINI_API_KEY')) {
-    return fail('GEMINI_API_KEY is not set', 'Get one at https://aistudio.google.com/apikey');
-  }
-
-  // A real AI Studio key is "AIza" + 35 chars and never expires. An "AQ."
-  // value is a short-lived OAuth access token — it authenticates for about an
-  // hour and then starts returning 401, which is baffling if you do not know
-  // to look for it.
-  if (process.env.GEMINI_API_KEY.startsWith('AQ.')) {
-    warn(
-      'GEMINI_API_KEY looks like a temporary OAuth token, not an API key',
-      'It starts with "AQ." — those expire after roughly an hour. A permanent key ' +
-        'starts with "AIza". Create one at https://aistudio.google.com/apikey',
+  const keys = keysOf('GEMINI_API_KEYS', 'GEMINI_API_KEY');
+  if (!keys.length) {
+    return fail(
+      'No Gemini key is set',
+      'Set GEMINI_API_KEYS=key1,key2,... (or a single GEMINI_API_KEY). Get keys at https://aistudio.google.com/apikey',
     );
   }
   if (process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
@@ -112,80 +114,69 @@ async function checkGemini() {
     );
   }
 
-  const model = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+  const model = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  let usable = 0;
 
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: 'Reply with the single word: ok' }] }],
-        // Generous on purpose. Current flash models are "thinking" models and
-        // spend output tokens on reasoning before emitting any text, so a small
-        // budget returns finishReason MAX_TOKENS with empty content — which
-        // looks exactly like a broken key but is not.
-        generationConfig: { maxOutputTokens: 512, temperature: 0 },
-      }),
-    });
-
-    if (res.status === 401) {
-      return fail(
-        'Gemini rejected the credential (HTTP 401)',
-        process.env.GEMINI_API_KEY.startsWith('AQ.')
-          ? 'This is an expired OAuth token. Create a permanent API key (starts with "AIza") ' +
-            'at https://aistudio.google.com/apikey and replace GEMINI_API_KEY.'
-          : 'The key is not valid for the Generative Language API.',
+  for (const [i, key] of keys.entries()) {
+    const tag = `key #${i + 1} …${key.slice(-4)}`;
+    // A real AI Studio key is "AIza" + 35 chars and never expires. An "AQ."
+    // value is a short-lived OAuth token that 401s after about an hour.
+    if (key.startsWith('AQ.')) {
+      warn(
+        `${tag} looks like a temporary OAuth token`,
+        'It starts with "AQ." — those expire after roughly an hour. A permanent key starts with "AIza".',
       );
     }
-    if (res.status === 400 || res.status === 403) {
-      const body = await res.text().catch(() => '');
-      return fail(
-        `Gemini rejected the key (HTTP ${res.status})`,
-        body.slice(0, 200) || 'Check the key is valid and the Generative Language API is enabled.',
-      );
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: 'Reply with the single word: ok' }] }],
+          generationConfig: { maxOutputTokens: 512, temperature: 0 },
+        }),
+      });
+      if (res.status === 401 || res.status === 403) {
+        fail(`${tag} was rejected (HTTP ${res.status})`, 'Create a permanent key at https://aistudio.google.com/apikey');
+      } else if (res.status === 429) {
+        usable += 1;
+        warn(`${tag} is rate limited right now`, 'It is valid. The pool benches a limited key and uses the others.');
+      } else if (res.status === 404) {
+        const available = await listGeminiModels(key);
+        return fail(
+          `Model "${model}" is not available to this key (HTTP 404)`,
+          available.length
+            ? `Models your key can use: ${available.slice(0, 12).join(', ')}`
+            : 'Set GEMINI_MODEL to a model your key can access, or unset it for the default.',
+        );
+      } else if (!res.ok) {
+        fail(`${tag} returned HTTP ${res.status}`, (await res.text().catch(() => '')).slice(0, 200));
+      } else {
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+        if (!text.trim()) {
+          fail(`${tag} returned no text`, `finishReason: ${data?.candidates?.[0]?.finishReason ?? 'none'}`);
+        } else {
+          usable += 1;
+          pass(`${tag} works`, `model=${model}`);
+        }
+      }
+    } catch (err) {
+      fail(`Could not reach Gemini with ${tag}`, err.message);
     }
-    if (res.status === 404) {
-      const available = await listGeminiModels();
-      return fail(
-        `Model "${model}" is unavailable`,
-        available.length
-          ? `Google retires model ids over time. Available to your key: ${available.slice(0, 8).join(', ')}${available.length > 8 ? ', …' : ''}`
-          : 'Set GEMINI_MODEL to a model your key can access, or unset it for the default.',
-      );
-    }
-    if (!res.ok) {
-      return fail(`Gemini returned HTTP ${res.status}`, (await res.text().catch(() => '')).slice(0, 200));
-    }
+  }
 
-    const data = await res.json();
-    const candidate = data?.candidates?.[0];
-    const text = candidate?.content?.parts?.[0]?.text?.trim();
-
-    if (!text) {
-      const finish = candidate?.finishReason ?? 'none';
-      const thoughts = data?.usageMetadata?.thoughtsTokenCount ?? 0;
-      return fail(
-        `Gemini returned no text (finishReason: ${finish})`,
-        finish === 'MAX_TOKENS'
-          ? `${thoughts} tokens went to reasoning before any output. The model works — the budget was too small.`
-          : finish === 'SAFETY'
-            ? 'Blocked by safety filters.'
-            : 'Unexpected — re-run, and check the key has Generative Language API access.',
-      );
-    }
-
-    pass('GEMINI_API_KEY works', `model=${model}`);
-  } catch (err) {
-    fail('Could not reach Gemini', err.message);
+  if (keys.length > 1) {
+    pass(`${usable} of ${keys.length} keys usable in the rotation pool`, 'Calls are spread across them; a limited key is benched.');
   }
 }
 
 /** Model ids the key can actually use, for a helpful 404 message. */
-async function listGeminiModels() {
+async function listGeminiModels(apiKey = keysOf('GEMINI_API_KEYS', 'GEMINI_API_KEY')[0]) {
   try {
     const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=100', {
-      headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY },
+      headers: { 'x-goog-api-key': apiKey },
     });
     if (!res.ok) return [];
     const data = await res.json();
@@ -197,6 +188,68 @@ async function listGeminiModels() {
     return [];
   }
 }
+
+async function checkNvidia() {
+  section('NVIDIA embeddings (per-account RAG memory, optional)');
+
+  if (process.env.RAG_ENABLED === 'false') {
+    return warn('RAG_ENABLED=false', 'Retrieval is switched off; generation runs without it.');
+  }
+  const keys = keysOf('NVIDIA_API_KEYS', 'NVIDIA_API_KEY');
+  if (!keys.length) {
+    return warn(
+      'No NVIDIA key is set, so RAG is off',
+      'Optional. Get keys at https://build.nvidia.com and set NVIDIA_API_KEYS=key1,key2,...',
+    );
+  }
+
+  const model = process.env.NVIDIA_EMBED_MODEL || 'nvidia/nemotron-3-embed-1b';
+  const base = (process.env.NVIDIA_BASE_URL || 'https://integrate.api.nvidia.com/v1').replace(/\/$/, '');
+  let usable = 0;
+
+  for (const [i, key] of keys.entries()) {
+    const tag = `key #${i + 1} …${key.slice(-4)}`;
+    const post = (withType) =>
+      fetch(`${base}/embeddings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model,
+          input: ['ok'],
+          ...(withType ? { input_type: 'query' } : {}),
+          encoding_format: 'float',
+          truncate: 'END',
+        }),
+      });
+    try {
+      let res = await post(true);
+      if ((res.status === 400 || res.status === 422) && /input_type/i.test(await res.clone().text())) res = await post(false);
+
+      if (res.status === 401 || res.status === 403) {
+        fail(`${tag} was rejected (HTTP ${res.status})`, 'Check the key at https://build.nvidia.com');
+      } else if (res.status === 404) {
+        return fail(`Embedding model "${model}" was not found (HTTP 404)`, 'Set NVIDIA_EMBED_MODEL to a model your key can use.');
+      } else if (res.status === 429) {
+        usable += 1;
+        warn(`${tag} is rate limited right now`, 'It is valid; the pool will use the others.');
+      } else if (!res.ok) {
+        fail(`${tag} returned HTTP ${res.status}`, (await res.text().catch(() => '')).slice(0, 200));
+      } else {
+        const data = await res.json();
+        const dims = data?.data?.[0]?.embedding?.length;
+        if (!dims) fail(`${tag} returned no embedding`);
+        else {
+          usable += 1;
+          pass(`${tag} works`, `${model}, ${dims} dimensions`);
+        }
+      }
+    } catch (err) {
+      fail(`Could not reach NVIDIA with ${tag}`, err.message);
+    }
+  }
+  if (keys.length > 1) pass(`${usable} of ${keys.length} keys usable in the rotation pool`);
+}
+
 
 async function checkTexapi() {
   section('Texapi (compiles LaTeX into PDF)');
@@ -371,6 +424,7 @@ async function main() {
   checkFirebaseClient();
   await checkFirebaseAdmin();
   await checkGemini();
+  await checkNvidia();
   await checkTexapi();
   checkOptional();
 

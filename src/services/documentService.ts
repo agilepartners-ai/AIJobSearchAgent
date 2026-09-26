@@ -5,6 +5,7 @@
  * and a Firebase ID token; it never sees an AI or compiler API key.
  */
 import { auth } from '../lib/firebase';
+import { flowLog } from '../lib/flowLog';
 
 export interface DocumentAnalysis {
   match_score: number;
@@ -16,9 +17,13 @@ export interface DocumentAnalysis {
 }
 
 export interface GeneratedDocuments {
+  /** The Resume Studio document the server saved; null only if that save failed. */
+  resumeId?: string | null;
   analysis: DocumentAnalysis;
   resumeTex: string;
   coverLetterTex: string;
+  /** False when Storage was unreachable; the URLs and paths are then empty. */
+  storageOk?: boolean;
   resumeUrl: string;
   coverLetterUrl: string;
   resumePath: string;
@@ -38,6 +43,8 @@ export interface ContactProfile {
 }
 
 export interface GenerateRequest {
+  /** Created per attempt; shared with the server's logs and used to make retries idempotent. */
+  requestId?: string;
   resumeText: string;
   jobDescription: string;
   jobApplicationId?: string;
@@ -54,7 +61,7 @@ export interface GenerateRequest {
 
 /** Carries the server's user-facing message plus the status for quota handling. */
 export class DocumentServiceError extends Error {
-  constructor(message: string, readonly status: number) {
+  constructor(message: string, readonly status: number, readonly requestId?: string) {
     super(message);
     this.name = 'DocumentServiceError';
   }
@@ -73,18 +80,51 @@ async function readError(response: Response): Promise<never> {
   throw new DocumentServiceError(
     payload?.error ?? 'Something went wrong. Please try again.',
     response.status,
+    payload?.requestId ?? response.headers.get('x-request-id') ?? undefined,
   );
 }
 
-export async function generateDocuments(request: GenerateRequest): Promise<GeneratedDocuments> {
-  const response = await fetch('/api/documents/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...request, idToken: await idToken() }),
-  });
+/** A generation is one model call plus PDF work; anything past this is stuck. */
+const GENERATE_TIMEOUT_MS = 170_000;
 
-  if (!response.ok) await readError(response);
-  return response.json();
+export async function generateDocuments(request: GenerateRequest): Promise<GeneratedDocuments> {
+  const rid = request.requestId;
+  const started = Date.now();
+  flowLog(rid, 'client:submit', { resumeChars: request.resumeText.length, jobChars: request.jobDescription.length });
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), GENERATE_TIMEOUT_MS);
+  try {
+    const token = await idToken();
+    const response = await fetch('/api/documents/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...request, idToken: token }),
+      signal: controller.signal,
+    });
+    flowLog(rid, 'client:response', { status: response.status, ms: Date.now() - started, serverRid: response.headers.get('x-request-id') });
+
+    if (!response.ok) await readError(response);
+    const result = (await response.json()) as GeneratedDocuments;
+    flowLog(rid, 'client:parsed', { resumeId: result.resumeId ?? null, storageOk: result.storageOk, reused: (result as { reused?: boolean }).reused ?? false });
+    return result;
+  } catch (error) {
+    if (error instanceof DocumentServiceError) {
+      flowLog(rid, 'client:error', { status: error.status, message: error.message });
+      throw error;
+    }
+    const aborted = error instanceof Error && error.name === 'AbortError';
+    flowLog(rid, 'client:error', { aborted, message: error instanceof Error ? error.message : String(error) });
+    throw new DocumentServiceError(
+      aborted
+        ? 'This is taking longer than expected. Your resume may still finish — check Resume Studio in a minute before trying again.'
+        : 'Could not reach the server. Check your connection and try again.',
+      aborted ? 504 : 0,
+      rid,
+    );
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** Recompile edited source. Returns an object URL for the resulting PDF. */
