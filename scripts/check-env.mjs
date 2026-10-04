@@ -292,113 +292,86 @@ async function checkTexapi() {
   }
 }
 
-function checkFirebaseClient() {
-  section('Firebase client SDK (browser auth)');
+async function checkSupabase() {
+  section('Supabase (authentication only)');
 
-  const required = [
-    'NEXT_PUBLIC_FIREBASE_API_KEY',
-    'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-    'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-    'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
-    'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-    'NEXT_PUBLIC_FIREBASE_APP_ID',
-  ];
-
-  const missing = required.filter((n) => !present(n));
-  if (missing.length) {
-    return fail(`Missing ${missing.length} client variable(s)`, missing.join(', '));
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, '');
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon) {
+    return fail(
+      'NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY missing',
+      'Supabase dashboard → Project Settings → API. The anon key is public by design.',
+    );
   }
 
-  if (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY.startsWith('AIza')) {
-    warn('NEXT_PUBLIC_FIREBASE_API_KEY does not start with "AIza"', 'That is unusual — double-check it.');
-  }
+  try {
+    // The anon key is validated by Supabase itself: a dead or mistyped key is rejected here,
+    // the same way the browser would reject it at sign-in.
+    const settings = await fetch(`${url}/auth/v1/settings`, { headers: { apikey: anon } });
+    if (!settings.ok) {
+      return fail('Supabase rejected the anon key', `GET /auth/v1/settings -> HTTP ${settings.status}. Copy a fresh key from Project Settings → API.`);
+    }
+    const body = await settings.json();
+    pass('Anon key accepted', url);
+    if (body.external?.google) pass('Google sign-in is enabled');
+    else warn('Google sign-in is not enabled', 'Supabase → Authentication → Providers → Google.');
+    if (body.external?.email) pass('Email sign-in is enabled');
 
-  pass('All client variables present', `project=${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}`);
+    // The API verifies sessions against these public keys; nothing secret is needed server-side.
+    const jwks = await fetch(`${url}/auth/v1/.well-known/jwks.json`);
+    const keys = jwks.ok ? (await jwks.json()).keys ?? [] : [];
+    if (keys.length) pass('Token signing keys published', `${keys.length} key(s), ${keys[0].alg}`);
+    else fail('No signing keys at /.well-known/jwks.json', 'Server-side token verification would reject every request. Enable asymmetric JWT signing in Supabase.');
+  } catch (err) {
+    fail('Could not reach Supabase', err.message);
+  }
 }
 
-async function checkFirebaseAdmin() {
-  section('Firebase Admin (server: auth, Firestore, Storage)');
+async function checkDatabase() {
+  section('PostgreSQL (application data)');
 
-  const required = ['FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY'];
-  const missing = required.filter((n) => !present(n));
-  if (missing.length) {
-    return fail(
-      `Missing ${missing.length} admin variable(s)`,
-      `${missing.join(', ')} — from Project settings > Service accounts > Generate new private key`,
-    );
+  if (!present('DATABASE_URL')) {
+    return fail('DATABASE_URL missing', 'postgres://jobsearch_app:<password>@<host>:5432/jobsearch. See db/README.md.');
   }
 
-  const key = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
-  if (!key.includes('BEGIN PRIVATE KEY')) {
-    return fail(
-      'FIREBASE_PRIVATE_KEY does not look like a private key',
-      'Paste the whole value including the -----BEGIN PRIVATE KEY----- header, in double quotes.',
-    );
-  }
-  if (!key.includes('\n')) {
-    return fail(
-      'FIREBASE_PRIVATE_KEY has no line breaks',
-      'Keep the literal \\n sequences from the JSON file; do not strip them.',
-    );
-  }
-
-  let admin;
+  let pg;
   try {
-    admin = (await import('firebase-admin')).default;
+    pg = (await import('pg')).default;
   } catch {
-    return fail('firebase-admin is not installed', 'Run: npm install');
+    return fail('pg is not installed', 'Run: pnpm install');
   }
 
+  const disabled = process.env.PGSSLMODE === 'disable';
+  const ca = process.env.PG_SSL_CA?.replace(/\\n/g, '\n');
+  const client = new pg.Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: disabled ? false : ca ? { ca, rejectUnauthorized: true } : { rejectUnauthorized: false },
+    connectionTimeoutMillis: 8000,
+  });
+
   try {
-    const app =
-      admin.apps.length > 0
-        ? admin.app()
-        : admin.initializeApp({
-            credential: admin.credential.cert({
-              projectId: process.env.FIREBASE_PROJECT_ID,
-              clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-              privateKey: key,
-            }),
-            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-          });
+    await client.connect();
+    const who = await client.query('SELECT current_user AS u, current_database() AS d, (SELECT ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid()) AS ssl');
+    const { u, d, ssl } = who.rows[0];
+    pass('Connected', `${u}@${d}${ssl ? ' over TLS' : ' (NOT encrypted)'}`);
+    if (!ssl && !disabled) warn('Connection is not encrypted', 'Set PG_SSL_CA so the server certificate is verified.');
+    if (!disabled && !ca) warn('Server certificate not verified', 'Set PG_SSL_CA to the CA certificate (db/README.md).');
 
-    // Round-trips to Google and fails on a bad key or wrong project.
-    await app.options.credential.getAccessToken();
-    pass('Admin credentials accepted', `project=${process.env.FIREBASE_PROJECT_ID}`);
-
-    try {
-      await admin.firestore().collection('users').limit(1).get();
-      pass('Firestore reachable');
-    } catch (err) {
-      fail('Firestore query failed', err.message.slice(0, 200));
-    }
-
-    const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-    if (!bucketName) {
-      warn('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET not set', 'Generated documents cannot be stored.');
-    } else {
-      try {
-        const [exists] = await admin.storage().bucket(bucketName).exists();
-        if (exists) pass('Storage bucket reachable', bucketName);
-        else
-          fail(
-            `Storage bucket "${bucketName}" not found`,
-            'Check the name — it is usually <project-id>.appspot.com or <project-id>.firebasestorage.app',
-          );
-      } catch (err) {
-        fail('Storage check failed', err.message.slice(0, 200));
-      }
-    }
-
-    if (process.env.FIREBASE_PROJECT_ID !== process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
-      warn(
-        'Admin and client point at different Firebase projects',
-        `admin=${process.env.FIREBASE_PROJECT_ID} client=${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}. ` +
-          'Tokens minted for one will not verify against the other.',
-      );
-    }
+    const files = fs.readdirSync(path.join(ROOT, 'db', 'migrations')).filter((f) => /^\d+_.+\.sql$/.test(f)).sort();
+    const done = (await client.query('SELECT name FROM app.schema_migrations')).rows.map((r) => r.name);
+    const pending = files.filter((f) => !done.includes(f));
+    if (pending.length) fail('Migrations pending', `${pending.join(', ')}. Run: pnpm db:migrate`);
+    else pass('Schema is up to date', `${done.length} migration(s)`);
   } catch (err) {
-    fail('Admin credentials rejected', err.message.slice(0, 300));
+    fail('Database check failed', String(err.message).slice(0, 240));
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+
+  if (!process.env.DOCUMENT_SIGNING_SECRET || process.env.DOCUMENT_SIGNING_SECRET.length < 24) {
+    fail('DOCUMENT_SIGNING_SECRET missing or too short', 'Needs 24+ random characters: openssl rand -base64 36. Signs document download links.');
+  } else {
+    pass('DOCUMENT_SIGNING_SECRET set');
   }
 }
 
@@ -421,8 +394,8 @@ async function main() {
       : `${YELLOW}No .env or .env.local found — copy .env.example to .env.local${RESET}`,
   );
 
-  checkFirebaseClient();
-  await checkFirebaseAdmin();
+  await checkSupabase();
+  await checkDatabase();
   await checkGemini();
   await checkNvidia();
   await checkTexapi();

@@ -25,9 +25,6 @@ export class EmailService {
     const config = getEmailConfig();
     
     switch (config.provider) {
-      case 'firebase':
-        this.setProvider(new FirebaseEmailProvider());
-        break;
       case 'console':
         this.setProvider(new ConsoleEmailProvider());
         break;
@@ -103,36 +100,6 @@ export class ConsoleEmailProvider implements EmailProvider {
     console.log('HTML:', template.html);
     console.log('==================');
     return true;
-  }
-}
-
-// Firebase email provider using Firebase Auth's email capabilities
-export class FirebaseEmailProvider implements EmailProvider {
-  async sendEmail(template: EmailTemplate): Promise<boolean> {
-    try {
-      // For now, we'll use Firebase's built-in password reset email
-      // In the future, this could be extended with Firebase Functions + email service
-      
-      // Since Firebase Auth only sends password reset emails to existing users,
-      // we'll simulate the email sending for development
-      console.log('=== FIREBASE EMAIL SERVICE ===');
-      console.log('To:', template.to);
-      console.log('Subject:', template.subject);
-      console.log('Content:', template.text);
-      console.log('HTML:', template.html);
-      console.log('==============================');
-      
-      // TODO: Implement Firebase Functions email sending
-      // This would involve:
-      // 1. Creating a Firebase Function
-      // 2. Using a service like SendGrid, Mailgun, or Nodemailer
-      // 3. Calling the function from here
-      
-      return true; // Return true for development
-    } catch (error) {
-      console.error('Firebase email sending failed:', error);
-      return false;
-    }
   }
 }
 

@@ -16,9 +16,9 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { getAuth, signOut } from 'firebase/auth';
 import { JobSearchService, JobResult, JobSearchParams } from '../../services/jobSearchService';
 import { useToastContext } from '../ui/ToastProvider';
+import { AuthService } from '../../services/authService';
 
 interface JobSearchForm {
   query: string;
@@ -159,8 +159,7 @@ const JobListingsPage: React.FC = () => {  const router = useRouter();
 
   const handleSignOut = async () => {
     try {
-      const auth = getAuth();
-      await signOut(auth);
+      await AuthService.signOut();
       router.push('/');
     } catch (error) {
       console.error('Error signing out:', error);

@@ -1,17 +1,15 @@
 /**
  * Save a generation as a Resume Studio document, from the server.
  *
- * This used to happen in the browser after the response arrived: a client-side
- * Firestore write that depends on security rules for a collection the rules
- * may not cover, and whose failure was swallowed — leaving the user on the old
- * results screen with no explanation. Doing it here, with the Admin SDK, makes
- * "generation finished" and "the résumé exists" one step: the response carries
- * the resume's id, and the client just opens it.
+ * "Generation finished" and "the résumé exists" are one step: the response
+ * carries the résumé's id and the client just opens it. (It used to be a
+ * client-side write after the response arrived, whose failure was swallowed and
+ * left the user on a results screen with no explanation.)
  */
 import { resumeFromGenerated, type GeneratedInput } from '../../lib/resume/import/fromGenerated';
 import { coerceResume } from '../../lib/resume/import/coerce';
 import { ResumeDocumentSchema } from '../../lib/resume/schema';
-import { getFirestore } from '../firebase/admin';
+import * as resumes from '../db/resumesRepo';
 
 export async function saveGeneratedResume(
   userId: string,
@@ -28,13 +26,11 @@ export async function saveGeneratedResume(
     throw new Error(`Generated résumé failed validation: ${issues.join('; ')}`);
   }
 
-  // Firestore rejects `undefined` anywhere; a JSON round trip removes it.
+  // A JSON round trip drops `undefined` so every stored value is plain JSON.
   const clean = JSON.parse(JSON.stringify(parsed.data)) as Record<string, unknown>;
-  await getFirestore().collection('users').doc(userId).collection('resumes').doc(resume.id).set(clean);
+  await resumes.saveResume(userId, resume.id, clean);
   return resume.id;
 }
-
-const resumes = (userId: string) => getFirestore().collection('users').doc(userId).collection('resumes');
 
 /**
  * The résumé an earlier attempt of this same generation already produced, if
@@ -42,13 +38,9 @@ const resumes = (userId: string) => getFirestore().collection('users').doc(userI
  * must not run (and be charged for) the model twice.
  */
 export async function findGeneratedResume(userId: string, generationId: string): Promise<{ id: string; ai: unknown } | null> {
-  const snap = await resumes(userId).where('generationId', '==', generationId).limit(1).get();
-  if (snap.empty) return null;
-  const doc = snap.docs[0];
-  return { id: doc.id, ai: doc.data().ai ?? null };
+  const doc = await resumes.findByGenerationId(userId, generationId);
+  return doc ? { id: String(doc.id), ai: doc.ai ?? null } : null;
 }
 
 /** Attach the PDF links once they exist. The résumé is already saved by then. */
-export async function attachCoverLetterPdf(userId: string, resumeId: string, link: { url: string; path: string }): Promise<void> {
-  await resumes(userId).doc(resumeId).update({ 'ai.coverLetter.url': link.url, 'ai.coverLetter.path': link.path });
-}
+export const attachCoverLetterPdf = resumes.attachCoverLetterPdf;

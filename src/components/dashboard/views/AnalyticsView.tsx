@@ -5,7 +5,7 @@
 import { motion } from 'framer-motion';
 import { Award, BarChart3, Calendar, Loader2, TrendingUp } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import { FirebaseDBService } from '../../../services/firebaseDBService';
+import { listResumes } from '../../../services/resumeService';
 
 interface EnhancementRecord {
   jobDescription?: string;
@@ -35,12 +35,18 @@ export default function AnalyticsView({ uid }: { uid: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    FirebaseDBService.getList<EnhancementRecord>(`users/${uid}/enhancementAnalytics`)
-      .then((data) => {
+    // Every generated résumé carries its match analysis, so the history is read from those.
+    listResumes(uid)
+      .then((resumes) => {
         if (cancelled) return;
-        setRecords(
-          [...data].sort((a, b) => (toDate(b.timestamp)?.getTime() ?? 0) - (toDate(a.timestamp)?.getTime() ?? 0)),
-        );
+        const data: EnhancementRecord[] = resumes
+          .filter((r) => r.ai)
+          .map((r) => ({
+            jobDescription: [r.ai!.jobTitle, r.ai!.company].filter(Boolean).join(' – '),
+            matchScore: r.ai!.analysis.match_score,
+            timestamp: r.updatedAt,
+          }));
+        setRecords(data.sort((a, b) => (toDate(b.timestamp)?.getTime() ?? 0) - (toDate(a.timestamp)?.getTime() ?? 0)));
       })
       .catch(() => !cancelled && setRecords([]));
     return () => {

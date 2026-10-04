@@ -4,19 +4,9 @@ steps:
     args:
       - 'build'
       - '--build-arg'
-      - 'NEXT_PUBLIC_FIREBASE_API_KEY=${_NEXT_PUBLIC_FIREBASE_API_KEY}'
+      - 'NEXT_PUBLIC_SUPABASE_URL=${_NEXT_PUBLIC_SUPABASE_URL}'
       - '--build-arg'
-      - 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_FIREBASE_PROJECT_ID=${_NEXT_PUBLIC_FIREBASE_PROJECT_ID}'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${_NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${_NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_FIREBASE_APP_ID=${_NEXT_PUBLIC_FIREBASE_APP_ID}'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${_NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID}'
+      - 'NEXT_PUBLIC_SUPABASE_ANON_KEY=${_NEXT_PUBLIC_SUPABASE_ANON_KEY}'
       - '--build-arg'
       - 'NEXT_PUBLIC_JSEARCH_API_KEY=${_NEXT_PUBLIC_JSEARCH_API_KEY}'
       - '--build-arg'
@@ -56,7 +46,7 @@ steps:
       # --update-* merges rather than replacing, so anything configured directly
       # on the service is preserved across deploys.
       - '--update-env-vars'
-      - 'PORT=8080,NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${_NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}'
+      - 'PORT=8080'
       # Server-side secrets. These are read at request time by the document
       # generation routes and must NEVER be build args — baking them into the
       # image would expose them to anyone who can pull it.
@@ -64,9 +54,9 @@ steps:
       # Requires these Secret Manager secrets to exist, and the Cloud Run
       # service account to hold roles/secretmanager.secretAccessor:
       #   gemini-api-key, texapi-key,
-      #   firebase-project-id, firebase-client-email, firebase-private-key
+      #   database-url, pg-ssl-ca, document-signing-secret
       - '--update-secrets'
-      - 'GEMINI_API_KEY=gemini-api-key:latest,TEXAPI_KEY=texapi-key:latest,FIREBASE_PROJECT_ID=firebase-project-id:latest,FIREBASE_CLIENT_EMAIL=firebase-client-email:latest,FIREBASE_PRIVATE_KEY=firebase-private-key:latest'
+      - 'GEMINI_API_KEY=gemini-api-key:latest,TEXAPI_KEY=texapi-key:latest,DATABASE_URL=database-url:latest,PG_SSL_CA=pg-ssl-ca:latest,DOCUMENT_SIGNING_SECRET=document-signing-secret:latest'
       - '--memory'
       - '1Gi'
       - '--cpu'
@@ -87,13 +77,8 @@ substitutions:
   _REPOSITORY: ''
   _SERVICE_NAME: ''
   # Environment variables for build and runtime
-  _NEXT_PUBLIC_FIREBASE_API_KEY: ''
-  _NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ''
-  _NEXT_PUBLIC_FIREBASE_PROJECT_ID: ''
-  _NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ''
-  _NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ''
-  _NEXT_PUBLIC_FIREBASE_APP_ID: ''
-  _NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ''
+  _NEXT_PUBLIC_SUPABASE_URL: ''
+  _NEXT_PUBLIC_SUPABASE_ANON_KEY: ''
   _NEXT_PUBLIC_JSEARCH_API_KEY: ''
   _NEXT_PUBLIC_JSEARCH_API_HOST: ''
   _NEXT_PUBLIC_TAVUS_API_KEY: ''

@@ -2,7 +2,7 @@
  * Client-side wrapper around the document APIs.
  *
  * All generation now happens server-side. The browser sends the resume text
- * and a Firebase ID token; it never sees an AI or compiler API key.
+ * and a Supabase access token; it never sees an AI or compiler API key.
  */
 import { accessToken } from '../lib/api/authedFetch';
 import { flowLog } from '../lib/flowLog';

@@ -142,7 +142,7 @@ const PrivacyPolicy: React.FC = () => {
         <Section icon={<Share2 size={18} />} title="3. Information Sharing & Disclosure">
           <p>We do <strong className="text-white">not sell, trade, or rent</strong> your personal information to third parties. We may share your information only in these limited circumstances:</p>
           <ul className="list-disc list-inside space-y-2 ml-2">
-            <li><strong className="text-white">Service Providers:</strong> Trusted third-party vendors who assist us in operating our platform (e.g., Firebase, cloud hosting), bound by confidentiality agreements.</li>
+            <li><strong className="text-white">Service Providers:</strong> Trusted third-party vendors who assist us in operating our platform (e.g., Supabase and Google for sign-in, cloud hosting), bound by confidentiality agreements.</li>
             <li><strong className="text-white">Legal Requirements:</strong> When required by law, court order, or governmental authorities.</li>
             <li><strong className="text-white">Safety:</strong> To protect the rights, property, or safety of our users or the public.</li>
             <li><strong className="text-white">Business Transfers:</strong> In connection with a merger, acquisition, or sale of assets, with prior notice to you.</li>

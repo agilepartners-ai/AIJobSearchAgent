@@ -3,10 +3,10 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setFormData, updateFormField, resetForm } from '../../store/applicationModalSlice';
 import { openModal as openAIModal, closeModal as closeAIModal, resetState as resetAIState } from '../../store/aiEnhancementModalSlice';
 import { X, Calendar, Building, FileText, User, Link, Sparkles, MapPin } from 'lucide-react';
-import { JobApplication } from '../../services/firebaseJobApplicationService';
+import { JobApplication } from '../../services/jobApplicationService';
 import { UserProfileData } from '../../services/profileService';
 import AIEnhancementModal from './AIEnhancementModal';
-import { FirebaseStorageService } from '../../services/firebaseStorageService';
+import { DocumentLinks } from '../../services/documentLinks';
 
 const ApplicationStatus = {
   NOT_APPLIED: 'not_applied',
@@ -42,10 +42,10 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ application, detail
 
         try {
           if (resumeUrl) {
-            resumeUrl = await FirebaseStorageService.refreshUrlIfExpired(resumeUrl);
+            resumeUrl = await DocumentLinks.refreshUrlIfExpired(resumeUrl);
           }
           if (coverLetterUrl) {
-            coverLetterUrl = await FirebaseStorageService.refreshUrlIfExpired(coverLetterUrl);
+            coverLetterUrl = await DocumentLinks.refreshUrlIfExpired(coverLetterUrl);
           }
         } catch (error) {
           console.error('Failed to refresh URLs:', error);

@@ -7,8 +7,6 @@ import { EmailService } from '../services/emailService';
 import { AuthService } from '../services/authService';
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { auth } from '../lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
 import { handleAuthError, isAuthenticationError, redirectToLogin } from '../utils/authErrorHandler';
 import '../index.css';
 import '../styles/dashboard-responsive.css';
@@ -41,10 +39,12 @@ function MyApp({ Component, pageProps }: AppProps) {
       }
     };
 
-    // Listen for Firebase auth state changes to detect logouts
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    // Listen for auth state changes to detect logouts
+    let unsubscribe: () => void = () => undefined;
+    let disposed = false;
+    const onUser = (user: unknown) => {
       const currentPath = router.pathname;
-      const publicPaths = ['/login', '/register', '/verify-phone', '/', '/forgot-password', '/privacy-policy', '/terms-of-service'];
+      const publicPaths = ['/login', '/register', '/verify-phone', '/verify-email', '/reset-password', '/', '/forgot-password', '/privacy-policy', '/terms-of-service'];
       
       // If user is logged out and not on a public page, redirect to login
       // Development harness pages (not built in production) are usable signed out.
@@ -53,13 +53,15 @@ function MyApp({ Component, pageProps }: AppProps) {
         console.log('User session ended, redirecting to login');
         redirectToLogin('expired');
       }
-    }, (error) => {
-      // Handle auth state change errors
-      console.error('Auth state change error:', error);
-      if (isAuthenticationError(error)) {
-        handleAuthError(error);
-      }
-    });
+    };
+    void AuthService.initializeProvider()
+      .then(() => {
+        if (!disposed) unsubscribe = AuthService.onAuthStateChange(onUser);
+      })
+      .catch((error) => {
+        console.error('Auth state change error:', error);
+        if (isAuthenticationError(error)) handleAuthError(error);
+      });
 
     window.addEventListener('error', handleError);
     window.addEventListener('unhandledrejection', handleRejection);
@@ -67,6 +69,7 @@ function MyApp({ Component, pageProps }: AppProps) {
     return () => {
       window.removeEventListener('error', handleError);
       window.removeEventListener('unhandledrejection', handleRejection);
+      disposed = true;
       unsubscribe();
     };
   }, [router]);

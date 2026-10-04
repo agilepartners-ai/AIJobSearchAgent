@@ -15,7 +15,9 @@ if (!url) {
   process.exit(1);
 }
 
-const ssl = process.env.PGSSLMODE === 'disable' ? false : process.env.PG_SSL_CA ? { ca: process.env.PG_SSL_CA } : undefined;
+// The CA is kept on one line, with a backslash-n between PEM lines (env files drop real newlines).
+const ca = process.env.PG_SSL_CA?.replace(/\\n/g, '\n');
+const ssl = process.env.PGSSLMODE === 'disable' ? false : ca ? { ca, rejectUnauthorized: true } : undefined;
 const client = new pg.Client({ connectionString: url, ssl });
 
 await client.connect();

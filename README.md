@@ -12,7 +12,7 @@ An AI-powered job search application built with Next.js, React, and TypeScript t
   and one-click **Open in Overleaf**.
 - **Application Tracking**: Comprehensive dashboard to track job applications
 - **Profile Management**: User profile creation and management
-- **Authentication**: Secure login/registration with Firebase
+- **Authentication**: Email and Google sign-in with Supabase Auth
 - **Responsive Design**: Modern UI built with Tailwind CSS
 - **Real-time Updates**: Live application status tracking
 
@@ -21,7 +21,8 @@ An AI-powered job search application built with Next.js, React, and TypeScript t
 - **Frontend**: React 18 + TypeScript
 - **Framework**: Next.js
 - **Styling**: Tailwind CSS
-- **Authentication**: Firebase
+- **Authentication**: Supabase Auth
+- **Database**: PostgreSQL (`pg`), schema in `db/migrations`
 - **Routing**: React Router DOM
 - **Icons**: Lucide React
 - **Date Handling**: date-fns
@@ -38,7 +39,7 @@ Before running this project, make sure you have:
 - **Node.js** (version 18 or higher)
 - **pnpm** package manager (`corepack enable`) — not npm, see docs/SETUP.md
 - **Git** for version control
-- **Firebase account** (for authentication)
+- **Supabase project** (sign-in) and a **PostgreSQL** database (see `db/README.md`)
 
 ## ⚡ Quick Start
 
@@ -72,16 +73,17 @@ Fill it in, then verify with:
 pnpm check:env
 ```
 
-That makes a real call against Gemini, Texapi and Firebase, so a bad key fails there
+That makes a real call against Supabase, PostgreSQL, Gemini, Texapi and NVIDIA, so a bad key fails there
 rather than when a user clicks Generate.
 
-Document generation needs three server-side secrets on top of the Firebase client config:
+Document generation needs these server-side secrets on top of the Supabase client config:
 
 | Variable | Purpose |
 |---|---|
 | `GEMINI_API_KEY` | Writes the LaTeX. **Not** `NEXT_PUBLIC_` — that would ship the key to every browser. |
 | `TEXAPI_KEY` | Compiles LaTeX to PDF. Get one at [texapi.ovh](https://texapi.ovh). |
-| `FIREBASE_PRIVATE_KEY` + `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PROJECT_ID` | Admin SDK: verifies users, stores documents, enforces the daily quota. |
+| `DATABASE_URL` + `PG_SSL_CA` | PostgreSQL: all application data, stored documents and the daily quota. |
+| `DOCUMENT_SIGNING_SECRET` | Signs document download links. |
 
 See `.env.example` for the complete list.
 
@@ -91,7 +93,7 @@ See `.env.example` for the complete list.
 build args, so they never end up inside the image. Create them once:
 
 ```bash
-for s in gemini-api-key texapi-key firebase-project-id firebase-client-email firebase-private-key; do
+for s in gemini-api-key texapi-key database-url pg-ssl-ca document-signing-secret; do
   gcloud secrets create "$s" --replication-policy=automatic
 done
 # then add a version to each, e.g.
@@ -156,7 +158,9 @@ MyJobSearchAgent/
 │   │   │   ├── prompts/system.md # The prompt — the macro contract lives here
 │   │   │   ├── gemini.ts         # Gemini client with retry/backoff
 │   │   │   └── generateLatex.ts  # Orchestration: generate -> validate -> compile
-│   │   └── firebase/             # Admin init, storage, daily quota
+│   │   ├── auth/                 # Supabase token verification
+│   │   ├── db/                   # Postgres pool, repositories, daily quota
+│   │   └── storage/              # Generated documents + signed links
 │   ├── pages/api/documents/      # generate | compile | url
 │   ├── components/               # React components
 │   │   ├── auth/                 # Authentication
@@ -164,6 +168,7 @@ MyJobSearchAgent/
 │   │   │   └── documents/        # Results view, Overleaf button, LaTeX editor
 │   │   └── forms/                # Form components
 │   ├── hooks/ lib/ services/ types/ utils/
+├── db/                           # Migrations, bootstrap SQL, hardening (see db/README.md)
 ├── tests/e2e/                    # Selenium/pytest end-to-end tests
 ├── vitest.config.mts             # Unit test configuration
 ├── next.config.mjs               # Next.js configuration
@@ -182,7 +187,7 @@ POST /api/documents/generate   ← authenticated; claims 1 of 25 daily generatio
         ├─ sanitize.ts rejects unsafe commands and repairs unescaped % & $ # ^
         ├─ buildDocument.ts prepends the hand-written preamble
         ├─ Texapi compiles it to PDF
-        └─ .tex and .pdf are uploaded to Firebase Storage
+        └─ .tex and .pdf are stored in PostgreSQL, served through signed links
         │
         ▼
  UI: PDF preview │ Download PDF │ Download .tex │ Edit LaTeX │ Open in Overleaf
@@ -441,13 +446,12 @@ The project is configured for automatic deployment to Netlify:
    - Build command: `pnpm build`
    - Publish directory: `dist`
    - Node version: 18
-3. **Environment Variables**: Add your Firebase config to Netlify environment variables:
-   - `NEXT_PUBLIC_FIREBASE_API_KEY`
-   - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
-   - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
-   - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
-   - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
-   - `NEXT_PUBLIC_FIREBASE_APP_ID`
+3. **Environment Variables**: Add these to Netlify environment variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `DATABASE_URL`, `PG_SSL_CA`, `PG_POOL_MAX`
+   - `DOCUMENT_SIGNING_SECRET`
+   - `GEMINI_API_KEY`, `TEXAPI_KEY`, `NVIDIA_API_KEYS`
    - `NEXT_PUBLIC_JSEARCH_API_KEY`
    - `NEXT_PUBLIC_JSEARCH_API_HOST`
 
@@ -474,59 +478,8 @@ pnpm test --coverage
 
 ## 🔍 Debugging
 
-## 🖨️ Fonts & PDF Generation
-
-This project embeds fonts for high-fidelity PDF generation using `@react-pdf/renderer`.
-
-1. Place font files in `public/fonts/` (recommended WOFF2):
-
-    - `public/fonts/Inter-Regular.woff2`
-    - `public/fonts/Inter-Bold.woff2`
-    - `public/fonts/Inter-Italic.woff2` (optional)
-
-    I added placeholder files under `public/fonts/Inter-Regular.woff2` and `public/fonts/Inter-Bold.woff2`. Replace them with the real WOFF2 binaries for production.
-
-2. How to test locally:
-
-    - Start the dev server:
-
-      ```bash
-      pnpm dev
-      ```
-
-    - Run the AI Resume Enhancement workflow in the app. When the enhancement finishes the UI will convert the generated HTML into a PDF using the embedded fonts and upload the PDF to Firebase Storage.
-
-    - Verify in the browser network panel that the POST to `/api/save-generated-pdfs` sends `resumePdfBase64` and `coverLetterPdfBase64` and that the API returns `resumeUrl` and `coverLetterUrl`.
-
-3. Notes:
-
-    - If the fonts are not found, `@react-pdf/renderer` will fall back to built-in fonts. For consistent typography, ensure the font files are present.
-    - If you prefer TTF, update the font paths in `src/components/dashboard/ResumeTemplate.tsx`.
-
-## PDF Generation & Upload Flow
-
-- PDFs are generated in the browser using `@react-pdf/renderer` and the `PerfectHTMLToPDF` component in `src/components/dashboard/ResumeTemplate.tsx`.
-- The frontend produces a PDF Blob via `pdf(<PerfectHTMLToPDF ... />).toBlob()` and converts it to a `data:application/pdf;base64,...` Data URL before POSTing to the server.
-- The server endpoint `POST /api/save-generated-pdfs` accepts either:
-    - `resumePdfBase64` and `coverLetterPdfBase64` (data URLs or raw base64), or
-    - `resumePdfUrl` and `coverLetterPdfUrl` — publicly accessible HTTP(S) URLs the server can fetch and validate.
-- The API validates the PDF header, uploads to Firebase Storage, and stores `resume_url`, `cover_letter_url`, plus size metadata and `generated_with: 'react-pdf'` in Firestore.
-
-Notes:
-- `jsPDF` has been removed; `@react-pdf/renderer` is the single source of truth for PDF generation to preserve layout and embedded fonts.
-- If you run into font-related generation errors in the browser, check DevTools console logs for font fetch diagnostics.
-
-
-```bash
-# Start with debugging enabled
-pnpm dev --debug
-
-# Check for TypeScript errors
-npx tsc --noEmit
-
-# Analyze bundle size
-pnpm build --analyze
-```
+Every generation writes a request-scoped log with the same id in the browser console and the server
+log. See [docs/AI_PIPELINE.md](docs/AI_PIPELINE.md#debugging) for the stages and what each one means.
 
 ## 🚀 Performance Optimization
 
@@ -539,7 +492,7 @@ pnpm build --analyze
 ## 🔒 Security
 
 - **Environment Variables**: All sensitive data in `.env`
-- **Firebase Security Rules**: Configured for user data protection
+- **Data access**: every query is scoped by the user id from a verified Supabase session token; the database accepts connections only as a single least-privilege role over TLS
 - **HTTPS**: Enforced in production
 - **Content Security Policy**: Configured in Netlify
 - **Input Validation**: Zod schema validation

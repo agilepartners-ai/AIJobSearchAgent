@@ -10,7 +10,7 @@
  *    than piling onto keys that are already rate-limited.
  *
  * State is per server instance. That is enough to bound each instance's load
- * on the key pool; the per-user daily quota in firebase/usage.ts is the
+ * on the key pool; the per-user daily quota in db/usage.ts is the
  * cross-instance, durable limit.
  */
 

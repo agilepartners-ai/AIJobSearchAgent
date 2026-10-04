@@ -11,7 +11,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getCompiler, LatexCompileError } from '../../../server/latex/compile';
 import { verifyAccessToken, AuthConfigError } from '../../../server/auth/verify';
-import { FirebaseConfigError } from '../../../server/firebase/admin';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '1mb' }, responseLimit: false },
@@ -20,6 +19,12 @@ export const config = {
 const MAX_TEX_CHARS = 200_000;
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Development warm-up (see generate.ts): lets Next compile this route before first use. Absent in production.
+  if (req.method === 'GET' && process.env.NODE_ENV !== 'production') {
+    res.status(204).end();
+    return;
+  }
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
@@ -31,8 +36,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!idToken) throw new Error('unauthenticated');
     await verifyAccessToken(idToken);
   } catch (error) {
-    if (error instanceof FirebaseConfigError || error instanceof AuthConfigError) {
-      console.error('[documents/compile] Firebase misconfigured:', error.message);
+    if (error instanceof AuthConfigError) {
+      console.error('[documents/compile] Auth misconfigured:', error.message);
       return res.status(500).json({ error: 'Server configuration error.' });
     }
     return res.status(401).json({ error: 'You must be signed in.' });

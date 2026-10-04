@@ -12,9 +12,14 @@ export interface Profile {
   linkedin_url?: string;
   portfolio_url?: string;
   created_at?: string;
+  /** The detailed profile form (see profileService.ts). */
+  profileData?: object;
 }
 
 export const ProfileApi = {
+  get(): Promise<Profile> {
+    return authedFetch<Profile>('/api/profile');
+  },
   getOrCreate(fullName = ''): Promise<Profile> {
     return authedFetch<Profile>(`/api/profile?name=${encodeURIComponent(fullName)}`);
   },

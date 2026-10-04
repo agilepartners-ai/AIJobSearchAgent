@@ -1,5 +1,5 @@
 export interface EmailConfig {
-  provider: 'firebase' | 'sendgrid' | 'aws-ses' | 'console';
+  provider: 'sendgrid' | 'aws-ses' | 'console';
   apiKey?: string;
   fromEmail?: string;
   fromName?: string;
@@ -7,7 +7,7 @@ export interface EmailConfig {
 
 export const getEmailConfig = (): EmailConfig => {
   // Check environment variables for email configuration
-  const provider = (process.env.NEXT_PUBLIC_EMAIL_PROVIDER as EmailConfig['provider']) || 'firebase';
+  const provider = (process.env.NEXT_PUBLIC_EMAIL_PROVIDER as EmailConfig['provider']) || 'console';
   
   return {
     provider,

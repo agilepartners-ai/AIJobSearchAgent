@@ -91,7 +91,7 @@ describe('coerceResume', () => {
 });
 
 describe('healResume', () => {
-  it('rescues a document that was saved with an invalid date (already in users’ Firestore)', () => {
+  it('rescues a document that was saved with an invalid date (already saved in the database)', () => {
     const saved = createSampleResume();
     saved.sections[1].entries[0].startDate = '04/2025';
     expect(ResumeDocumentSchema.safeParse(saved).success).toBe(false);

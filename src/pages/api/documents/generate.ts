@@ -12,19 +12,22 @@ import { GeminiError, type TokenUsage } from '../../../server/ai/gemini';
 import { acquireGenerationSlot, BusyError } from '../../../server/ai/limiter';
 import { recordUsage } from '../../../server/ai/usageLedger';
 import { prepareContext } from '../../../server/rag/context';
+import { query } from '../../../server/db/pool';
+import { DbConfigError } from '../../../server/db/pool';
+import { attachDocumentLinks } from '../../../server/db/applicationsRepo';
+import { StorageConfigError } from '../../../server/storage/documents';
 import { attachCoverLetterPdf, findGeneratedResume, saveGeneratedResume } from '../../../server/resumes/saveGenerated';
 import { cleanRequestId, createRequestLog, type RequestLog } from '../../../server/log';
 import { newId } from '../../../lib/resume/ids';
 import { LatexValidationError } from '../../../server/latex/sanitize';
 import { LatexCompileError } from '../../../server/latex/compile';
-import { admin, getFirestore, FirebaseConfigError } from '../../../server/firebase/admin';
 import { verifyAccessToken, AuthConfigError } from '../../../server/auth/verify';
-import { uploadDocuments } from '../../../server/firebase/storage';
+import { uploadDocuments } from '../../../server/storage/documents';
 import {
   QuotaExceededError,
   refundGeneration,
   reserveGeneration,
-} from '../../../server/firebase/usage';
+} from '../../../server/db/usage';
 
 export const config = {
   api: {
@@ -65,10 +68,10 @@ async function authenticate(idToken: string | undefined): Promise<string> {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Development warm-up: the dashboard calls this once so Next compiles the
-  // route (and Firestore opens its first connection) before the user's first
+  // route (and the database opens its first connection) before the user's first
   // generation, not during it. Does nothing else, and does not exist in production.
   if (req.method === 'GET' && process.env.NODE_ENV !== 'production') {
-    void getFirestore().collection('system').doc('warm').get().catch(() => undefined);
+    void query('SELECT 1').catch(() => undefined);
     res.status(204).end();
     return;
   }
@@ -207,7 +210,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             coverLetterTex: documents.coverLetterTex,
           }),
           STORAGE_TIMEOUT_MS,
-          'Firebase Storage upload',
+          'Document storage',
         );
         if (body.jobApplicationId) await persistToApplication(userId, body.jobApplicationId, stored);
         if (resumeId) {
@@ -257,26 +260,16 @@ async function persistToApplication(
   jobApplicationId: string,
   stored: Awaited<ReturnType<typeof uploadDocuments>>,
 ): Promise<void> {
-  await getFirestore()
-    .collection('users')
-    .doc(userId)
-    .collection('jobApplications')
-    .doc(jobApplicationId)
-    .set(
-      {
-        resume_url: stored.resumePdf.url,
-        cover_letter_url: stored.coverLetterPdf.url,
-        // Paths do not expire, unlike the signed URLs above. Keeping them is
-        // what lets /api/documents/url revive a stale link.
-        resume_path: stored.resumePdf.path,
-        cover_letter_path: stored.coverLetterPdf.path,
-        resume_tex_path: stored.resumeTex.path,
-        cover_letter_tex_path: stored.coverLetterTex.path,
-        generated_with: 'latex',
-        generated_at: admin.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    );
+  // Paths do not expire, unlike the signed URLs. Keeping them is what lets
+  // /api/documents/url revive a stale link. Only the caller's own application is touched.
+  await attachDocumentLinks(userId, jobApplicationId, {
+    resumeUrl: stored.resumePdf.url,
+    coverLetterUrl: stored.coverLetterPdf.url,
+    resumePath: stored.resumePdf.path,
+    coverLetterPath: stored.coverLetterPdf.path,
+    resumeTexPath: stored.resumeTex.path,
+    coverLetterTexPath: stored.coverLetterTex.path,
+  });
 }
 
 /**
@@ -309,8 +302,8 @@ function respondToError(error: unknown, res: NextApiResponse, log: RequestLog) {
     });
   }
 
-  if (error instanceof FirebaseConfigError) {
-    console.error('[documents/generate] Firebase misconfigured:', error.message);
+  if (error instanceof DbConfigError || error instanceof StorageConfigError || error instanceof AuthConfigError) {
+    console.error('[documents/generate] Misconfigured:', error.message);
     return send(500, { error: 'Server configuration error. Please contact support.' });
   }
 

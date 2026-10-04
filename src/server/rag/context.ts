@@ -24,7 +24,7 @@ import { createHash } from 'crypto';
 import { condenseJobDescription } from '../ai/condense';
 import { chunkText } from './chunker';
 import { embedTexts, embeddingModel, isEmbeddingConfigured, type InputType } from './embedder';
-import { firestoreStore, type KnowledgeSource, type VectorStore } from './store';
+import { postgresStore, type KnowledgeSource, type VectorStore } from './store';
 import { cosine, dequantise, quantise } from './vector';
 
 export interface RagTuning {
@@ -78,7 +78,7 @@ export interface RagDeps {
 const defaultDeps: RagDeps = {
   enabled: isEmbeddingConfigured,
   embed: embedTexts,
-  store: firestoreStore,
+  store: postgresStore,
   model: embeddingModel,
   tuning: tuningFromEnv,
 };

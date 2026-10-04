@@ -21,17 +21,17 @@ if [ ! -f ".env" ]; then
     echo "# Required API Keys"
     echo "OPENAI_API_KEY=your-openai-api-key-here"
     echo ""
-    echo "# Firebase Configuration"
-    echo "NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyDBdAWFGw0acg3IBSh9NZPp_m6WiyaW_qA"
-    echo "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=myjobsearchagent.firebaseapp.com"
-    echo "NEXT_PUBLIC_FIREBASE_PROJECT_ID=myjobsearchagent"
-    echo "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=myjobsearchagent.appspot.com"
-    echo "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=948357728656"
-    echo "NEXT_PUBLIC_FIREBASE_APP_ID=1:948357728656:web:5c1f7ef5658d7efcd0cb15"
-    echo "NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-3V87TEMNEV"
+    echo "# Supabase (authentication only)"
+    echo "NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co"
+    echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>"
+    echo ""
+    echo "# PostgreSQL (see db/README.md)"
+    echo "DATABASE_URL=postgres://jobsearch_app:<password>@<host>:5432/jobsearch"
+    echo "PG_SSL_CA=<CA certificate on one line, newlines as \\n>"
+    echo "DOCUMENT_SIGNING_SECRET=<24+ random characters>"
     echo ""
     echo "# JSearch API"
-    echo "NEXT_PUBLIC_JSEARCH_API_KEY=dfa377a0fbmsh8df80548e982bc2p1300b3jsnd59691bcf380"
+    echo "NEXT_PUBLIC_JSEARCH_API_KEY=<your RapidAPI key>"
     echo "NEXT_PUBLIC_JSEARCH_API_HOST=jsearch.p.rapidapi.com"
     echo ""
     echo "# Next.js Environment"
@@ -46,13 +46,8 @@ source .env
 # Build the Docker image with environment variables from .env file
 echo "Building Docker image with environment variables..."
 docker build \
-  --build-arg NEXT_PUBLIC_FIREBASE_API_KEY="$NEXT_PUBLIC_FIREBASE_API_KEY" \
-  --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN" \
-  --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID="$NEXT_PUBLIC_FIREBASE_PROJECT_ID" \
-  --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="$NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET" \
-  --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID" \
-  --build-arg NEXT_PUBLIC_FIREBASE_APP_ID="$NEXT_PUBLIC_FIREBASE_APP_ID" \
-  --build-arg NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="$NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID" \
+  --build-arg NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL" \
+  --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY="$NEXT_PUBLIC_SUPABASE_ANON_KEY" \
   --build-arg NEXT_PUBLIC_JSEARCH_API_KEY="$NEXT_PUBLIC_JSEARCH_API_KEY" \
   --build-arg NEXT_PUBLIC_JSEARCH_API_HOST="$NEXT_PUBLIC_JSEARCH_API_HOST" \
   --build-arg NEXT_PUBLIC_TAVUS_API_KEY="$NEXT_PUBLIC_TAVUS_API_KEY" \

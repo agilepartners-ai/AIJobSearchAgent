@@ -1,7 +1,7 @@
 # Setup & Run
 
 Getting the app running locally from a fresh clone. Roughly 15 minutes, most of it
-in the Firebase console.
+creating the Supabase project and the database.
 
 ---
 
@@ -30,14 +30,15 @@ If it is missing, recreate it:
 cp .env.example .env.local
 ```
 
-### The four things you need
+### The things you need
 
 | What | Where to get it | Needed for |
 |---|---|---|
 | **Gemini API key** | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) — free tier is fine | Writing the LaTeX |
 | **Texapi key** | [texapi.ovh](https://texapi.ovh) → API Keys → create | Compiling LaTeX → PDF |
-| **Firebase web config** | Console → Project settings → General → Your apps → SDK setup | Login, database |
-| **Firebase service account** | Console → Project settings → Service accounts → Generate new private key | Server-side auth, storage, quota |
+| **Supabase project** | [supabase.com](https://supabase.com) → New project → Project Settings → API | Sign-in only (email + Google) |
+| **PostgreSQL database** | Your own server; see [db/README.md](../db/README.md) | All application data and stored documents |
+| **Document signing secret** | `openssl rand -base64 36` | Signs document download links |
 
 ### Gemini
 
@@ -59,60 +60,54 @@ Sign up, create a key, paste it in. **The key is displayed once** — copy it im
 TEXAPI_KEY=...
 ```
 
-### Firebase web config
+### Supabase (authentication only)
 
-Console → ⚙️ Project settings → General → scroll to "Your apps" → pick the web app →
-"Config". You get an object like this:
+Supabase only signs people in. No application data is stored there.
 
-```js
-const firebaseConfig = {
-  apiKey: "AIza...",
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project",
-  storageBucket: "your-project.firebasestorage.app",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abc123"
-};
-```
-
-Map it across:
+Project Settings → **API** gives you two values. The anon key is public by design:
 
 ```env
-NEXT_PUBLIC_FIREBASE_API_KEY=AIza...
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789012
-NEXT_PUBLIC_FIREBASE_APP_ID=1:123456789012:web:abc123
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 ```
 
-### Firebase service account (the fiddly one)
+Never put the `service_role` key in this app's environment; nothing here needs it.
 
-Console → ⚙️ Project settings → **Service accounts** → **Generate new private key**.
-A JSON file downloads. Open it and copy three fields:
+**Google sign-in.** Create an OAuth client (Google Cloud Console → Google Auth Platform → Clients →
+Web application) with the redirect URI `https://<project-ref>.supabase.co/auth/v1/callback`, then paste
+its Client ID and secret into Supabase → Authentication → Providers → Google. Set the consent screen's
+publishing status to **In production**, otherwise only listed test users can sign in.
 
-```jsonc
-{
-  "project_id": "your-project",           // -> FIREBASE_PROJECT_ID
-  "client_email": "firebase-adminsdk-...@your-project.iam.gserviceaccount.com",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQ...\n-----END PRIVATE KEY-----\n"
-}
-```
+**Redirects.** Supabase → Authentication → URL Configuration: set the Site URL to your production
+domain and add `http://localhost:3000/**` to the redirect allow-list.
+
+**Email.** Supabase's built-in mailer allows only a few messages an hour. For real sign-ups set a
+custom SMTP server under Authentication → SMTP Settings (use the SSL port, 465).
+
+### PostgreSQL
+
+All application data (profiles, job applications, résumés, per-account memory, usage, and the
+generated PDF/LaTeX files) lives in one database. [db/README.md](../db/README.md) covers creating it
+on a server, locking it down, and running the migrations. Then:
 
 ```env
-FIREBASE_PROJECT_ID=your-project
-FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQ...\n-----END PRIVATE KEY-----\n"
+DATABASE_URL=postgres://jobsearch_app:<password>@<host>:5432/jobsearch
+# CA certificate PEM on ONE line, newlines written as the two characters \n
+PG_SSL_CA="-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+PG_POOL_MAX=2
 ```
 
-**The private key trips people up.** Three rules:
+```bash
+pnpm db:migrate
+```
 
-1. Wrap it in **double quotes**.
-2. Keep it on **one line**.
-3. Keep the literal `\n` sequences exactly as they appear in the JSON. Do not turn them
-   into real line breaks, and do not delete them.
+### Document signing secret
 
-Delete the downloaded JSON afterwards, or move it well outside the repo.
+Download links for generated documents are signed so they work in an `<iframe>` yet cannot be forged:
+
+```env
+DOCUMENT_SIGNING_SECRET=<24+ random characters>
+```
 
 ---
 
@@ -126,13 +121,15 @@ This does not just check that variables exist — it makes a real call against e
 service, so a typo'd key fails here instead of when a user clicks Generate.
 
 ```
-Firebase client SDK (browser auth)
-  PASS  All client variables present project=your-project
+Supabase (authentication only)
+  PASS  Anon key accepted https://<project-ref>.supabase.co
+  PASS  Google sign-in is enabled
+  PASS  Token signing keys published 1 key(s), ES256
 
-Firebase Admin (server: auth, Firestore, Storage)
-  PASS  Admin credentials accepted project=your-project
-  PASS  Firestore reachable
-  PASS  Storage bucket reachable your-project.firebasestorage.app
+PostgreSQL (application data)
+  PASS  Connected jobsearch_app@jobsearch over TLS
+  PASS  Schema is up to date 2 migration(s)
+  PASS  DOCUMENT_SIGNING_SECRET set
 
 Gemini (writes the LaTeX)
   PASS  GEMINI_API_KEY works model=gemini-3.7-flash
@@ -248,17 +245,17 @@ A test enforces that they stay in sync.
 
 ## Troubleshooting
 
-**`Admin credentials rejected`**
-Almost always `FIREBASE_PRIVATE_KEY` formatting. Double quotes, one line, literal `\n`
-preserved. Re-download the service account JSON and copy the `private_key` value verbatim.
+**`Supabase rejected the anon key`**
+The key was mistyped or regenerated. Copy it again from Project Settings → API.
 
-**`Storage bucket not found`**
-Newer Firebase projects use `<project-id>.firebasestorage.app`; older ones use
-`<project-id>.appspot.com`. Copy the exact value from the console.
+**`unable to verify the first certificate`**
+`PG_SSL_CA` is missing or damaged. It must be the CA certificate on one line with literal `\n`
+between the PEM lines (`.env` files do not reliably keep multi-line values).
 
-**`Admin and client point at different Firebase projects`**
-`FIREBASE_PROJECT_ID` and `NEXT_PUBLIC_FIREBASE_PROJECT_ID` must match. ID tokens minted
-by one project will not verify against another, so every request will 401.
+**Every API request answers 401**
+The server could not verify the session token. Check `NEXT_PUBLIC_SUPABASE_URL` is the same project
+the browser signs in to, and that the project still publishes signing keys at
+`/auth/v1/.well-known/jwks.json` (`pnpm check:env` tests both).
 
 **"We could not render your documents"**
 A Texapi failure. Re-run `npm run check:env`. If it reports HTTP 422 for a hello-world
@@ -266,9 +263,9 @@ document, you are being rate limited — Texapi returns 422/500 instead of 429 w
 exceed 20 requests/minute. Wait a minute and retry.
 
 **"You have reached your daily limit"**
-25 generations per user per day, enforced server-side. Reset by deleting today's document
-under `users/{uid}/usage/{YYYY-MM-DD}` in Firestore, or change `DAILY_GENERATION_LIMIT` in
-`src/server/firebase/usage.ts`.
+25 generations per user per day, enforced server-side. Reset one user with
+`DELETE FROM app.usage_daily WHERE user_id = '<uuid>' AND day = CURRENT_DATE;`, or change
+`DAILY_GENERATION_LIMIT` in `src/server/db/usage.ts`.
 
 **Generation is slow or times out**
 Normal is 10–30s. Gemini retries with backoff on 429/503, and Texapi's client pauses 20s to
@@ -278,10 +275,12 @@ re-check a 422 before declaring failure, so a bad minute can stretch to ~60s.
 
 ## Deploying
 
-Deployment targets and the Secret Manager setup for Cloud Run are covered in the main
-[README](../README.md#deploying-to-cloud-run).
+Deployment targets are covered in the main [README](../README.md#deploying-to-cloud-run).
 
-Two things that must be true in every environment:
+Things that must be true in every environment:
+
+- `DATABASE_URL`, `PG_SSL_CA` and `DOCUMENT_SIGNING_SECRET` are set as **runtime** variables.
+- `NEXT_PUBLIC_*` values are baked in at build time, so changing one needs a rebuild.
 
 - `GEMINI_API_KEY` and `TEXAPI_KEY` are set as **runtime** variables, never build args —
   a build arg is baked into the image.

@@ -110,8 +110,8 @@ const TAVUS_VIDEO_URL = "/e3db768fa0.mp4";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Video, User, LogOut, LayoutDashboard, Loader, ExternalLink, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { getAuth, signOut } from 'firebase/auth';
 import { createConversation as createInterviewConversation } from '../../services/interviewService';
+import { AuthService } from '../../services/authService';
 
 const AIInterviewPage: React.FC = () => {
   const router = useRouter();
@@ -135,8 +135,7 @@ const AIInterviewPage: React.FC = () => {
 
   const handleSignOut = async () => {
     try {
-      const auth = getAuth();
-      await signOut(auth);
+      await AuthService.signOut();
       router.push('/'); // Redirect to home page after sign out
     } catch (error) {
       console.error('Error signing out:', error);

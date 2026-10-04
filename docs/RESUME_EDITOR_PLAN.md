@@ -321,9 +321,9 @@ Two deliberate simplifications versus FlowCV:
 
 ### 6.3 Storage
 
-- Firestore: `users/{uid}/resumes/{id}`, `users/{uid}/coverLetters/{id}`. Owner-only rules.
+- PostgreSQL: `app.resumes (user_id, id, document jsonb)`. Every query is scoped to the signed-in user.
 - Autosave debounced ~1 s. `updatedAt` detects a stale write from a second tab.
-- Resume JSON sits far under Firestore's 1 MB document limit.
+- Resume JSON is a few tens of KB; the API caps a document at 2 MB.
 - Generated PDFs and `.tex` keep the existing Storage paths and `/api/documents/url` re-signing.
 
 ### 6.4 Reused vs retired
@@ -332,7 +332,7 @@ Two deliberate simplifications versus FlowCV:
 |---|---|
 | `escapeSpecials` → the serializer's only escaping path | AI writing LaTeX directly (delimited-response parsing in `generateLatex.ts`) |
 | Texapi compiler, rate limiter, 422 re-check | Editable in-app LaTeX tab with recompile (see below) |
-| Firebase admin, storage, daily quota, URL re-signing | |
+| Database access, document storage, daily quota, URL re-signing | |
 | Overleaf single-file and zip export | |
 | `PdfPreview`, golden text-layer tests | |
 | `common.tex` / macros → become the parametric template | |
@@ -464,7 +464,7 @@ live until Phase 5 switches over**, so the app never loses its core feature mid-
 - **Font registry of Texapi-verified fonts only**, with a paced CI test that compiles each on
   Texapi and checks the embedded `/BaseFont` (section 4.3).
 - Style-token module (`pt` for CSS, `bp` for LaTeX).
-- Firestore model and security rules.
+- Database model and access rules.
 - **Spike:** Gemini `responseSchema` on `gemini-3.7-flash`. Record the result.
 
 **Exit:** schema and font CI pass; Gemini spike answered.

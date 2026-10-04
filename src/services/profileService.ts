@@ -1,4 +1,4 @@
-import { FirebaseDBService } from './firebaseDBService';
+import { ProfileApi } from './profileApi';
 
 export interface UserProfileData {
   // Basic Information
@@ -122,32 +122,27 @@ export interface UserProfileData {
 }
 
 
+/**
+ * The detailed profile form (UserProfileData) lives in the signed-in user's
+ * profile row under `profileData`, via /api/profile. `userId` arguments are kept
+ * for call-site compatibility; the server uses the session.
+ */
 export class ProfileService {
-  private static basePath(userId: string) {
-    return `users/${userId}/profile/main`; // ✅ This is a document path, not a collection
-  }
-
-  static async getUserProfile(userId: string): Promise<UserProfileData | null> {
-    return FirebaseDBService.read<UserProfileData>(this.basePath(userId));
+  static async getUserProfile(_userId: string): Promise<UserProfileData | null> {
+    const profile = await ProfileApi.get();
+    return (profile.profileData as UserProfileData | undefined) ?? null;
   }
 
   static async updateUserProfile(userId: string, profileData: Partial<UserProfileData>): Promise<void> {
-    return FirebaseDBService.update(this.basePath(userId), profileData); // ✅ Already correct
+    const current = (await this.getUserProfile(userId)) ?? ({} as UserProfileData);
+    await ProfileApi.update({ profileData: { ...current, ...profileData } });
   }
 
   static async getOrCreateProfile(userId: string, email: string, fullName?: string): Promise<UserProfileData> {
-    let profile = await this.getUserProfile(userId);
-    if (!profile) {
-      profile = {
-        email,
-        fullName: fullName || '',
-        subscription_status: 'free',
-      };
-      // ❌ WRONG: await FirebaseDBService.create(...); ← this causes "document path must be even"
-      // ✅ FIXED:
-      await FirebaseDBService.set(this.basePath(userId), profile);
-    }
+    const existing = await this.getUserProfile(userId);
+    if (existing) return existing;
+    const profile: UserProfileData = { email, fullName: fullName || '', subscription_status: 'free' };
+    await ProfileApi.update({ profileData: profile });
     return profile;
   }
 }
-

@@ -2,7 +2,7 @@
  * Vector helpers, including int8 quantisation for storage.
  *
  * A 2048-dimension float vector is ~8 KB as JSON numbers; as int8 base64 it is
- * ~2.7 KB. Chunks are stored per account inside Firestore documents, so the
+ * ~2.7 KB. Chunks are stored per account as jsonb rows in PostgreSQL, so the
  * 4x saving is the difference between "a few dozen chunks per document" and
  * "a few hundred". Int8 with a per-vector scale loses ~1% of cosine accuracy,
  * well under the noise in retrieval scores.

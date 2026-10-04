@@ -5,7 +5,7 @@
 import type { GetStaticProps } from 'next';
 import React, { useState } from 'react';
 import OverviewView from '../../components/dashboard/views/OverviewView';
-import type { JobApplication } from '../../services/firebaseJobApplicationService';
+import type { JobApplication } from '../../services/jobApplicationService';
 
 export const getStaticProps: GetStaticProps = async () =>
   process.env.NODE_ENV === 'production' ? { notFound: true } : { props: {} };

@@ -2,12 +2,11 @@
  * The account menu in the dashboard header: profile, job preferences and sign
  * out, which is the only way out of the app.
  */
-import { signOut } from 'firebase/auth';
 import { motion } from 'framer-motion';
 import { LogOut, Settings, User } from 'lucide-react';
 import { useRouter } from 'next/router';
 import React, { useEffect, useRef, useState } from 'react';
-import { auth } from '../../lib/firebase';
+import { AuthService } from '../../services/authService';
 
 interface Props {
   name: string;
@@ -42,7 +41,7 @@ export default function ProfileMenu({ name, onProfile, onPreferences }: Props) {
   const signOutNow = async () => {
     setOpen(false);
     try {
-      await signOut(auth);
+      await AuthService.signOut();
     } catch (error) {
       console.error('Error signing out:', error);
     }

@@ -112,14 +112,14 @@ describe('resumeFromMacroBody', () => {
   });
 });
 
-describe('Firestore safety', () => {
+describe('JSON safety', () => {
   const hasUndefined = (value: unknown): boolean =>
     value === undefined ||
     (typeof value === 'object' && value !== null && Object.values(value).some(hasUndefined));
 
   it('never leaves an undefined field, even for a section with no title', () => {
     // A bare macro with no \section used to override the default title with
-    // undefined, which Firestore's setDoc rejects.
+    // undefined, which does not survive JSON storage.
     const doc = resumeFromMacroBody(String.raw`\resheader{A}{a@b.co}
 \resrole{Dev}{Co}{}{2020 -- Present}`);
     expect(hasUndefined(doc)).toBe(false);

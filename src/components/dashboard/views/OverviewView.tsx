@@ -3,7 +3,7 @@
  * Presentational — every action is handled by the dashboard shell.
  */
 import React from 'react';
-import type { ApplicationStats, JobApplication } from '../../../services/firebaseJobApplicationService';
+import type { ApplicationStats, JobApplication } from '../../../services/jobApplicationService';
 import ApplicationsTable from '../ApplicationsTable';
 
 const STATS: { key: keyof ApplicationStats; label: string }[] = [

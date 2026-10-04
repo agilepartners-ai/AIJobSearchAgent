@@ -35,17 +35,16 @@ export function isAuthenticationError(error: any): boolean {
     'authentication required'
   ];
 
-  // Check for Firebase-specific auth error codes
-  const firebaseAuthErrors = [
-    'auth/user-token-expired',
-    'auth/user-not-found',
-    'auth/requires-recent-login',
-    'auth/invalid-user-token',
-    'auth/network-request-failed',
-    'auth/too-many-requests',
-    'auth/user-disabled',
-    'auth/id-token-expired',
-    'auth/id-token-revoked'
+  // Supabase auth error codes that mean the session is no longer usable
+  const authErrorCodes = [
+    'session_not_found',
+    'session_expired',
+    'refresh_token_not_found',
+    'refresh_token_already_used',
+    'bad_jwt',
+    'user_not_found',
+    'user_banned',
+    'no_authorization'
   ];
 
   // Check message patterns
@@ -54,7 +53,7 @@ export function isAuthenticationError(error: any): boolean {
   );
 
   // Check error codes
-  const hasAuthCode = firebaseAuthErrors.includes(errorCode);
+  const hasAuthCode = authErrorCodes.includes(errorCode);
 
   // Check HTTP status codes
   const isUnauthorizedStatus = error?.status === 401 || error?.statusCode === 401;

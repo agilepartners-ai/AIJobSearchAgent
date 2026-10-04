@@ -15,7 +15,7 @@
 import { format, formatDistanceToNow } from 'date-fns';
 import { ArrowUpRight, Building2, Check, Eye, FileText, Mail, MapPin, Pencil, Search, Sparkles, Trash2, User, Wallet, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import type { JobApplication } from '../../services/firebaseJobApplicationService';
+import type { JobApplication } from '../../services/jobApplicationService';
 
 interface ApplicationsTableProps {
   applications: JobApplication[];

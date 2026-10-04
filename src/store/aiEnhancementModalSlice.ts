@@ -6,7 +6,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
  * This slice used to persist the uploaded file as base64, plus the full
  * optimization result object, into localStorage via redux-persist. That meant
  * a multi-megabyte resume and an entire generated document set were written to
- * disk on every change. Documents now live in component state and in Firebase
+ * disk on every change. Documents now live in component state and in the database
  * Storage, so only the trigger state belongs here.
  */
 export interface AIEnhancementModalState {

@@ -6,7 +6,7 @@ How a generation runs, what it costs, and how to operate it with many users.
 
 ```
 POST /api/documents/generate
-  1. verify Firebase ID token                 → uid
+  1. verify Supabase access token                → user id
   2. acquireGenerationSlot(uid)               one in flight per user; global cap, short queue
   3. reserveGeneration(uid)                   daily quota, atomic (refunded on failure)
   4. prepareContext()   [RAG, optional]       embed + remember résumé & job; trim; pull facts
@@ -70,7 +70,7 @@ Browser (`[flow rid=<id>] <step>`): `client:submit`, `client:response` (status, 
 (or `-missing` / `-error`), and on a reload `recover:start` → `recover:found`.
 In the console run `copyFlowLog()` to copy the last 300 lines for a bug report.
 
-**First request after a server start is slower** (~3-5 s): Firestore and NVIDIA
+**First request after a server start is slower** (~3-5 s): the database connection and NVIDIA
 open their connections lazily. The `slot-acquired` and `quota-reserved` timings show it.
 
 ### What survives a failure
@@ -116,7 +116,7 @@ users/{uid}/ragResumes/{r_<sha1>}   users/{uid}/ragJobs/{j_<sha1>}
 - **One document per source**, not per chunk, so a retrieval is a handful of
   reads. Vectors are int8-quantised (~4× smaller; cosine loss < 0.1 %).
 - **Scoring is in memory.** An account holds tens of chunks; a scan beats an index.
-  `VectorStore` (`rag/store.ts`) is the seam for Firestore vector search or
+  `VectorStore` (`rag/store.ts`) is the seam for pgvector or
   pgvector if accounts ever reach thousands.
 - **Supplement:** relevant facts from the account's *other* résumés that the
   current one does not already say (deduped chunk-wise **and** line-wise) are

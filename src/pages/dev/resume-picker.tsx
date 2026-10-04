@@ -1,6 +1,6 @@
 /**
  * Development-only harness: the template picker for a generated resume, and the
- * resume card, rendered without Firestore. Not built in production.
+ * resume card, rendered without a database. Not built in production.
  */
 import type { GetStaticProps } from 'next';
 import React from 'react';

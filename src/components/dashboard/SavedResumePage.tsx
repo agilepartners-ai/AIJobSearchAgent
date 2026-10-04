@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Download, Eye, EyeOff, ArrowLeft, Briefcase, MapPin, Calendar, ExternalLink } from 'lucide-react';
-import { JobApplication, FirebaseJobApplicationService } from '../../services/firebaseJobApplicationService';
+import { JobApplication, JobApplicationService } from '../../services/jobApplicationService';
 import { useAuth } from '../../hooks/useAuth';
 import { useToastContext } from '../ui/ToastProvider';
 import { refreshDocumentUrl } from '../../services/documentService';
@@ -39,7 +39,7 @@ const SavedResumePage: React.FC = () => {
 
     try {
       setLoading(true);
-      const allApplications = await FirebaseJobApplicationService.getUserApplications(user.id);
+      const allApplications = await JobApplicationService.getUserApplications(user.id);
 
       // Filter applications that have either resume_url or cover_letter_url
       const savedResumes = allApplications.filter(app =>

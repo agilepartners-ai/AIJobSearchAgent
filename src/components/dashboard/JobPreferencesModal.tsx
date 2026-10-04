@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Briefcase, MapPin, DollarSign, ChevronDown, ChevronUp, Plus, Trash2, Save, RotateCcw } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { FirebaseJobPreferencesService, JobPreferences } from '../../services/firebaseJobPreferencesService';
+import { UserJobPreferencesService, ModalJobPreferences as JobPreferences } from '../../services/jobPreferencesService';
 import { useToastContext } from '../ui/ToastProvider';
 
 interface JobPreferencesFormData {
@@ -38,7 +38,7 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
       
       try {
         setLoading(true);
-        const userPreferences = await FirebaseJobPreferencesService.getUserJobPreferences(user.id);
+        const userPreferences = await UserJobPreferencesService.getUserJobPreferences(user.id);
         
         if (userPreferences) {
           setPreferences(userPreferences);
@@ -167,9 +167,9 @@ const JobPreferencesModal: React.FC<JobPreferencesModalProps> = ({ onClose }) =>
         skills: preferences?.skills || [],
       };
 
-      await FirebaseJobPreferencesService.saveJobPreferences(user.id, preferencesToSave as any);
+      await UserJobPreferencesService.saveJobPreferences(user.id, preferencesToSave as any);
       
-      const updatedPreferences = await FirebaseJobPreferencesService.getUserJobPreferences(user.id);
+      const updatedPreferences = await UserJobPreferencesService.getUserJobPreferences(user.id);
       setPreferences(updatedPreferences);
       
       showSuccess('Preferences Saved', 'Your job preferences have been successfully saved.');

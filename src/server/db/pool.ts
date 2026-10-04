@@ -1,4 +1,15 @@
-import { Pool, type PoolClient, type QueryResultRow } from 'pg';
+import { Pool, types, type PoolClient, type QueryResultRow } from 'pg';
+
+// Counters and money come back as numbers, not strings (bigint and numeric are strings by default).
+types.setTypeParser(20, (v) => Number(v));
+types.setTypeParser(1700, (v) => Number(v));
+
+export class DbConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DbConfigError';
+  }
+}
 
 /**
  * One lazily created pool per server instance. Netlify runs many short-lived
@@ -18,7 +29,7 @@ function sslOption(): false | { ca?: string; rejectUnauthorized: boolean } {
 export function getPool(): Pool {
   if (pool) return pool;
   const url = process.env.DATABASE_URL;
-  if (!url) throw new Error('DATABASE_URL is not set');
+  if (!url) throw new DbConfigError('DATABASE_URL is not set');
   pool = new Pool({
     connectionString: url,
     ssl: sslOption(),
