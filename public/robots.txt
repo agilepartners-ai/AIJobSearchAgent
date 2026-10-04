@@ -1,0 +1,37 @@
+# robots.txt for https://agilepartners-ai.com
+# Policy (edit src/lib/seo/pages.json, then run pnpm seo):
+#  - search engines and AI answer/retrieval bots may crawl the public site;
+#  - AI model-training crawlers may not;
+#  - account pages stay crawlable on purpose so their noindex tag is seen, and only /api/ is off limits.
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Search and answer engines (named explicitly: a bot that finds its own group ignores the * group)
+User-agent: Googlebot
+User-agent: Bingbot
+User-agent: DuckDuckBot
+User-agent: Applebot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: Google-Extended
+Allow: /
+Disallow: /api/
+
+# AI model-training crawlers
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: anthropic-ai
+User-agent: CCBot
+User-agent: Applebot-Extended
+User-agent: Bytespider
+User-agent: Meta-ExternalAgent
+User-agent: cohere-ai
+Disallow: /
+
+Sitemap: https://agilepartners-ai.com/sitemap.xml

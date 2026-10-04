@@ -1,0 +1,30 @@
+# AIJobSearchAgent
+
+> AIJobSearchAgent is a web app that tailors a résumé to a specific job description. It also writes a matching cover letter, shows a match analysis (strengths, gaps, keywords), tracks job applications, and offers an AI mock interview.
+
+## Facts
+- Input: a résumé as PDF (with selectable text) or plain text, plus a pasted job description. DOCX and DOC are not supported.
+- Output: a tailored résumé, a cover letter and a match analysis, usually in 10 to 30 seconds. Résumés can be edited in the app and exported as PDF or LaTeX; the LaTeX can be opened in Overleaf.
+- There are 12 résumé templates. Single-column templates are the safest for applicant tracking systems.
+- Each account can generate up to 25 tailored sets per day and start up to 5 mock interviews per day.
+- There is no paid plan in the app at the moment.
+- Contact: support@agilepartners-ai.com
+
+## Product
+- [AI Resume Tailor & Job Tracker | AIJobSearchAgent](https://agilepartners-ai.com): Paste a job description and get a tailored résumé, a matching cover letter and an ATS keyword analysis. Track every application in one place.
+
+## Features
+- [Tailor Your Resume to Any Job Description with AI](https://agilepartners-ai.com/resume-tailoring): Upload your résumé, paste the job description, and get a version rewritten for that role plus a match score, keyword gaps and concrete suggestions.
+- [ATS-Friendly Resume Builder with LaTeX & PDF Export](https://agilepartners-ai.com/ats-resume-builder): Pick from 12 résumé templates, edit live in the browser, and export a text-selectable PDF or the LaTeX source. Open it in Overleaf.
+- [AI Cover Letter Generator from the Job Description](https://agilepartners-ai.com/cover-letter-generator): Generate a cover letter written for one specific job, from your résumé and the posting, delivered with your tailored résumé as PDF and LaTeX.
+- [Job Application Tracker: Organise Every Application](https://agilepartners-ai.com/job-application-tracker): Keep each application's company, role, status, link and job description in one searchable list, with your tailored résumé and cover letter attached.
+- [AI Mock Interview Practice for Your Next Job](https://agilepartners-ai.com/mock-interview): Practise a conversation with an AI interviewer set up for the role you are applying to, then use the session to prepare your own answers.
+
+## Guides
+- [Job Search Guides: Resumes, ATS and Cover Letters](https://agilepartners-ai.com/guides): Plain-English guides on tailoring a résumé, how applicant tracking systems read it, and writing a cover letter that gets read.
+- [How to Tailor Your Resume to a Job Description](https://agilepartners-ai.com/guides/tailor-resume-to-job-description): A step-by-step method to read a job posting, map it to your experience, and rewrite your résumé for that role without exaggerating anything.
+- [How ATS Resume Scanners Work (and How to Pass Them)](https://agilepartners-ai.com/guides/how-ats-resume-scanners-work): What an applicant tracking system actually does with your résumé, which formatting breaks parsing, and how to write for both software and people.
+
+## Legal
+- [Privacy Policy | AIJobSearchAgent](https://agilepartners-ai.com/privacy-policy): How AIJobSearchAgent collects, uses and protects your information, including résumé content and job descriptions you submit.
+- [Terms of Service | AIJobSearchAgent](https://agilepartners-ai.com/terms-of-service): The terms for using AIJobSearchAgent, including acceptable use, your content and limits on the service.

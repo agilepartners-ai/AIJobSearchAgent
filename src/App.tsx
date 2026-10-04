@@ -1,5 +1,3 @@
-import { useEffect } from 'react';
-
 import Header from './components/Header';
 import Hero from './components/Hero';
 import LiveDemo from './components/LiveDemo';
@@ -22,10 +20,6 @@ import ErrorBoundary from './components/dashboard/ErrorBoundary';
 import { ToastProvider } from './components/ui/ToastProvider';
 
 function App() {
-  useEffect(() => {
-    document.title = 'AIJobSearchAgent | AI-Powered Career Success Platform';
-  }, []);
-
   return (
     <ErrorBoundary>
       <ToastProvider>

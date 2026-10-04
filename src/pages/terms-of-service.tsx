@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { FileText, ArrowLeft, ChevronDown, ChevronUp, Scale, AlertTriangle, CheckCircle, XCircle, CreditCard, Globe, RefreshCw } from 'lucide-react';
+import Seo from '../components/seo/Seo';
+import { breadcrumbs } from '../lib/seo/jsonld';
 
 interface SectionProps {
   icon: React.ReactNode;
@@ -261,4 +263,11 @@ const TermsOfService: React.FC = () => {
   );
 };
 
-export default TermsOfService;
+export default function TermsOfServiceRoute() {
+  return (
+    <>
+      <Seo path="/terms-of-service" jsonLd={[breadcrumbs([{ name: 'Home', path: '/' }, { name: 'Terms of Service', path: '/terms-of-service' }])]} />
+      <TermsOfService />
+    </>
+  );
+}

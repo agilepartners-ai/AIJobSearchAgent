@@ -4,11 +4,21 @@
  */
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
+import { NoIndex } from '../components/seo/Seo';
 
-export default function AnalyticsDashboardRedirect() {
+function AnalyticsDashboardRedirectContent() {
   const router = useRouter();
   useEffect(() => {
     void router.replace('/dashboard?view=analytics');
   }, [router]);
   return null;
+}
+
+export default function AnalyticsDashboardRedirect() {
+  return (
+    <>
+      <NoIndex title="Analytics" />
+      <AnalyticsDashboardRedirectContent />
+    </>
+  );
 }

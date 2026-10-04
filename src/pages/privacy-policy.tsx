@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Shield, ArrowLeft, ChevronDown, ChevronUp, Lock, Eye, Database, Share2, Bell, UserCheck } from 'lucide-react';
+import Seo from '../components/seo/Seo';
+import { breadcrumbs } from '../lib/seo/jsonld';
 
 interface SectionProps {
   icon: React.ReactNode;
@@ -254,4 +256,11 @@ const PrivacyPolicy: React.FC = () => {
   );
 };
 
-export default PrivacyPolicy;
+export default function PrivacyPolicyRoute() {
+  return (
+    <>
+      <Seo path="/privacy-policy" jsonLd={[breadcrumbs([{ name: 'Home', path: '/' }, { name: 'Privacy Policy', path: '/privacy-policy' }])]} />
+      <PrivacyPolicy />
+    </>
+  );
+}

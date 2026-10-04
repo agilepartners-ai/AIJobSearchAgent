@@ -29,6 +29,11 @@ const TeamCard: React.FC<TeamMemberProps> = ({ image, name, role, linkedin, mail
       <img
         src={image}
         alt={name}
+        width={48}
+        height={48}
+        loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
         className="rounded-full object-cover"
         style={{ width: '48px', height: '48px', border: '2px solid rgba(124,58,237,0.3)' }}
       />

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../hooks/useAuth';
 import { AuthService } from '../services/authService';
+import { NoIndex } from '../components/seo/Seo';
 
 const VerifyEmailPage: React.FC = () => {
   const { user, loading, needsEmailVerification } = useAuth(); // ✅ use needsEmailVerification
@@ -106,4 +107,11 @@ const VerifyEmailPage: React.FC = () => {
   );
 };
 
-export default VerifyEmailPage;
+export default function VerifyEmailPageRoute() {
+  return (
+    <>
+      <NoIndex title="Verify your email" />
+      <VerifyEmailPage />
+    </>
+  );
+}

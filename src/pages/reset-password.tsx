@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { getSupabase } from '../lib/supabase/client';
+import { NoIndex } from '../components/seo/Seo';
 
 /** Landing page for the password-reset email: Supabase signs the user in from the link, then they pick a new password. */
-export default function ResetPassword() {
+function ResetPasswordContent() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [password, setPassword] = useState('');
@@ -66,5 +67,14 @@ export default function ResetPassword() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ResetPassword() {
+  return (
+    <>
+      <NoIndex title="Reset your password" />
+      <ResetPasswordContent />
+    </>
   );
 }

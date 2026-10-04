@@ -54,34 +54,34 @@ const Hero: React.FC = () => {
 
             {/* H1 */}
             <h1 className="text-white mb-5" style={{ fontFamily: "'Plus Jakarta Sans', Inter, sans-serif", lineHeight: 1.08 }}>
-              Land Your{' '}
+              Tailor Your Résumé to{' '}
               <span style={{ background: 'linear-gradient(135deg, #818cf8, #a855f7, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                Dream Job
-              </span>
+                Every Job
+              </span>{' '}
               <br />
-              With Smart AI
+              With AI
             </h1>
 
             {/* Subhead */}
             <p className="text-gray-400 mb-5" style={{ fontSize: '17px', lineHeight: '1.65', maxWidth: '480px' }}>
-              Transform your job search with personalized resume optimization, AI-powered mock interviews, and smart job matching — all in one platform.
+              Paste a job description and get a résumé and cover letter written for that role, a match analysis with keyword gaps, a tracker for every application, and AI mock interviews.
             </p>
 
             {/* Stat chips */}
             <div className="flex flex-wrap gap-x-4 gap-y-1 mb-8" style={{ fontSize: '13px', color: '#9ca3af' }}>
               <span className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-violet-400 inline-block" />
-                12,000 users
+                12 résumé templates
               </span>
               <span style={{ color: '#374151' }}>·</span>
               <span className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />
-                87% interview rate
+                PDF + LaTeX export
               </span>
               <span style={{ color: '#374151' }}>·</span>
               <span className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-                48hr avg. to first match
+                Match score and keyword gaps
               </span>
             </div>
 
@@ -92,7 +92,7 @@ const Hero: React.FC = () => {
                 className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-2xl group"
                 style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', boxShadow: '0 4px 24px rgba(124,58,237,0.35)', fontSize: '15px' }}
               >
-                Start Free Today
+                Get Started
                 <ArrowRight size={17} className="transition-transform group-hover:translate-x-1" />
               </Link>
               <a
@@ -125,12 +125,16 @@ const Hero: React.FC = () => {
                   </div>
                   <div className="flex-1 mx-3 px-3 py-0.5 rounded text-xs text-center"
                     style={{ background: 'rgba(255,255,255,0.06)', color: '#6b7280', fontSize: '11px' }}>
-                    app.aijobsearchagent.com/dashboard
+                    agilepartners-ai.com/dashboard
                   </div>
                 </div>
                 <img
-                  src="/herosection2.png"
-                  alt="AIJobSearchAgent dashboard"
+                  src="/images/app-applications.webp"
+                  alt="The AIJobSearchAgent applications screen, listing roles with their status and the selected job description"
+                  width={1280}
+                  height={702}
+                  {...{ fetchpriority: 'high' }}
+                  decoding="async"
                   className="w-full block"
                   style={{ maxHeight: '440px', objectFit: 'cover', objectPosition: 'top' }}
                 />
@@ -141,7 +145,7 @@ const Hero: React.FC = () => {
                 className="absolute -bottom-3 -left-4 px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
                 style={{ background: 'linear-gradient(135deg, #7c3aed, #2563eb)', boxShadow: '0 6px 20px rgba(124,58,237,0.4)', transform: 'rotate(-4deg)' }}
               >
-                87% Interview Rate
+                Résumé + cover letter in 10–30 s
               </div>
 
               {/* Floating stat */}
@@ -149,8 +153,8 @@ const Hero: React.FC = () => {
                 className="absolute -top-3 -right-3 px-3 py-1.5 rounded-lg text-xs font-semibold text-white text-center"
                 style={{ background: 'rgba(16,16,32,0.95)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(12px)', transform: 'rotate(-4deg)' }}
               >
-                <div className="text-xl font-extrabold text-violet-400">15</div>
-                <div className="text-gray-400" style={{ fontSize: '10px' }}>min to apply</div>
+                <div className="text-xl font-extrabold text-violet-400">12</div>
+                <div className="text-gray-400" style={{ fontSize: '10px' }}>templates</div>
               </div>
             </div>
           </div>

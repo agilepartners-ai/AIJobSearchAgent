@@ -7,9 +7,9 @@ const missingKeywords = ['TypeScript', 'Kubernetes', 'CI/CD', 'REST APIs', 'Syst
 const addedKeywords = ['TypeScript', 'Kubernetes', 'CI/CD', 'REST APIs', 'System Design'];
 
 const scores = [
-  { label: 'ATS Score', before: 35, after: 92, color: '#34d399' },
-  { label: 'Keyword Match', before: 28, after: 89, color: '#818cf8' },
-  { label: 'Readability', before: 60, after: 95, color: '#fb923c' },
+  { label: 'Match score (sample)', before: 35, after: 92, color: '#34d399' },
+  { label: 'Keyword coverage (sample)', before: 28, after: 89, color: '#818cf8' },
+  { label: 'Readability (sample)', before: 60, after: 95, color: '#fb923c' },
 ];
 
 const ResumeShowcase: React.FC = () => {
@@ -23,14 +23,14 @@ const ResumeShowcase: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
         {/* Header */}
         <div className="text-center mb-10">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: '#a78bfa' }}>Resume AI</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: '#a78bfa' }}>Resume AI · illustrative example</span>
           <h2 className="text-white mt-3 mb-3">
-            From overlooked{' '}
+            From generic{' '}
             <span style={{ background: 'linear-gradient(135deg,#818cf8,#a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              to interview-ready.
+              to tailored.
             </span>
           </h2>
-          <p className="text-gray-400 max-w-xl mx-auto">Our AI analyses your resume against any job description and rewrites it to pass ATS filters and catch recruiters' eyes.</p>
+          <p className="text-gray-400 max-w-xl mx-auto">The AI compares your résumé with the job description, scores the match, lists the keywords you cover or miss, and rewrites the résumé for that role.</p>
         </div>
 
         {/* Before / After */}
@@ -44,13 +44,15 @@ const ResumeShowcase: React.FC = () => {
                 <span className="text-sm font-semibold" style={{ color: '#f87171' }}>Before — Generic Resume</span>
               </div>
               <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171' }}>
-                35% ATS Match
+                Example: low match
               </span>
             </div>
             <div className="p-5">
               <img
-                src="/resumecom.png"
-                alt="Before — generic resume"
+                src="/images/app-templates.webp"
+                alt="Before: an untailored résumé shown with a muted filter"
+                loading="lazy"
+                decoding="async"
                 className="w-full rounded-xl object-cover object-top"
                 style={{ maxHeight: '320px', filter: 'grayscale(20%) brightness(0.85)', border: '1px solid rgba(255,255,255,0.06)' }}
               />
@@ -73,13 +75,15 @@ const ResumeShowcase: React.FC = () => {
                 <span className="text-sm font-semibold" style={{ color: '#34d399' }}>After — AI-Enhanced</span>
               </div>
               <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399' }}>
-                92% ATS Match
+                Example: high match
               </span>
             </div>
             <div className="p-5">
               <img
-                src="/resumecom.png"
-                alt="After — AI-enhanced resume"
+                src="/images/app-templates.webp"
+                alt="After: the same résumé tailored to a job, shown at full colour"
+                loading="lazy"
+                decoding="async"
                 className="w-full rounded-xl object-cover object-top"
                 style={{ maxHeight: '320px', filter: 'brightness(1)', border: '1px solid rgba(52,211,153,0.15)', boxShadow: '0 0 32px rgba(52,211,153,0.08)' }}
               />
@@ -114,6 +118,9 @@ const ResumeShowcase: React.FC = () => {
             </div>
           ))}
         </div>
+        <p className="text-center mt-6" style={{ fontSize: '12px', color: '#6b7280' }}>
+          Illustration only: the scores and keywords above are sample values, not a result you should expect. Your match analysis comes from your own résumé and the job you paste in.
+        </p>
       </div>
     </section>
   );

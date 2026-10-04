@@ -53,10 +53,10 @@ What we are looking for
 - Experience with performance profiling and monitoring`;
 
 const SAMPLE: JobApplication[] = [
-  app('1', 'Senior React Software Engineer (Remote)', 'Repisodic', 'not_applied', '2026-09-26', { location: 'Philadelphia, PA', salary_range: '$140k - $170k', employment_type: 'Full-time', job_description: DESCRIPTION, source: 'job_search' }),
-  app('2', 'React JS Developer (Full Time) - 100% Remote', 'The Dignify Solutions', 'applied', '2026-09-19', { location: 'New York, NY', employment_type: 'Full-time', job_description: DESCRIPTION, contact_person: 'Maya Chen', contact_email: 'maya@dignify.example', resume_url: 'https://example.com/r.pdf', cover_letter_url: 'https://example.com/c.pdf', notes: 'Recruiter said to expect a call next week.' }),
-  app('3', 'Senior React/Node Developer - Remote - USA', 'FullStack Labs', 'interviewing', '2026-09-13', { location: 'Cheyenne, WY', job_description: DESCRIPTION, interview_date: '2026-10-02' }),
-  app('4', 'Sr. Software Engineer, Backend', 'Pinterest', 'offered', '2026-09-10', { remote_option: false, location: 'San Francisco, CA', salary_range: '$190k+', job_description: DESCRIPTION }),
+  app('1', 'Senior React Software Engineer (Remote)', 'Contoso', 'not_applied', '2026-09-26', { location: 'Philadelphia, PA', salary_range: '$140k - $170k', employment_type: 'Full-time', job_description: DESCRIPTION, source: 'job_search' }),
+  app('2', 'React JS Developer (Full Time) - 100% Remote', 'Fabrikam', 'applied', '2026-09-19', { location: 'New York, NY', employment_type: 'Full-time', job_description: DESCRIPTION, contact_person: 'Maya Chen', contact_email: 'maya@fabrikam.example', resume_url: 'https://example.com/r.pdf', cover_letter_url: 'https://example.com/c.pdf', notes: 'Recruiter said to expect a call next week.' }),
+  app('3', 'Senior React/Node Developer - Remote - USA', 'Globex', 'interviewing', '2026-09-13', { location: 'Cheyenne, WY', job_description: DESCRIPTION, interview_date: '2026-10-02' }),
+  app('4', 'Sr. Software Engineer, Backend', 'Initech', 'offered', '2026-09-10', { remote_option: false, location: 'San Francisco, CA', salary_range: '$190k+', job_description: DESCRIPTION }),
   app('5', 'Frontend Engineer', 'Northwind', 'rejected', '2026-09-02', { job_posting_url: null, job_description: null }),
 ];
 

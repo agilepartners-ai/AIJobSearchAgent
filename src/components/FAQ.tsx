@@ -3,37 +3,9 @@
 import React, { useState } from 'react';
 import { ChevronDown, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { HOME_FAQ } from '../lib/seo/faq';
 
-const faqs = [
-  {
-    q: 'Is my resume data private and secure?',
-    a: 'Absolutely. All resume data is encrypted at rest and in transit using AES-256. We never share, sell, or use your data to train third-party models. You can delete your data at any time from your account settings. Read our full Privacy Policy for details.',
-  },
-  {
-    q: 'How much does AIJobSearchAgent cost?',
-    a: 'We offer a free plan with 5 applications per month. Our Pro plan at $19/mo unlocks unlimited applications, AI interview coaching, and priority job matching. Enterprise plans are available for teams and universities — contact us for pricing.',
-  },
-  {
-    q: 'What resume formats are supported?',
-    a: 'We support PDF, DOCX, DOC, and TXT. Our AI parser handles complex formats including multi-column layouts, tables, and headers. Simply upload your file and our system does the rest — no reformatting needed.',
-  },
-  {
-    q: 'Does it work for internship and entry-level roles?',
-    a: 'Yes — and we have specific optimisation profiles for students and recent graduates. Our AI understands how to highlight academic projects, extracurriculars, and transferable skills to compete for internships at top companies.',
-  },
-  {
-    q: 'How does the AI mock interview work?',
-    a: 'Our interview coach uses a real-time conversational AI tailored to the specific job and company you are targeting. It asks behavioural, technical, and situational questions, then gives detailed feedback on structure, confidence cues, and missing talking points.',
-  },
-  {
-    q: 'How long does it take to see results?',
-    a: 'Most users report their first interview callback within 48–72 hours of using AI-optimised applications. Our fastest success story was a user who received three interview requests within 6 hours of uploading their re-optimised resume.',
-  },
-  {
-    q: 'Can I use it for jobs outside the US?',
-    a: 'Yes. We support job searches across the US, Canada, UK, Australia, Germany, and India with localised optimisation for each market. We are actively expanding to more countries — let us know where you are applying.',
-  },
-];
+const faqs = HOME_FAQ;
 
 const FAQ: React.FC = () => {
   const [open, setOpen] = useState<number | null>(0);
@@ -59,13 +31,13 @@ const FAQ: React.FC = () => {
                 </span>
               </h2>
               <p className="text-gray-400 mb-8" style={{ fontSize: '15px', lineHeight: '1.7' }}>
-                Everything you need to know about pricing, privacy, and how the AI works — answered honestly.
+                What it does, what it costs, which files it reads, and where your data goes.
               </p>
 
               {/* CTA box */}
               <div className="rounded-2xl p-6" style={{ background: 'linear-gradient(135deg,rgba(124,58,237,0.15),rgba(37,99,235,0.1))', border: '1px solid rgba(124,58,237,0.25)' }}>
                 <p className="text-white font-semibold mb-1" style={{ fontSize: '15px' }}>Still have questions?</p>
-                <p className="text-gray-400 text-sm mb-4">Our team responds within 2 hours on weekdays.</p>
+                <p className="text-gray-400 text-sm mb-4">Email us and a person will reply.</p>
                 <Link
                   href="#contact"
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5 group"
@@ -111,7 +83,7 @@ const FAQ: React.FC = () => {
                     className="overflow-hidden transition-all duration-300"
                     style={{ maxHeight: isOpen ? '400px' : '0' }}
                   >
-                    <p className="px-5 pb-5" style={{ fontSize: '14px', color: '#9ca3af', lineHeight: '1.7' }}>
+                    <p className="px-5 pb-5 m-0" style={{ fontSize: '14px', color: '#9ca3af', lineHeight: '1.7' }}>
                       {faq.a}
                     </p>
                   </div>

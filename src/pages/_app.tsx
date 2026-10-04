@@ -1,3 +1,4 @@
+import Head from 'next/head';
 import { Provider } from 'react-redux';
 import { store, persistor } from '../store/store';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -8,6 +9,7 @@ import { AuthService } from '../services/authService';
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { handleAuthError, isAuthenticationError, redirectToLogin } from '../utils/authErrorHandler';
+import { isOpenToSignedOut, isPublicPage } from '../lib/publicRoutes';
 import '../index.css';
 import '../styles/dashboard-responsive.css';
 // Resume preview fonts (from TeX Live 2025, matching the PDF). Files load only when used.
@@ -44,12 +46,12 @@ function MyApp({ Component, pageProps }: AppProps) {
     let disposed = false;
     const onUser = (user: unknown) => {
       const currentPath = router.pathname;
-      const publicPaths = ['/login', '/register', '/verify-phone', '/verify-email', '/reset-password', '/', '/forgot-password', '/privacy-policy', '/terms-of-service'];
       
       // If user is logged out and not on a public page, redirect to login
       // Development harness pages (not built in production) are usable signed out.
       const isDevHarness = process.env.NODE_ENV !== 'production' && currentPath.startsWith('/dev/');
-      if (!user && !publicPaths.includes(currentPath) && !isDevHarness) {
+      // Signed-out visitors may stay on the sign-in flow and on every public page (see lib/publicRoutes.ts).
+      if (!user && !isOpenToSignedOut(currentPath) && !isDevHarness) {
         console.log('User session ended, redirecting to login');
         redirectToLogin('expired');
       }
@@ -74,13 +76,32 @@ function MyApp({ Component, pageProps }: AppProps) {
     };
   }, [router]);
 
+  // The public pages (home, features, guides, legal) use no persisted state, so they render on the server and the
+  // HTML a crawler receives contains the real content. PersistGate renders nothing until the browser has rehydrated
+  // the store, which would send every visitor, and every crawler that does not run JavaScript, an empty page.
+  // Account and app pages still wait for their persisted state.
+  const page = (
+    <ToastProvider>
+      <Component {...pageProps} />
+    </ToastProvider>
+  );
+
   return (
     <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
-        <ToastProvider>
-          <Component {...pageProps} />
-        </ToastProvider>
-      </PersistGate>
+      {isPublicPage(router.pathname) ? (
+        page
+      ) : (
+        <>
+          {/* Default-deny: anything that is not a registered public page is never indexed. This sits outside
+              PersistGate so the directive is in the server HTML, where crawlers that skip JavaScript read it. */}
+          <Head>
+            <meta name="robots" content="noindex,nofollow" />
+          </Head>
+          <PersistGate loading={null} persistor={persistor}>
+            {page}
+          </PersistGate>
+        </>
+      )}
     </Provider>
   );
 }

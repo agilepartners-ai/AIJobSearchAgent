@@ -33,6 +33,11 @@ const TestimonialCard: React.FC<TestimonialProps> = ({ content, name, role, comp
       <img
         src={image}
         alt={name}
+        width={64}
+        height={64}
+        loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
         className="rounded-full object-cover"
         style={{ width: '64px', height: '64px', filter: 'grayscale(20%)' }}
       />

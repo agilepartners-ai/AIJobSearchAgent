@@ -1,0 +1,147 @@
+{
+  "site": {
+    "name": "AIJobSearchAgent",
+    "url": "https://agilepartners-ai.com",
+    "tagline": "AI résumé tailoring, cover letters, application tracking and interview practice",
+    "contactEmail": "support@agilepartners-ai.com",
+    "locale": "en"
+  },
+  "pages": [
+    {
+      "path": "/",
+      "title": "AI Resume Tailor & Job Tracker | AIJobSearchAgent",
+      "description": "Paste a job description and get a tailored résumé, a matching cover letter and an ATS keyword analysis. Track every application in one place.",
+      "section": "core",
+      "priority": 1.0,
+      "changefreq": "weekly",
+      "lastmod": "2026-10-04"
+    },
+    {
+      "path": "/resume-tailoring",
+      "title": "Tailor Your Resume to Any Job Description with AI",
+      "description": "Upload your résumé, paste the job description, and get a version rewritten for that role plus a match score, keyword gaps and concrete suggestions.",
+      "section": "feature",
+      "priority": 0.9,
+      "changefreq": "monthly",
+      "lastmod": "2026-10-04"
+    },
+    {
+      "path": "/ats-resume-builder",
+      "title": "ATS-Friendly Resume Builder with LaTeX & PDF Export",
+      "description": "Pick from 12 résumé templates, edit live in the browser, and export a text-selectable PDF or the LaTeX source. Open it in Overleaf.",
+      "section": "feature",
+      "priority": 0.9,
+      "changefreq": "monthly",
+      "lastmod": "2026-10-04"
+    },
+    {
+      "path": "/cover-letter-generator",
+      "title": "AI Cover Letter Generator from the Job Description",
+      "description": "Generate a cover letter written for one specific job, from your résumé and the posting, delivered with your tailored résumé as PDF and LaTeX.",
+      "section": "feature",
+      "priority": 0.8,
+      "changefreq": "monthly",
+      "lastmod": "2026-10-04"
+    },
+    {
+      "path": "/job-application-tracker",
+      "title": "Job Application Tracker: Organise Every Application",
+      "description": "Keep each application's company, role, status, link and job description in one searchable list, with your tailored résumé and cover letter attached.",
+      "section": "feature",
+      "priority": 0.8,
+      "changefreq": "monthly",
+      "lastmod": "2026-10-04"
+    },
+    {
+      "path": "/mock-interview",
+      "title": "AI Mock Interview Practice for Your Next Job",
+      "description": "Practise a conversation with an AI interviewer set up for the role you are applying to, then use the session to prepare your own answers.",
+      "section": "feature",
+      "priority": 0.7,
+      "changefreq": "monthly",
+      "lastmod": "2026-10-04"
+    },
+    {
+      "path": "/guides",
+      "title": "Job Search Guides: Resumes, ATS and Cover Letters",
+      "description": "Plain-English guides on tailoring a résumé, how applicant tracking systems read it, and writing a cover letter that gets read.",
+      "section": "guide",
+      "priority": 0.7,
+      "changefreq": "monthly",
+      "lastmod": "2026-10-04"
+    },
+    {
+      "path": "/guides/tailor-resume-to-job-description",
+      "title": "How to Tailor Your Resume to a Job Description",
+      "description": "A step-by-step method to read a job posting, map it to your experience, and rewrite your résumé for that role without exaggerating anything.",
+      "section": "guide",
+      "priority": 0.8,
+      "changefreq": "monthly",
+      "lastmod": "2026-10-04"
+    },
+    {
+      "path": "/guides/how-ats-resume-scanners-work",
+      "title": "How ATS Resume Scanners Work (and How to Pass Them)",
+      "description": "What an applicant tracking system actually does with your résumé, which formatting breaks parsing, and how to write for both software and people.",
+      "section": "guide",
+      "priority": 0.8,
+      "changefreq": "monthly",
+      "lastmod": "2026-10-04"
+    },
+    {
+      "path": "/privacy-policy",
+      "title": "Privacy Policy | AIJobSearchAgent",
+      "description": "How AIJobSearchAgent collects, uses and protects your information, including résumé content and job descriptions you submit.",
+      "section": "legal",
+      "priority": 0.3,
+      "changefreq": "yearly",
+      "lastmod": "2026-10-04"
+    },
+    {
+      "path": "/terms-of-service",
+      "title": "Terms of Service | AIJobSearchAgent",
+      "description": "The terms for using AIJobSearchAgent, including acceptable use, your content and limits on the service.",
+      "section": "legal",
+      "priority": 0.3,
+      "changefreq": "yearly",
+      "lastmod": "2026-10-04"
+    }
+  ],
+  "noindex": [
+    "/login",
+    "/register",
+    "/verify-email",
+    "/verify-phone",
+    "/reset-password",
+    "/dashboard",
+    "/job-search",
+    "/job-listings",
+    "/ai-interview",
+    "/analytics-dashboard"
+  ],
+  "crawlers": {
+    "allow": [
+      "Googlebot",
+      "Bingbot",
+      "DuckDuckBot",
+      "Applebot",
+      "OAI-SearchBot",
+      "ChatGPT-User",
+      "PerplexityBot",
+      "Perplexity-User",
+      "Claude-SearchBot",
+      "Claude-User",
+      "Google-Extended"
+    ],
+    "blockTraining": [
+      "GPTBot",
+      "ClaudeBot",
+      "anthropic-ai",
+      "CCBot",
+      "Applebot-Extended",
+      "Bytespider",
+      "Meta-ExternalAgent",
+      "cohere-ai"
+    ]
+  }
+}
