@@ -17,7 +17,8 @@ import { cleanRequestId, createRequestLog, type RequestLog } from '../../../serv
 import { newId } from '../../../lib/resume/ids';
 import { LatexValidationError } from '../../../server/latex/sanitize';
 import { LatexCompileError } from '../../../server/latex/compile';
-import { admin, getAuth, getFirestore, FirebaseConfigError } from '../../../server/firebase/admin';
+import { admin, getFirestore, FirebaseConfigError } from '../../../server/firebase/admin';
+import { verifyAccessToken, AuthConfigError } from '../../../server/auth/verify';
 import { uploadDocuments } from '../../../server/firebase/storage';
 import {
   QuotaExceededError,
@@ -53,14 +54,13 @@ interface GenerateBody {
 }
 
 /**
- * Identify the caller from a Firebase ID token. The previous flow trusted a
+ * Identify the caller from a Supabase access token. The previous flow trusted a
  * `userId` field straight from the request body, so any client could spend
  * another user's quota or write into their storage prefix.
  */
 async function authenticate(idToken: string | undefined): Promise<string> {
   if (!idToken) throw new Error('unauthenticated');
-  const decoded = await getAuth().verifyIdToken(idToken);
-  return decoded.uid;
+  return (await verifyAccessToken(idToken)).userId;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

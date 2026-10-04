@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { Icon } from '@iconify/react';
 import ForgotPasswordModal from './ForgotPasswordModal';
+import GoogleButton from './GoogleButton';
 
 const LoginForm: React.FC = () => {
   const [isForgotPasswordModalOpen, setForgotPasswordModalOpen] = useState(false);
@@ -81,6 +82,7 @@ const LoginForm: React.FC = () => {
         </div>
         
         <div className="backdrop-blur-lg bg-white/20 dark:bg-gray-900/60 rounded-2xl shadow-xl border border-white/30 dark:border-gray-700/50 p-8 transition-all duration-300">
+          <GoogleButton onError={setError} />
           <form className="space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className={`backdrop-blur-sm p-4 rounded-xl text-sm border flex items-start gap-3 ${

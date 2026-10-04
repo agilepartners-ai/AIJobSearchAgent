@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { AuthService, AuthUser } from '../services/authService';
-import { FirebaseProfileService, Profile } from '../services/firebaseProfileService';
+import { ProfileApi, Profile } from '../services/profileApi';
 
 export const useAuth = () => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -14,7 +14,7 @@ export const useAuth = () => {
       try {
         setLoading(true);
 
-        // ✅ Make sure the auth provider (Firebase) is ready
+        // Make sure the auth provider is ready
         await AuthService.initializeProvider();
 
         // Get initial user
@@ -23,11 +23,7 @@ export const useAuth = () => {
         
         if (currentUser) {
           try {
-            const profile = await FirebaseProfileService.getOrCreateProfile(
-              currentUser.id, 
-              currentUser.email || '', 
-              currentUser.displayName || ''
-            );
+            const profile = await ProfileApi.getOrCreate(currentUser.displayName || '');
             setUserProfile(profile);
           } catch (error) {
             console.error("Failed to get or create user profile:", error);
@@ -42,11 +38,7 @@ export const useAuth = () => {
           
           if (user) {
             try {
-              const profile = await FirebaseProfileService.getOrCreateProfile(
-                user.id, 
-                user.email || '', 
-                user.displayName || ''
-              );
+              const profile = await ProfileApi.getOrCreate(user.displayName || '');
               setUserProfile(profile);
             } catch (error) {
               console.error("Failed to update user profile on auth change:", error);

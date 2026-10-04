@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AuthService } from '../../services/authService';
+import GoogleButton from './GoogleButton';
 import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 
 const RegisterForm: React.FC = () => {
@@ -68,16 +69,7 @@ const RegisterForm: React.FC = () => {
         phone: formattedPhone,
       });
 
-      // 2️⃣ Send verification email right after sign-up
-      try {
-        await AuthService.sendEmailVerification();
-      } catch (sendErr: any) {
-        console.error('Error sending verification email:', sendErr);
-        // Optional: show a soft error if you want
-        // setError('Account created, but we had trouble sending the verification email. Please use "Resend".');
-      }
-
-      // 3️⃣ Route them into the verification flow
+      // 2️⃣ Route them into the verification flow
       router.push('/verify-email');
       
     } catch (err: any) {
@@ -118,6 +110,7 @@ const RegisterForm: React.FC = () => {
         </div>
         
         <div className="backdrop-blur-lg bg-white/20 dark:bg-gray-900/40 rounded-2xl shadow-xl border border-white/30 dark:border-gray-700/50 p-8 transition-all duration-300">
+          <GoogleButton label="Sign up with Google" onError={setError} />
           <form className="space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className="bg-red-500/20 dark:bg-red-900/30 backdrop-blur-sm text-red-100 dark:text-red-200 p-4 rounded-xl text-sm border border-red-500/30 dark:border-red-700/50">

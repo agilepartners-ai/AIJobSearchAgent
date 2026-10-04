@@ -4,7 +4,7 @@
  * All generation now happens server-side. The browser sends the resume text
  * and a Firebase ID token; it never sees an AI or compiler API key.
  */
-import { auth } from '../lib/firebase';
+import { accessToken } from '../lib/api/authedFetch';
 import { flowLog } from '../lib/flowLog';
 
 export interface DocumentAnalysis {
@@ -68,11 +68,11 @@ export class DocumentServiceError extends Error {
 }
 
 async function idToken(): Promise<string> {
-  const user = auth.currentUser;
-  if (!user) {
+  try {
+    return await accessToken();
+  } catch {
     throw new DocumentServiceError('You must be signed in to generate documents.', 401);
   }
-  return user.getIdToken();
 }
 
 async function readError(response: Response): Promise<never> {

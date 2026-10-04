@@ -10,7 +10,8 @@
  */
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getCompiler, LatexCompileError } from '../../../server/latex/compile';
-import { getAuth, FirebaseConfigError } from '../../../server/firebase/admin';
+import { verifyAccessToken, AuthConfigError } from '../../../server/auth/verify';
+import { FirebaseConfigError } from '../../../server/firebase/admin';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '1mb' }, responseLimit: false },
@@ -28,9 +29,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     if (!idToken) throw new Error('unauthenticated');
-    await getAuth().verifyIdToken(idToken);
+    await verifyAccessToken(idToken);
   } catch (error) {
-    if (error instanceof FirebaseConfigError) {
+    if (error instanceof FirebaseConfigError || error instanceof AuthConfigError) {
       console.error('[documents/compile] Firebase misconfigured:', error.message);
       return res.status(500).json({ error: 'Server configuration error.' });
     }

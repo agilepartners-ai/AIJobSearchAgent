@@ -40,6 +40,7 @@ export interface AuthProvider {
   // Authentication methods
   signUp(data: SignUpData): Promise<AuthUser>;
   signIn(data: SignInData): Promise<AuthUser>;
+  signInWithGoogle?(): Promise<void>;
   signOut(): Promise<void>;
   getCurrentUser(): Promise<AuthUser | null>;
   
@@ -84,15 +85,13 @@ export class AuthService {
     const config = getAuthConfig();
     
     switch (config.provider) {
-      case 'firebase': {
-        const { FirebaseAuthProvider } = await import('./auth/FirebaseAuthProvider');
-        this.setProvider(new FirebaseAuthProvider());
+      case 'supabase': {
+        const { SupabaseAuthProvider } = await import('./auth/SupabaseAuthProvider');
+        this.setProvider(new SupabaseAuthProvider());
         break;
       }
       case 'auth0':
         throw new Error('Auth0 provider not implemented yet');
-      case 'supabase':
-        throw new Error('Supabase provider not implemented yet');
       case 'custom':
         throw new Error('Custom provider not implemented yet');
       default:
@@ -108,6 +107,12 @@ export class AuthService {
 
   static async signIn(data: SignInData): Promise<AuthUser> {
     return this.getProvider().signIn(data);
+  }
+
+  static async signInWithGoogle(): Promise<void> {
+    const provider = this.getProvider();
+    if (!provider.signInWithGoogle) throw new Error('Google sign-in is not available.');
+    return provider.signInWithGoogle();
   }
 
   static async signOut(): Promise<void> {

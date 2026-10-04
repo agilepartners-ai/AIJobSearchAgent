@@ -15,9 +15,9 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 const TEST_UID = 'zz-e2e-probe-delete-me';
 const REQUEST_ID = 'e2eRequest0001';
 
-vi.mock('./firebase/admin', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./firebase/admin')>();
-  return { ...actual, getAuth: () => ({ verifyIdToken: async () => ({ uid: TEST_UID }) }) };
+vi.mock('./auth/verify', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./auth/verify')>();
+  return { ...actual, verifyAccessToken: async () => ({ userId: TEST_UID, email: null }) };
 });
 
 // eslint-disable-next-line import/first

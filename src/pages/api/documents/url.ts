@@ -8,7 +8,8 @@
  * simply stopped opening from the Saved Resumes page.
  */
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getAuth, getFirestore, FirebaseConfigError } from '../../../server/firebase/admin';
+import { verifyAccessToken, AuthConfigError } from '../../../server/auth/verify';
+import { getFirestore, FirebaseConfigError } from '../../../server/firebase/admin';
 import { objectExists, signUrlForPath } from '../../../server/firebase/storage';
 
 const ALLOWED_PREFIXES = ['ApplicationDocuments/', 'UserDocuments/'];
@@ -44,9 +45,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   let userId: string;
   try {
     if (!idToken) throw new Error('unauthenticated');
-    userId = (await getAuth().verifyIdToken(idToken)).uid;
+    userId = (await verifyAccessToken(idToken)).userId;
   } catch (error) {
-    if (error instanceof FirebaseConfigError) {
+    if (error instanceof FirebaseConfigError || error instanceof AuthConfigError) {
       console.error('[documents/url] Firebase misconfigured:', error.message);
       return res.status(500).json({ error: 'Server configuration error.' });
     }
