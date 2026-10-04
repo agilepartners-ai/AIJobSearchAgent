@@ -16,6 +16,7 @@ import { query } from '../../../server/db/pool';
 import { DbConfigError } from '../../../server/db/pool';
 import { attachDocumentLinks } from '../../../server/db/applicationsRepo';
 import { StorageConfigError } from '../../../server/storage/documents';
+import { forwardIfWorkers } from '../../../server/proxy';
 import { attachCoverLetterPdf, findGeneratedResume, saveGeneratedResume } from '../../../server/resumes/saveGenerated';
 import { cleanRequestId, createRequestLog, type RequestLog } from '../../../server/log';
 import { newId } from '../../../lib/resume/ids';
@@ -80,6 +81,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  // On Cloudflare Workers this route is forwarded to the VM (see server/proxy.ts); on Node it runs here.
+  if (await forwardIfWorkers(req, res)) return;
 
   const body: GenerateBody = req.body ?? {};
   const resumeText = (body.resumeText ?? '').trim();

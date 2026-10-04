@@ -1,0 +1,19 @@
+{
+  // Deploy:  pnpm exec wrangler deploy --config workers/keepalive/wrangler.jsonc
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "ajsa-keepalive",
+  "main": "index.ts",
+  "compatibility_date": "2025-04-01",
+  "observability": { "enabled": true },
+
+  // Once a day at 06:17 UTC. Free plan allows cron triggers.
+  "triggers": { "crons": ["17 6 * * *"] },
+
+  // All values here are public: the Supabase anon key is meant to be exposed to browsers.
+  "vars": {
+    "SUPABASE_URL": "https://bzcklcbtwiqhhatikwge.supabase.co",
+    "SUPABASE_ANON_KEY": "REPLACE_WITH_ANON_KEY_FROM_.env.local",
+    "SITE_URL": "https://agilepartners-ai.com",
+    "GENERATE_ORIGIN": ""
+  }
+}

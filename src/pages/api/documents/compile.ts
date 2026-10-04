@@ -11,6 +11,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getCompiler, LatexCompileError } from '../../../server/latex/compile';
 import { verifyAccessToken, AuthConfigError } from '../../../server/auth/verify';
+import { forwardIfWorkers } from '../../../server/proxy';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '1mb' }, responseLimit: false },
@@ -29,6 +30,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  // On Cloudflare Workers this route is forwarded to the VM (see server/proxy.ts); on Node it runs here.
+  if (await forwardIfWorkers(req, res)) return;
 
   const { idToken, tex } = req.body ?? {};
 

@@ -52,6 +52,8 @@ Browser ── Supabase Auth (email + Google) ──► access token (JWT, ES256
 | `/api/applications`, `/api/applications/[id]` | list, create · get, patch, delete |
 | `/api/resumes`, `/api/resumes/[id]` | list, find by generation · get, put, delete |
 | `/api/preferences` | get, put, delete |
+| `/api/interview`, `/api/interview/[id]` | start (5 per account per day) · end an AI mock-interview conversation; the Tavus key stays on the server |
+| `/api/health` | `?db=1` also proves the database path; used by uptime checks |
 | `/api/documents/generate`, `compile`, `url`, `file` | generate résumé and cover letter · recompile LaTeX · re-sign a link · serve a file |
 
 ## Operating it

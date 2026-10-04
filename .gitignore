@@ -42,3 +42,9 @@ research/
 .next-check/
 .next-preview/
 secrets-local/
+
+# Cloudflare Workers build output and local state
+.open-next/
+.wrangler/
+.dev.vars
+.next-*/

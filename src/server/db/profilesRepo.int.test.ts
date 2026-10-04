@@ -11,7 +11,8 @@ import { getOrCreateProfile, updateProfile } from './profilesRepo';
 const live = Boolean(process.env.RUN_DB_TESTS && process.env.DATABASE_URL);
 const uid = randomUUID();
 
-describe.skipIf(!live)('profilesRepo (live database)', () => {
+// A live test over the internet: the first query pays for a cold TLS connection, which can exceed vitest's 5 s default.
+describe.skipIf(!live)('profilesRepo (live database)', { timeout: 30_000 }, () => {
   afterAll(async () => {
     await query('DELETE FROM app.profiles WHERE user_id = $1', [uid]);
     await closePool();

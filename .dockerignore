@@ -1,0 +1,14 @@
+node_modules
+.next
+.next-*
+.open-next
+.wrangler
+.git
+.env*
+.dev.vars
+secrets-local
+tmp-generated
+research
+docs
+tests
+*.log

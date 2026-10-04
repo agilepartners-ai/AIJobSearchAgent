@@ -68,9 +68,11 @@ The light routes (profile, applications, résumés, preferences) cost roughly 1�
 
 ### 2.3 Weight of what the browser downloads (this hurts rankings) [measured]
 
-AI Job Search Agent `public/`: **58 MB**. One **25 MB video**, three PNG hero images of **3.2–4.2 MB** each, a
-1 MB favicon, 15 MB of `pdfjs-dist`, 6 MB of fonts. The video is 24.5 MiB, **barely under the 25 MiB per-file
-asset limit** [verify]. Notera: images up to 1 MB, a 600 KB logo; light by comparison.
+AI Job Search Agent `public/` was **58 MB**: a 25 MB video, three PNGs of 3.2–4.2 MB, a 1 MB favicon and 15 MB of
+`pdfjs-dist`. Correction to an earlier draft of this document: the video is used only on the `/ai-interview` page,
+not on the landing page. The landing page's real weight was a 3.1 MB competitor screenshot and an outdated dashboard
+screenshot that also showed a real email address. All of this is now fixed (section 9). Notera: images up to 1 MB and
+a 600 KB logo; light by comparison.
 
 ### 2.4 Other findings
 
@@ -169,7 +171,7 @@ Every phase has a rollback and an acceptance test. Order matters: risks first.
 | `/api/documents/generate` and `/compile` **proxied to the VM service** | CPU limit and quota refund (section 2.2) |
 | Remove `/api/dev/anchors` from production builds | it shows as a route; it already 404s, but keep the Worker lean |
 | CORS or same-origin proxy decision for the VM service | browser calls must reach it |
-| Replace the 25 MB video and 3-4 MB PNGs (section 7) | speed and rankings |
+| Slim `public/` from 58 MB to 12 MB (done, section 9) | speed and rankings |
 - **Acceptance:** `pnpm test` green; preview deploy passes the live end-to-end generation test through the
   proxy; idempotent replay still returns the same résumé.
 - **Rollback:** the current Netlify-ready build is unchanged until DNS moves.
@@ -227,7 +229,7 @@ crawlable, fast, clearly structured pages that answer a question plainly, plus m
 | Structured data (JSON-LD) | **none** | Organization, WebSite, SoftwareApplication, FAQ |
 | `lang` attribute on `<html>` | **missing** (no `_document`) | present |
 | Indexable content depth | one long landing page | home, product, pricing, about, contact |
-| Page weight | **58 MB of public assets** | light |
+| Page weight | was 58 MB of public assets, now 12 MB | light |
 | Blog / answer content | none | planned, none yet |
 
 ### 6.2 Do first: Cloudflare may be hiding you from AI search
@@ -316,3 +318,33 @@ Cloudflare account; decide the AI-crawler policy (6.2) and the PHI path (phase 4
 I can start immediately, with no spend and no outside access: Phase 1 code changes and the SEO foundation for
 AI Job Search Agent (titles, robots, sitemap, structured data, `lang`, asset optimisation), plus tidying the
 repo risks found above (competitor screenshot, committed default passwords in Notera).
+
+---
+
+## 9. Implementation status
+
+Implemented and tested in the AI Job Search Agent repo (nothing deployed; every step that needs your Cloudflare login is
+in [CLOUDFLARE_DEPLOY.md](./CLOUDFLARE_DEPLOY.md)).
+
+**Verified on the real Workers runtime (`workerd`, built with the adapter in WSL):** runtime detection; Hyperdrive to
+PostgreSQL; a real Supabase token verified inside the Worker; create and read of an application; forged document links
+and tampered tokens rejected; generation refused with 503 when no origin is configured, and forwarded (path, body and
+token, never cookies) with the origin's status and message relayed when one is; security headers on pages and API;
+server-rendered HTML with title, canonical, JSON-LD and one H1. Worker size: **1.75 MiB compressed** of 3 MiB.
+
+| Area | Done |
+|---|---|
+| Cloudflare | `wrangler.jsonc`, OpenNext config, edge headers, `pool.ts` (Workers client per request via Hyperdrive, Node pool unchanged), generation proxy, `/api/health`, keep-alive Worker, VM Dockerfile + compose + tunnel connector |
+| Crawlers | `robots.txt` (answer bots allowed, training bots refused), `sitemap.xml`, `llms.txt`, all generated from one registry and checked by tests |
+| Indexing | The site used to send crawlers an empty page (a client-only gate in `_app.tsx`). Public pages now render on the server; private pages are noindex by default; `pnpm seo:verify` checks the built HTML |
+| Content | 5 feature pages and 2 guides, each with a direct answer, FAQ and structured data, written only from verified behaviour |
+| Honesty | Removed invented numbers from the landing page (user counts, interview and callback rates, "18 days to offer", "10 jobs in 15 minutes", big-tech logos, fake ATS scores presented as results, a fake address bar). The FAQ now states what the product does |
+| Security | The old design sent any key placed in `NEXT_PUBLIC_TAVUS_API_KEY` to every browser (it is empty in the local `.env.local`, but check the live host). Interviews now run through `/api/interview`: signed-in only, 5 per account per day, key server-side as `TAVUS_API_KEY` |
+| Assets | Icons, manifest, share image; `public/` 58 MB to 12 MB; competitor screenshot and a real email address removed from public images |
+
+**Still needs you**
+1. `pnpm exec wrangler login`, then the stages in the deploy runbook (Hyperdrive, tunnel, deploy, custom domain, dashboard settings).
+2. If a Tavus key was ever set as `NEXT_PUBLIC_TAVUS_API_KEY` on the live host, rotate it and set the new one as `TAVUS_API_KEY`. Rotate the JSearch key too (it was in git history).
+3. Decide on the testimonials: named people at Google, Microsoft and Netflix that I cannot verify. They are untouched and carry no structured data.
+4. Supply real team photos (12 images are hotlinked from Google Drive) or approve self-hosting them.
+5. Notera (separate branch `cloudflare-seo-prep`): rotate any account created with the old committed default passwords, and review the unverified claims "HIPAA-ready" and "Free for the first 50".

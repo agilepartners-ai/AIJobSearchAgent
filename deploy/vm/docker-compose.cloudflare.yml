@@ -1,0 +1,41 @@
+# Add-on to Notera's docker-compose.prod.yml on the VM. Adds:
+#   ajsa-generate : the document-generation service (Node, no CPU limit)
+#   cloudflared   : the Cloudflare Tunnel connector (outbound-only: the VM needs no open web or database port)
+#
+#   cd ~/notera
+#   docker compose -f docker-compose.prod.yml -f ~/ajsa/docker-compose.cloudflare.yml up -d ajsa-generate cloudflared
+#
+# Tunnel hostnames are set in the Cloudflare dashboard (Zero Trust > Networks > Tunnels > your tunnel > Published
+# applications), not here:
+#   gen.agilepartners-ai.com   ->  http://ajsa-generate:3000
+#   api.aitoolsfordoctor.com   ->  http://notera-backend:8080     (when Notera moves behind the tunnel)
+services:
+  ajsa-generate:
+    image: ajsa-generate:latest
+    container_name: ajsa-generate
+    restart: unless-stopped
+    env_file: [./ajsa.env]
+    # Reached only by cloudflared over the private network; deliberately no `ports:`.
+    networks: [notera_net]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    env_file: [./cloudflared.env]   # contains TUNNEL_TOKEN=...
+    networks: [notera_net]
+
+networks:
+  notera_net:
+    external: true
+    name: notera_notera_net
