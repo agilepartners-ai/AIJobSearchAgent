@@ -41,3 +41,4 @@ research/
 # isolated production-build check
 .next-check/
 .next-preview/
+secrets-local/
