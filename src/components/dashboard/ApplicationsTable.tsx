@@ -13,7 +13,7 @@
  * readable at a glance without anything shouting.
  */
 import { format, formatDistanceToNow } from 'date-fns';
-import { ArrowUpRight, Building2, Check, Eye, FileText, Mail, MapPin, Pencil, Search, Sparkles, Trash2, User, Wallet, X } from 'lucide-react';
+import { ArrowUpRight, Building2, Check, Eye, FileText, Mail, MapPin, Mic, Pencil, Search, Sparkles, Trash2, User, Wallet, X } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import type { JobApplication } from '../../services/jobApplicationService';
 
@@ -103,6 +103,16 @@ const Chip = ({ children }: { children: React.ReactNode }) => (
 
 const ghost =
   'inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-white/75 dark:hover:bg-white/[0.06]';
+
+/** The interview page takes the job from the URL. The description is trimmed so the link stays a sensible length. */
+const interviewHref = (a: JobApplication) => {
+  const q = new URLSearchParams({
+    jobTitle: a.position ?? '',
+    companyName: a.company_name ?? '',
+    jobDescription: (a.job_description ?? '').slice(0, 1500),
+  });
+  return `/ai-interview?${q.toString()}`;
+};
 
 const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   applications,
@@ -289,6 +299,10 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                       Tailor resume
                     </button>
                   )}
+                  <a href={interviewHref(selected)} className={ghost}>
+                    <Mic size={14} />
+                    Practise interview
+                  </a>
                   {selected.job_posting_url && (
                     <button onClick={() => apply(selected)} className={ghost}>
                       {selected.status === 'not_applied' ? 'Apply' : 'Open posting'}

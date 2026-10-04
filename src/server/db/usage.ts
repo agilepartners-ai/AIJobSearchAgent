@@ -51,3 +51,29 @@ export async function getUsage(userId: string): Promise<{ used: number; limit: n
   );
   return { used: rows[0]?.generations ?? 0, limit: DAILY_GENERATION_LIMIT };
 }
+
+/** Mock interviews spend paid third-party credits, so each account gets a small daily cap. */
+export const INTERVIEW_DAILY_LIMIT = 5;
+
+export async function reserveInterview(userId: string): Promise<{ ok: boolean; limit: number }> {
+  const { rows } = await query<{ interviews: number }>(
+    `INSERT INTO app.usage_daily (user_id, day, interviews) VALUES ($1, ${TODAY}, 1)
+     ON CONFLICT (user_id, day) DO UPDATE SET interviews = app.usage_daily.interviews + 1, updated_at = now()
+       WHERE app.usage_daily.interviews < $2
+     RETURNING interviews`,
+    [userId, INTERVIEW_DAILY_LIMIT],
+  );
+  return { ok: rows.length > 0, limit: INTERVIEW_DAILY_LIMIT };
+}
+
+export async function refundInterview(userId: string): Promise<void> {
+  try {
+    await query(
+      `UPDATE app.usage_daily SET interviews = GREATEST(interviews - 1, 0), updated_at = now()
+       WHERE user_id = $1 AND day = ${TODAY}`,
+      [userId],
+    );
+  } catch {
+    // Never mask the original error.
+  }
+}

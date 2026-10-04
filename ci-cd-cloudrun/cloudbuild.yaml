@@ -11,8 +11,6 @@ steps:
       - 'NEXT_PUBLIC_JSEARCH_API_KEY=${_NEXT_PUBLIC_JSEARCH_API_KEY}'
       - '--build-arg'
       - 'NEXT_PUBLIC_JSEARCH_API_HOST=${_NEXT_PUBLIC_JSEARCH_API_HOST}'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_TAVUS_API_KEY=${_NEXT_PUBLIC_TAVUS_API_KEY}'
       - '-t'
       - '${_GAR_LOCATION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:${COMMIT_SHA}'
       - '-f'
@@ -54,9 +52,9 @@ steps:
       # Requires these Secret Manager secrets to exist, and the Cloud Run
       # service account to hold roles/secretmanager.secretAccessor:
       #   gemini-api-key, texapi-key,
-      #   database-url, pg-ssl-ca, document-signing-secret
+      #   database-url, pg-ssl-ca, document-signing-secret, tavus-api-key
       - '--update-secrets'
-      - 'GEMINI_API_KEY=gemini-api-key:latest,TEXAPI_KEY=texapi-key:latest,DATABASE_URL=database-url:latest,PG_SSL_CA=pg-ssl-ca:latest,DOCUMENT_SIGNING_SECRET=document-signing-secret:latest'
+      - 'GEMINI_API_KEY=gemini-api-key:latest,TEXAPI_KEY=texapi-key:latest,DATABASE_URL=database-url:latest,PG_SSL_CA=pg-ssl-ca:latest,DOCUMENT_SIGNING_SECRET=document-signing-secret:latest,TAVUS_API_KEY=tavus-api-key:latest'
       - '--memory'
       - '1Gi'
       - '--cpu'
@@ -81,7 +79,6 @@ substitutions:
   _NEXT_PUBLIC_SUPABASE_ANON_KEY: ''
   _NEXT_PUBLIC_JSEARCH_API_KEY: ''
   _NEXT_PUBLIC_JSEARCH_API_HOST: ''
-  _NEXT_PUBLIC_TAVUS_API_KEY: ''
 
 
 # Configure build options

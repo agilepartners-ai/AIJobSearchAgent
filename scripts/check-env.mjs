@@ -381,8 +381,8 @@ function checkOptional() {
   if (present('NEXT_PUBLIC_JSEARCH_API_KEY')) pass('Job search configured');
   else warn('Job search not configured', 'NEXT_PUBLIC_JSEARCH_API_KEY unset — job search will return nothing.');
 
-  if (present('NEXT_PUBLIC_TAVUS_API_KEY')) pass('AI interview configured');
-  else warn('AI interview not configured', 'NEXT_PUBLIC_TAVUS_API_KEY unset.');
+  if (present('TAVUS_API_KEY')) pass('AI interview configured');
+  else warn('AI interview not configured', 'TAVUS_API_KEY unset. (It was NEXT_PUBLIC_TAVUS_API_KEY; that name shipped the key to every browser.)');
 }
 
 // ---------------------------------------------------------------------------
