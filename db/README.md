@@ -74,3 +74,34 @@ docker exec -i -e PGPASSWORD=adm pgtest psql -U postgres -d postgres \
   -v app_password="'dev-pass'" < db/init/00_create_jobsearch.sql
 DATABASE_URL=postgres://jobsearch_app:dev-pass@localhost:55432/jobsearch PGSSLMODE=disable node db/migrate.mjs
 ```
+
+## Backups and recovery
+
+Two independent layers, both set up on the VM:
+
+| Layer | What | When | Kept | Where |
+|---|---|---|---|---|
+| Logical dumps | `pg_dump -Fc` of `notera` and `jobsearch`, plus roles | nightly 03:15 UTC (`pg-backup.timer`) | 7 days | `/var/backups/postgres` on the VM |
+| Disk snapshots | whole boot disk, includes the Postgres data | daily 04:00 UTC (`notera-daily-snapshots`) | 7 days | Google Cloud, outside the VM |
+
+Each dump is verified before it is kept (size check and `pg_restore --list`). The setup lives in
+`db/backup/`; reinstall or update with `sudo bash install.sh` on the VM (it is idempotent).
+
+Check it:
+
+```bash
+systemctl list-timers pg-backup.timer          # next run
+journalctl -u pg-backup.service -n 20          # last run
+sudo ls -la /var/backups/postgres              # the files
+gcloud compute snapshots list --project medproject-506019
+```
+
+Restore one database from a dump (into a scratch database first if you are unsure):
+
+```bash
+sudo docker exec -i notera-postgres psql -U notera_admin -d postgres -c "CREATE DATABASE jobsearch_restored"
+sudo docker exec -i notera-postgres pg_restore -U notera_admin -d jobsearch_restored --no-owner < /var/backups/postgres/jobsearch_<timestamp>.dump
+```
+
+Restore the whole machine: create a disk from a snapshot, then a VM from that disk.
+A restore of both databases from the nightly dumps was tested: every table and row count matched.

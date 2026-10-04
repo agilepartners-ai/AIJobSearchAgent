@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly PostgreSQL backup (notera + jobsearch)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/pg-backup.sh
+Nice=10
+IOSchedulingClass=idle

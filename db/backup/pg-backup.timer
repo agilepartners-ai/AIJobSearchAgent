@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the PostgreSQL backup every night
+
+[Timer]
+OnCalendar=*-*-* 03:15:00 UTC
+RandomizedDelaySec=300
+# If the VM was off at 03:15, run as soon as it is back.
+Persistent=true
+
+[Install]
+WantedBy=timers.target
