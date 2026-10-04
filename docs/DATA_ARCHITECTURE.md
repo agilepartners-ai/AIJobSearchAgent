@@ -39,7 +39,7 @@ Browser ── Supabase Auth (email + Google) ──► access token (JWT, ES256
 | Concern | How |
 |---|---|
 | Identity | `server/auth/verify.ts`: issuer, audience, expiry and subject are enforced; a missing or bad token is a 401 |
-| Daily limit (25) | `server/db/usage.ts`: one conditional upsert, so concurrent requests cannot both pass at 24/25; refunded if generation fails |
+| Daily limit (5, admins exempt) | `server/db/usage.ts`: one conditional upsert, so concurrent requests cannot both pass at 4/5; refunded if generation fails. Admins are the verified emails in `ADMIN_EMAILS` (`server/auth/admin.ts`) |
 | Idempotent generation | the browser's request id is stored as `resumes.generation_id`; a retry returns the same résumé with no second model call or charge |
 | Files | stored in Postgres; served by `/api/documents/file` through HMAC-signed, expiring links (`DOCUMENT_SIGNING_SECRET`) that work in an `<iframe>`; `/api/documents/url` re-signs a stored path for its owner |
 | Ownership | a path or id that belongs to another user simply does not exist for the caller |

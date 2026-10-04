@@ -4,17 +4,17 @@ import { createConversation, TavusConfigError, TavusError } from '../../../serve
 
 /** POST /api/interview { context } → starts a mock-interview conversation (5 per account per day). */
 export default route('interview', {
-  POST: async ({ req, userId }) => {
+  POST: async ({ req, userId, admin }) => {
     const { context } = bodyObject(req);
     if (typeof context !== 'string' && context !== undefined) throw new HttpError(400, 'Invalid interview context.');
 
-    const quota = await reserveInterview(userId);
+    const quota = admin ? { ok: true, limit: 0 } : await reserveInterview(userId);
     if (!quota.ok) throw new HttpError(429, `You have used your ${quota.limit} practice interviews for today. Try again tomorrow.`);
 
     try {
       return await createConversation((context as string | undefined) ?? '');
     } catch (error) {
-      await refundInterview(userId);
+      if (!admin) await refundInterview(userId);
       if (error instanceof TavusConfigError) {
         console.error('[interview] misconfigured:', error.message);
         throw new HttpError(503, 'AI interviews are not available right now.');

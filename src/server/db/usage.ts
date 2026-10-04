@@ -6,7 +6,8 @@
  */
 import { query } from './pool';
 
-export const DAILY_GENERATION_LIMIT = 25;
+/** Tailored sets per account per day. Admins (see auth/admin.ts) are exempt. Override with DAILY_GENERATION_LIMIT. */
+export const DAILY_GENERATION_LIMIT = Number(process.env.DAILY_GENERATION_LIMIT) > 0 ? Math.floor(Number(process.env.DAILY_GENERATION_LIMIT)) : 5;
 
 export class QuotaExceededError extends Error {
   constructor(readonly used: number, readonly limit: number) {

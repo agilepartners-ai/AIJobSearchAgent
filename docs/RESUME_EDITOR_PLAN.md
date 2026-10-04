@@ -355,7 +355,7 @@ structured editing.
   than parsing free text. Your original objection to JSON came from the old implementation's
   brace-patching parser; schema-enforced output removes that failure class. **Unverified on
   `gemini-3.7-flash`: this is a Phase 1 spike and a gate for Phase 5.**
-- Quota: import and tailor count toward the 25/day. Editing and preview are free. PDF exports
+- Quota: import and tailor count toward the daily limit (5). Editing and preview are free. PDF exports
   are throttled separately because they spend the shared Texapi budget.
 
 ### 6.6 Dependencies to add

@@ -263,7 +263,7 @@ document, you are being rate limited — Texapi returns 422/500 instead of 429 w
 exceed 20 requests/minute. Wait a minute and retry.
 
 **"You have reached your daily limit"**
-25 generations per user per day, enforced server-side. Reset one user with
+5 generations per user per day (admins exempt), enforced server-side. Reset one user with
 `DELETE FROM app.usage_daily WHERE user_id = '<uuid>' AND day = CURRENT_DATE;`, or change
 `DAILY_GENERATION_LIMIT` in `src/server/db/usage.ts`.
 

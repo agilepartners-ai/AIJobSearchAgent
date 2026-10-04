@@ -23,6 +23,8 @@ export class UnauthenticatedError extends Error {
 export interface Caller {
   userId: string;
   email: string | null;
+  /** True only when the identity provider has verified that address. */
+  emailVerified: boolean;
 }
 
 let keys: JWTVerifyGetKey | null = null;
@@ -58,7 +60,12 @@ export async function verifyAccessToken(token: string | undefined | null): Promi
       algorithms: ['ES256', 'RS256'],
     });
     if (!payload.sub) throw new UnauthenticatedError();
-    return { userId: payload.sub, email: typeof payload.email === 'string' ? payload.email : null };
+    const meta = (payload.user_metadata ?? {}) as { email_verified?: unknown };
+    return {
+      userId: payload.sub,
+      email: typeof payload.email === 'string' ? payload.email : null,
+      emailVerified: meta.email_verified === true,
+    };
   } catch (err) {
     if (err instanceof AuthConfigError) throw err;
     throw new UnauthenticatedError();

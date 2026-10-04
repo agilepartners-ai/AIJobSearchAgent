@@ -6,8 +6,8 @@
 - Input: a résumé as PDF (with selectable text) or plain text, plus a pasted job description. DOCX and DOC are not supported.
 - Output: a tailored résumé, a cover letter and a match analysis, usually in 10 to 30 seconds. Résumés can be edited in the app and exported as PDF or LaTeX; the LaTeX can be opened in Overleaf.
 - There are 12 résumé templates. Single-column templates are the safest for applicant tracking systems.
-- Each account can generate up to 25 tailored sets per day and start up to 5 mock interviews per day.
-- There is no paid plan in the app at the moment.
+- Each account can generate up to 5 tailored sets per day and start up to 5 mock interviews per day.
+- There is no paid plan in the app at the moment; paid plans with higher limits are planned.
 - Contact: support@agilepartners-ai.com
 
 ## Product

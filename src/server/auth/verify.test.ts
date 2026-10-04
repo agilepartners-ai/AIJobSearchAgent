@@ -34,7 +34,7 @@ afterEach(() => __setKeys(null));
 
 describe('verifyAccessToken', () => {
   it('accepts a valid token and returns the user id and email', async () => {
-    expect(await verifyAccessToken(await make())).toEqual({ userId: 'user-1', email: 'a@b.co' });
+    expect(await verifyAccessToken(await make())).toEqual({ userId: 'user-1', email: 'a@b.co', emailVerified: false });
   });
 
   it.each<[string, () => Promise<string> | string | undefined]>([

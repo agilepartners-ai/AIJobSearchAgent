@@ -53,6 +53,8 @@ close port 5432 on the VM entirely. See Cloudflare's "Connect to a private datab
    ```
 5. **Check:** `curl https://gen.agilepartners-ai.com/api/health` → `{"ok":true,"runtime":"node"}`.
 
+`ADMIN_EMAILS` (in `ajsa.env`) makes those verified addresses exempt from the 5-per-day generation limit; every other account is capped at 5.
+
 `DOCUMENT_SIGNING_SECRET` must be **identical** on the VM (`ajsa.env`) and on the Worker (step 4), because the VM signs
 document links and the Worker serves and verifies them.
 
@@ -61,6 +63,7 @@ Secrets (never in files):
 ```bash
 pnpm exec wrangler secret put DOCUMENT_SIGNING_SECRET
 pnpm exec wrangler secret put TAVUS_API_KEY            # AI mock interviews
+pnpm exec wrangler secret put ADMIN_EMAILS              # e.g. you@example.com: unlimited interviews (generation is checked on the VM)
 ```
 Set `GENERATE_ORIGIN` to `https://gen.agilepartners-ai.com` in `wrangler.jsonc` (`vars`).
 

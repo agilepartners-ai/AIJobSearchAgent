@@ -181,7 +181,7 @@ MyJobSearchAgent/
 resume text + job description
         │
         ▼
-POST /api/documents/generate   ← authenticated; claims 1 of 25 daily generations
+POST /api/documents/generate   ← authenticated; claims 1 of 5 daily generations (admins exempt)
         │
         ├─ Gemini writes a LaTeX *body* using a fixed macro vocabulary
         ├─ sanitize.ts rejects unsafe commands and repairs unescaped % & $ # ^

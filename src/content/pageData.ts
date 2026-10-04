@@ -69,7 +69,7 @@ export const RESUME_TAILORING: ContentPageData = {
           'The match score is an estimate produced by the AI. It is not the score any particular applicant tracking system will assign.',
           'The AI works from your résumé, but it can still make mistakes. Read every line before you send anything, and never claim experience you do not have.',
           'Uploads are PDF and plain text. DOCX and DOC are not supported yet.',
-          'Each account can generate up to 25 tailored sets per day.',
+          'Each account can generate up to 5 tailored sets per day. Paid plans with higher limits are planned.',
           'Résumés and job descriptions are English-language today.',
         ],
       },
@@ -85,7 +85,7 @@ export const RESUME_TAILORING: ContentPageData = {
   faqs: [
     { q: 'How long does generating a tailored résumé take?', a: 'Usually 10 to 30 seconds. The résumé and the cover letter are produced together.' },
     { q: 'Will it invent experience I do not have?', a: 'It is set up to work from the résumé you upload, but AI can make mistakes. Always read the result and remove anything that is not true before you apply.' },
-    { q: 'Can I tailor one résumé for several jobs?', a: 'Yes. Each job gets its own generation and its own saved résumé, so you keep one version per application. The limit is 25 generations per day.' },
+    { q: 'Can I tailor one résumé for several jobs?', a: 'Yes. Each job gets its own generation and its own saved résumé, so you keep one version per application. The limit is 5 generations per day.' },
     { q: 'Which file formats can I upload?', a: 'PDF (with selectable text) and plain text. Export a Word document to PDF first.' },
   ],
   related: [REL.builder, REL.cover, REL.guideTailor, REL.tracker],

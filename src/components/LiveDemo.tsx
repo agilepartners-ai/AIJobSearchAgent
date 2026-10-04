@@ -30,7 +30,7 @@ const FACTS = [
   { value: '12', label: 'résumé templates' },
   { value: 'PDF + LaTeX', label: 'export formats' },
   { value: '10–30 s', label: 'typical time to generate' },
-  { value: '25 / day', label: 'tailored sets per account' },
+  { value: '5 / day', label: 'tailored sets per account' },
 ];
 
 const LiveDemo: React.FC = () => {

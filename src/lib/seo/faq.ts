@@ -12,7 +12,7 @@ export const HOME_FAQ: Faq[] = [
   },
   {
     q: 'How much does it cost?',
-    a: 'There is no paid plan in the app today. Each account can generate up to 25 tailored résumé-and-cover-letter sets per day. If pricing is introduced it will be published on this page.',
+    a: 'There is no paid plan in the app today. Each account can generate up to 5 tailored résumé-and-cover-letter sets per day. Paid plans with higher limits are planned; their details will be published on this page.',
   },
   {
     q: 'Which résumé formats can I upload?',

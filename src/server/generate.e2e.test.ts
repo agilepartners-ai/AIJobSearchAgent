@@ -18,7 +18,7 @@ const REQUEST_ID = 'e2eRequest0001';
 
 vi.mock('./auth/verify', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./auth/verify')>();
-  return { ...actual, verifyAccessToken: async () => ({ userId: TEST_UID, email: null }) };
+  return { ...actual, verifyAccessToken: async () => ({ userId: TEST_UID, email: null, emailVerified: false }) };
 });
 
 // eslint-disable-next-line import/first

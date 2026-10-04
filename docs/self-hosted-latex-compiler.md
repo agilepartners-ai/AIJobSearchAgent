@@ -23,7 +23,7 @@ published documentation.
 | **Data residency** | Resumes contain names, addresses, phone numbers and employment history. They leave your infrastructure. PDFs are retained for 10 minutes. |
 | **Single point of failure** | Third-party uptime you do not control and cannot monitor. |
 
-The throughput ceiling is the most likely trigger in practice. The daily cap is 25 generations per
+The throughput ceiling is the most likely trigger in practice. The daily cap is 5 generations per
 user, so roughly 10 concurrently-generating users will start queueing behind the rate limiter.
 
 ---

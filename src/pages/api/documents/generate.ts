@@ -22,7 +22,8 @@ import { cleanRequestId, createRequestLog, type RequestLog } from '../../../serv
 import { newId } from '../../../lib/resume/ids';
 import { LatexValidationError } from '../../../server/latex/sanitize';
 import { LatexCompileError } from '../../../server/latex/compile';
-import { verifyAccessToken, AuthConfigError } from '../../../server/auth/verify';
+import { verifyAccessToken, AuthConfigError, type Caller } from '../../../server/auth/verify';
+import { isAdmin } from '../../../server/auth/admin';
 import { uploadDocuments } from '../../../server/storage/documents';
 import {
   QuotaExceededError,
@@ -62,9 +63,9 @@ interface GenerateBody {
  * `userId` field straight from the request body, so any client could spend
  * another user's quota or write into their storage prefix.
  */
-async function authenticate(idToken: string | undefined): Promise<string> {
+async function authenticate(idToken: string | undefined): Promise<Caller> {
   if (!idToken) throw new Error('unauthenticated');
-  return (await verifyAccessToken(idToken)).userId;
+  return verifyAccessToken(idToken);
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -107,9 +108,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   });
 
   let userId: string;
+  let unlimited = false;
   try {
-    userId = await authenticate(body.idToken);
-    log.step('authenticated');
+    const caller = await authenticate(body.idToken);
+    userId = caller.userId;
+    unlimited = isAdmin(caller);
+    log.step('authenticated', unlimited ? { admin: true } : {});
   } catch (error) {
     log.warn('auth-failed', { reason: error instanceof Error ? error.message : String(error) });
     return reject(401, 'You must be signed in to generate documents.');
@@ -139,9 +143,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // One generation per user, and a cap across the server, before any paid work.
     release = await acquireGenerationSlot(userId);
     log.step('slot-acquired');
-    const quota = await reserveGeneration(userId);
-    reserved = true;
-    log.step('quota-reserved', { used: quota.used, limit: quota.limit });
+    if (unlimited) {
+      log.step('quota-skipped', { reason: 'admin' });
+    } else {
+      const quota = await reserveGeneration(userId);
+      reserved = true;
+      log.step('quota-reserved', { used: quota.used, limit: quota.limit });
+    }
 
     // Retrieval: embed and remember this résumé and job for the account, trim
     // what gets sent, and pull relevant facts from the account's other résumés.

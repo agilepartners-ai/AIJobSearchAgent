@@ -4,6 +4,7 @@
  * from the verified token, never from the request body or URL.
  */
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { isAdmin } from './auth/admin';
 import { AuthConfigError, requireUser, UnauthenticatedError } from './auth/verify';
 import { DbConfigError } from './db/pool';
 import { ApplicationValidationError } from './db/applicationsRepo';
@@ -16,7 +17,7 @@ export class HttpError extends Error {
   }
 }
 
-type Ctx = { req: NextApiRequest; res: NextApiResponse; userId: string; email: string | null };
+type Ctx = { req: NextApiRequest; res: NextApiResponse; userId: string; email: string | null; admin: boolean };
 type Handler = (ctx: Ctx) => Promise<unknown>;
 
 /** A handler returning `undefined` answers 204; anything else is sent as JSON with 200. */
@@ -29,7 +30,7 @@ export function route(name: string, methods: Partial<Record<'GET' | 'POST' | 'PU
     }
     try {
       const caller = await requireUser(req);
-      const out = await run({ req, res, userId: caller.userId, email: caller.email });
+      const out = await run({ req, res, userId: caller.userId, email: caller.email, admin: isAdmin(caller) });
       if (res.writableEnded) return;
       if (out === undefined) return res.status(204).end();
       return res.status(200).json(out);
