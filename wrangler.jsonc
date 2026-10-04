@@ -16,7 +16,7 @@
   //   pnpm exec wrangler hyperdrive create ajsa-db --connection-string="postgres://jobsearch_app:<pw>@<host>:5432/jobsearch" \
   //     --ca-certificate-id <id> --sslmode verify-full
   "hyperdrive": [
-    { "binding": "HYPERDRIVE", "id": "REPLACE_WITH_HYPERDRIVE_ID" }
+    { "binding": "HYPERDRIVE", "id": "75b3fd16900248458c1b6a661d044cfb" }
   ],
 
   // Non-secret runtime variables. Secrets (DOCUMENT_SIGNING_SECRET, GEMINI_API_KEY ...) are NOT stored here:
