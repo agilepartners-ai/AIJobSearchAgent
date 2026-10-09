@@ -10,13 +10,19 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
 
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+
+  // The apex is canonical; www is redirected to it by a Redirect Rule in the zone. Cloudflare creates the DNS records.
+  "routes": [
+    { "pattern": "agilepartners-ai.com", "custom_domain": true },
+    { "pattern": "www.agilepartners-ai.com", "custom_domain": true }
+  ],
   "observability": { "enabled": true },
 
   // Pooled, TLS-verified connections to the VM's PostgreSQL. Create it once, paste the id here:
   //   pnpm exec wrangler hyperdrive create ajsa-db --connection-string="postgres://jobsearch_app:<pw>@<host>:5432/jobsearch" \
   //     --ca-certificate-id <id> --sslmode verify-full
   "hyperdrive": [
-    { "binding": "HYPERDRIVE", "id": "75b3fd16900248458c1b6a661d044cfb" }
+    { "binding": "HYPERDRIVE", "id": "3a6cabcdac6f45ecb839e1dea8970c96" }
   ],
 
   // Non-secret runtime variables. Secrets (DOCUMENT_SIGNING_SECRET, GEMINI_API_KEY ...) are NOT stored here:
