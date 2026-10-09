@@ -1,8 +1,9 @@
 # Deploying to Cloudflare (free plan)
 
 Runbook for putting the AI Job Search Agent on Cloudflare Workers. The reasoning, measurements and free-plan
-limits behind it are in [CLOUDFLARE_MIGRATION_SCOPE.md](./CLOUDFLARE_MIGRATION_SCOPE.md). **Nothing here has been
-run against your Cloudflare account yet**; every step marked 👤 needs you, because it needs your login.
+limits behind it are in [CLOUDFLARE_MIGRATION_SCOPE.md](./CLOUDFLARE_MIGRATION_SCOPE.md). **Status (Oct 2026):** stages 1, 2, 4 and the
+domain part of 7 are done and live on `agilepartners-ai.com`. Still open: the tunnel and VM service (stage 3), the dashboard
+settings (stage 6) and the keep-alive Worker (stage 8). Steps marked 👤 need a Cloudflare login.
 
 ```
 Browser ─► Cloudflare Worker `ajsa-web`   pages (static, free) + light API ──► Hyperdrive ──► PostgreSQL on the VM
@@ -11,6 +12,15 @@ Browser ─► Cloudflare Worker `ajsa-web`   pages (static, free) + light API �
 ```
 
 Order matters. Do each stage, run its check, then move on. Nothing changes for users until stage 7.
+
+## Where things live
+The `agilepartners-ai.com` zone is in the Cloudflare account that owns the domain (not the developer's personal account), so the
+Worker, Hyperdrive config and database CA all live in that account. A Worker can only use a custom domain from a zone in its
+own account. Deploy with `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` set (see `.env.example`); the custom domains are
+declared in `wrangler.jsonc` and Cloudflare creates the DNS records on deploy.
+
+Local build flow (Windows is unsupported by the adapter): build in WSL, copy `.open-next` back with symlinks resolved
+(`cp -rL`), then `wrangler deploy` with `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` set to the database URL.
 
 ## 0. What to have ready
 - A Cloudflare account that contains the `agilepartners-ai.com` zone (confirm in the dashboard).
