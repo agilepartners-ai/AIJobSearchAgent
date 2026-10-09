@@ -14,7 +14,7 @@ services:
     image: ajsa-generate:latest
     container_name: ajsa-generate
     restart: unless-stopped
-    env_file: [./ajsa.env]
+    env_file: [/home/yc9891966/ajsa/ajsa.env]
     # Reached only by cloudflared over the private network; deliberately no `ports:`.
     networks: [notera_net]
     deploy:
@@ -32,7 +32,7 @@ services:
     container_name: cloudflared
     restart: unless-stopped
     command: tunnel --no-autoupdate run
-    env_file: [./cloudflared.env]   # contains TUNNEL_TOKEN=...
+    env_file: [/home/yc9891966/ajsa/cloudflared.env]   # contains TUNNEL_TOKEN=...
     networks: [notera_net]
 
 networks:
