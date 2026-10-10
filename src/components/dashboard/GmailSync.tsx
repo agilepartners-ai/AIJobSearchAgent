@@ -97,7 +97,7 @@ function ForwardPanel({ inbound, onRotate }: { inbound: Inbound | null; onRotate
   return (
     <>
       <p className="font-semibold text-slate-900 dark:text-white">Forward job emails here</p>
-      <p className="mt-1.5 text-slate-600 dark:text-slate-300">No Google permission needed, and it works with Outlook and Yahoo too. Gmail forwards only the emails your filter matches, never your whole inbox. Applications update your board, and recommended jobs from LinkedIn, Indeed and others show up as Suggested.</p>
+      <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">No Google permission. Only emails your filter matches are forwarded, never your whole inbox. Applications update your board; recommended jobs show as Suggested.</p>
 
       <div className="mt-3 flex items-center gap-2 rounded-lg bg-slate-50 p-2 dark:bg-slate-800">
         <code className="min-w-0 flex-1 select-all break-all text-xs text-slate-800 dark:text-slate-100">{inbound.address}</code>
@@ -109,7 +109,7 @@ function ForwardPanel({ inbound, onRotate }: { inbound: Inbound | null; onRotate
         <li className={step}>
           <span className={num}>2</span>
           <span>
-            Google sends a confirmation to that address. We catch it for you:{' '}
+            Google sends a code to that address; we catch it:{' '}
             {inbound.confirmation?.code ? (
               <span className="mt-1 flex items-center gap-2"><b className="rounded bg-emerald-50 px-2 py-0.5 text-sm tabular-nums text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300">{inbound.confirmation.code}</b><CopyButton text={inbound.confirmation.code} label="Copy the confirmation code" /> <span>enter this code in Gmail.</span></span>
             ) : (
@@ -122,19 +122,24 @@ function ForwardPanel({ inbound, onRotate }: { inbound: Inbound | null; onRotate
         </li>
         <li className={step}>
           <span className={num}>3</span>
-          <span>
-            <b>Create a filter</b> (this is what keeps your inbox private: only job mail is sent). In Gmail's search box open the options arrow, paste the text below into <b>Has the words</b>, click <b>Create filter</b>, tick <b>Forward it to</b> your new address. Leave the <i>Forwarding</i> page itself on "Disable forwarding".
-            <span className="mt-1 flex items-start gap-2"><code className="min-w-0 flex-1 select-all break-words rounded bg-slate-50 p-1.5 text-[11px] dark:bg-slate-800">{inbound.filterQuery}</code><CopyButton text={inbound.filterQuery ?? ''} label="Copy the Gmail filter query" /></span>
+          <span className="min-w-0 flex-1">
+            <b>Create a filter</b> so only job mail is sent: Gmail search box → options arrow → paste into <b>Has the words</b> → <b>Create filter</b> → tick <b>Forward it to</b> your address.
+            <span className="mt-1.5 flex items-center gap-2">
+              <CopyButton text={inbound.filterQuery ?? ''} label="Copy the Gmail filter text" />
+              <details className="min-w-0 flex-1 text-[11px] text-slate-500 dark:text-slate-400">
+                <summary className="cursor-pointer select-none">Show filter text</summary>
+                <code className="mt-1 block max-h-24 select-all overflow-y-auto break-words rounded bg-slate-50 p-1.5 dark:bg-slate-800">{inbound.filterQuery}</code>
+              </details>
+            </span>
           </span>
         </li>
       </ol>
 
       <p className={`mt-3 rounded-lg px-2.5 py-2 text-xs ${got ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300' : 'bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
-        {got ? `${inbound.receivedTotal} email${inbound.receivedTotal === 1 ? '' : 's'} received, last ${when(inbound.lastReceivedAt)}. New applications show up on your board within a minute.` : 'Nothing received yet. Once step 3 is done, new job emails appear here on their own.'}
+        {got ? `${inbound.receivedTotal} email${inbound.receivedTotal === 1 ? '' : 's'} received, last ${when(inbound.lastReceivedAt)}.` : 'Nothing received yet. After step 3, job emails arrive on their own.'}
       </p>
       <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-500 dark:text-slate-400">
-        <li>Email text is not stored; only the job details we pull out.</li>
-        <li>Treat the address like a password. If it leaks, make a new one.</li>
+        <li>Email text is not stored. Treat the address like a password.</li>
       </ul>
       <button type="button" onClick={() => setFinished(true)} className="mt-3 w-full rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-500">I finished the setup, hide these steps</button>
       <button type="button" onClick={onRotate} className="mt-2 text-xs text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">Make a new address</button>
@@ -280,7 +285,7 @@ export default function GmailSync({ onSynced }: { onSynced: () => void | Promise
       </button>
 
       {open && (
-        <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.16 }} role="dialog" aria-label="Gmail sync" className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-xl dark:border-slate-700 dark:bg-slate-900">
+        <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.16 }} role="dialog" aria-label="Gmail sync" className="absolute right-0 z-50 mt-2 max-h-[min(34rem,calc(100vh-5rem))] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-xl dark:border-slate-700 dark:bg-slate-900">
           {gmailOn && forwardOn && (
             <div className="mb-3 flex gap-1 rounded-lg bg-slate-100 p-1 text-xs font-medium dark:bg-slate-800" role="tablist">
               {([['gmail', 'Connect Gmail'], ['forward', 'Forward emails']] as const).map(([id, label]) => (

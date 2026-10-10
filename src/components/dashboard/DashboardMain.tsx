@@ -19,6 +19,7 @@ import { useRouter } from 'next/navigation';
 import { useRouter as usePagesRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import { Loader2, Menu } from 'lucide-react';
+import { authedFetch } from '../../lib/api/authedFetch';
 import GmailSync from './GmailSync';
 import Sidebar, { type DashboardView } from './Sidebar';
 import ProfileMenu from './ProfileMenu';
@@ -490,11 +491,24 @@ const Dashboard: React.FC = () => {
   // The daily limit is enforced inside /api/documents/generate, atomically and
   // against the verified user. The old client-side pre-check called a separate
   // endpoint that only *read* the counter, so skipping it cost nothing.
-  const handleLoadAIEnhanced = (application: JobApplication) => {
+  const handleLoadAIEnhanced = async (application: JobApplication) => {
+    let description = application.job_description || '';
+    // Jobs added from an email or an alert have a link but no description yet: read it from the posting before tailoring.
+    if (description.length < 200 && application.job_posting_url) {
+      showInfo('Reading the job posting', 'Fetching the job description so your résumé can be tailored to it.');
+      try {
+        const r = await authedFetch<{ description: string }>('/api/applications/describe', { method: 'POST', body: JSON.stringify({ id: application.id }) });
+        description = r.description;
+        application = { ...application, job_description: description };
+        setApplications((list) => list.map((a) => (a.id === application.id ? { ...a, job_description: description } : a)));
+      } catch (e) {
+        showInfo('Paste the job description', `${(e as Error).message || 'Could not read the posting.'} You can paste it in the next step.`);
+      }
+    }
     dispatch(setSelectedJobDescription({
       title: application.position,
       company: application.company_name,
-      description: application.job_description || ''
+      description,
     }));
 
     dispatch(setEditingApplication(application));

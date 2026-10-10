@@ -180,3 +180,14 @@ Safeguards: a suggestion never changes an application; a job already on the boar
 **Filter.** The Gmail filter is by sender and subject, across all tabs (Updates, Promotions, Social), not only Updates. It forwards only job mail: job-board senders with job words in the subject, plus applicant-tracking systems with application words. Never turn on the global "Forward a copy of incoming mail", which forwards everything.
 
 **Old emails.** A Gmail filter acts only on mail that arrives after it is created. To bring in old mail once, select them in Gmail, open the three dots, choose **Forward as attachment** and send to your address (up to 100 per message, about 150 reads per day).
+
+## 10. Job descriptions for tailoring (added 2026-10-11)
+
+"Tailor resume" needs the job description as input. Jobs that arrive from an email or an alert have a link but no description, so
+when you press Tailor on such a job, the app reads the posting first (`POST /api/applications/describe`) and saves the text on the job.
+
+- **No browser, no scraping farm.** One plain HTTPS request from the VM, per click: the applicant tracking systems' public posting APIs (Greenhouse, Lever, Ashby), the structured data many job pages publish (JSON-LD JobPosting), or, for LinkedIn, the description block of the public job page. Email tracking links are cleaned to the public link first.
+- **Verified:** on two of your saved LinkedIn jobs (2,137 and 3,120 characters read), and the VM's address can reach the page.
+- **When it cannot read the page** (sign-in wall, bot check, deleted posting, an unsupported site): the Tailor window opens as before and asks you to paste the description.
+- **Safety:** only https links to known job sites; every redirect hop is checked; page size and wait are capped; nothing is read unless you press Tailor.
+- **Terms of service:** LinkedIn and some other sites forbid automated access in their terms. This reads a single public page on your own click, at human pace, which is far from bulk collection, but it is your call whether to keep it. It can be limited to ATS APIs only.
