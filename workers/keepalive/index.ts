@@ -15,6 +15,8 @@ export interface Env {
   SUPABASE_ANON_KEY: string;
   SITE_URL: string;
   GENERATE_ORIGIN?: string;
+  /** Set (as a secret) to also trigger the daily Gmail sync on the VM. Unset: no sync call is made. */
+  GMAIL_CRON_SECRET?: string;
 }
 
 export interface Check {
@@ -78,8 +80,25 @@ export async function runChecks(env: Env, doFetch: Fetch = fetch): Promise<Check
   return Promise.all(checks);
 }
 
+/** Asks the VM to sync the next few connected mailboxes (bounded per call). Best effort: never fails the health run. */
+export async function triggerGmailSync(env: Env, doFetch: Fetch = fetch): Promise<string> {
+  if (!env.GMAIL_CRON_SECRET || !env.GENERATE_ORIGIN) return 'gmail sync not configured';
+  try {
+    const r = await doFetch(`${trim(env.GENERATE_ORIGIN)}/api/gmail/sync-all`, {
+      method: 'POST',
+      headers: { 'x-cron-secret': env.GMAIL_CRON_SECRET, 'Content-Type': 'application/json' },
+      body: '{}',
+      signal: AbortSignal.timeout(25_000),
+    });
+    return `gmail sync HTTP ${r.status}`;
+  } catch (error) {
+    return `gmail sync failed: ${error instanceof Error ? error.message : String(error)}`;
+  }
+}
+
 export default {
   async scheduled(_event: unknown, env: Env): Promise<void> {
+    console.log(await triggerGmailSync(env));
     const results = await runChecks(env);
     console.log(JSON.stringify(results));
     const failing = results.filter((r) => !r.ok);

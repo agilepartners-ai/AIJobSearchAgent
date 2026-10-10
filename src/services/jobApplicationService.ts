@@ -26,6 +26,11 @@ export interface JobApplication {
   source: string | null;
   created_at: string;
   updated_at: string | null;
+  /** Set by Gmail sync when the AI was unsure; cleared when the user edits the row. */
+  needs_review?: boolean;
+  confidence?: number | null;
+  gmail_thread_id?: string | null;
+  status_history?: { status: string; at: string; messageId: string; type: string }[];
 }
 
 export interface ApplicationStats {

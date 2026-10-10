@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import worker, { runChecks, type Env } from './index';
+import worker, { runChecks, triggerGmailSync, type Env } from './index';
 
 const env: Env = {
   SUPABASE_URL: 'https://p.supabase.co/',
@@ -71,5 +71,28 @@ describe('keep-alive checks', () => {
     vi.stubGlobal('fetch', reply({ ...healthy, 'site.example/api/health': 500 }));
     expect((await worker.fetch(new Request('https://x'), env)).status).toBe(503);
     vi.unstubAllGlobals();
+  });
+});
+
+describe('daily Gmail sync trigger', () => {
+  it('does nothing unless a secret and the VM address are set', async () => {
+    const f = vi.fn();
+    expect(await triggerGmailSync({ ...env, GMAIL_CRON_SECRET: undefined }, f as unknown as typeof fetch)).toMatch(/not configured/);
+    expect(f).not.toHaveBeenCalled();
+  });
+
+  it('calls the VM with the secret in a header, never in the URL', async () => {
+    const f = vi.fn(async () => new Response('{}', { status: 200 }));
+    const out = await triggerGmailSync({ ...env, GMAIL_CRON_SECRET: 'x'.repeat(24) }, f as unknown as typeof fetch);
+    expect(out).toBe('gmail sync HTTP 200');
+    const [url, init] = f.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('https://gen.example/api/gmail/sync-all');
+    expect(url).not.toContain('xxxx');
+    expect((init.headers as Record<string, string>)['x-cron-secret']).toBe('x'.repeat(24));
+  });
+
+  it('reports a failure without throwing', async () => {
+    const boom = vi.fn(async () => { throw new Error('down'); });
+    expect(await triggerGmailSync({ ...env, GMAIL_CRON_SECRET: 'x'.repeat(24) }, boom as unknown as typeof fetch)).toMatch(/failed: down/);
   });
 });

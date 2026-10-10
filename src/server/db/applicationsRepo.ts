@@ -118,7 +118,8 @@ export async function updateApplication(userId: string, id: string, input: Recor
   const cols = Object.keys(data);
   if (!cols.length) return getApplication(userId, id);
   const { rows } = await query<Row>(
-    `UPDATE app.job_applications SET ${cols.map((c, i) => `${c} = $${i + 3}`).join(', ')}
+    // A person looking at a row and saving it is the review: clear the Gmail "check this" flag.
+    `UPDATE app.job_applications SET ${cols.map((c, i) => `${c} = $${i + 3}`).join(', ')}, needs_review = false
      WHERE user_id = $1 AND id = $2 RETURNING *`,
     [userId, id, ...cols.map((c) => data[c])],
   );

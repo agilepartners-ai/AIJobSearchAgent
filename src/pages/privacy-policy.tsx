@@ -166,6 +166,18 @@ const PrivacyPolicy: React.FC = () => {
           </p>
         </Section>
 
+        <Section icon={<Lock size={18} />} title="4a. Optional Gmail connection">
+          <p>If you choose to connect Gmail, we ask Google for read-only access to your mailbox (the gmail.readonly permission). It is off until you turn it on, and you can turn it off at any time.</p>
+          <ul className="list-disc list-inside space-y-2 ml-2">
+            <li><strong className="text-white">What we read:</strong> messages in your Gmail Updates tab, to find job-application emails such as confirmations, interview invitations, assessments, offers and rejections.</li>
+            <li><strong className="text-white">What we keep:</strong> the job details we extract (company, role, status, dates, links, recruiter name and email, salary and location if stated), and for each message its Gmail id, time and sender domain so it is not read twice. We do not store email bodies, subjects or attachments.</li>
+            <li><strong className="text-white">How it is processed:</strong> email text is sent to Google&apos;s Gemini API on a paid service tier, only to extract those details. It is not used to train AI models, for advertising, or sold or shared with anyone else. People at our company do not read your email unless you ask us to look at a specific message, or it is needed for security or the law.</li>
+            <li><strong className="text-white">Protection:</strong> your Google access token is stored encrypted.</li>
+            <li><strong className="text-white">Disconnecting:</strong> use Disconnect Gmail in the dashboard, or remove access at myaccount.google.com/permissions. We then revoke the token and delete the connection and message log. You can also delete the applications imported from Gmail.</li>
+          </ul>
+          <p className="mt-3">The use of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+        </Section>
+
         <Section icon={<UserCheck size={18} />} title="5. Your Rights & Choices">
           <p>You have significant control over your personal information:</p>
           <ul className="list-disc list-inside space-y-2 ml-2">

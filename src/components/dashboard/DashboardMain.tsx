@@ -19,6 +19,7 @@ import { useRouter } from 'next/navigation';
 import { useRouter as usePagesRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import { Loader2, Menu } from 'lucide-react';
+import GmailSync from './GmailSync';
 import Sidebar, { type DashboardView } from './Sidebar';
 import ProfileMenu from './ProfileMenu';
 import OverviewView from './views/OverviewView';
@@ -549,6 +550,7 @@ const Dashboard: React.FC = () => {
           </button>
           <h1 className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">{TITLES[view]}</h1>
           <div className="ml-auto flex items-center gap-1.5">
+            <GmailSync onSynced={loadApplications} />
             <ProfileMenu
               name={userProfile?.full_name ?? user?.email ?? 'Account'}
               onProfile={handleUpdateProfile}

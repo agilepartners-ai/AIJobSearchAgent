@@ -82,6 +82,8 @@ export interface GenerateOptions {
   /** Low by default: this is extraction and rewriting, not creative writing. */
   temperature?: number;
   maxOutputTokens?: number;
+  /** Ask for JSON that matches this schema (Gemini `responseSchema`). Omit for plain text. */
+  jsonSchema?: Record<string, unknown>;
   /** Called once per successful completion with the tokens it used. */
   onUsage?: (usage: TokenUsage) => void;
 }
@@ -116,7 +118,8 @@ export async function generateText(options: GenerateOptions): Promise<string> {
     temperature: options.temperature ?? 0.3,
     topK: 20,
     topP: 0.8,
-    responseMimeType: 'text/plain',
+    responseMimeType: options.jsonSchema ? 'application/json' : 'text/plain',
+    ...(options.jsonSchema ? { responseSchema: options.jsonSchema } : {}),
     maxOutputTokens: options.maxOutputTokens ?? getMaxOutputTokens(),
   };
 
