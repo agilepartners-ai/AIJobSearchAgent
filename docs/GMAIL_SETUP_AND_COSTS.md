@@ -143,17 +143,20 @@ Steady state is about 5 candidate emails per user per day after the filter. The 
 - [ ] Random keys generated and set (`GMAIL_TOKEN_KEY`, `GMAIL_STATE_SECRET`, `GMAIL_CRON_SECRET`)
 - [ ] Tell Claude: it deploys the Worker and VM service, sets the secrets, sets the daily trigger and runs a first sync with you
 
-## 8. Forwarding setup (path A): what to do once
+## 8. Forwarding setup (path A)
+
+**Status (2026-10-10): done and live.** Email Routing is on for `aitoolsfordoctor.com` (a domain with no other mail; the main domain's Zoho mail is untouched), rule `jobs@aitoolsfordoctor.com` goes to the Worker `ajsa-inbound`, subaddressing is on. The rest of this section is the original plan and the reasoning.
+
 
 Nothing in Google Cloud. Three things, about 15 minutes. Steps 1 and 2 are in Anish's Cloudflare account (the teammate guide below has the click path).
 
-1. **Turn on Email Routing for a subdomain.** Use `in.agilepartners-ai.com`, not the main domain: the main domain's mail records belong to Zoho and must not change. Cloudflare adds the subdomain's own mail records itself.
+1. **Turn on Email Routing for a subdomain.** Use `aitoolsfordoctor.com`, not the main domain: the main domain's mail records belong to Zoho and must not change. Cloudflare adds the subdomain's own mail records itself.
    - Dashboard: the domain > Email > Email Routing > Settings > **Subdomains** > add `in`. Wait for the DNS records to appear.
-   - Same page: turn on **Subaddressing**, so `jobs+anything@in.agilepartners-ai.com` reaches the rule for `jobs@in.agilepartners-ai.com`.
-2. **Create one rule**: Custom address `jobs` at `in.agilepartners-ai.com` > Action **Send to a Worker** > `ajsa-inbound`. (Catch-all does not exist on subdomains, so one literal rule plus subaddressing is how a single rule serves every user.)
+   - Same page: turn on **Subaddressing**, so `jobs+anything@aitoolsfordoctor.com` reaches the rule for `jobs@aitoolsfordoctor.com`.
+2. **Create one rule**: Custom address `jobs` at `aitoolsfordoctor.com` > Action **Send to a Worker** > `ajsa-inbound`. (Catch-all does not exist on subdomains, so one literal rule plus subaddressing is how a single rule serves every user.)
 3. **Tell me.** I deploy the Worker (`ajsa-inbound`) and the VM service, set `INBOUND_SECRET`, and test with a real forwarded email.
 
-Settings (VM `ajsa.env`, and as Worker variables for the web app): `INBOUND_ENABLED=1`, `INBOUND_DOMAIN=in.agilepartners-ai.com`, `INBOUND_SECRET` (24+ random characters, VM and the `ajsa-inbound` Worker only). The model must be the billed Gemini key (`GEMINI_PAID_TIER=1`), same as above.
+Settings (VM `ajsa.env`, and as Worker variables for the web app): `INBOUND_ENABLED=1`, `INBOUND_DOMAIN=aitoolsfordoctor.com`, `INBOUND_SECRET` (24+ random characters, VM and the `ajsa-inbound` Worker only). The model must be the billed Gemini key (`GEMINI_PAID_TIER=1`), same as above.
 
 What the user does (the dashboard shows these steps with their own address and a Copy button): in Gmail, add the forwarding address; Google sends a confirmation to it and the dashboard shows the code; then create a filter with the shown search and "Forward it to" the address. After that every matching email arrives on its own.
 

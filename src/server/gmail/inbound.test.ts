@@ -12,7 +12,7 @@ const TOKEN = 'abcdefghijklmnopqrstuvwxyz'; // 26 chars, base32 alphabet
 function raw(f: { from: string; name?: string; subject: string; text: string; id: string; date?: string; inReplyTo?: string; html?: boolean }): Uint8Array {
   const headers = [
     `From: ${f.name ? `"${f.name}" ` : ''}<${f.from}>`,
-    `To: jobs+${TOKEN}@in.agilepartners-ai.com`,
+    `To: jobs+${TOKEN}@aitoolsfordoctor.com`,
     `Subject: ${f.subject}`,
     `Message-ID: <${f.id}@mail.example>`,
     `Date: ${f.date ?? 'Thu, 01 Oct 2026 09:00:00 +0000'}`,
@@ -32,14 +32,14 @@ describe('forwarding address', () => {
   });
 
   it('builds the address and reads the token back, with or without a display name and with any letter case', () => {
-    const a = addressFor(TOKEN, 'in.agilepartners-ai.com');
-    expect(a).toBe(`jobs+${TOKEN}@in.agilepartners-ai.com`);
+    const a = addressFor(TOKEN, 'aitoolsfordoctor.com');
+    expect(a).toBe(`jobs+${TOKEN}@aitoolsfordoctor.com`);
     expect(tokenFromAddress(a)).toBe(TOKEN);
     expect(tokenFromAddress(`Job Board <${a.toUpperCase()}>`)).toBe(TOKEN);
   });
 
   it('rejects other local parts, short tokens and no token', () => {
-    for (const bad of ['jobs@in.agilepartners-ai.com', 'info+abcdefghijklmnopqrstuvwxyz@x.com', 'jobs+short@x.com', 'jobs+ABC!defghijklmnopqrstuvwxyz@x.com', '', 'nonsense']) {
+    for (const bad of ['jobs@aitoolsfordoctor.com', 'info+abcdefghijklmnopqrstuvwxyz@x.com', 'jobs+short@x.com', 'jobs+ABC!defghijklmnopqrstuvwxyz@x.com', '', 'nonsense']) {
       expect(tokenFromAddress(bad), bad).toBeNull();
     }
   });
@@ -55,7 +55,7 @@ describe('forwarding address', () => {
 });
 
 describe('Gmail forwarding confirmation', () => {
-  const body = 'user@gmail.com has requested to automatically forward mail to your email address jobs+x@in.agilepartners-ai.com.\n\nConfirmation code: 482913607\n\nTo allow user@gmail.com to automatically forward mail to your address, please click the link below to confirm the request:\nhttps://mail-settings.google.com/mail/vf-%5BANGjdJ8abc%5D-xyz\n\nThanks, The Gmail Team';
+  const body = 'user@gmail.com has requested to automatically forward mail to your email address jobs+x@aitoolsfordoctor.com.\n\nConfirmation code: 482913607\n\nTo allow user@gmail.com to automatically forward mail to your address, please click the link below to confirm the request:\nhttps://mail-settings.google.com/mail/vf-%5BANGjdJ8abc%5D-xyz\n\nThanks, The Gmail Team';
 
   it('finds the code and the link', () => {
     expect(detectForwardingConfirmation({ fromAddress: 'forwarding-noreply@google.com', subject: 'Gmail Forwarding Confirmation - Receive Mail from user@gmail.com', text: body })).toEqual({ code: '482913607', link: 'https://mail-settings.google.com/mail/vf-%5BANGjdJ8abc%5D-xyz' });

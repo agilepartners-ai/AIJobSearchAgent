@@ -32,6 +32,9 @@
     "NEXT_PUBLIC_SITE_URL": "https://agilepartners-ai.com",
     // The VM service that runs generation, behind a Cloudflare Tunnel. Leave unset until the tunnel exists:
     // with no origin, generation answers 503 instead of running inside the Worker's CPU limit.
-    "GENERATE_ORIGIN": "https://gen.agilepartners-ai.com"
+    "GENERATE_ORIGIN": "https://gen.agilepartners-ai.com",
+    // Forwarded job emails: shows the user their address in the dashboard (see docs/GMAIL_SETUP_AND_COSTS.md, section 8).
+    "INBOUND_ENABLED": "1",
+    "INBOUND_DOMAIN": "aitoolsfordoctor.com"
   }
 }

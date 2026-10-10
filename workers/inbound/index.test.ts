@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import worker, { handleEmail, MAX_RAW_BYTES, type Env, type InboundMessage } from './index';
 
 const env: Env = { INBOUND_ORIGIN: 'https://gen.example/', INBOUND_SECRET: 'shared-secret-0123456789' };
-const TO = 'jobs+abcdefghijklmnopqrstuvwxyz@in.agilepartners-ai.com';
+const TO = 'jobs+abcdefghijklmnopqrstuvwxyz@aitoolsfordoctor.com';
 
 function msg(over: Partial<InboundMessage> = {}, body = 'From: a@b.c\r\n\r\nhello'): InboundMessage & { rejected?: string } {
   const bytes = new TextEncoder().encode(body);
@@ -34,7 +34,7 @@ describe('inbound email worker', () => {
 
   it('rejects, without calling the VM, an address that is not a forwarding address', async () => {
     const f = ok();
-    for (const to of ['info@in.agilepartners-ai.com', 'jobs@in.agilepartners-ai.com', 'jobs+short@in.agilepartners-ai.com']) {
+    for (const to of ['info@aitoolsfordoctor.com', 'jobs@aitoolsfordoctor.com', 'jobs+short@aitoolsfordoctor.com']) {
       const m = msg({ to });
       expect(await handleEmail(m, env, f as unknown as typeof fetch)).toBe('rejected');
       expect(m.rejected).toBe('Unknown address');
