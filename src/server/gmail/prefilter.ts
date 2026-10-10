@@ -19,7 +19,7 @@ export const ATS_DOMAINS: Record<string, string> = {
 };
 
 const APPLICATION = /\b(your application|you applied|applied (for|to)|application (received|submitted|status|update|was sent)|thank(s| you) for (applying|your interest|your application)|interview|assessment|coding (challenge|test)|online test|take-?home|next steps|offer (letter|of employment)|we('| a)?re pleased to offer|unfortunately|not (be )?moving forward|move forward with other|regret to inform|candidate|recruiter|hiring (team|manager)|position|opening|application for)\b/i;
-const ALERT = /\b(jobs? (for you|alert|recommendations?|you may like|matching)|new jobs?|recommended jobs?|similar jobs?|jobs? near|top jobs?|weekly digest|job picks|hiring now|\d+\+? (new )?jobs?)\b/i;
+const ALERT = /\b(jobs? (for you|alert|recommendations?|you may like|matching|picks)|new jobs?|recommended jobs?|similar jobs?|jobs? near|top jobs?|weekly digest|job picks|hiring now|\d+\+? (more |new )*jobs?|is hiring|are hiring|jobs? you (may|might) (like|be interested)|early applicant)\b/i;
 const NOT_JOB = /\b(receipt|invoice|order (confirmation|#)|your order|shipping|delivered|password|verification code|security alert|sign-?in|bank|statement|payment|subscription|newsletter|webinar|unsubscribe)\b/i;
 
 export interface PrefilterResult {
@@ -27,6 +27,8 @@ export interface PrefilterResult {
   reason: string;
   /** Short board/ATS label from the sender, e.g. "greenhouse". */
   board: string | null;
+  /** A list of recommended jobs (not an application): handled by digest.ts, as suggestions. */
+  digest?: boolean;
 }
 
 export function boardFor(domain: string): string | null {
@@ -42,7 +44,7 @@ export function prefilter(meta: Pick<MessageMeta, 'fromDomain' | 'subject' | 'sn
 
   // A digest of recommended jobs is not an application, even from a job board.
   if (ALERT.test(meta.subject) && !/\b(your application|you applied|interview|assessment|unfortunately|offer)\b/i.test(meta.subject)) {
-    return { candidate: false, reason: 'job alert digest', board };
+    return { candidate: false, reason: 'job alert digest', board, digest: true };
   }
   if (board && application) return { candidate: true, reason: 'job board or ATS sender with application wording', board };
   if (board) return { candidate: true, reason: 'job board or ATS sender', board };

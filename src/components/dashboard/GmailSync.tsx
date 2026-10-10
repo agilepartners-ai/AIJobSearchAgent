@@ -66,15 +66,38 @@ function when(iso?: string | null): string {
   return `${Math.round(m / 1440)} d ago`;
 }
 
+const DONE_KEY = 'ajsa-forward-setup-done';
+
 function ForwardPanel({ inbound, onRotate }: { inbound: Inbound | null; onRotate: () => void }) {
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    try { setDone(localStorage.getItem(DONE_KEY) === '1'); } catch { /* private mode: show the steps */ }
+  }, []);
+  const setFinished = (v: boolean) => {
+    setDone(v);
+    try { v ? localStorage.setItem(DONE_KEY, '1') : localStorage.removeItem(DONE_KEY); } catch { /* ignore */ }
+  };
   if (!inbound?.address) return <p className="text-slate-500">Loading your address…</p>;
   const got = (inbound.receivedTotal ?? 0) > 0;
+  if (done) {
+    return (
+      <>
+        <p className="font-semibold text-slate-900 dark:text-white">Email forwarding is set up</p>
+        <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{inbound.receivedTotal ?? 0} email{inbound.receivedTotal === 1 ? '' : 's'} received{inbound.lastReceivedAt ? `, last ${when(inbound.lastReceivedAt)}` : ''}. Job emails are added on their own, and recommended jobs show as <b>Suggested</b>.</p>
+        <div className="mt-3 flex items-center gap-2 rounded-lg bg-slate-50 p-2 dark:bg-slate-800">
+          <code className="min-w-0 flex-1 select-all break-all text-xs text-slate-800 dark:text-slate-100">{inbound.address}</code>
+          <CopyButton text={inbound.address} label="Copy your forwarding address" />
+        </div>
+        <button type="button" onClick={() => setFinished(false)} className="mt-3 text-xs text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">Show the setup steps again</button>
+      </>
+    );
+  }
   const step = 'flex gap-2.5';
   const num = 'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-semibold text-indigo-700 dark:bg-indigo-400/20 dark:text-indigo-200';
   return (
     <>
       <p className="font-semibold text-slate-900 dark:text-white">Forward job emails here</p>
-      <p className="mt-1.5 text-slate-600 dark:text-slate-300">No Google permission needed, and it works with Outlook and Yahoo too. Gmail forwards only the emails you choose, and we add them to your board.</p>
+      <p className="mt-1.5 text-slate-600 dark:text-slate-300">No Google permission needed, and it works with Outlook and Yahoo too. Gmail forwards only the emails your filter matches, never your whole inbox. Applications update your board, and recommended jobs from LinkedIn, Indeed and others show up as Suggested.</p>
 
       <div className="mt-3 flex items-center gap-2 rounded-lg bg-slate-50 p-2 dark:bg-slate-800">
         <code className="min-w-0 flex-1 select-all break-all text-xs text-slate-800 dark:text-slate-100">{inbound.address}</code>
@@ -100,7 +123,7 @@ function ForwardPanel({ inbound, onRotate }: { inbound: Inbound | null; onRotate
         <li className={step}>
           <span className={num}>3</span>
           <span>
-            <b>Create a filter</b> so only job mail is sent: in Gmail search paste the query below, choose <b>Create filter → Forward it to</b> your new address.
+            <b>Create a filter</b> (this is what keeps your inbox private: only job mail is sent). In Gmail's search box open the options arrow, paste the text below into <b>Has the words</b>, click <b>Create filter</b>, tick <b>Forward it to</b> your new address. Leave the <i>Forwarding</i> page itself on "Disable forwarding".
             <span className="mt-1 flex items-start gap-2"><code className="min-w-0 flex-1 select-all break-words rounded bg-slate-50 p-1.5 text-[11px] dark:bg-slate-800">{inbound.filterQuery}</code><CopyButton text={inbound.filterQuery ?? ''} label="Copy the Gmail filter query" /></span>
           </span>
         </li>
@@ -113,6 +136,7 @@ function ForwardPanel({ inbound, onRotate }: { inbound: Inbound | null; onRotate
         <li>Email text is not stored; only the job details we pull out.</li>
         <li>Treat the address like a password. If it leaks, make a new one.</li>
       </ul>
+      <button type="button" onClick={() => setFinished(true)} className="mt-3 w-full rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-500">I finished the setup, hide these steps</button>
       <button type="button" onClick={onRotate} className="mt-2 text-xs text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">Make a new address</button>
     </>
   );

@@ -250,6 +250,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                       <span className="flex items-start justify-between gap-2">
                         <span className="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-white/95">{a.position || 'Untitled role'}</span>
                         <span className="mt-0.5 flex shrink-0 items-center gap-1">
+                          {a.source?.startsWith('suggestion:') && <span title="Recommended in a job-alert email. Not an application yet." className="rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:bg-sky-400/[0.14] dark:text-sky-300">Suggested</span>}
                           {a.needs_review && <span title="Read from an email the AI was not sure about. Check the details." className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-400/[0.14] dark:text-amber-300">Review</span>}
                           <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS[status].chip}`}>{STATUS[status].label}</span>
                         </span>
@@ -284,7 +285,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                     </p>
                     <p className="mt-1 text-xs text-slate-500 dark:text-white/40">
                       Added {ago(selected.application_date || selected.created_at) || 'recently'}
-                      {selected.source && ` · via ${selected.source.replace(/^gmail:/, 'Gmail · ').replace(/_/g, ' ')}`}
+                      {selected.source && ` · via ${selected.source.replace(/^gmail:/, 'Gmail · ').replace(/^suggestion:/, 'recommended by ').replace(/_/g, ' ')}`}
                       {selected.needs_review && ' · please check the details, the AI was not sure'}
                     </p>
                   </div>

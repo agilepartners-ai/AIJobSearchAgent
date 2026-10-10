@@ -163,3 +163,20 @@ What the user does (the dashboard shows these steps with their own address and a
 Limits and safety: messages over 1.5 MB are rejected; 200 emails per address per day; 150 model calls per user per day; the address contains a 26-character secret and can be replaced with one click; nothing from the email body is stored.
 
 Cost of path A: Cloudflare Email Routing and Email Workers are free; the only cost is the model (section 5), the same as path B.
+
+## 9. Recommended jobs, backfill and the filter (added 2026-10-11)
+
+**Two kinds of email, handled differently**
+
+| Email | What happens | Model use |
+| --- | --- | --- |
+| Application mail (confirmation, interview, assessment, offer, rejection) | Creates or updates a row, status moves forward only | One call per email |
+| Recommended-jobs mail (LinkedIn, Indeed, Glassdoor, Naukri, Wellfound ... "12 new jobs for you") | Every job becomes a **Suggested** row, status "To apply", with its job link | **One call per email**, not per job |
+
+Why a model at all, and why not a vector database: pulling "company, role, city, link" out of a digest is extraction, not search. Keyword matching cannot find which words are the company, and embeddings only rank similar text. So the job **links** come from fixed rules per board (tracking removed, one clean URL per job, nothing the model can invent), and the model only reads the title, company and location printed next to each numbered link. Measured on a LinkedIn-style digest: about 430 input and 170 output tokens, roughly $0.0006 per email, and 10 digests cost about 0.6 cent. If the model is unavailable the link text is used and the rows are flagged for review.
+
+Safeguards: a suggestion never changes an application; a job already on the board (same link, or same company and role) is skipped; at most 25 jobs per email and 100 suggestions per day.
+
+**Filter.** The Gmail filter is by sender and subject, across all tabs (Updates, Promotions, Social), not only Updates. It forwards only job mail: job-board senders with job words in the subject, plus applicant-tracking systems with application words. Never turn on the global "Forward a copy of incoming mail", which forwards everything.
+
+**Old emails.** A Gmail filter acts only on mail that arrives after it is created. To bring in old mail once, select them in Gmail, open the three dots, choose **Forward as attachment** and send to your address (up to 100 per message, about 150 reads per day).

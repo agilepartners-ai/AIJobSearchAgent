@@ -21,6 +21,15 @@ describe('prefilter', () => {
     expect(prefilter(meta('acme.example', 'Next steps', 'We would like to schedule your interview')).candidate).toBe(true);
   });
 
+  it('recognises recommended-jobs emails as digests, for suggestions, and not as applications', () => {
+    for (const subject of ['Data Analyst: Acme and 9 more new jobs', 'Senior BI Developer at Globex is hiring', '12 new jobs for you', 'Jobs you may be interested in', 'Be an early applicant: Analyst at Foo']) {
+      const v = prefilter(meta('linkedin.com', subject));
+      expect(v.digest, subject).toBe(true);
+      expect(v.candidate, subject).toBe(false);
+    }
+    expect(prefilter(meta('greenhouse.io', 'Thank you for applying to Acme')).digest).toBeUndefined();
+  });
+
   it('drops job-alert digests even from a job board', () => {
     expect(prefilter(meta('linkedin.com', '12 new jobs for you: data analyst')).candidate).toBe(false);
     expect(prefilter(meta('indeed.com', 'Jobs matching your alert')).candidate).toBe(false);

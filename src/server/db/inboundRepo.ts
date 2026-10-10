@@ -87,3 +87,19 @@ export async function recordMessage(userId: string, r: Omit<LedgerRow, never>): 
     [userId, r.messageId, r.threadId, r.receivedAt, r.senderDomain, r.outcome, r.emailType ?? null, r.confidence ?? null, r.applicationId ?? null],
   );
 }
+
+/** Suggested jobs added today (UTC): the cap that keeps a noisy alert feed from flooding the board. */
+export async function suggestionsToday(userId: string): Promise<number> {
+  const { rows } = await query<{ n: number }>(
+    `SELECT count(*)::int AS n FROM app.job_applications WHERE user_id = $1 AND source LIKE 'suggestion:%' AND created_at >= date_trunc('day', now() AT TIME ZONE 'utc') AT TIME ZONE 'utc'`,
+    [userId],
+  );
+  return rows[0]?.n ?? 0;
+}
+
+/** Job links the user already has, so a recommendation never duplicates a job on the board. */
+export async function knownJobUrls(userId: string, urls: string[]): Promise<Set<string>> {
+  if (!urls.length) return new Set();
+  const { rows } = await query<{ job_posting_url: string }>('SELECT job_posting_url FROM app.job_applications WHERE user_id = $1 AND job_posting_url = ANY($2::text[])', [userId, urls]);
+  return new Set(rows.map((r) => r.job_posting_url));
+}

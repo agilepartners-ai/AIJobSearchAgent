@@ -4,8 +4,9 @@
  */
 import { createHash, timingSafeEqual } from 'node:crypto';
 import PostalMime from 'postal-mime';
-import { extractFromMail, type ExtractResult } from './extract';
-import { planMerge, REVIEW_THRESHOLD, type ExistingApp, type Patch } from './merge';
+import { defaultGenerate, extractFromMail, type ExtractResult } from './extract';
+import { MAX_SUGGESTIONS_PER_DAY, readDigest, type DigestRead } from './digest';
+import { findMatch, planMerge, REVIEW_THRESHOLD, type ExistingApp, type Patch } from './merge';
 import { htmlToText, type ParsedMail } from './messages';
 import { boardFor, prefilter } from './prefilter';
 import * as repo from '../db/inboundRepo';
@@ -77,12 +78,14 @@ function toParsedMail(e: Email, raw: Uint8Array, receivedAt: Date): ParsedMail {
 }
 
 export interface InboundDeps {
-  repo: Pick<typeof repo, 'userForToken' | 'receivedToday' | 'aiCallsToday' | 'noteReceived' | 'saveConfirmation' | 'seen' | 'recordMessage' | 'appsForMerge' | 'insertApplication' | 'patchApplication'>;
+  repo: Pick<typeof repo, 'userForToken' | 'receivedToday' | 'aiCallsToday' | 'suggestionsToday' | 'knownJobUrls' | 'noteReceived' | 'saveConfirmation' | 'seen' | 'recordMessage' | 'appsForMerge' | 'insertApplication' | 'patchApplication'>;
   extract: (mail: ParsedMail) => Promise<ExtractResult>;
+  /** Reads a recommended-jobs email into suggested jobs. */
+  digest: (mail: ParsedMail) => Promise<DigestRead>;
   now: () => Date;
 }
 
-export const realInboundDeps: InboundDeps = { repo, extract: (m) => extractFromMail(m), now: () => new Date() };
+export const realInboundDeps: InboundDeps = { repo, extract: (m) => extractFromMail(m), digest: (m) => readDigest(m, defaultGenerate()), now: () => new Date() };
 
 export type InboundResult =
   | { status: 'unknown_address' }
@@ -94,6 +97,7 @@ export type InboundResult =
   | { status: 'not_job' }
   | { status: 'error'; reason: string }
   | { status: 'created' | 'updated'; applicationId: string; needsReview: boolean }
+  | { status: 'suggested'; added: number; known: number; links: number }
   | { status: 'accepted'; total: number }
   | { status: 'bundle'; total: number; created: number; updated: number; skipped: number; notJob: number; duplicate: number; errors: number; rateLimited: number };
 
@@ -104,6 +108,7 @@ async function processMail(userId: string, mail: ParsedMail, deps: InboundDeps):
   const ledger = { messageId: mail.id, threadId: mail.threadId, receivedAt: mail.receivedAt, senderDomain: mail.fromDomain };
   // A forwarded email's sender is the original sender (the job board), so the same cheap filter applies.
   const verdict = prefilter({ fromDomain: mail.fromDomain, subject: mail.subject, snippet: mail.text.slice(0, 200) });
+  if (verdict.digest) return processDigest(userId, mail, ledger, deps);
   if (!verdict.candidate) {
     await deps.repo.recordMessage(userId, { ...ledger, outcome: 'skipped' });
     return { status: 'skipped', reason: verdict.reason };
@@ -137,6 +142,45 @@ async function processMail(userId: string, mail: ParsedMail, deps: InboundDeps):
  * `background`: when given, a bundle is answered at once ("accepted") and read afterwards, because 100 emails take minutes and the
  * mail system waiting on us would time out and send them again. Without it the bundle is read first (used by tests).
  */
+/**
+ * A recommended-jobs email: every job link becomes a "Suggested" row (status "To apply"), unless that job, or the same
+ * company and role, is already on the board. These are not applications, so they never change an existing row's status.
+ */
+async function processDigest(userId: string, mail: ParsedMail, ledger: { messageId: string; threadId: string; receivedAt: Date; senderDomain: string }, deps: InboundDeps): Promise<InboundResult> {
+  if ((await deps.repo.suggestionsToday(userId)) >= MAX_SUGGESTIONS_PER_DAY) return { status: 'rate_limited' };
+  if ((await deps.repo.aiCallsToday(userId)) >= AI_PER_DAY) return { status: 'rate_limited' };
+
+  const read = await deps.digest(mail);
+  const known = await deps.repo.knownJobUrls(userId, read.jobs.map((j) => j.url));
+  const apps: ExistingApp[] = await deps.repo.appsForMerge(userId);
+  let added = 0;
+  let skippedKnown = 0;
+  const day = mail.receivedAt.toISOString().slice(0, 10);
+  for (const job of read.jobs) {
+    if (known.has(job.url) || findMatch(apps, '', job.company, job.title).match) {
+      skippedKnown += 1;
+      continue;
+    }
+    const fields: Patch = {
+      company_name: job.company,
+      position: job.title,
+      status: 'not_applied',
+      application_date: day,
+      location: job.location,
+      job_posting_url: job.url,
+      notes: `Suggested by ${job.board} in an email on ${day}. Open the link to read and apply.`,
+      source: `suggestion:${job.board}`,
+      priority: 1,
+      confidence: read.usedFallback ? 0.5 : 0.85,
+    };
+    const id = await deps.repo.insertApplication(userId, fields, read.usedFallback);
+    apps.unshift({ id, ...(fields as object), needs_review: read.usedFallback, status_history: [], gmail_thread_id: null } as unknown as ExistingApp);
+    added += 1;
+  }
+  await deps.repo.recordMessage(userId, { ...ledger, outcome: 'job', emailType: 'job_alert' });
+  return { status: 'suggested', added, known: skippedKnown, links: read.jobs.length };
+}
+
 export async function handleInbound(token: string, raw: Uint8Array, deps: InboundDeps = realInboundDeps, background?: (work: Promise<unknown>) => void): Promise<InboundResult> {
   if (raw.byteLength > MAX_RAW_BYTES) return { status: 'too_large' };
   const userId = await deps.repo.userForToken(token);

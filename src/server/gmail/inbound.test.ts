@@ -3,6 +3,7 @@ import type { Extraction } from './extract';
 import { FIXTURES, type Fixture } from './fixtures';
 import { AI_PER_DAY, detectForwardingConfirmation, handleInbound, MAX_PER_DAY, MAX_RAW_BYTES, parseRaw, secretsMatch, type InboundDeps } from './inbound';
 import type { ExistingApp } from './merge';
+import { MAX_SUGGESTIONS_PER_DAY, type DigestRead } from './digest';
 import { addressFor, newToken, tokenFromAddress } from './tokens';
 
 const enc = (s: string) => new TextEncoder().encode(s);
@@ -117,15 +118,17 @@ const ex = (over: Partial<Extraction>): Extraction => ({
   application_date: null, event_date: null, deadline: null, job_url: null, portal_url: null, recruiter_name: null, recruiter_email: null, summary: 'ok', confidence: 0.95, ...over,
 });
 
-function world(opts: { received?: number; ai?: number; model?: Extraction | null; modelError?: string } = {}) {
+function world(opts: { received?: number; ai?: number; suggestions?: number; digest?: DigestRead; model?: Extraction | null; modelError?: string } = {}) {
   const apps: ExistingApp[] = [];
   const ledger = new Map<string, { outcome: string; channel?: string }>();
-  const log = { confirmation: null as null | { code: string | null; link: string | null }, noted: 0, extractCalls: 0, rows: 0 };
+  const log = { confirmation: null as null | { code: string | null; link: string | null }, noted: 0, extractCalls: 0, digestCalls: 0, rows: 0 };
   const deps: InboundDeps = {
     repo: {
       userForToken: async (t) => (t === TOKEN ? 'user-1' : null),
       receivedToday: async () => opts.received ?? 0,
       aiCallsToday: async () => opts.ai ?? 0,
+      suggestionsToday: async () => opts.suggestions ?? 0,
+      knownJobUrls: async (_u, urls) => new Set(apps.map((a) => a.job_posting_url).filter((u): u is string => !!u && urls.includes(u))),
       noteReceived: async () => { log.noted += 1; },
       saveConfirmation: async (_u, c) => { log.confirmation = c; },
       seen: async (_u, id) => ledger.has(id) && ledger.get(id)!.outcome !== 'error',
@@ -134,6 +137,7 @@ function world(opts: { received?: number; ai?: number; model?: Extraction | null
       insertApplication: async (_u, fields, needsReview) => { log.rows += 1; const id = `app-${log.rows}`; apps.push({ id, ...(fields as object), needs_review: needsReview } as unknown as ExistingApp); return id; },
       patchApplication: async (_u, id, fields) => { Object.assign(apps.find((a) => a.id === id)!, fields); },
     },
+    digest: async () => { log.digestCalls += 1; return opts.digest ?? { jobs: [], usedFallback: false }; },
     extract: async () => { log.extractCalls += 1; return opts.model ? { extraction: opts.model } : { extraction: null, error: opts.modelError ?? 'bad' }; },
     now: () => new Date('2026-10-10T00:00:00Z'),
   };
@@ -251,14 +255,62 @@ describe('handleInbound', () => {
     expect(w.log.extractCalls + flooded.log.extractCalls).toBe(0);
   });
 
-  it('filters receipts and alert digests before the model, and records them so they are not re-read', async () => {
+  it('filters receipts before the model, and records them so they are not re-read', async () => {
     const w = world({ model });
-    const alert = FIXTURES.find((f) => f.name.startsWith('Job alert'))!;
     const receipt = FIXTURES.find((f) => f.name.startsWith('Receipt'))!;
-    expect((await handleInbound(TOKEN, rawOf(alert), w.deps)).status).toBe('skipped');
     expect((await handleInbound(TOKEN, rawOf(receipt), w.deps)).status).toBe('skipped');
-    expect(w.log.extractCalls).toBe(0);
-    expect(Array.from(w.ledger.values()).every((l) => l.outcome === 'skipped')).toBe(true);
+    expect(w.log.extractCalls + w.log.digestCalls).toBe(0);
+    expect(w.ledger.get(Array.from(w.ledger.keys())[0])?.outcome).toBe('skipped');
+  });
+
+  describe('recommended jobs (job-alert emails)', () => {
+    const alert = () => FIXTURES.find((f) => f.name.startsWith('Job alert'))!;
+    const read: DigestRead = {
+      usedFallback: false,
+      jobs: [
+        { url: 'https://www.linkedin.com/jobs/view/1000000001', board: 'linkedin', title: 'Data Analyst', company: 'Acme', location: 'Bengaluru' },
+        { url: 'https://www.linkedin.com/jobs/view/1000000002', board: 'linkedin', title: 'BI Developer', company: 'Globex', location: 'Remote' },
+      ],
+    };
+
+    it('adds each recommended job as a To-apply suggestion with its link, using one model call for the whole email', async () => {
+      const w = world({ digest: read });
+      const r = await handleInbound(TOKEN, rawOf(alert()), w.deps);
+      expect(r).toEqual({ status: 'suggested', added: 2, known: 0, links: 2 });
+      expect(w.log.digestCalls).toBe(1);
+      expect(w.log.extractCalls).toBe(0);
+      expect(w.apps.map((a) => { const r = a as unknown as Record<string, unknown>; return [r.company_name, r.position, r.status, r.source, r.job_posting_url]; })).toEqual([
+        ['Acme', 'Data Analyst', 'not_applied', 'suggestion:linkedin', 'https://www.linkedin.com/jobs/view/1000000001'],
+        ['Globex', 'BI Developer', 'not_applied', 'suggestion:linkedin', 'https://www.linkedin.com/jobs/view/1000000002'],
+      ]);
+    });
+
+    it('does not suggest a job that is already on the board (same link, or same company and role)', async () => {
+      const w = world({ digest: read });
+      w.apps.push({ id: 'old', company_name: 'Acme Inc', position: 'Data Analyst', status: 'applied', gmail_thread_id: null, status_history: [], job_posting_url: 'https://elsewhere.example/1' } as unknown as ExistingApp);
+      const r = await handleInbound(TOKEN, rawOf(alert()), w.deps);
+      expect(r).toMatchObject({ status: 'suggested', added: 1, known: 1 });
+      expect(w.apps.find((a) => a.id === 'old')!.status).toBe('applied'); // a suggestion never changes an application
+    });
+
+    it('is safe to send twice', async () => {
+      const w = world({ digest: read });
+      await handleInbound(TOKEN, rawOf(alert()), w.deps);
+      expect((await handleInbound(TOKEN, rawOf(alert()), w.deps)).status).toBe('duplicate');
+      expect(w.apps).toHaveLength(2);
+    });
+
+    it('stops at the daily suggestion cap', async () => {
+      const w = world({ digest: read, suggestions: MAX_SUGGESTIONS_PER_DAY });
+      expect((await handleInbound(TOKEN, rawOf(alert()), w.deps)).status).toBe('rate_limited');
+      expect(w.log.digestCalls).toBe(0);
+    });
+
+    it('marks suggestions made without the model (link text only) for review', async () => {
+      const w = world({ digest: { ...read, usedFallback: true } });
+      await handleInbound(TOKEN, rawOf(alert()), w.deps);
+      expect(w.apps.every((a) => a.needs_review)).toBe(true);
+    });
   });
 
   it('stops calling the model once the per-user daily budget is spent', async () => {
