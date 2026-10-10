@@ -1,5 +1,5 @@
 import { route } from '../../../server/api';
-import { gmailGuard, requireEnabled } from '../../../server/gmail/http';
+import { gmailGuard, requireConnectEnabled } from '../../../server/gmail/http';
 import { signState } from '../../../server/gmail/crypto';
 import { buildAuthUrl } from '../../../server/gmail/oauth';
 
@@ -7,7 +7,7 @@ import { buildAuthUrl } from '../../../server/gmail/oauth';
 export default route('gmail-connect', {
   POST: ({ userId, email }) =>
     gmailGuard(async () => {
-      requireEnabled();
+      requireConnectEnabled();
       return { url: buildAuthUrl(await signState(userId), email ?? undefined) };
     }),
 });

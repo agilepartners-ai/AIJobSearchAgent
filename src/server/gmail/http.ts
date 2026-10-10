@@ -1,6 +1,6 @@
 import { HttpError } from '../api';
 import { GmailConfigError } from './crypto';
-import { GoogleAuthError, gmailEnabled } from './oauth';
+import { GoogleAuthError, gmailConnectEnabled, gmailEnabled } from './oauth';
 import { NotConnectedError, ReconnectNeededError, TooSoonError } from './sync';
 
 /** Turns the Gmail errors into the HTTP answers the browser can show to a person. */
@@ -23,4 +23,9 @@ export async function gmailGuard<T>(fn: () => Promise<T>): Promise<T> {
 
 export function requireEnabled(): void {
   if (!gmailEnabled()) throw new HttpError(503, 'Gmail sync is not turned on for this site yet.');
+}
+
+/** Connect and status run on the Worker, which has no model key: they only need the Google client. */
+export function requireConnectEnabled(): void {
+  if (!gmailConnectEnabled()) throw new HttpError(503, 'Gmail sync is not turned on for this site yet.');
 }

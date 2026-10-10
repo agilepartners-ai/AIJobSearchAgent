@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildAuthUrl, emailFromIdToken, exchangeCode, GMAIL_SCOPE, gmailEnabled, gmailLlm, GoogleAuthError, refreshAccessToken } from './oauth';
+import { buildAuthUrl, emailFromIdToken, exchangeCode, GMAIL_SCOPE, gmailConnectEnabled, gmailEnabled, gmailLlm, inboundEnabled, inboundUiEnabled, GoogleAuthError, refreshAccessToken } from './oauth';
 
 const BASE = {
   GMAIL_SYNC_ENABLED: '1', GMAIL_GOOGLE_CLIENT_ID: 'cid', GMAIL_GOOGLE_CLIENT_SECRET: 'csecret',
@@ -33,6 +33,26 @@ describe('gmailEnabled', () => {
 
   it('an unknown value falls back to Gemini', () => {
     expect(gmailLlm({ GMAIL_LLM: 'something-else' })).toBe('gemini');
+  });
+});
+
+describe('what runs where', () => {
+  it('the Worker half (connect, callback, status) needs no model key, so the key never has to be on the public Worker', () => {
+    const noModel = { ...BASE };
+    expect(gmailConnectEnabled(noModel)).toBe(true);
+    expect(gmailEnabled(noModel)).toBe(false); // reading mail still needs the billed key, on the VM
+    expect(gmailConnectEnabled({ ...noModel, GMAIL_SYNC_ENABLED: undefined })).toBe(false);
+  });
+
+  it('forwarding: the dashboard half needs the switch and the domain, the VM half also the model and a strong shared secret', () => {
+    const ui = { INBOUND_ENABLED: '1', INBOUND_DOMAIN: 'in.agilepartners-ai.com' };
+    expect(inboundUiEnabled(ui)).toBe(true);
+    expect(inboundUiEnabled({ ...ui, INBOUND_DOMAIN: undefined })).toBe(false);
+    expect(inboundEnabled(ui)).toBe(false);
+    const vm = { ...ui, GEMINI_API_KEY: 'k', GEMINI_PAID_TIER: '1', INBOUND_SECRET: 'a-strong-shared-secret-123' };
+    expect(inboundEnabled(vm)).toBe(true);
+    expect(inboundEnabled({ ...vm, INBOUND_SECRET: 'short' })).toBe(false);
+    expect(inboundEnabled({ ...vm, GEMINI_PAID_TIER: '0' })).toBe(false); // never the free tier
   });
 });
 

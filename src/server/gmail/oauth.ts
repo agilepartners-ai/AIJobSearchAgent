@@ -30,13 +30,31 @@ export function gmailLlm(env: Record<string, string | undefined> = process.env):
  *    promises we do not allow, so the sync refuses to start without that statement.
  *  - workers-ai: Cloudflare does not use customer content for training; 10,000 neurons a day are free.
  */
+/** Is the model that reads mail text configured, and one that does not train on it? */
+export function llmReady(env: Record<string, string | undefined> = process.env): boolean {
+  return gmailLlm(env) === 'gemini' ? env.GEMINI_PAID_TIER === '1' && Boolean(env.GEMINI_API_KEY || env.GEMINI_API_KEYS) : Boolean(env.CF_AI_ACCOUNT_ID && env.CF_AI_TOKEN);
+}
+
+/**
+ * The browser-facing half (connect, callback, status) runs on the Worker, which must never hold the model key.
+ * It only needs the switch and the Google client. Reading mail (sync) needs `gmailEnabled`, and runs on the VM.
+ */
+export function gmailConnectEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  return env.GMAIL_SYNC_ENABLED === '1' && Boolean(env.GMAIL_GOOGLE_CLIENT_ID && env.GMAIL_GOOGLE_CLIENT_SECRET && env.GMAIL_TOKEN_KEY && env.GMAIL_STATE_SECRET && env.GMAIL_REDIRECT_URI);
+}
+
 export function gmailEnabled(env: Record<string, string | undefined> = process.env): boolean {
-  const llmReady = gmailLlm(env) === 'gemini' ? env.GEMINI_PAID_TIER === '1' && Boolean(env.GEMINI_API_KEY || env.GEMINI_API_KEYS) : Boolean(env.CF_AI_ACCOUNT_ID && env.CF_AI_TOKEN);
-  return (
-    env.GMAIL_SYNC_ENABLED === '1' &&
-    llmReady &&
-    Boolean(env.GMAIL_GOOGLE_CLIENT_ID && env.GMAIL_GOOGLE_CLIENT_SECRET && env.GMAIL_TOKEN_KEY && env.GMAIL_STATE_SECRET && env.GMAIL_REDIRECT_URI)
-  );
+  return gmailConnectEnabled(env) && llmReady(env);
+}
+
+/** The address and instructions shown in the dashboard (Worker side): the switch and the domain, no model key. */
+export function inboundUiEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  return env.INBOUND_ENABLED === '1' && Boolean(env.INBOUND_DOMAIN);
+}
+
+/** Forwarded-mail channel: needs no Google permission at all, only a model, a domain and a shared secret with the Email Worker. */
+export function inboundEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  return env.INBOUND_ENABLED === '1' && llmReady(env) && Boolean(env.INBOUND_DOMAIN && env.INBOUND_SECRET && env.INBOUND_SECRET.length >= 16);
 }
 
 function need(name: string): string {

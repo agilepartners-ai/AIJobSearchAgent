@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { encryptToken, verifyState } from '../../../server/gmail/crypto';
-import { exchangeCode, gmailEnabled, GoogleAuthError } from '../../../server/gmail/oauth';
+import { exchangeCode, gmailConnectEnabled, GoogleAuthError } from '../../../server/gmail/oauth';
 import { saveConnection } from '../../../server/db/gmailRepo';
 
 /**
@@ -15,7 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.redirect(302, `/dashboard?${q.toString()}`);
   };
   try {
-    if (!gmailEnabled()) return back('error', 'not_enabled');
+    if (!gmailConnectEnabled()) return back('error', 'not_enabled');
     if (typeof req.query.error === 'string') return back('error', req.query.error === 'access_denied' ? 'denied' : 'google');
     const code = typeof req.query.code === 'string' ? req.query.code : '';
     const state = typeof req.query.state === 'string' ? await verifyState(req.query.state) : null;

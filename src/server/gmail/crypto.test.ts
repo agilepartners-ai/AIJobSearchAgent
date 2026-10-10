@@ -26,7 +26,7 @@ describe('refresh token encryption', () => {
   });
 
   it('rejects a missing, short or malformed key and an unknown format', async () => {
-    await expect(encryptToken('x', undefined)).rejects.toBeInstanceOf(GmailConfigError);
+    await expect(encryptToken('x', '')).rejects.toBeInstanceOf(GmailConfigError);
     await expect(encryptToken('x', toBase64Url(new Uint8Array(16)))).rejects.toBeInstanceOf(GmailConfigError);
     await expect(decryptToken('v9.a.b', KEY)).rejects.toBeInstanceOf(GmailConfigError);
   });

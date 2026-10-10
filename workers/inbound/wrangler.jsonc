@@ -1,0 +1,17 @@
+{
+  // Deploy into the account that owns the domain (see the Cloudflare deploy skill):
+  //   pnpm exec wrangler deploy --config workers/inbound/wrangler.jsonc
+  //   printf %s "$INBOUND_SECRET" | pnpm exec wrangler secret put INBOUND_SECRET --config workers/inbound/wrangler.jsonc
+  // Then, in the dashboard (Email Routing on the subdomain): rule jobs@in.<domain> -> Send to a Worker -> ajsa-inbound,
+  // with subaddressing turned on. Steps: docs/GMAIL_SETUP_AND_COSTS.md, section 8.
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "ajsa-inbound",
+  "main": "index.ts",
+  "compatibility_date": "2025-04-01",
+  "observability": { "enabled": true },
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {
+    "INBOUND_ORIGIN": "https://gen.agilepartners-ai.com"
+  }
+}

@@ -1,11 +1,11 @@
 import { route } from '../../../server/api';
-import { gmailEnabled } from '../../../server/gmail/oauth';
+import { gmailConnectEnabled } from '../../../server/gmail/oauth';
 import { getConnection, gmailStats } from '../../../server/db/gmailRepo';
 
 /** GET /api/gmail/status: whether the feature is on, whether this user connected, and the last sync. No secrets. */
 export default route('gmail-status', {
   GET: async ({ userId }) => {
-    if (!gmailEnabled()) return { enabled: false };
+    if (!gmailConnectEnabled()) return { enabled: false };
     const conn = await getConnection(userId);
     if (!conn) return { enabled: true, connected: false };
     const stats = await gmailStats(userId);

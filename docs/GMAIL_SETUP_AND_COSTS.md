@@ -3,7 +3,25 @@
 Companion to [GMAIL_JOB_SYNC_SCOPE.md](./GMAIL_JOB_SYNC_SCOPE.md) (design and references). This file answers three questions:
 what exists, what you must do in Google Cloud, and what it costs.
 
-## 1. Short answers
+## 0. Which way in? (read this first)
+
+There are two ways to get a user's job emails. They can run side by side.
+
+| | A. **Forward emails** (recommended for launch) | B. **Connect Gmail** (one click) |
+| --- | --- | --- |
+| Google permission | **None** | `gmail.readonly`, a **restricted** scope |
+| Google review needed | **No** | Verification now, then an **annual security assessment** to go public |
+| Cost to go commercial | **$0** (Cloudflare Email Routing is free) | Assessment fee, quoted from about $500 up to several thousand dollars a year (sources disagree; get lab quotes), plus the work to pass it |
+| Works for | Gmail, Outlook, Yahoo, any mail | Gmail only |
+| User effort | One-time setup, about 2 minutes (paste an address, one filter) | One click |
+| How many users | Unlimited, no Google cap | 100 test users until verified |
+| Automatic after setup | Yes, as mail arrives | Yes, daily and on demand |
+
+How the "plugins and MCPs" do it: Claude's Gmail connector, and every product that reads Gmail, sign users in through an OAuth app that the vendor registered and had **Google verify, including the security assessment**. Open-source MCP servers skip that by running in *your own* Google project in Testing mode (your account only, tokens expire in 7 days). There is no free shortcut around Google's rule for reading Gmail through its API; the free route is to not use the Gmail API, which is path A. Another route, Gmail add-ons, uses a *sensitive* scope that needs no assessment, but it works only while the user has an email open, so it cannot fill a board by itself.
+
+**Recommendation for a commercial product:** launch with A (works for everyone, no Google review, $0). Add B later as a convenience when revenue covers the assessment; the code for B is already built.
+
+## 1. Short answers (for path B, Connect Gmail)
 
 | Question | Answer |
 | --- | --- |
@@ -124,3 +142,21 @@ Steady state is about 5 candidate emails per user per day after the filter. The 
 - [ ] Gemini key shows **Paid** in AI Studio, so `GEMINI_PAID_TIER=1`
 - [ ] Random keys generated and set (`GMAIL_TOKEN_KEY`, `GMAIL_STATE_SECRET`, `GMAIL_CRON_SECRET`)
 - [ ] Tell Claude: it deploys the Worker and VM service, sets the secrets, sets the daily trigger and runs a first sync with you
+
+## 8. Forwarding setup (path A): what to do once
+
+Nothing in Google Cloud. Three things, about 15 minutes. Steps 1 and 2 are in Anish's Cloudflare account (the teammate guide below has the click path).
+
+1. **Turn on Email Routing for a subdomain.** Use `in.agilepartners-ai.com`, not the main domain: the main domain's mail records belong to Zoho and must not change. Cloudflare adds the subdomain's own mail records itself.
+   - Dashboard: the domain > Email > Email Routing > Settings > **Subdomains** > add `in`. Wait for the DNS records to appear.
+   - Same page: turn on **Subaddressing**, so `jobs+anything@in.agilepartners-ai.com` reaches the rule for `jobs@in.agilepartners-ai.com`.
+2. **Create one rule**: Custom address `jobs` at `in.agilepartners-ai.com` > Action **Send to a Worker** > `ajsa-inbound`. (Catch-all does not exist on subdomains, so one literal rule plus subaddressing is how a single rule serves every user.)
+3. **Tell me.** I deploy the Worker (`ajsa-inbound`) and the VM service, set `INBOUND_SECRET`, and test with a real forwarded email.
+
+Settings (VM `ajsa.env`, and as Worker variables for the web app): `INBOUND_ENABLED=1`, `INBOUND_DOMAIN=in.agilepartners-ai.com`, `INBOUND_SECRET` (24+ random characters, VM and the `ajsa-inbound` Worker only). The model must be the billed Gemini key (`GEMINI_PAID_TIER=1`), same as above.
+
+What the user does (the dashboard shows these steps with their own address and a Copy button): in Gmail, add the forwarding address; Google sends a confirmation to it and the dashboard shows the code; then create a filter with the shown search and "Forward it to" the address. After that every matching email arrives on its own.
+
+Limits and safety: messages over 1.5 MB are rejected; 200 emails per address per day; 150 model calls per user per day; the address contains a 26-character secret and can be replaced with one click; nothing from the email body is stored.
+
+Cost of path A: Cloudflare Email Routing and Email Workers are free; the only cost is the model (section 5), the same as path B.

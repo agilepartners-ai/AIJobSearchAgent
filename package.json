@@ -59,6 +59,7 @@
     "node-fetch": "^3.3.2",
     "pdfjs-dist": "^4.2.67",
     "pg": "^8.23.1",
+    "postal-mime": "^4.0.5",
     "react": "^18.3.1",
     "react-colorful": "^5.8.1",
     "react-dom": "^18.3.1",
