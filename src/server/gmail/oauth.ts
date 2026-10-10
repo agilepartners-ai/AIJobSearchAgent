@@ -18,14 +18,17 @@ export class GoogleAuthError extends Error {
 
 export type GmailLlm = 'workers-ai' | 'gemini';
 
+/** Gemini (the same AI Studio key as résumé generation) unless GMAIL_LLM=workers-ai asks for the Cloudflare model. */
 export function gmailLlm(env: Record<string, string | undefined> = process.env): GmailLlm {
-  return env.GMAIL_LLM === 'gemini' ? 'gemini' : 'workers-ai';
+  return env.GMAIL_LLM === 'workers-ai' ? 'workers-ai' : 'gemini';
 }
 
 /**
  * Mail text goes to a model, so only providers that do not train on it or let humans read it are allowed:
- *  - workers-ai (default): Cloudflare does not use customer content for training; 10,000 neurons a day are free.
- *  - gemini: only on a billed project. Unpaid-tier calls are used to improve Google products and can be read by reviewers.
+ *  - gemini (default, the key already used for résumés): GEMINI_PAID_TIER=1 is the owner's statement that the key is on a billed
+ *    project. Unpaid-tier calls are used to improve Google products and can be read by reviewers, which the privacy text
+ *    promises we do not allow, so the sync refuses to start without that statement.
+ *  - workers-ai: Cloudflare does not use customer content for training; 10,000 neurons a day are free.
  */
 export function gmailEnabled(env: Record<string, string | undefined> = process.env): boolean {
   const llmReady = gmailLlm(env) === 'gemini' ? env.GEMINI_PAID_TIER === '1' && Boolean(env.GEMINI_API_KEY || env.GEMINI_API_KEYS) : Boolean(env.CF_AI_ACCOUNT_ID && env.CF_AI_TOKEN);

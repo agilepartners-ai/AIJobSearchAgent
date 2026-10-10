@@ -7,11 +7,12 @@ what exists, what you must do in Google Cloud, and what it costs.
 
 | Question | Answer |
 | --- | --- |
-| Do I need a Google subscription? | **No.** Gmail API is free. Nothing in Google Cloud needs billing for this feature. |
-| Do I need Gemini's paid tier? | **No.** The default model is **Llama 3.3 70B on Cloudflare Workers AI**, free up to 10,000 neurons a day (about 200 to 330 emails a day) and Cloudflare does not train on your content. Gemini works too, but only on a billed project, and is optional. |
-| What will it cost? | **$0** for you and a handful of testers. About **$10 a month** at 100 users. See section 5. |
-| Can anything be paid by accident? | Google: no (no billing needed). Cloudflare: Workers Free stops at the allowance and the sync waits until tomorrow; you are only charged if you choose Workers Paid. |
-| What is the one big future cost? | Opening Gmail access to the **public** needs Google verification and an annual security assessment. Vendors quote about $500 to a few thousand dollars a year. Not needed while you stay in Testing mode (up to 100 invited users). |
+| Which AI model reads the emails? | **Gemini, the same AI Studio key that writes the resumes.** No second model to set up. Cloudflare's Llama is an optional alternative (`GMAIL_LLM=workers-ai`). |
+| Do I need a subscription? | **No.** Gmail API is free. Gemini is pay-as-you-go: a few cents a month for you. There is no plan to buy. |
+| What must be true about the Gemini key? | It must be on a **billed** Google project (AI Studio shows "Paid"). Then Google does not train on it. If it shows "Free", Google trains on and reviews the prompts, which the privacy text promises we never allow, so the sync will not start. Two fixes: add billing to the project (pay-as-you-go), or use the Cloudflare model. |
+| Vertex later? | Good plan: Vertex AI Gemini also does not train on your data and fits Google's rules for a public launch. Switching later is a small change (a different client behind the same call). Not needed for Testing. |
+| What will it cost? | **About $0.11 a month for you alone**, $1.25 for 10 testers, $11 for 100. See section 5. |
+| What is the one big future cost? | Opening Gmail to the **public** needs Google verification and an annual security assessment (vendors quote about $500 to a few thousand dollars a year). Not needed while you stay in Testing (up to 100 invited users). |
 
 ## 2. What is built (state of the project)
 
@@ -19,7 +20,7 @@ what exists, what you must do in Google Cloud, and what it costs.
 | --- | --- |
 | Database: `gmail_connections`, `gmail_messages`, 4 new columns on `job_applications` | Applied to the live database (migration 004) |
 | Gmail client, OAuth, filter, extractor, merge, sync, 6 API routes | Done, tested |
-| Models: Workers AI (default) and Gemini (optional) | Done, both scored 10/10 on the fixture emails (8B model 7/10, rejected) |
+| Models: Gemini (default) and Cloudflare Workers AI (optional) | Done. Both scored 10/10 on the fixture emails (the small 8B Llama 7/10, rejected) |
 | Dashboard: Connect Gmail card, "Review" badge, privacy section 4a | Done |
 | Daily trigger in the keep-alive Worker | Done, not deployed |
 | **Switched on in production** | **No.** Needs section 3 and 4, then a redeploy |
@@ -30,7 +31,9 @@ I wrote this from scratch rather than copying the reference projects: [Devashish
 
 ## 3. Google Cloud: what you do (about 10 minutes, no card)
 
-Why a **new project**: a project has one consent screen. Your existing Google sign-in lives in project `756278134709`. If Gmail's restricted scope and "Testing" status went on that screen, normal users could lose Google sign-in. A separate project keeps sign-in untouched. (Done for you already: the Gmail API was enabled on `756278134709`; it is harmless and can stay.)
+0. **Check the Gemini key is on the paid tier** (one minute). Open https://aistudio.google.com/apikey and look at the plan next to your key. It must say **Paid**. If it says Free: open https://console.cloud.google.com/billing/linkedaccount?project=756278134709 and link a billing account (pay-as-you-go, no minimum), or tell me to use the Cloudflare model instead.
+
+Why a **new project** for the Gmail sign-in screen: a project has one consent screen. Your existing Google sign-in lives in project `756278134709`. If Gmail's restricted scope and "Testing" status went on that screen, normal users could lose Google sign-in. A separate project keeps sign-in untouched. (Done for you already: the Gmail API was enabled on `756278134709`; it is harmless and can stay.)
 
 1. **Create the project.** https://console.cloud.google.com/projectcreate , name `ajsa-gmail`. Pick your own Google account as owner. No billing account needed.
 2. **Enable the Gmail API** in that project: https://console.cloud.google.com/apis/library/gmail.googleapis.com (press Enable).
@@ -59,11 +62,9 @@ Local `.env.local` (private) and the VM `~/ajsa/ajsa.env`; the Worker needs the 
 | `GMAIL_REDIRECT_URI` | `https://agilepartners-ai.com/api/gmail/callback` |
 | `GMAIL_TOKEN_KEY` | `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
 | `GMAIL_STATE_SECRET`, `GMAIL_CRON_SECRET` | two different random strings, 24+ characters |
-| `CF_AI_ACCOUNT_ID` | your own Cloudflare account id `d5470bbbaeb9c16b7e86a59732239b08` |
-| `CF_AI_TOKEN` | Cloudflare dashboard (your own account) > My Profile > API Tokens > Create Token > template **Workers AI** |
-| `GMAIL_LLM` | leave unset (Workers AI). `gemini` only if you want Gemini, and then `GEMINI_PAID_TIER=1` |
-
-Why your **own** Cloudflare account for AI: the 10,000 free neurons are per account, and your own account needs nobody else's permission. The domain and the Worker stay in Anish's account.
+| `GEMINI_PAID_TIER` | `1`, once you have checked the key shows **Paid** (section 3, step 0). The resume key `GEMINI_API_KEY` is reused; nothing else to add |
+| `GMAIL_LLM` | leave unset (Gemini). Set `workers-ai` only for the Cloudflare model |
+| `CF_AI_ACCOUNT_ID`, `CF_AI_TOKEN` | only for `GMAIL_LLM=workers-ai`: your own Cloudflare account id `d5470bbbaeb9c16b7e86a59732239b08` and a token from the **Workers AI** template |
 
 Do not reuse the sign-in client for Gmail; the variable names are different on purpose.
 
@@ -95,12 +96,12 @@ Steady state is about 5 candidate emails per user per day after the filter. The 
 
 ### 5.3 Scenarios
 
-| Scenario | Emails/day | Workers AI | Gemini paid |
+| Scenario | Emails/day | Gemini paid (default) | Cloudflare model (alternative) |
 | --- | --- | --- | --- |
-| You alone | 5 (first sync: about 80 once) | **$0** | $0.11 a month |
-| You + 10 testers | 55 | **$0** (first syncs spread over a few days) | $1.25 a month |
-| 100 testers (Google's Testing cap) | 500 | about **$10 a month** ($5 plan + $5 usage) | about $11 a month |
-| 1,000 users (public, after verification) | 5,000 | about **$84 a month** | about $112 a month |
+| You alone | 5 (first sync: about 80 once) | **$0.11 a month** | $0 |
+| You + 10 testers | 55 | **$1.25 a month** | $0 (first syncs spread over a few days) |
+| 100 testers (Google's Testing cap) | 500 | about **$11 a month** | about $10 a month ($5 plan + $5 usage) |
+| 1,000 users (public, after verification) | 5,000 | about **$112 a month** | about $84 a month |
 
 ### 5.4 Guards that keep it at the low end
 
@@ -120,6 +121,6 @@ Steady state is about 5 candidate emails per user per day after the filter. The 
 
 - [ ] New Google project, Gmail API on, consent screen External + Testing, scope added, test users added
 - [ ] Web client with the two redirect URIs; ID and secret in `.env.local`
-- [ ] `CF_AI_TOKEN` created in your own Cloudflare account
+- [ ] Gemini key shows **Paid** in AI Studio, so `GEMINI_PAID_TIER=1`
 - [ ] Random keys generated and set (`GMAIL_TOKEN_KEY`, `GMAIL_STATE_SECRET`, `GMAIL_CRON_SECRET`)
 - [ ] Tell Claude: it deploys the Worker and VM service, sets the secrets, sets the daily trigger and runs a first sync with you

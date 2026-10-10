@@ -5,31 +5,39 @@ const BASE = {
   GMAIL_SYNC_ENABLED: '1', GMAIL_GOOGLE_CLIENT_ID: 'cid', GMAIL_GOOGLE_CLIENT_SECRET: 'csecret',
   GMAIL_TOKEN_KEY: 'k', GMAIL_STATE_SECRET: 's', GMAIL_REDIRECT_URI: 'https://agilepartners-ai.com/api/gmail/callback',
 };
-const ENV = { ...BASE, CF_AI_ACCOUNT_ID: 'acct', CF_AI_TOKEN: 'tok' };
+const GEMINI = { ...BASE, GEMINI_API_KEY: 'k', GEMINI_PAID_TIER: '1' };
+const ENV = { ...GEMINI, CF_AI_ACCOUNT_ID: 'acct', CF_AI_TOKEN: 'tok' };
 
 describe('gmailEnabled', () => {
-  it('defaults to Workers AI and needs the switch, its credentials, and every Google secret', () => {
-    expect(gmailLlm(ENV)).toBe('workers-ai');
-    expect(gmailEnabled(ENV)).toBe(true);
-    for (const key of Object.keys(ENV)) expect(gmailEnabled({ ...ENV, [key]: undefined }), key).toBe(false);
+  it('uses Gemini, the key already used for resumes, and needs the switch, a billed key and every Google secret', () => {
+    expect(gmailLlm(GEMINI)).toBe('gemini');
+    expect(gmailEnabled(GEMINI)).toBe(true);
+    for (const key of Object.keys(GEMINI)) expect(gmailEnabled({ ...GEMINI, [key]: undefined }), key).toBe(false);
   });
 
-  it('Gemini is allowed only on a billed project: the free tier trains on prompts and lets humans read them', () => {
-    const g = { ...BASE, GMAIL_LLM: 'gemini', GEMINI_API_KEY: 'k' };
-    expect(gmailLlm(g)).toBe('gemini');
-    expect(gmailEnabled(g)).toBe(false);
-    expect(gmailEnabled({ ...g, GEMINI_PAID_TIER: '0' })).toBe(false);
-    expect(gmailEnabled({ ...g, GEMINI_PAID_TIER: '1' })).toBe(true);
-    expect(gmailEnabled({ ...g, GEMINI_PAID_TIER: '1', GEMINI_API_KEY: undefined })).toBe(false);
+  it('refuses the unpaid Gemini tier: it trains on prompts and lets humans read them, which the privacy text rules out', () => {
+    expect(gmailEnabled({ ...GEMINI, GEMINI_PAID_TIER: '0' })).toBe(false);
+    expect(gmailEnabled({ ...GEMINI, GEMINI_PAID_TIER: undefined })).toBe(false);
   });
 
-  it('a stray Gemini setting does not switch the provider', () => {
-    expect(gmailLlm({ GMAIL_LLM: 'something-else', GEMINI_PAID_TIER: '1' })).toBe('workers-ai');
+  it('accepts a key list as well as a single key', () => {
+    expect(gmailEnabled({ ...GEMINI, GEMINI_API_KEY: undefined, GEMINI_API_KEYS: 'a,b' })).toBe(true);
+  });
+
+  it('GMAIL_LLM=workers-ai switches to the Cloudflare model, which needs its own credentials instead', () => {
+    const w = { ...ENV, GMAIL_LLM: 'workers-ai', GEMINI_PAID_TIER: undefined, GEMINI_API_KEY: undefined };
+    expect(gmailLlm(w)).toBe('workers-ai');
+    expect(gmailEnabled(w)).toBe(true);
+    expect(gmailEnabled({ ...w, CF_AI_TOKEN: undefined })).toBe(false);
+  });
+
+  it('an unknown value falls back to Gemini', () => {
+    expect(gmailLlm({ GMAIL_LLM: 'something-else' })).toBe('gemini');
   });
 });
 
 describe('Google OAuth calls', () => {
-  beforeEach(() => { for (const [k, v] of Object.entries(ENV)) vi.stubEnv(k, v); });
+  beforeEach(() => { for (const [k, v] of Object.entries(ENV)) vi.stubEnv(k, v as string); });
   afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
   it('asks for read-only Gmail, offline, with a fresh consent, and carries the state', () => {
