@@ -29,11 +29,12 @@ export interface Confirmation {
 }
 
 /** Gmail's "Gmail Forwarding Confirmation" mail: sent by Google, carries a numeric code and a confirmation link. */
-export function detectForwardingConfirmation(mail: Pick<ParsedMail, 'fromAddress' | 'subject' | 'text'>): Confirmation | null {
+export function detectForwardingConfirmation(mail: Pick<ParsedMail, 'fromAddress' | 'subject' | 'text'> & { links?: string[] }): Confirmation | null {
   const fromGoogle = /(^|@)(forwarding-noreply|mail-noreply|noreply)@google\.com$/i.test(mail.fromAddress);
   if (!fromGoogle || !/forwarding confirmation|confirmation code|confirm.*forward/i.test(mail.subject + ' ' + mail.text.slice(0, 400))) return null;
   const code = mail.text.match(/\b(\d{6,12})\b/)?.[1] ?? null;
-  const link = mail.text.match(/https:\/\/mail-settings\.google\.com\/mail\/[^\s)<>"]+/)?.[0] ?? null;
+  // The confirmation link lives on a Google mail host and carries a "vf-" token. Match any such link rather than one exact host.
+  const link = ((mail.links ?? []).concat(mail.text.match(/https:\/\/[^\s)<>"]+/g) ?? [])).find((u) => /^https:\/\/(mail-settings|mail)\.google\.com\/.*vf-/i.test(u)) ?? null;
   return code || link ? { code, link } : null;
 }
 

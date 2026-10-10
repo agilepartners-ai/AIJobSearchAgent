@@ -61,6 +61,15 @@ describe('Gmail forwarding confirmation', () => {
     expect(detectForwardingConfirmation({ fromAddress: 'forwarding-noreply@google.com', subject: 'Gmail Forwarding Confirmation - Receive Mail from user@gmail.com', text: body })).toEqual({ code: '482913607', link: 'https://mail-settings.google.com/mail/vf-%5BANGjdJ8abc%5D-xyz' });
   });
 
+  it('finds the link on either Google mail host and ignores other links', () => {
+    const t = (url: string) => detectForwardingConfirmation({ fromAddress: 'forwarding-noreply@google.com', subject: 'Gmail Forwarding Confirmation', text: `Confirmation code: 184973
+Click: ${url}
+Or https://support.google.com/mail/answer/10957` });
+    expect(t('https://mail.google.com/mail/vf-%5BABC%5D-xyz')?.link).toBe('https://mail.google.com/mail/vf-%5BABC%5D-xyz');
+    expect(t('https://mail-settings.google.com/mail/vf-%5BABC%5D-xyz')?.link).toBe('https://mail-settings.google.com/mail/vf-%5BABC%5D-xyz');
+    expect(detectForwardingConfirmation({ fromAddress: 'forwarding-noreply@google.com', subject: 'Gmail Forwarding Confirmation', text: 'Confirmation code: 184973' })).toEqual({ code: '184973', link: null });
+  });
+
   it('ignores the same words from anyone but Google, so a stranger cannot plant a fake code', () => {
     expect(detectForwardingConfirmation({ fromAddress: 'scammer@evil.example', subject: 'Gmail Forwarding Confirmation', text: body })).toBeNull();
     expect(detectForwardingConfirmation({ fromAddress: 'forwarding-noreply@google.com.evil.example', subject: 'Gmail Forwarding Confirmation', text: body })).toBeNull();

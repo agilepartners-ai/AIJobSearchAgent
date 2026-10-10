@@ -92,6 +92,9 @@ function ForwardPanel({ inbound, onRotate }: { inbound: Inbound | null; onRotate
             ) : (
               <i>waiting for it…</i>
             )}
+            {inbound.confirmation?.link && (
+              <a href={inbound.confirmation.link} target="_blank" rel="noopener noreferrer" className="mt-1.5 block font-medium text-indigo-600 underline dark:text-indigo-300">Or open the confirmation link</a>
+            )}
           </span>
         </li>
         <li className={step}>
