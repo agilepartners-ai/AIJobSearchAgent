@@ -10,7 +10,10 @@ import { htmlToText, type ParsedMail } from './messages';
 import { boardFor, prefilter } from './prefilter';
 import * as repo from '../db/inboundRepo';
 
-export const MAX_RAW_BYTES = 1_500_000;
+/** One email, or one "forward as attachment" bundle of many (Gmail lets a user select up to 100 and forward them together). */
+export const MAX_RAW_BYTES = 8_000_000;
+/** Emails read from one bundle. */
+export const MAX_BUNDLE = 100;
 /** Mail accepted per address per day, whatever it is: stops a leaked address being used to flood the board or the model. */
 export const MAX_PER_DAY = 200;
 /** Model calls per user per day, the same budget as the Gmail API sync. */
@@ -38,8 +41,21 @@ export function detectForwardingConfirmation(mail: Pick<ParsedMail, 'fromAddress
   return code || link ? { code, link } : null;
 }
 
+type Email = Awaited<ReturnType<PostalMime['parse']>>;
+
 export async function parseRaw(raw: Uint8Array, receivedAt = new Date()): Promise<ParsedMail> {
-  const e = await new PostalMime().parse(raw);
+  return toParsedMail(await new PostalMime().parse(raw), raw, receivedAt);
+}
+
+/** The attached emails (message/rfc822) of a bundle, each as raw bytes. */
+export function attachedMessages(e: Email): Uint8Array[] {
+  return e.attachments
+    .filter((a) => /^message\/rfc822$/i.test(a.mimeType) || /\.eml$/i.test(a.filename ?? ''))
+    .map((a) => (typeof a.content === 'string' ? new TextEncoder().encode(a.content) : new Uint8Array(a.content)))
+    .slice(0, MAX_BUNDLE);
+}
+
+function toParsedMail(e: Email, raw: Uint8Array, receivedAt: Date): ParsedMail {
   const fromAddress = (e.from?.address ?? '').toLowerCase();
   const text = e.html ? htmlToText(e.html) : (e.text ?? '').trim();
   const links = Array.from(new Set(text.match(/https?:\/\/[^\s<>"')\]]+/g) ?? [])).filter((u) => !/unsubscribe|optout|opt-out|pixel|open\.gif|track\./i.test(u)).slice(0, 12);
@@ -77,22 +93,12 @@ export type InboundResult =
   | { status: 'skipped'; reason: string }
   | { status: 'not_job' }
   | { status: 'error'; reason: string }
-  | { status: 'created' | 'updated'; applicationId: string; needsReview: boolean };
+  | { status: 'created' | 'updated'; applicationId: string; needsReview: boolean }
+  | { status: 'accepted'; total: number }
+  | { status: 'bundle'; total: number; created: number; updated: number; skipped: number; notJob: number; duplicate: number; errors: number; rateLimited: number };
 
-export async function handleInbound(token: string, raw: Uint8Array, deps: InboundDeps = realInboundDeps): Promise<InboundResult> {
-  if (raw.byteLength > MAX_RAW_BYTES) return { status: 'too_large' };
-  const userId = await deps.repo.userForToken(token);
-  if (!userId) return { status: 'unknown_address' };
-  if ((await deps.repo.receivedToday(userId)) >= MAX_PER_DAY) return { status: 'rate_limited' };
-  await deps.repo.noteReceived(userId);
-
-  const mail = await parseRaw(raw, deps.now());
-
-  const confirmation = detectForwardingConfirmation(mail);
-  if (confirmation) {
-    await deps.repo.saveConfirmation(userId, confirmation);
-    return { status: 'confirmation' };
-  }
+/** One parsed email to a board update. Used for a single forwarded mail and for each mail of a bundle. */
+async function processMail(userId: string, mail: ParsedMail, deps: InboundDeps): Promise<InboundResult> {
   if (await deps.repo.seen(userId, mail.id)) return { status: 'duplicate' };
 
   const ledger = { messageId: mail.id, threadId: mail.threadId, receivedAt: mail.receivedAt, senderDomain: mail.fromDomain };
@@ -125,4 +131,54 @@ export async function handleInbound(token: string, raw: Uint8Array, deps: Inboun
   }
   await deps.repo.recordMessage(userId, { ...ledger, outcome: lowConfidence ? 'low_confidence' : 'job', emailType: x.email_type, confidence: x.confidence, applicationId });
   return { status: plan.action === 'create' ? 'created' : 'updated', applicationId, needsReview: plan.needsReview };
+}
+
+/**
+ * `background`: when given, a bundle is answered at once ("accepted") and read afterwards, because 100 emails take minutes and the
+ * mail system waiting on us would time out and send them again. Without it the bundle is read first (used by tests).
+ */
+export async function handleInbound(token: string, raw: Uint8Array, deps: InboundDeps = realInboundDeps, background?: (work: Promise<unknown>) => void): Promise<InboundResult> {
+  if (raw.byteLength > MAX_RAW_BYTES) return { status: 'too_large' };
+  const userId = await deps.repo.userForToken(token);
+  if (!userId) return { status: 'unknown_address' };
+  if ((await deps.repo.receivedToday(userId)) >= MAX_PER_DAY) return { status: 'rate_limited' };
+  await deps.repo.noteReceived(userId);
+
+  const parsed = await new PostalMime().parse(raw);
+  const mail = toParsedMail(parsed, raw, deps.now());
+
+  const confirmation = detectForwardingConfirmation(mail);
+  if (confirmation) {
+    await deps.repo.saveConfirmation(userId, confirmation);
+    return { status: 'confirmation' };
+  }
+
+  // Gmail's "Forward as attachment" with many emails selected arrives as one mail carrying each as an .eml. Read them oldest
+  // first, so a rejection never lands before the application it answers.
+  const bundle = attachedMessages(parsed);
+  if (bundle.length === 0) return processMail(userId, mail, deps);
+
+  const mails = await Promise.all(bundle.map((b) => parseRaw(b, deps.now())));
+  mails.sort((x, y) => x.receivedAt.getTime() - y.receivedAt.getTime());
+  const run = () => processBundle(userId, mails, deps);
+  if (background) {
+    background(run().catch((e) => console.error('[inbound] bundle failed:', e instanceof Error ? e.message : e)));
+    return { status: 'accepted', total: mails.length };
+  }
+  return run();
+}
+
+async function processBundle(userId: string, mails: ParsedMail[], deps: InboundDeps): Promise<InboundResult> {
+  const out = { status: 'bundle' as const, total: mails.length, created: 0, updated: 0, skipped: 0, notJob: 0, duplicate: 0, errors: 0, rateLimited: 0 };
+  for (const m of mails) {
+    const r = await processMail(userId, m, deps);
+    if (r.status === 'created') out.created += 1;
+    else if (r.status === 'updated') out.updated += 1;
+    else if (r.status === 'skipped') out.skipped += 1;
+    else if (r.status === 'not_job') out.notJob += 1;
+    else if (r.status === 'duplicate') out.duplicate += 1;
+    else if (r.status === 'rate_limited') out.rateLimited += 1;
+    else out.errors += 1;
+  }
+  return out;
 }

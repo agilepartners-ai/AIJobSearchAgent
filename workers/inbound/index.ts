@@ -22,7 +22,7 @@ export interface InboundMessage {
   setReject(reason: string): void;
 }
 
-export const MAX_RAW_BYTES = 1_500_000;
+export const MAX_RAW_BYTES = 8_000_000;
 const ADDRESS = /^jobs\+[a-z2-7]{20,64}@[a-z0-9.-]+$/i;
 
 export async function handleEmail(message: InboundMessage, env: Env, doFetch: typeof fetch = fetch): Promise<'delivered' | 'rejected'> {
@@ -32,7 +32,7 @@ export async function handleEmail(message: InboundMessage, env: Env, doFetch: ty
     return 'rejected';
   }
   if (message.rawSize > MAX_RAW_BYTES) {
-    message.setReject('Message too large (limit 1.5 MB)');
+    message.setReject('Message too large (limit 8 MB)');
     return 'rejected';
   }
 

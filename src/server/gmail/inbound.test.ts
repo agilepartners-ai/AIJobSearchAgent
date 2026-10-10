@@ -140,6 +140,67 @@ function world(opts: { received?: number; ai?: number; model?: Extraction | null
   return { deps, apps, ledger, log };
 }
 
+/** A bundle like Gmail's "Forward as attachment": one outer mail carrying each email as an .eml. */
+function bundle(parts: Uint8Array[]): Uint8Array {
+  const b = 'BOUNDARY-xyz';
+  const CRLF = String.fromCharCode(13, 10);
+  const head = [
+    'From: <me@gmail.com>', `To: jobs+${TOKEN}@aitoolsfordoctor.com`, 'Subject: Fwd: attachments', `Message-ID: <bundle-${parts.length}@gmail.example>`,
+    'Date: Sat, 10 Oct 2026 12:00:00 +0000', 'MIME-Version: 1.0', `Content-Type: multipart/mixed; boundary="${b}"`, '', `--${b}`, 'Content-Type: text/plain', '', 'Forwarded messages attached.', '',
+  ].join(CRLF);
+  const body = parts
+    .map((p, i) => [`--${b}`, `Content-Type: message/rfc822; name="m${i}.eml"`, `Content-Disposition: attachment; filename="m${i}.eml"`, '', new TextDecoder().decode(p), ''].join(CRLF))
+    .join('');
+  return enc(`${head}${CRLF}${body}--${b}--${CRLF}`);
+}
+
+describe('bulk forwarding (a bundle of emails in one message)', () => {
+  const app1 = () => raw({ from: 'no-reply@us.greenhouse-mail.io', subject: 'Thank you for applying to Acme', text: 'You applied for the Analyst role at Acme.', id: 'b-app', date: 'Mon, 05 Oct 2026 09:00:00 +0000' });
+  const rej = () => raw({ from: 'no-reply@us.greenhouse-mail.io', subject: 'Update on your application to Acme', text: 'Unfortunately we are moving forward with others.', id: 'b-rej', inReplyTo: 'b-app', date: 'Fri, 09 Oct 2026 09:00:00 +0000' });
+  const receipt = () => raw({ from: 'billing@shop.example', subject: 'Your receipt for October', text: 'Invoice 1', id: 'b-rec' });
+
+  it('reads every attached email, oldest first, as separate mails', async () => {
+    const w = world();
+    let n = 0;
+    w.deps.extract = async (m) => {
+      n += 1;
+      return { extraction: ex(m.id === (await parseRaw(app1())).id ? { email_type: 'application_received', company: 'Acme', position: 'Analyst' } : { email_type: 'rejection', company: 'Acme', position: 'Analyst' }) };
+    };
+    // the rejection is listed first on purpose: order in the bundle must not matter
+    const r = await handleInbound(TOKEN, bundle([rej(), app1(), receipt()]), w.deps);
+    expect(r).toMatchObject({ status: 'bundle', total: 3, created: 1, updated: 1, skipped: 1 });
+    expect(w.apps).toHaveLength(1);
+    expect(w.apps[0]).toMatchObject({ company_name: 'Acme', status: 'rejected' });
+    expect(w.apps[0].status_history.map((h) => h.status)).toEqual(['applied', 'rejected']);
+    expect(n).toBe(2); // the receipt never reached the model
+  });
+
+  it('is safe to send twice: the second bundle changes nothing', async () => {
+    const w = world({ model: ex({ company: 'Acme', position: 'Analyst' }) });
+    await handleInbound(TOKEN, bundle([app1(), rej()]), w.deps);
+    const again = await handleInbound(TOKEN, bundle([app1(), rej()]), w.deps);
+    expect(again).toMatchObject({ status: 'bundle', duplicate: 2, created: 0, updated: 0 });
+    expect(w.apps).toHaveLength(1);
+  });
+
+  it('with a background hook it answers at once and finishes the reading afterwards', async () => {
+    const w = world({ model: ex({ company: 'Acme', position: 'Analyst' }) });
+    const jobs: Promise<unknown>[] = [];
+    const r = await handleInbound(TOKEN, bundle([app1(), rej()]), w.deps, (p) => jobs.push(p));
+    expect(r).toEqual({ status: 'accepted', total: 2 });
+    expect(w.apps).toHaveLength(0); // not finished yet when the answer is given
+    await Promise.all(jobs);
+    expect(w.apps).toHaveLength(1);
+  });
+
+  it('stops using the model at the daily budget but keeps filtering, and leaves the rest to be sent again', async () => {
+    const w = world({ model: ex({ company: 'Acme', position: 'Analyst' }), ai: AI_PER_DAY });
+    const r = await handleInbound(TOKEN, bundle([app1(), receipt()]), w.deps);
+    expect(r).toMatchObject({ status: 'bundle', rateLimited: 1, skipped: 1, created: 0 });
+    expect(w.log.extractCalls).toBe(0);
+  });
+});
+
 describe('handleInbound', () => {
   const greenhouse = () => rawOf(FIXTURES[0]);
   const model = ex({ company: 'Northwind Labs', position: 'Data Analyst' });

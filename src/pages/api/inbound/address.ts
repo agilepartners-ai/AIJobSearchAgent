@@ -4,7 +4,8 @@ import { inboundUiEnabled } from '../../../server/gmail/oauth';
 import { addressFor } from '../../../server/gmail/tokens';
 
 /** The Gmail search the user pastes into a filter, so only application mail is forwarded. */
-export const FILTER_QUERY = 'category:updates {application applied interview assessment "next steps" offer candidate recruiter unfortunately}';
+export const FILTER_QUERY =
+  'category:updates {application applied "thank you for applying" "your application" interview assessment "coding challenge" "online test" "next steps" shortlisted offer candidate recruiter recruiting hiring position unfortunately "moving forward" "we received"}';
 
 async function view(userId: string, token?: string) {
   const domain = process.env.INBOUND_DOMAIN as string;

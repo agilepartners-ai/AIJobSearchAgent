@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!raw) return res.status(200).json({ status: 'too_large' });
 
   try {
-    const result = await handleInbound(token, raw);
+    const result = await handleInbound(token, raw, undefined, (work) => void work);
     return res.status(200).json(result);
   } catch (e) {
     console.error('[inbound] failed:', e instanceof Error ? e.message : e);
