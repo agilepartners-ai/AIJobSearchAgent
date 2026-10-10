@@ -33,6 +33,13 @@ describe('gemini client', () => {
   const call = (extra = {}) => generateText({ systemPrompt: 'SYSTEM', userPrompt: 'USER', ...extra });
   const sentKeys = () => fetchMock.mock.calls.map(([, init]) => (init.headers as Record<string, string>)['x-goog-api-key']);
 
+  it('reports the project spending cap as such, without retrying other attempts', async () => {
+    fetchMock.mockImplementation(async () => status(429, '{"error":{"code":429,"status":"RESOURCE_EXHAUSTED","message":"Your project has exceeded its monthly spending cap. Please go to AI Studio at https://ai.studio/spend"}}'));
+    const err = await generateText({ systemPrompt: 's', userPrompt: 'u' }).catch((e) => e);
+    expect(err.message).toMatch(/spending cap/i);
+    expect(err.retryable).toBe(false);
+  });
+
   it('defaults to a lite model', () => {
     expect(getModel()).toMatch(/lite/);
   });

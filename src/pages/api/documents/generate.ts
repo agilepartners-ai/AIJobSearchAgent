@@ -333,6 +333,11 @@ function respondToError(error: unknown, res: NextApiResponse, log: RequestLog) {
     });
   }
 
+  if (error instanceof GeminiError && /spending cap/i.test(error.message)) {
+    console.error('[documents/generate] Gemini spending cap reached. Raise it at https://ai.studio/spend');
+    return send(503, { error: 'Document generation is paused for now because the AI service has reached its monthly budget. Please try again later.' });
+  }
+
   if (error instanceof GeminiError) {
     console.error('[documents/generate] Gemini failed:', error.message);
     return send(502, {

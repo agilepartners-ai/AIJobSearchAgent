@@ -166,6 +166,14 @@ export async function generateText(options: GenerateOptions): Promise<string> {
         const text = await response.text().catch(() => '');
         const status = response.status;
 
+        // The project's own monthly spending cap: waiting or trying another key cannot help, and the owner has to raise it.
+        if (/spending cap|spend cap/i.test(text)) {
+          return {
+            ok: false,
+            kind: 'auth',
+            error: new GeminiError('Gemini project spending cap reached. Raise it at https://ai.studio/spend.', false),
+          };
+        }
         if (status === 429 || /RESOURCE_EXHAUSTED/i.test(text)) {
           return {
             ok: false,
