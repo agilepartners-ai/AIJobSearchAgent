@@ -6,6 +6,8 @@
  */
 import { z } from 'zod';
 import { generateText, type TokenUsage } from '../ai/gemini';
+import { generateWithWorkersAi } from '../ai/workersAi';
+import { gmailLlm } from './oauth';
 import type { ParsedMail } from './messages';
 
 export const EMAIL_TYPES = ['application_received', 'assessment_invite', 'interview_invite', 'offer', 'rejection', 'status_update', 'job_alert', 'other'] as const;
@@ -100,22 +102,40 @@ export type Generate = typeof generateText;
 export interface ExtractResult {
   extraction: Extraction | null;
   error?: string;
+  /** Tokens the model call used, so a sync can report what it cost. */
+  usage?: { input: number; output: number };
+}
+
+/** The model for Gmail text: Workers AI by default (free allowance, no training), or Gemini on a paid project. */
+export function defaultGenerate(): Generate {
+  return gmailLlm() === 'gemini' ? generateText : generateWithWorkersAi;
 }
 
 export async function extractFromMail(mail: ParsedMail, opts: { generate?: Generate; onUsage?: (u: TokenUsage) => void } = {}): Promise<ExtractResult> {
-  const generate = opts.generate ?? generateText;
+  const generate = opts.generate ?? defaultGenerate();
   let raw: string;
+  let usage: ExtractResult['usage'];
   try {
-    raw = await generate({ systemPrompt: SYSTEM_PROMPT, userPrompt: buildUserPrompt(mail), temperature: 0.1, maxOutputTokens: 800, jsonSchema: RESPONSE_SCHEMA, onUsage: opts.onUsage });
+    raw = await generate({
+      systemPrompt: SYSTEM_PROMPT,
+      userPrompt: buildUserPrompt(mail),
+      temperature: 0.1,
+      maxOutputTokens: 800,
+      jsonSchema: RESPONSE_SCHEMA,
+      onUsage: (u) => {
+        usage = { input: u.promptTokens, output: u.outputTokens };
+        opts.onUsage?.(u);
+      },
+    });
   } catch (e) {
     return { extraction: null, error: e instanceof Error ? e.message : 'model call failed' };
   }
   try {
     const json = JSON.parse(raw.replace(/^```(?:json)?\s*|\s*```$/g, ''));
     const parsed = extractionSchema.safeParse(json);
-    if (!parsed.success) return { extraction: null, error: 'model output did not match the schema' };
-    return { extraction: parsed.data };
+    if (!parsed.success) return { extraction: null, error: 'model output did not match the schema', usage };
+    return { extraction: parsed.data, usage };
   } catch {
-    return { extraction: null, error: 'model output was not JSON' };
+    return { extraction: null, error: 'model output was not JSON', usage };
   }
 }

@@ -1,20 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildAuthUrl, emailFromIdToken, exchangeCode, GMAIL_SCOPE, gmailEnabled, GoogleAuthError, refreshAccessToken } from './oauth';
+import { buildAuthUrl, emailFromIdToken, exchangeCode, GMAIL_SCOPE, gmailEnabled, gmailLlm, GoogleAuthError, refreshAccessToken } from './oauth';
 
-const ENV = {
-  GMAIL_SYNC_ENABLED: '1', GEMINI_PAID_TIER: '1', GOOGLE_OAUTH_CLIENT_ID: 'cid', GOOGLE_OAUTH_CLIENT_SECRET: 'csecret',
+const BASE = {
+  GMAIL_SYNC_ENABLED: '1', GMAIL_GOOGLE_CLIENT_ID: 'cid', GMAIL_GOOGLE_CLIENT_SECRET: 'csecret',
   GMAIL_TOKEN_KEY: 'k', GMAIL_STATE_SECRET: 's', GMAIL_REDIRECT_URI: 'https://agilepartners-ai.com/api/gmail/callback',
 };
+const ENV = { ...BASE, CF_AI_ACCOUNT_ID: 'acct', CF_AI_TOKEN: 'tok' };
 
 describe('gmailEnabled', () => {
-  it('needs the switch, a paid Gemini key, and every secret', () => {
+  it('defaults to Workers AI and needs the switch, its credentials, and every Google secret', () => {
+    expect(gmailLlm(ENV)).toBe('workers-ai');
     expect(gmailEnabled(ENV)).toBe(true);
     for (const key of Object.keys(ENV)) expect(gmailEnabled({ ...ENV, [key]: undefined }), key).toBe(false);
   });
 
-  it('refuses to run on the free Gemini tier, which trains on prompts and lets humans read them', () => {
-    expect(gmailEnabled({ ...ENV, GEMINI_PAID_TIER: '0' })).toBe(false);
-    expect(gmailEnabled({ ...ENV, GEMINI_PAID_TIER: undefined })).toBe(false);
+  it('Gemini is allowed only on a billed project: the free tier trains on prompts and lets humans read them', () => {
+    const g = { ...BASE, GMAIL_LLM: 'gemini', GEMINI_API_KEY: 'k' };
+    expect(gmailLlm(g)).toBe('gemini');
+    expect(gmailEnabled(g)).toBe(false);
+    expect(gmailEnabled({ ...g, GEMINI_PAID_TIER: '0' })).toBe(false);
+    expect(gmailEnabled({ ...g, GEMINI_PAID_TIER: '1' })).toBe(true);
+    expect(gmailEnabled({ ...g, GEMINI_PAID_TIER: '1', GEMINI_API_KEY: undefined })).toBe(false);
+  });
+
+  it('a stray Gemini setting does not switch the provider', () => {
+    expect(gmailLlm({ GMAIL_LLM: 'something-else', GEMINI_PAID_TIER: '1' })).toBe('workers-ai');
   });
 });
 

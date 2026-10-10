@@ -16,12 +16,23 @@ export class GoogleAuthError extends Error {
   }
 }
 
+export type GmailLlm = 'workers-ai' | 'gemini';
+
+export function gmailLlm(env: Record<string, string | undefined> = process.env): GmailLlm {
+  return env.GMAIL_LLM === 'gemini' ? 'gemini' : 'workers-ai';
+}
+
+/**
+ * Mail text goes to a model, so only providers that do not train on it or let humans read it are allowed:
+ *  - workers-ai (default): Cloudflare does not use customer content for training; 10,000 neurons a day are free.
+ *  - gemini: only on a billed project. Unpaid-tier calls are used to improve Google products and can be read by reviewers.
+ */
 export function gmailEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  const llmReady = gmailLlm(env) === 'gemini' ? env.GEMINI_PAID_TIER === '1' && Boolean(env.GEMINI_API_KEY || env.GEMINI_API_KEYS) : Boolean(env.CF_AI_ACCOUNT_ID && env.CF_AI_TOKEN);
   return (
     env.GMAIL_SYNC_ENABLED === '1' &&
-    // Mail text goes to Gemini. Unpaid-tier calls are used for training and human review, so refuse to run on them.
-    env.GEMINI_PAID_TIER === '1' &&
-    Boolean(env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET && env.GMAIL_TOKEN_KEY && env.GMAIL_STATE_SECRET && env.GMAIL_REDIRECT_URI)
+    llmReady &&
+    Boolean(env.GMAIL_GOOGLE_CLIENT_ID && env.GMAIL_GOOGLE_CLIENT_SECRET && env.GMAIL_TOKEN_KEY && env.GMAIL_STATE_SECRET && env.GMAIL_REDIRECT_URI)
   );
 }
 
@@ -33,7 +44,7 @@ function need(name: string): string {
 
 export function buildAuthUrl(state: string, loginHint?: string): string {
   const q = new URLSearchParams({
-    client_id: need('GOOGLE_OAUTH_CLIENT_ID'),
+    client_id: need('GMAIL_GOOGLE_CLIENT_ID'),
     redirect_uri: need('GMAIL_REDIRECT_URI'),
     response_type: 'code',
     scope: `openid email ${GMAIL_SCOPE}`,
@@ -60,7 +71,7 @@ async function tokenRequest(params: Record<string, string>): Promise<TokenRespon
   const res = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ client_id: need('GOOGLE_OAUTH_CLIENT_ID'), client_secret: need('GOOGLE_OAUTH_CLIENT_SECRET'), ...params }),
+    body: new URLSearchParams({ client_id: need('GMAIL_GOOGLE_CLIENT_ID'), client_secret: need('GMAIL_GOOGLE_CLIENT_SECRET'), ...params }),
     signal: AbortSignal.timeout(20_000),
   });
   const body = (await res.json().catch(() => ({}))) as TokenResponse;

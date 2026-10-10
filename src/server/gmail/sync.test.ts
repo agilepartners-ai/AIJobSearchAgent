@@ -55,6 +55,7 @@ function fake(opts: { fixtures?: boolean; accessToken?: SyncDeps['accessToken'];
     repo: {
       getConnection: async () => conn.value,
       setConnectionStatus: async (_u, status, err) => { if (conn.value) Object.assign(conn.value, { status, last_error: err }); },
+      aiCallsToday: async () => Array.from(ledger.values()).filter((r) => r.outcome !== 'skipped').length,
       recordSync: async (_u, summary) => { if (conn.value) Object.assign(conn.value, { last_sync_at: new Date(NOW).toISOString(), last_sync_summary: summary }); },
       seenMessageIds: async (_u, ids) => new Set(ids.filter((id) => ledger.has(id) && ledger.get(id)!.outcome !== 'error')),
       recordMessage: async (_u, row) => { ledger.set(row.messageId, row); },
@@ -191,6 +192,22 @@ describe('syncUser: failure and limits', () => {
       const s = await syncUser(USER, { deps: f.deps });
       expect(s.truncated).toBe(true);
       expect(s.skipped + s.analysed + s.errors).toBeLessThanOrEqual(4);
+    } finally {
+      Object.assign(LIMITS, old);
+    }
+  });
+
+  it('stops at the per-user daily model budget, however often the user syncs', async () => {
+    const f = fake();
+    const old = { ...LIMITS };
+    LIMITS.aiPerDay = 5;
+    try {
+      const first = await syncUser(USER, { deps: f.deps });
+      expect(first.analysed).toBe(5);
+      expect(first.truncated).toBe(true);
+      const second = await syncUser(USER, { deps: f.deps, force: true });
+      expect(second.analysed).toBe(0); // budget spent: no more model calls today
+      expect(f.calls.extract).toBe(5);
     } finally {
       Object.assign(LIMITS, old);
     }

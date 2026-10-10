@@ -20,9 +20,10 @@ LLM extraction, fuzzy merge). Two things decide the plan, and neither is code:
    For the public, Google requires app verification plus an **annual third-party security assessment (CASA)** because a
    server reads and stores data from the scope [docs: API Services User Data Policy; fees quoted by vendors range from about
    $500 to several thousand dollars a year, **[verify]** current lab quotes].
-2. **Email text may only go to the paid Gemini tier.** Unpaid Gemini calls are used to improve Google products and can be read
-   by human reviewers; paid calls are not [docs: ai.google.dev/gemini-api/terms]. The feature refuses to run unless
-   `GEMINI_PAID_TIER=1` is set, which is Yatharth's statement that the key belongs to a billed project.
+2. **Email text may only go to a model that does not train on it or let people read it.** Unpaid Gemini calls do both; paid calls do not
+   [docs: ai.google.dev/gemini-api/terms]. The default is therefore **Cloudflare Workers AI** (Llama 3.3 70B): free up to 10,000 neurons a day and
+   Cloudflare states it does not use customer content to train models [docs: developers.cloudflare.com/workers-ai/platform/data-usage]. Gemini is an
+   option only with `GMAIL_LLM=gemini` and `GEMINI_PAID_TIER=1`. Costs and setup: [GMAIL_SETUP_AND_COSTS.md](./GMAIL_SETUP_AND_COSTS.md).
 
 Recommended path: ship in Testing mode for yourself and up to 100 invited users now; start verification and the assessment
 when you want it open to everyone.
@@ -130,7 +131,7 @@ Licences are unknown or restrictive, so this is a fresh implementation that borr
 2. OAuth consent screen: add scope `https://www.googleapis.com/auth/gmail.readonly`, keep status **Testing**, add test users.
 3. On the OAuth client add the redirect URI `https://agilepartners-ai.com/api/gmail/callback` (and `http://localhost:3000/api/gmail/callback`).
 4. Set on the VM `ajsa.env`: `GMAIL_SYNC_ENABLED=1`, `GMAIL_TOKEN_KEY` (32 random bytes, base64), `GMAIL_STATE_SECRET`, `GMAIL_CRON_SECRET`,
-   `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GEMINI_PAID_TIER=1`, `GMAIL_REDIRECT_URI`. Same on the Worker for the callback.
+   `GMAIL_GOOGLE_CLIENT_ID`, `GMAIL_GOOGLE_CLIENT_SECRET`, `GEMINI_PAID_TIER=1`, `GMAIL_REDIRECT_URI`. Same on the Worker for the callback.
 5. For public launch: privacy policy and homepage must describe the Gmail use, then submit for verification and the security assessment.
 
 ## 9. Test plan

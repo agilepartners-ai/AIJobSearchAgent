@@ -23,6 +23,9 @@ export interface SyncSummary {
   needsReview: number;
   errors: number;
   truncated: boolean;
+  /** Model tokens this run used, for the cost log. */
+  tokensIn?: number;
+  tokensOut?: number;
 }
 
 export async function getConnection(userId: string): Promise<GmailConnection | null> {
@@ -84,6 +87,15 @@ export interface LedgerRow {
   emailType?: string | null;
   confidence?: number | null;
   applicationId?: string | null;
+}
+
+/** Messages that reached the model today (UTC). Skipped mail never costs anything, so it is not counted. */
+export async function aiCallsToday(userId: string): Promise<number> {
+  const { rows } = await query<{ n: number }>(
+    "SELECT count(*)::int AS n FROM app.gmail_messages WHERE user_id = $1 AND outcome <> 'skipped' AND processed_at >= date_trunc('day', now() AT TIME ZONE 'utc') AT TIME ZONE 'utc'",
+    [userId],
+  );
+  return rows[0]?.n ?? 0;
 }
 
 export async function recordMessage(userId: string, r: LedgerRow): Promise<void> {

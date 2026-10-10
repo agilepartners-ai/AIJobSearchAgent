@@ -18,6 +18,8 @@ export const LIMITS = {
   messages: 120,
   /** Model calls per run. */
   ai: 60,
+  /** Model calls per user per day: bounds cost whatever the user does. */
+  aiPerDay: 150,
   /** First sync looks this far back. */
   backfillDays: 30,
   /** Minimum gap between manual syncs. */
@@ -45,7 +47,7 @@ export class TooSoonError extends Error {
 }
 
 export interface SyncDeps {
-  repo: Pick<typeof repo, 'getConnection' | 'setConnectionStatus' | 'recordSync' | 'seenMessageIds' | 'recordMessage' | 'appsForMerge' | 'insertApplication' | 'patchApplication'>;
+  repo: Pick<typeof repo, 'getConnection' | 'setConnectionStatus' | 'recordSync' | 'aiCallsToday' | 'seenMessageIds' | 'recordMessage' | 'appsForMerge' | 'insertApplication' | 'patchApplication'>;
   decrypt: (stored: string) => Promise<string>;
   accessToken: (refreshToken: string) => Promise<string>;
   list: (token: string, q: string, max: number) => Promise<MessageRef[]>;
@@ -114,7 +116,7 @@ export async function syncUser(userId: string, opts: { force?: boolean; deps?: S
     throw e;
   }
 
-  const summary: SyncSummary = { listed: 0, newMessages: 0, skipped: 0, analysed: 0, created: 0, updated: 0, needsReview: 0, errors: 0, truncated: false };
+  const summary: SyncSummary = { listed: 0, newMessages: 0, skipped: 0, analysed: 0, created: 0, updated: 0, needsReview: 0, errors: 0, truncated: false, tokensIn: 0, tokensOut: 0 };
   try {
     const refs = await deps.list(token, buildQuery(last, LIMITS.backfillDays, deps.now()), LIMITS.list);
     summary.listed = refs.length;
@@ -150,8 +152,9 @@ export async function syncUser(userId: string, opts: { force?: boolean; deps?: S
       }
     }
     candidates.sort((a, b) => a.meta.receivedAt.getTime() - b.meta.receivedAt.getTime());
-    if (candidates.length > LIMITS.ai) {
-      candidates.length = LIMITS.ai;
+    const budget = Math.max(0, Math.min(LIMITS.ai, LIMITS.aiPerDay - (await deps.repo.aiCallsToday(userId))));
+    if (candidates.length > budget) {
+      candidates.length = budget;
       summary.truncated = true;
     }
 
@@ -166,6 +169,10 @@ export async function syncUser(userId: string, opts: { force?: boolean; deps?: S
       }
     });
     summary.analysed = read.length;
+    for (const { result } of read) {
+      summary.tokensIn = (summary.tokensIn ?? 0) + (result.usage?.input ?? 0);
+      summary.tokensOut = (summary.tokensOut ?? 0) + (result.usage?.output ?? 0);
+    }
 
     // 3. Merge in the order the mail arrived, so a rejection never lands before the interview invite.
     const apps = await deps.repo.appsForMerge(userId);

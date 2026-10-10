@@ -70,6 +70,8 @@ describe.skipIf(!live)('gmail sync (live database)', { timeout: 60_000 }, () => 
     const lumen = rows.find((r) => r.company_name === 'Lumen Health')!;
     expect(lumen).toMatchObject({ status: 'offered', needs_review: true, confidence: 0.55 });
     expect(await repo.gmailStats(USER)).toMatchObject({ imported: 4, needsReview: 1 });
+    // today's model budget counts what reached the model (8 of the 10), not the two skipped by the filter
+    expect(await repo.aiCallsToday(USER)).toBe(8);
   });
 
   it('does not process the same messages twice, and a follow-up updates in place', async () => {
