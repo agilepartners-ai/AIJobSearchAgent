@@ -21,6 +21,7 @@ import { motion } from 'framer-motion';
 import { Loader2, Menu } from 'lucide-react';
 import { authedFetch } from '../../lib/api/authedFetch';
 import GmailSync from './GmailSync';
+import JobWingLink from './JobWingLink';
 import Sidebar, { type DashboardView } from './Sidebar';
 import ProfileMenu from './ProfileMenu';
 import OverviewView from './views/OverviewView';
@@ -564,6 +565,7 @@ const Dashboard: React.FC = () => {
           </button>
           <h1 className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">{TITLES[view]}</h1>
           <div className="ml-auto flex items-center gap-1.5">
+            <JobWingLink onChanged={loadApplications} />
             <GmailSync onSynced={loadApplications} />
             <ProfileMenu
               name={userProfile?.full_name ?? user?.email ?? 'Account'}
