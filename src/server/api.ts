@@ -9,6 +9,7 @@ import { AuthConfigError, requireUser, UnauthenticatedError } from './auth/verif
 import { DbConfigError } from './db/pool';
 import { ApplicationValidationError } from './db/applicationsRepo';
 import { ResumeValidationError } from './db/resumesRepo';
+import { forwardDataIfWorkers } from './proxy';
 
 export class HttpError extends Error {
   constructor(readonly status: number, message: string) {
@@ -17,7 +18,7 @@ export class HttpError extends Error {
   }
 }
 
-type Ctx = { req: NextApiRequest; res: NextApiResponse; userId: string; email: string | null; admin: boolean };
+type Ctx = { req: NextApiRequest; res: NextApiResponse; userId: string; email: string | null; emailVerified: boolean; admin: boolean };
 type Handler = (ctx: Ctx) => Promise<unknown>;
 
 /** A handler returning `undefined` answers 204; anything else is sent as JSON with 200. */
@@ -28,9 +29,11 @@ export function route(name: string, methods: Partial<Record<'GET' | 'POST' | 'PU
       res.setHeader('Allow', Object.keys(methods).join(', '));
       return res.status(405).json({ error: 'Method not allowed' });
     }
+    // No database path from the Worker: let the VM answer (see forwardDataIfWorkers).
+    if (await forwardDataIfWorkers(req, res)) return;
     try {
       const caller = await requireUser(req);
-      const out = await run({ req, res, userId: caller.userId, email: caller.email, admin: isAdmin(caller) });
+      const out = await run({ req, res, userId: caller.userId, email: caller.email, emailVerified: caller.emailVerified, admin: isAdmin(caller) });
       if (res.writableEnded) return;
       if (out === undefined) return res.status(204).end();
       return res.status(200).json(out);

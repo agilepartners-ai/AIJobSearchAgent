@@ -1,12 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { AuthConfigError, requireUser, UnauthenticatedError } from '../../server/auth/verify';
 import { getOrCreateProfile, updateProfile } from '../../server/db/profilesRepo';
+import { forwardDataIfWorkers } from '../../server/proxy';
 
 /**
  * GET  /api/profile?name=…  → the caller's profile, created on first call
  * PUT  /api/profile {…}     → merge changes into it
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (await forwardDataIfWorkers(req, res)) return;
   try {
     const caller = await requireUser(req);
 

@@ -9,7 +9,7 @@ import { createLinkCode, linkInfo, revokeLinkCode } from '../../../server/db/job
  */
 export default route('jobwing-link', {
   GET: async ({ userId }) => linkInfo(userId),
-  POST: async ({ userId }) => ({ code: await createLinkCode(userId) }),
+  POST: async ({ userId, email, emailVerified }) => ({ code: await createLinkCode(userId, email, emailVerified) }),
   DELETE: async ({ userId }) => {
     await revokeLinkCode(userId);
     return { linked: false };

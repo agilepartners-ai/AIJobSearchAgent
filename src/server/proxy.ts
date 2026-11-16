@@ -51,3 +51,17 @@ export async function forwardIfWorkers(req: NextApiRequest, res: NextApiResponse
   }
   return true;
 }
+
+/**
+ * Database-backed routes, when the Worker has no working path to PostgreSQL.
+ *
+ * The Worker normally reaches the database through Hyperdrive. That needs the database port published to the internet
+ * (closed since October 2026) or a Cloudflare Tunnel route with Access (not enabled on the account). Until one of those
+ * exists, `API_VIA_VM=1` makes these routes forward to the same code on the VM, which sits next to the database on a
+ * private network and is already reachable through the existing tunnel. The VM verifies the caller itself.
+ * Remove the variable to go back to Hyperdrive; nothing else changes.
+ */
+export async function forwardDataIfWorkers(req: NextApiRequest, res: NextApiResponse): Promise<boolean> {
+  if (!isWorkers() || process.env.API_VIA_VM !== '1') return false;
+  return forwardIfWorkers(req, res);
+}

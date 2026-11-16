@@ -6,6 +6,7 @@
  * in an <iframe> or as a download link. Forging or editing a link invalidates it.
  */
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { forwardDataIfWorkers } from '../../../server/proxy';
 import { readDocument, StorageConfigError, verifyLink } from '../../../server/storage/documents';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -13,6 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader('Allow', 'GET, HEAD');
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  if (await forwardDataIfWorkers(req, res)) return;
 
   try {
     const check = verifyLink(req.query);

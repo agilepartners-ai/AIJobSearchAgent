@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { query } from '../../server/db/pool';
+import { forwardDataIfWorkers } from '../../server/proxy';
 import { isWorkers } from '../../server/runtime';
 
 /**
@@ -12,6 +13,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   res.setHeader('Cache-Control', 'no-store');
   const runtime = isWorkers() ? 'workers' : 'node';
   if (req.query.db !== '1') return res.status(200).json({ ok: true, runtime });
+  // With API_VIA_VM the database is reached through the VM, so that is the path worth proving.
+  if (await forwardDataIfWorkers(req, res)) return;
   try {
     await query('SELECT 1');
     return res.status(200).json({ ok: true, runtime, db: true });

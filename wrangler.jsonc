@@ -34,6 +34,9 @@
     // with no origin, generation answers 503 instead of running inside the Worker's CPU limit.
     "GENERATE_ORIGIN": "https://gen.agilepartners-ai.com",
     // Forwarded job emails: shows the user their address in the dashboard (see docs/GMAIL_SETUP_AND_COSTS.md, section 8).
+    // No database path from the Worker (port closed, Access not enabled): database-backed API routes are answered by the VM
+    // through the existing tunnel. Remove this line to use Hyperdrive again. See src/server/proxy.ts.
+    "API_VIA_VM": "1",
     "INBOUND_ENABLED": "1",
     "INBOUND_DOMAIN": "aitoolsfordoctor.com"
   }

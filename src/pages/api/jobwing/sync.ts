@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { cleanItem, syncApplications, userForCode } from '../../../server/db/jobwingRepo';
+import { forwardDataIfWorkers } from '../../../server/proxy';
 
 export const config = { api: { bodyParser: { sizeLimit: '8mb' } } };
 
@@ -14,6 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader('Allow', 'GET, POST');
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  if (await forwardDataIfWorkers(req, res)) return;
   try {
     const header = req.headers.authorization;
     const code = header?.toLowerCase().startsWith('bearer ') ? header.slice(7).trim() : undefined;

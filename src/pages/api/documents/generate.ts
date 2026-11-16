@@ -24,6 +24,7 @@ import { LatexValidationError } from '../../../server/latex/sanitize';
 import { LatexCompileError } from '../../../server/latex/compile';
 import { verifyAccessToken, AuthConfigError, type Caller } from '../../../server/auth/verify';
 import { isAdmin } from '../../../server/auth/admin';
+import { callerForCode, isLinkCode } from '../../../server/db/jobwingRepo';
 import { uploadDocuments } from '../../../server/storage/documents';
 import {
   QuotaExceededError,
@@ -65,6 +66,13 @@ interface GenerateBody {
  */
 async function authenticate(idToken: string | undefined): Promise<Caller> {
   if (!idToken) throw new Error('unauthenticated');
+  // The JobWing plugin sends the user's link code instead of a session token (a scheduled run cannot sign in).
+  // It maps to the same account, so the same daily limit and admin rule apply.
+  if (isLinkCode(idToken)) {
+    const linked = await callerForCode(idToken);
+    if (!linked) throw new Error('unknown link code');
+    return linked;
+  }
   return verifyAccessToken(idToken);
 }
 

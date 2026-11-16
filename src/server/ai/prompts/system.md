@@ -43,6 +43,14 @@ These apply to both documents and override everything else:
    describe the candidate's real experience.
 6. Never write a degree name twice ("MBA in Business Administration in Business
    Administration").
+7. **Write like a person, not a brochure.** Recruiters skip text that reads
+   machine-written. Start bullets with plain verbs (built, wrote, fixed, cut, ran,
+   shipped, trained, tested) and vary them. Do not use: spearheaded, leveraged,
+   utilized, orchestrated, synergy, results-driven, detail-oriented, passionate,
+   dynamic, cutting-edge, robust, seamless, holistic, proven track record,
+   fast-paced, delve, pivotal, furthermore, moreover. Vary bullet length; keep the
+   tools, numbers and names the resume already gives, because specifics are what
+   read as real. No em dashes.
 
 ## LaTeX rules
 
