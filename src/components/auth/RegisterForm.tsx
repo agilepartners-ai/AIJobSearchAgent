@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AuthService } from '../../services/authService';
+import { authFeatures } from '../../services/auth/CustomAuthProvider';
 import GoogleButton from './GoogleButton';
 import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 
@@ -14,7 +15,17 @@ const RegisterForm: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [signupOpen, setSignupOpen] = useState(true);
   const router = useRouter();
+
+  // Sign-up needs the site to send a confirmation email; say so before someone fills the form in.
+  useEffect(() => {
+    let live = true;
+    void authFeatures().then((f) => live && setSignupOpen(f.signup));
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const validatePhone = (phoneNumber: string) => {
     if (!phoneNumber) return true; // Phone is optional
@@ -48,8 +59,8 @@ const RegisterForm: React.FC = () => {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long');
       return;
     }
 
@@ -62,15 +73,16 @@ const RegisterForm: React.FC = () => {
     setLoading(true);
 
     try {
-      // 1️⃣ Create the user
-      await AuthService.signUp({
+      // 1️⃣ Ask for the account: nothing is created until the emailed link is opened
+      await AuthService.initializeProvider();
+      const created = await AuthService.signUp({
         email,
         password,
         phone: formattedPhone,
       });
 
-      // 2️⃣ Route them into the verification flow
-      router.push('/verify-email');
+      // 2️⃣ Signed in already (email confirmation is off for now), or "check your email"
+      router.push(created.id ? '/dashboard' : '/verify-email');
       
     } catch (err: any) {
       setError(err.message || 'Failed to create account');
@@ -112,6 +124,11 @@ const RegisterForm: React.FC = () => {
         <div className="backdrop-blur-lg bg-white/20 dark:bg-gray-900/40 rounded-2xl shadow-xl border border-white/30 dark:border-gray-700/50 p-8 transition-all duration-300">
           <GoogleButton label="Sign up with Google" onError={setError} />
           <form className="space-y-6" onSubmit={handleSubmit}>
+          {!signupOpen && (
+            <div role="status" className="bg-yellow-500/20 text-yellow-100 p-4 rounded-xl text-sm border border-yellow-500/30">
+              New sign-ups are paused for a short while: the site cannot send confirmation emails right now. If you already have an account, you can still sign in.
+            </div>
+          )}
           {error && (
             <div className="bg-red-500/20 dark:bg-red-900/30 backdrop-blur-sm text-red-100 dark:text-red-200 p-4 rounded-xl text-sm border border-red-500/30 dark:border-red-700/50">
               {error}
@@ -160,10 +177,11 @@ const RegisterForm: React.FC = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1 block w-full px-4 py-3 bg-white/10 dark:bg-gray-800/30 border border-white/20 dark:border-gray-600/30 rounded-xl backdrop-blur-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 focus:border-transparent text-white dark:text-blue-50 placeholder-blue-200/70 dark:placeholder-blue-300/50 transition-colors duration-300"
                 placeholder="Create a password"
-                minLength={6}
+                minLength={8}
+                autoComplete="new-password"
               />
               <p className="mt-1 text-sm text-blue-200/80 dark:text-blue-200/60">
-                Password must be at least 6 characters long and contain at least 1 number
+                At least 8 characters. Avoid common passwords and your email address.
               </p>
             </div>
             <div className="space-y-2">
@@ -184,7 +202,7 @@ const RegisterForm: React.FC = () => {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !signupOpen}
             className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-medium text-white bg-gradient-to-r from-blue-600/90 to-purple-600/90 hover:from-blue-600 hover:to-purple-600 dark:from-blue-700/90 dark:to-purple-700/90 dark:hover:from-blue-700 dark:hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 backdrop-blur-sm transition-all hover:shadow-blue-500/20 hover:shadow-xl"
           >
             {loading ? 'Creating account...' : 'Create account'}

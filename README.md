@@ -12,7 +12,7 @@ An AI-powered job search application built with Next.js, React, and TypeScript t
   and one-click **Open in Overleaf**.
 - **Application Tracking**: Comprehensive dashboard to track job applications
 - **Profile Management**: User profile creation and management
-- **Authentication**: Email and Google sign-in with Supabase Auth
+- **Authentication**: Email and Google sign-in, our own, with accounts in our PostgreSQL
 - **Responsive Design**: Modern UI built with Tailwind CSS
 - **Real-time Updates**: Live application status tracking
 
@@ -21,7 +21,7 @@ An AI-powered job search application built with Next.js, React, and TypeScript t
 - **Frontend**: React 18 + TypeScript
 - **Framework**: Next.js
 - **Styling**: Tailwind CSS
-- **Authentication**: Supabase Auth
+- **Authentication**: own implementation (`src/server/auth`): scrypt passwords, ES256 access tokens, rotating refresh cookies
 - **Database**: PostgreSQL (`pg`), schema in `db/migrations`
 - **Routing**: React Router DOM
 - **Icons**: Lucide React
@@ -39,7 +39,7 @@ Before running this project, make sure you have:
 - **Node.js** (version 18 or higher)
 - **pnpm** package manager (`corepack enable`) — not npm, see docs/SETUP.md
 - **Git** for version control
-- **Supabase project** (sign-in) and a **PostgreSQL** database (see `db/README.md`)
+- A **PostgreSQL** database (see `db/README.md`); sign-in accounts live in it too
 
 ## ⚡ Quick Start
 
@@ -73,10 +73,10 @@ Fill it in, then verify with:
 pnpm check:env
 ```
 
-That makes a real call against Supabase, PostgreSQL, Gemini, Texapi and NVIDIA, so a bad key fails there
+That makes a real call against PostgreSQL, Gemini, Texapi and NVIDIA, so a bad key fails there
 rather than when a user clicks Generate.
 
-Document generation needs these server-side secrets on top of the Supabase client config:
+Document generation needs these server-side secrets on top of the sign-in keys:
 
 | Variable | Purpose |
 |---|---|
@@ -158,7 +158,7 @@ MyJobSearchAgent/
 │   │   │   ├── prompts/system.md # The prompt — the macro contract lives here
 │   │   │   ├── gemini.ts         # Gemini client with retry/backoff
 │   │   │   └── generateLatex.ts  # Orchestration: generate -> validate -> compile
-│   │   ├── auth/                 # Supabase token verification
+│   │   ├── auth/                 # Sign-in: tokens, passwords, Google, mail
 │   │   ├── db/                   # Postgres pool, repositories, daily quota
 │   │   └── storage/              # Generated documents + signed links
 │   ├── pages/api/documents/      # generate | compile | url
@@ -447,8 +447,7 @@ The project is configured for automatic deployment to Netlify:
    - Publish directory: `dist`
    - Node version: 18
 3. **Environment Variables**: Add these to Netlify environment variables:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `AUTH_JWT_PUBLIC_KEY`, `EDGE_SHARED_SECRET` (the private key, SMTP and Google settings live on the VM only)
    - `DATABASE_URL`, `PG_SSL_CA`, `PG_POOL_MAX`
    - `DOCUMENT_SIGNING_SECRET`
    - `GEMINI_API_KEY`, `TEXAPI_KEY`, `NVIDIA_API_KEYS`
@@ -492,7 +491,7 @@ log. See [docs/AI_PIPELINE.md](docs/AI_PIPELINE.md#debugging) for the stages and
 ## 🔒 Security
 
 - **Environment Variables**: All sensitive data in `.env`
-- **Data access**: every query is scoped by the user id from a verified Supabase session token; the database accepts connections only as a single least-privilege role over TLS
+- **Data access**: every query is scoped by the user id from a verified sign-in access token; the database accepts connections only as a single least-privilege role over TLS
 - **HTTPS**: Enforced in production
 - **Content Security Policy**: Configured in Netlify
 - **Input Validation**: Zod schema validation

@@ -1,17 +1,27 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
 import { AuthService } from '../../services/authService';
+import { authFeatures } from '../../services/auth/CustomAuthProvider';
 
 interface Props {
   label?: string;
   onError: (message: string) => void;
 }
 
-/** Starts Google sign-in; the browser leaves for Google and returns to /dashboard signed in. */
+/** Starts Google sign-in; the browser leaves for Google and returns to /dashboard signed in. Hidden when the server has no Google client set up. */
 const GoogleButton: React.FC<Props> = ({ label = 'Continue with Google', onError }) => {
   const [busy, setBusy] = useState(false);
+  const [available, setAvailable] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    void authFeatures().then((f) => live && setAvailable(f.google));
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const start = async () => {
     setBusy(true);
@@ -23,6 +33,8 @@ const GoogleButton: React.FC<Props> = ({ label = 'Continue with Google', onError
       onError(err instanceof Error ? err.message : 'Google sign-in failed. Please try again.');
     }
   };
+
+  if (!available) return null;
 
   return (
     <>

@@ -60,6 +60,9 @@ export interface AuthProvider {
   // Email verification
   sendEmailVerification?(): Promise<void>;
   verifyEmail?(token: string): Promise<void>;
+
+  // Reset link (the token comes from the email)
+  confirmPasswordReset?(token: string, newPassword: string): Promise<void>;
 }
 
 // Main authentication service
@@ -81,22 +84,8 @@ export class AuthService {
     // ✅ If we've already initialized once, don't do it again
     if (this.provider) return;
 
-    const { getAuthConfig } = await import('../config/authConfig');
-    const config = getAuthConfig();
-    
-    switch (config.provider) {
-      case 'supabase': {
-        const { SupabaseAuthProvider } = await import('./auth/SupabaseAuthProvider');
-        this.setProvider(new SupabaseAuthProvider());
-        break;
-      }
-      case 'auth0':
-        throw new Error('Auth0 provider not implemented yet');
-      case 'custom':
-        throw new Error('Custom provider not implemented yet');
-      default:
-        throw new Error(`Unknown auth provider: ${config.provider}`);
-    }
+    const { CustomAuthProvider } = await import('./auth/CustomAuthProvider');
+    this.setProvider(new CustomAuthProvider());
   }
 
 
@@ -165,6 +154,12 @@ export class AuthService {
       return provider.sendEmailVerification();
     }
     throw new Error('Email verification not supported by current provider');
+  }
+
+  static async confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+    const provider = this.getProvider();
+    if (!provider.confirmPasswordReset) throw new Error('Password reset not supported by current provider');
+    return provider.confirmPasswordReset(token, newPassword);
   }
 
   static async verifyEmail(token: string): Promise<void> {

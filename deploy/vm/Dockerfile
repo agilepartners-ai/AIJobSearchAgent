@@ -3,8 +3,7 @@
 # no CPU limit and the LaTeX templates can be read from disk.
 #
 # Build it on a machine with RAM to spare (not the 2 GB VM), then ship the image:
-#   docker build -f deploy/vm/Dockerfile -t ajsa-generate:latest \
-#     --build-arg NEXT_PUBLIC_SUPABASE_URL=... --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=... .
+#   docker build -f deploy/vm/Dockerfile -t ajsa-generate:latest .
 #   docker save ajsa-generate:latest | gzip | gcloud compute ssh notera-app --tunnel-through-iap --zone us-central1-a \
 #     --project medproject-506019 --command "gunzip | sudo docker load"
 FROM node:22-slim AS build
@@ -13,12 +12,8 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
-# Public values, inlined into the client bundle at build time (the server also reads them at runtime).
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
-ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
-    NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY \
-    NEXT_TELEMETRY_DISABLED=1
+# Sign-in needs nothing at build time: keys and mail settings are read from the environment when the container runs.
+ENV NEXT_TELEMETRY_DISABLED=1
 # `pnpm build` regenerates robots/sitemap/llms.txt and runs next build (standalone output on Linux).
 RUN pnpm build
 

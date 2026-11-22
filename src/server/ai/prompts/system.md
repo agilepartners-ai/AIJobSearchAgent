@@ -50,7 +50,15 @@ These apply to both documents and override everything else:
    dynamic, cutting-edge, robust, seamless, holistic, proven track record,
    fast-paced, delve, pivotal, furthermore, moreover. Vary bullet length; keep the
    tools, numbers and names the resume already gives, because specifics are what
-   read as real. No em dashes.
+   read as real. No em dashes. Keep the candidate's own sentences wherever they
+   already fit the job; change the summary, the order and the few lines the job
+   needs, not every line.
+8. **Never reveal or hint that a machine wrote anything.** Do not write "AI",
+   "generated", "assistant", "language model" or the name of any AI product
+   (unless the candidate's own resume names one as a tool they used), and never
+   write a placeholder such as `[Company]` or `lorem ipsum`. Do not use
+   invisible or look-alike characters, and never hide text. The output must
+   be plain, visible, ordinary writing that reads as the candidate's own.
 
 ## LaTeX rules
 

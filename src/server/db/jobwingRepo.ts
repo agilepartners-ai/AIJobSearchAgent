@@ -1,8 +1,9 @@
 /**
- * JobWing link: a personal code the plugin uses instead of a login (a Supabase session expires within the hour, a scheduled
+ * JobWing link: a personal code the plugin uses instead of a login (a sign-in token expires within 15 minutes, a scheduled
  * run at 21:30 cannot sign in). The code only reaches the sync route, and only ever touches the owner's own rows.
  */
 import { createHash, randomBytes } from 'node:crypto';
+import { verifyAccessToken } from '../auth/verify';
 import { query, withTransaction } from './pool';
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
@@ -47,6 +48,20 @@ export async function callerForCode(code: string | undefined | null): Promise<{ 
 /** The user a code belongs to, or null. */
 export async function userForCode(code: string | undefined | null): Promise<string | null> {
   return (await callerForCode(code))?.userId ?? null;
+}
+
+/**
+ * Who a bearer token belongs to: a signed-in account's access token (what the JobWing app sends once it is signed in), or the older
+ * link code. Either way the answer is a user id, or null.
+ */
+export async function userForBearer(token: string | undefined | null): Promise<string | null> {
+  if (!token) return null;
+  if (isLinkCode(token)) return userForCode(token);
+  try {
+    return (await verifyAccessToken(token)).userId;
+  } catch {
+    return null;
+  }
 }
 
 export const STATUSES = ['not_applied', 'applied', 'interviewing', 'offered', 'rejected', 'accepted', 'declined'] as const;

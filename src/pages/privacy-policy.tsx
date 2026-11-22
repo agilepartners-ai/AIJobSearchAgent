@@ -89,7 +89,7 @@ const PrivacyPolicy: React.FC = () => {
           <div className="flex items-center justify-center gap-6 text-sm text-gray-500">
             <span>Effective Date: <span className="text-gray-300">April 6, 2025</span></span>
             <span className="w-1 h-1 rounded-full bg-gray-600" />
-            <span>Last Updated: <span className="text-gray-300">April 6, 2025</span></span>
+            <span>Last Updated: <span className="text-gray-300">November 22, 2026</span></span>
           </div>
         </div>
       </div>
@@ -144,7 +144,7 @@ const PrivacyPolicy: React.FC = () => {
         <Section icon={<Share2 size={18} />} title="3. Information Sharing & Disclosure">
           <p>We do <strong className="text-white">not sell, trade, or rent</strong> your personal information to third parties. We may share your information only in these limited circumstances:</p>
           <ul className="list-disc list-inside space-y-2 ml-2">
-            <li><strong className="text-white">Service Providers:</strong> Trusted third-party vendors who assist us in operating our platform (e.g., Supabase and Google for sign-in, cloud hosting), bound by confidentiality agreements.</li>
+            <li><strong className="text-white">Service Providers:</strong> Trusted third-party vendors who assist us in operating our platform (e.g., Google for optional sign-in, email delivery, cloud hosting), bound by confidentiality agreements.</li>
             <li><strong className="text-white">Legal Requirements:</strong> When required by law, court order, or governmental authorities.</li>
             <li><strong className="text-white">Safety:</strong> To protect the rights, property, or safety of our users or the public.</li>
             <li><strong className="text-white">Business Transfers:</strong> In connection with a merger, acquisition, or sale of assets, with prior notice to you.</li>
@@ -176,6 +176,20 @@ const PrivacyPolicy: React.FC = () => {
             <li><strong className="text-white">Disconnecting:</strong> use Disconnect Gmail in the dashboard, or remove access at myaccount.google.com/permissions. We then revoke the token and delete the connection and message log. You can also delete the applications imported from Gmail.</li>
           </ul>
           <p className="mt-3">The use of information received from Google APIs will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+        </Section>
+
+        <Section icon={<Lock size={18} />} title="4b. JobWing desktop app and plugin">
+          <p>JobWing is a Windows app and Claude Code plugin that finds and prepares job applications on your own computer. It uses your Agile Partners account, the same account as this website.</p>
+          <ul className="list-disc list-inside space-y-2 ml-2">
+            <li><strong className="text-white">Stays on your computer:</strong> your Gmail messages, your conversations with Claude, your file paths and your passwords. We never receive them. Your résumé and cover letters also stay there, unless you switch on &quot;Let the website tailor my résumés&quot; (off by default).</li>
+            <li><strong className="text-white">Sent to us when you are signed in:</strong> your job list and application statuses (company, role, location, the posting&apos;s link and text as published, source, score, status and dates), so they appear on your dashboard.</li>
+            <li><strong className="text-white">Only if you switch on website résumés:</strong> for each job, your résumé text and the job description are sent to the website, which creates the tailored résumé and saves it in your account, exactly as when you use the website directly.</li>
+            <li><strong className="text-white">Optional activity log, off until you say yes:</strong> which tools ran, how long they took, whether they worked, a short error code, run types and times, daily counts of jobs found and applied, the app version and operating system. It never contains the text of anything you typed or any document, email address or link. The app builds it from a fixed list of fields and our server rejects anything else.</li>
+            <li><strong className="text-white">Why:</strong> to find what fails or is slow and fix it, and to see how much the product is used. Only the owner of the service can see it, as totals and tool names; it is not used for advertising and is not sold or shared.</li>
+            <li><strong className="text-white">Protection:</strong> sent over HTTPS, stored on an encrypted disk, and separated per user by database row-level security so one account cannot read another&apos;s rows.</li>
+            <li><strong className="text-white">Your control:</strong> turn the activity log off in the app (Account, or Settings) and what we hold is deleted; use Delete my server data in the app to remove everything JobWing stored for you; or delete your account. Raw activity rows are in any case removed after about three to four months.</li>
+          </ul>
+          <p className="mt-3">JobWing starts Claude Code, which you sign in to with your own Claude account. Your use of Claude is governed by Anthropic&apos;s terms and privacy policy, not ours.</p>
         </Section>
 
         <Section icon={<UserCheck size={18} />} title="5. Your Rights & Choices">

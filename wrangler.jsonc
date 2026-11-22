@@ -36,6 +36,9 @@
     // Forwarded job emails: shows the user their address in the dashboard (see docs/GMAIL_SETUP_AND_COSTS.md, section 8).
     // No database path from the Worker (port closed, Access not enabled): database-backed API routes are answered by the VM
     // through the existing tunnel. Remove this line to use Hyperdrive again. See src/server/proxy.ts.
+    // Public half of the sign-in signing key (public by design): the Worker checks access tokens with it. The private half and
+    // the SMTP/Google settings live on the VM only. EDGE_SHARED_SECRET is a Worker secret (wrangler secret put), not set here.
+    "AUTH_JWT_PUBLIC_KEY": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE1X6o88TU2EO2TNQjYJzf/sZ4MJhw\nIn0bp5Wm6S1WtCoeXVB+swOA1iUIngNz6ag7P3+LY/jQnLHT6x27bApdRA==\n-----END PUBLIC KEY-----",
     "API_VIA_VM": "1",
     "INBOUND_ENABLED": "1",
     "INBOUND_DOMAIN": "aitoolsfordoctor.com"

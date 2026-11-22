@@ -65,3 +65,50 @@ export async function forwardDataIfWorkers(req: NextApiRequest, res: NextApiResp
   if (!isWorkers() || process.env.API_VIA_VM !== '1') return false;
   return forwardIfWorkers(req, res);
 }
+
+/**
+ * Sign-in, sign-up, sessions and passwords run on the VM, next to the accounts in the database. On the Worker the auth route
+ * only forwards. Unlike the data routes it must carry the cookie (the refresh token), the visitor's address (for rate limits,
+ * vouched for by a shared secret the VM checks) and it must hand redirects and Set-Cookie back to the browser untouched.
+ */
+export async function forwardAuthIfWorkers(req: NextApiRequest, res: NextApiResponse): Promise<boolean> {
+  if (!isWorkers()) return false;
+  const origin = process.env.GENERATE_ORIGIN?.replace(/\/+$/, '');
+  const secret = process.env.EDGE_SHARED_SECRET;
+  if (!origin || !secret) {
+    console.error('[proxy] GENERATE_ORIGIN or EDGE_SHARED_SECRET is not set; sign-in is unavailable on this deployment');
+    res.status(503).json({ error: 'Sign-in is not available right now. Please try again later.' });
+    return true;
+  }
+
+  // Built from scratch, never copied: a visitor cannot smuggle the secret or the client-address header through.
+  const headers: Record<string, string> = { 'x-ajsa-edge': secret };
+  const pass = (name: string, as = name) => {
+    const v = req.headers[name];
+    if (typeof v === 'string') headers[as] = v;
+  };
+  for (const n of ['content-type', 'authorization', 'cookie', 'user-agent', 'origin', 'x-requested-with', 'x-request-id']) pass(n);
+  pass('cf-connecting-ip', 'x-ajsa-client-ip');
+
+  try {
+    const upstream = await fetch(`${origin}${req.url ?? ''}`, {
+      method: req.method,
+      headers,
+      body: req.method === 'GET' || req.method === 'HEAD' ? undefined : JSON.stringify(req.body ?? {}),
+      redirect: 'manual',
+      signal: AbortSignal.timeout(30_000),
+    });
+    res.status(upstream.status);
+    for (const name of ['content-type', 'cache-control', 'location', 'allow', 'x-request-id']) {
+      const v = upstream.headers.get(name);
+      if (v) res.setHeader(name, v);
+    }
+    const cookies = upstream.headers.getSetCookie?.() ?? [];
+    if (cookies.length) res.setHeader('Set-Cookie', cookies);
+    res.send(Buffer.from(await upstream.arrayBuffer()));
+  } catch (error) {
+    console.error('[proxy] auth upstream failed:', error instanceof Error ? error.message : error);
+    res.status(502).json({ error: 'Sign-in is not reachable right now. Please try again in a moment.' });
+  }
+  return true;
+}

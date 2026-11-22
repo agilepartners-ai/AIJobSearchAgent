@@ -1,6 +1,6 @@
 /**
- * Google OAuth for the "Connect Gmail" step. Separate from Supabase sign-in on purpose: Supabase does not keep the
- * provider refresh token, and email/password users must be able to connect too (docs/GMAIL_JOB_SYNC_SCOPE.md, section 2).
+ * Google OAuth for the "Connect Gmail" step. Separate from sign-in on purpose: sign-in with Google only proves who
+ * someone is and keeps no Google refresh token, and email/password users must be able to connect too (docs/GMAIL_JOB_SYNC_SCOPE.md, section 2).
  */
 import { GmailConfigError } from './crypto';
 

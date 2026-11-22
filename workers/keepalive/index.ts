@@ -1,18 +1,13 @@
 /**
  * Daily health and keep-alive Worker (free plan: one cron trigger, a handful of requests a day).
  *
- * 1. Keeps the Supabase project awake. Free projects pause after about a week without database activity,
- *    which would break sign-in. A password sign-in for an address that does not exist is rejected with 400
- *    after Supabase looks it up in its database: that is the activity, and it creates no account.
- * 2. Checks the three things whose failure users would notice: the site, the database path
- *    (Hyperdrive), and the VM service that generates documents.
+ * Checks the things whose failure users would notice: the sign-in service (/api/auth/*, answered by the VM through
+ * the tunnel), the site, the database path, and the VM service that generates documents.
  *
  * A failing check makes the scheduled run throw, so it shows up as a failed invocation in the Cloudflare
  * dashboard where a notification can be attached. Open the Worker's URL to run the same checks on demand.
  */
 export interface Env {
-  SUPABASE_URL: string;
-  SUPABASE_ANON_KEY: string;
   SITE_URL: string;
   GENERATE_ORIGIN?: string;
   /** Set (as a secret) to also trigger the daily Gmail sync on the VM. Unset: no sync call is made. */
@@ -42,15 +37,11 @@ export async function runChecks(env: Env, doFetch: Fetch = fetch): Promise<Check
   const checks: Promise<Check>[] = [];
 
   checks.push(
-    check('supabase', async () => {
-      const r = await doFetch(`${trim(env.SUPABASE_URL)}/auth/v1/token?grant_type=password`, {
-        method: 'POST',
-        headers: { apikey: env.SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'keepalive@invalid.example', password: 'not-a-real-password' }),
-        signal: timeout(),
-      });
-      // 400 invalid_credentials is the healthy answer: the database was consulted and said no.
-      return { ok: r.status === 400, detail: `HTTP ${r.status}` };
+    check('sign-in', async () => {
+      // Worker -> tunnel -> VM. A 200 with the feature flags means people can reach the sign-in service at all.
+      const r = await doFetch(`${trim(env.SITE_URL)}/api/auth/config`, { signal: timeout() });
+      const body = (await r.json().catch(() => null)) as { email?: unknown } | null;
+      return { ok: r.status === 200 && typeof body?.email === 'boolean', detail: `HTTP ${r.status}` };
     }),
   );
 

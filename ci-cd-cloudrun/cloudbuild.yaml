@@ -4,10 +4,6 @@ steps:
     args:
       - 'build'
       - '--build-arg'
-      - 'NEXT_PUBLIC_SUPABASE_URL=${_NEXT_PUBLIC_SUPABASE_URL}'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_SUPABASE_ANON_KEY=${_NEXT_PUBLIC_SUPABASE_ANON_KEY}'
-      - '--build-arg'
       - 'NEXT_PUBLIC_JSEARCH_API_KEY=${_NEXT_PUBLIC_JSEARCH_API_KEY}'
       - '--build-arg'
       - 'NEXT_PUBLIC_JSEARCH_API_HOST=${_NEXT_PUBLIC_JSEARCH_API_HOST}'
@@ -75,8 +71,6 @@ substitutions:
   _REPOSITORY: ''
   _SERVICE_NAME: ''
   # Environment variables for build and runtime
-  _NEXT_PUBLIC_SUPABASE_URL: ''
-  _NEXT_PUBLIC_SUPABASE_ANON_KEY: ''
   _NEXT_PUBLIC_JSEARCH_API_KEY: ''
   _NEXT_PUBLIC_JSEARCH_API_HOST: ''
 

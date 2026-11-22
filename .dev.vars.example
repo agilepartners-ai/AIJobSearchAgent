@@ -2,8 +2,9 @@
 # Hyperdrive in local mode connects straight to this URL. For a quick check use a local Postgres; a database
 # that needs our private CA is only reachable through the real Hyperdrive binding after deploy.
 CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE=postgres://jobsearch_app:password@localhost:5432/jobsearch
-NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+# Public half of the sign-in signing key (PEM, newlines as \n) and the secret shared with the VM.
+AUTH_JWT_PUBLIC_KEY=
+EDGE_SHARED_SECRET=<24+ random characters>
 DOCUMENT_SIGNING_SECRET=<24+ random characters>
 # Leave empty to see the safe 503 for generation, or point at a running VM service / local `pnpm dev`.
 GENERATE_ORIGIN=

@@ -27,9 +27,16 @@ const LoginForm: React.FC = () => {
       // Clear the query parameter from URL
       const { session, ...restQuery } = router.query;
       router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
-    } else if (router.query.error === 'auth') {
-      setError('Authentication error occurred. Please sign in again.');
-      
+    } else if (typeof router.query.error === 'string') {
+      const messages: Record<string, string> = {
+        auth: 'Authentication error occurred. Please sign in again.',
+        google_unavailable: 'Google sign-in is not available right now. Use your email and password.',
+        google_cancelled: 'Google sign-in was cancelled.',
+        google_unverified: 'Google has not verified that email address, so it cannot be used to sign in.',
+        google_failed: 'Google sign-in did not complete. Please try again.',
+      };
+      setError(messages[router.query.error] ?? messages.auth);
+
       // Clear the query parameter from URL
       const { error, ...restQuery } = router.query;
       router.replace({ pathname: router.pathname, query: restQuery }, undefined, { shallow: true });
@@ -144,16 +151,7 @@ const LoginForm: React.FC = () => {
           </div>
 
           <div className="flex items-center justify-between py-2">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-white/30 dark:border-gray-600/50 rounded bg-white/20 dark:bg-gray-800/40"
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-white dark:text-blue-100">
-                Remember me
-              </label>
-            </div>
+            <p className="text-xs text-blue-200/70">Stays signed in on this device for up to 30 days. Sign out on shared computers.</p>
             <div className="text-sm">
               <button
                 type="button"

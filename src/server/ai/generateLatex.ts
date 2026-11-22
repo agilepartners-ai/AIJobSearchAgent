@@ -13,6 +13,8 @@ import { buildDocument } from '../latex/buildDocument';
 import { LatexValidationError } from '../latex/sanitize';
 import { getCompiler, LatexCompileError } from '../latex/compile';
 import { generateText, type TokenUsage } from './gemini';
+import { stripInvisible } from './humanize';
+import { reviewResume } from './resumeReview';
 
 const PROMPT_PATH = path.join(process.cwd(), 'src', 'server', 'ai', 'prompts', 'system.md');
 
@@ -148,7 +150,7 @@ function buildUserPrompt(
       '## Your previous attempt was rejected',
       correction,
       '',
-      'Reproduce the full output, using only the documented macros this time.',
+      'Reproduce the full output with exactly the problems above fixed, using only the documented macros. Change wording only; never add a fact.',
     );
   }
 
@@ -275,6 +277,17 @@ export async function generateDocuments(
   options: GenerateDocumentsOptions = {},
 ): Promise<GeneratedDocuments> {
   let correction: string | undefined;
+  // The first attempt, kept when it was valid LaTeX but failed the review, in case the second attempt is worse or unusable.
+  let fallback: { analysis: Analysis; resumeTex: string; coverLetterTex: string; problems: number } | null = null;
+
+  const finish = async (raw: { analysis: Analysis; resumeTex: string; coverLetterTex: string }): Promise<GeneratedDocuments> => {
+    // Hidden characters (zero-width, direction marks) are removed from whatever is kept; nothing visible changes.
+    const d = { analysis: raw.analysis, resumeTex: stripInvisible(raw.resumeTex), coverLetterTex: stripInvisible(raw.coverLetterTex) };
+    if (options.compile === false) {
+      return { ...d, resumePdf: null, coverLetterPdf: null, compile: { ok: false, note: 'skipped' } };
+    }
+    return { ...d, ...(await compileDocuments(d.resumeTex, d.coverLetterTex)) };
+  };
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const raw = await generateText({
@@ -305,14 +318,26 @@ export async function generateDocuments(
           : error.message;
         continue;
       }
+      if (fallback && error instanceof LatexValidationError) return finish(fallback);
       throw error;
     }
 
-    if (options.compile === false) {
-      return { analysis, resumeTex, coverLetterTex, resumePdf: null, coverLetterPdf: null, compile: { ok: false, note: 'skipped' } };
+    // The gate: a résumé that adds a fact, reads machine-written or names a machine gets one more attempt with the exact
+    // problems listed. The second attempt is accepted either way (a flawed document is better than none), but the problems are
+    // logged so a pattern shows up. The candidate's own text, other résumés and contact details are what "new" is measured against.
+    const review = reviewResume([resumeText, options.supplement ?? '', formatProfile(profile).join('\n')].join('\n'), resumeTex, coverLetterTex);
+    if (!review.ok) {
+      if (attempt === 0) {
+        fallback = { analysis, resumeTex, coverLetterTex, problems: review.problems.length };
+        correction = review.problems.join(' ');
+        continue;
+      }
+      console.warn(`[generateDocuments] Résumé still failed the review after a second attempt: ${review.problems.join(' | ').slice(0, 400)}`);
+      // Keep whichever attempt has fewer problems.
+      if (fallback && fallback.problems < review.problems.length) return finish(fallback);
     }
-    const compiled = await compileDocuments(resumeTex, coverLetterTex);
-    return { analysis, resumeTex, coverLetterTex, ...compiled };
+
+    return finish({ analysis, resumeTex, coverLetterTex });
   }
 
   // Unreachable: the loop either returns or throws.

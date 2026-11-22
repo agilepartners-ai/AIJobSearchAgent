@@ -5,8 +5,8 @@ import type { Caller } from './verify';
  * (comma-separated, server-side only, never sent to a browser).
  *
  * The address must be one the identity provider has verified: an email/password account cannot sign in
- * until it confirms the address, Google only reports verified addresses, and Supabase applies an email
- * change only after the new address is confirmed. `emailVerified` is checked as well, as a second guard.
+ * until it confirms the address, Google only reports verified addresses, and an email change is applied
+ * only after the new address is confirmed. `emailVerified` is checked as well, as a second guard.
  */
 export function adminEmails(env: string | undefined = process.env.ADMIN_EMAILS): Set<string> {
   return new Set(

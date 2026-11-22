@@ -117,7 +117,8 @@
     "/job-search",
     "/job-listings",
     "/ai-interview",
-    "/analytics-dashboard"
+    "/analytics-dashboard",
+    "/admin/jobwing"
   ],
   "crawlers": {
     "allow": [

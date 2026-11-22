@@ -292,39 +292,24 @@ async function checkTexapi() {
   }
 }
 
-async function checkSupabase() {
-  section('Supabase (authentication only)');
+async function checkAuth() {
+  section('Sign-in (our own, on the VM database)');
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, '');
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) {
-    return fail(
-      'NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY missing',
-      'Supabase dashboard → Project Settings → API. The anon key is public by design.',
-    );
+  const pub = process.env.AUTH_JWT_PUBLIC_KEY;
+  if (!pub) {
+    fail('AUTH_JWT_PUBLIC_KEY missing', 'The public half of the ES256 signing key (PEM, newlines as \\n). Every API route verifies sign-in tokens with it.');
+  } else if (!pub.replace(/\\n/g, '\n').includes('BEGIN PUBLIC KEY')) {
+    fail('AUTH_JWT_PUBLIC_KEY is not a PEM public key');
+  } else {
+    pass('Token verification key present');
   }
-
-  try {
-    // The anon key is validated by Supabase itself: a dead or mistyped key is rejected here,
-    // the same way the browser would reject it at sign-in.
-    const settings = await fetch(`${url}/auth/v1/settings`, { headers: { apikey: anon } });
-    if (!settings.ok) {
-      return fail('Supabase rejected the anon key', `GET /auth/v1/settings -> HTTP ${settings.status}. Copy a fresh key from Project Settings → API.`);
-    }
-    const body = await settings.json();
-    pass('Anon key accepted', url);
-    if (body.external?.google) pass('Google sign-in is enabled');
-    else warn('Google sign-in is not enabled', 'Supabase → Authentication → Providers → Google.');
-    if (body.external?.email) pass('Email sign-in is enabled');
-
-    // The API verifies sessions against these public keys; nothing secret is needed server-side.
-    const jwks = await fetch(`${url}/auth/v1/.well-known/jwks.json`);
-    const keys = jwks.ok ? (await jwks.json()).keys ?? [] : [];
-    if (keys.length) pass('Token signing keys published', `${keys.length} key(s), ${keys[0].alg}`);
-    else fail('No signing keys at /.well-known/jwks.json', 'Server-side token verification would reject every request. Enable asymmetric JWT signing in Supabase.');
-  } catch (err) {
-    fail('Could not reach Supabase', err.message);
-  }
+  // The private key and the mail settings only matter where /api/auth/* actually runs (the VM).
+  if (process.env.AUTH_JWT_PRIVATE_KEY) pass('Signing key present (this machine can issue tokens)');
+  else warn('AUTH_JWT_PRIVATE_KEY unset', 'Fine on the Worker. The VM service needs it to sign people in.');
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD) pass('Mail sending configured', process.env.SMTP_HOST);
+  else warn('SMTP not configured', 'Sign-up and "forgot password" stay closed until SMTP_HOST, SMTP_USER, SMTP_PASSWORD (and MAIL_FROM) are set on the VM.');
+  if (process.env.AUTH_GOOGLE_CLIENT_ID && process.env.AUTH_GOOGLE_CLIENT_SECRET) pass('Google sign-in configured');
+  else warn('Google sign-in not configured', 'Optional: AUTH_GOOGLE_CLIENT_ID and AUTH_GOOGLE_CLIENT_SECRET.');
 }
 
 async function checkDatabase() {
@@ -394,7 +379,7 @@ async function main() {
       : `${YELLOW}No .env or .env.local found — copy .env.example to .env.local${RESET}`,
   );
 
-  await checkSupabase();
+  await checkAuth();
   await checkDatabase();
   await checkGemini();
   await checkNvidia();

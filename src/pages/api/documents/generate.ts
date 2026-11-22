@@ -60,7 +60,7 @@ interface GenerateBody {
 }
 
 /**
- * Identify the caller from a Supabase access token. The previous flow trusted a
+ * Identify the caller from a sign-in access token. The previous flow trusted a
  * `userId` field straight from the request body, so any client could spend
  * another user's quota or write into their storage prefix.
  */

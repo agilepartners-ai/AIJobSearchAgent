@@ -35,7 +35,7 @@ export function isAuthenticationError(error: any): boolean {
     'authentication required'
   ];
 
-  // Supabase auth error codes that mean the session is no longer usable
+  // Error codes that mean the session is no longer usable
   const authErrorCodes = [
     'session_not_found',
     'session_expired',
